@@ -69,6 +69,8 @@ Fundit은 구매자가 프로젝트와 LIVE를 탐색하고 리워드 펀딩에 
 ```text
 Fundit-FE/
 ├─ .github/
+│  ├─ ISSUE_TEMPLATE/
+│  │  └─ task.md                   # Issue 단위 작업 정의
 │  ├─ workflows/
 │  │  └─ ci.yml                     # install → lint → typecheck → build
 │  └─ pull_request_template.md
@@ -100,6 +102,7 @@ Fundit-FE/
 │     ├─ components/                # Shell과 공통 placeholder UI
 │     └─ config/                    # 공통 내비게이션 설정
 ├─ .env.example
+├─ CONTRIBUTING.md                 # Git·Issue·코드 컨벤션
 ├─ package.json
 ├─ pnpm-lock.yaml
 └─ tsconfig.json
@@ -164,9 +167,14 @@ Copy-Item .env.example .env.local
 
 ## 설계 문서
 
+- [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 - [ROUTING.md](./docs/ROUTING.md).
 - [OPEN_DECISIONS.md](./docs/OPEN_DECISIONS.md).
+
+## 개발 참여
+
+모든 구현과 수정은 `1 Issue → 1 Branch → 1 Pull Request` 단위로 진행합니다. 브랜치·커밋·코드 작성 규칙과 제출 전 검증은 [기여 가이드](./CONTRIBUTING.md)를 확인하세요.
 
 ## 현재 구현 범위
 
