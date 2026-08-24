@@ -72,7 +72,7 @@ Fundit-FE/
 │  ├─ ISSUE_TEMPLATE/
 │  │  └─ task.md                   # Issue 단위 작업 정의
 │  ├─ workflows/
-│  │  └─ ci.yml                     # install → lint → typecheck → build
+│  │  └─ ci.yml                     # install → format → lint → typecheck → build
 │  └─ pull_request_template.md
 ├─ docs/
 │  ├─ ARCHITECTURE.md               # 디렉터리·의존성·상태 소유 원칙

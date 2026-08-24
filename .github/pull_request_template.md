@@ -17,6 +17,7 @@
 
 ## 검증
 
+- [ ] `pnpm format:check`
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm build`
