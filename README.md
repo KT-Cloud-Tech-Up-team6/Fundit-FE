@@ -28,7 +28,7 @@ Fundit은 구매자가 프로젝트와 LIVE를 탐색하고 리워드 펀딩에 
           alt="이중호"
         />
         <br />
-        <strong>이중호 (팀장)</strong>
+        <strong>이중호</strong>
       </a>
       <br />
       FE / 파트장
