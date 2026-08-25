@@ -32,7 +32,13 @@ Issue에는 다음 내용을 포함한다.
 - BE, AI, 기획, 디자인, 인프라 또는 보안 협의가 필요한 내용.
 - 선행 Issue나 외부 의존성.
 
-저장소의 [작업 Issue 템플릿](./.github/ISSUE_TEMPLATE/task.md)을 사용한다.
+작업 유형에 맞는 Issue 템플릿을 사용한다.
+
+| 템플릿                                         | 용도                 | 라벨    |
+| ---------------------------------------------- | -------------------- | ------- |
+| [Feature](./.github/ISSUE_TEMPLATE/feature.md) | 새로운 기능이나 화면 | `feat`  |
+| [Bug](./.github/ISSUE_TEMPLATE/bug.md)         | 버그 제보와 수정     | `bug`   |
+| [Task](./.github/ISSUE_TEMPLATE/task.md)       | 리팩터링, 문서, 설정 | `chore` |
 
 ## 브랜치 규칙
 
