@@ -1,9 +1,8 @@
 ---
-name: 작업 Issue
-about: 기능, 수정, 문서 또는 설정 작업을 정의합니다.
-title: ""
-labels: ""
-assignees: ""
+name: "Task"
+about: 리팩터링, 문서, 설정 등 기능 추가와 버그 수정 외의 작업을 정의합니다.
+title: "chore: "
+labels: chore
 ---
 
 ## 배경 및 목적
