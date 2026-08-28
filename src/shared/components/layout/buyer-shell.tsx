@@ -6,9 +6,9 @@ import { buyerNavigation } from "@/shared/config/navigation";
 export function BuyerShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen pb-20 md:pb-0">
-      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
+      <header className="border-line bg-surface/95 sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-          <Link href="/" className="text-xl font-black tracking-tight text-brand-strong">
+          <Link href="/" className="text-brand-strong text-xl font-black tracking-tight">
             Fundit
           </Link>
           <nav aria-label="구매자 주요 메뉴" className="hidden items-center gap-5 md:flex">
@@ -16,7 +16,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-semibold hover:text-brand"
+                className="hover:text-brand text-sm font-semibold"
               >
                 {item.label}
               </Link>
@@ -37,7 +37,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
       <main>{children}</main>
       <nav
         aria-label="모바일 구매자 메뉴"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="border-line bg-surface fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {buyerNavigation.map((item) => (
           <Link

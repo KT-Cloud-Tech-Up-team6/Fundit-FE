@@ -11,7 +11,7 @@ export function ModeSwitchLink({ mode }: ModeSwitchLinkProps) {
   return (
     <Link
       href={target}
-      className="rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold text-brand-strong transition hover:border-brand"
+      className="border-line bg-surface text-brand-strong hover:border-brand rounded-full border px-3 py-2 text-sm font-semibold transition"
     >
       {label}
     </Link>
