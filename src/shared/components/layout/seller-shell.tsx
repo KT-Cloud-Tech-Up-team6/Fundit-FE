@@ -6,9 +6,9 @@ import { sellerNavigation } from "@/shared/config/navigation";
 export function SellerShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
-      <aside className="border-line border-b bg-slate-950 p-4 text-white lg:min-h-screen lg:border-b-0 lg:p-6">
+      <aside className="border-border-default bg-layer-surface-primary text-text-inverse border-b p-4 lg:min-h-screen lg:border-b-0 lg:p-6">
         <div className="flex items-center justify-between lg:block">
-          <Link href="/seller/projects" className="text-xl font-black">
+          <Link href="/seller/projects" className="text-heading-s">
             Fundit Seller
           </Link>
           <div className="lg:mt-6">
@@ -23,7 +23,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap hover:bg-white/10"
+              className="text-label-l hover:bg-layer-surface-default/10 rounded-md px-3 py-2 whitespace-nowrap"
             >
               {item.label}
             </Link>
@@ -31,8 +31,8 @@ export function SellerShell({ children }: { children: ReactNode }) {
         </nav>
       </aside>
       <div>
-        <header className="border-line bg-surface border-b px-4 py-4 sm:px-6">
-          <p className="text-muted text-sm font-semibold">판매자 운영 콘솔 · PC-first</p>
+        <header className="border-border-default bg-layer-surface-default border-b px-4 py-4 sm:px-6">
+          <p className="text-label-l text-text-secondary">판매자 운영 콘솔 · PC-first</p>
         </header>
         <main>{children}</main>
       </div>

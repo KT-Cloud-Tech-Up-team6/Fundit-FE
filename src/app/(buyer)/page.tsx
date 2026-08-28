@@ -15,7 +15,10 @@ export default function HomePage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <ProjectStatusCard label="프로젝트" value="목록 연결 예정" />
         <ProjectStatusCard label="진행 중 LIVE" value="스트림 연결 예정" />
-        <Link href="/search" className="bg-brand rounded-2xl p-5 font-bold text-white">
+        <Link
+          href="/search"
+          className="bg-layer-surface-primary text-body-strong text-text-inverse rounded-md p-5"
+        >
           프로젝트 검색하기 →
         </Link>
       </div>
