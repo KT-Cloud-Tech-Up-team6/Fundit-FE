@@ -506,18 +506,18 @@ pnpm storybook
 
 ### 디자인 확인 필요
 
-| 우선순위 | 항목                                  | 내용                                                                                                                                                                                                                                      |
-| -------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | `text-disabled`/`text-secondary` 대비 | 둘 다 charcoal-600 `#7a7c8a`, white 대비 4.14:1로 WCAG 4.5:1 미달. 2026-08-27 export로 Figma 공식값임이 확정됐다. 두 토큰이 같은 값을 쓰는 것도 의도인지 확인 필요                                                                        |
-| P0       | Status 명명                           | `Status/warning`이 bright-red, `Status/error`가 bright-orange다. Text·Border 그룹도 동일 패턴 — warning↔red, error↔orange가 두 모드에 걸쳐 일관되게 반대로 매핑돼 있다. 표준 관례(warning=주황/error=빨강)와 반대인 게 의도인지 확인 필요 |
-| P1       | 변수명 오타                           | `Layer/surface_disbaled` → `disabled`, `Text/disable` → `disabled`                                                                                                                                                                        |
-| P1       | 타이포 체계                           | Foundations Type(24종, `body_m` 방식)과 실제 변수(9종, `Body/Regular_16` 방식)가 별개로 존재한다                                                                                                                                          |
-| P1       | `Body/Semibold_16`                    | 이름은 Semibold(600)인데 실제 값은 Medium(500)이다. `Body/Medium_16`과 값이 완전히 같다                                                                                                                                                   |
-| P1       | 미정의 Semantic                       | `text_tertiary`, `border_focus`, `icon_default`, `icon_subtle`, `icon_primary` — 6.6 참고. Component `Icon/*`은 확인됐으나 "subtle"에 대응하는 상태가 없다                                                                                |
-| P2       | `Navigation` 컴포넌트                 | Figma에 아직 색이 없다. 변수명이 `"아직 안 정함"`으로 디자인팀이 직접 표시해뒀다 — 확정되면 재조회한다                                                                                                                                    |
-| P2       | Charcoal vs Grey                      | 두 계열의 사용 구분 기준. `#7a7c8a` 값이 중복된다                                                                                                                                                                                         |
-| P2       | Heading 중복                          | Foundations에서 `Heading XL`이 32/130과 28/130 두 개로 표기돼 있다                                                                                                                                                                        |
-| P2       | 폰트                                  | Pretendard 자체 호스팅 여부와 서브셋 범위. `Heading/Heading 2`만 Noto Sans에 바인딩된 것이 의도인지                                                                                                                                       |
+| 우선순위 | 항목                                  | 내용                                                                                                                                                                                                                                                          |
+| -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | `text-disabled`/`text-secondary` 대비 | 둘 다 charcoal-600 `#7a7c8a`, white 대비 4.14:1로 WCAG 4.5:1 미달. 실사용 최악 조합은 `layer-bg`(pearl-white) 위 **3.86:1** — page-placeholder 히어로 설명문. 2026-08-27 export로 Figma 공식값임이 확정됐다. 두 토큰이 같은 값을 쓰는 것도 의도인지 확인 필요 |
+| P0       | Status 명명                           | `Status/warning`이 bright-red, `Status/error`가 bright-orange다. Text·Border 그룹도 동일 패턴 — warning↔red, error↔orange가 두 모드에 걸쳐 일관되게 반대로 매핑돼 있다. 표준 관례(warning=주황/error=빨강)와 반대인 게 의도인지 확인 필요                     |
+| P1       | 변수명 오타                           | `Layer/surface_disbaled` → `disabled`, `Text/disable` → `disabled`                                                                                                                                                                                            |
+| P1       | 타이포 체계                           | Foundations Type(24종, `body_m` 방식)과 실제 변수(9종, `Body/Regular_16` 방식)가 별개로 존재한다                                                                                                                                                              |
+| P1       | `Body/Semibold_16`                    | 이름은 Semibold(600)인데 실제 값은 Medium(500)이다. `Body/Medium_16`과 값이 완전히 같다                                                                                                                                                                       |
+| P1       | 미정의 Semantic                       | `text_tertiary`, `border_focus`, `icon_default`, `icon_subtle`, `icon_primary` — 6.6 참고. Component `Icon/*`은 확인됐으나 "subtle"에 대응하는 상태가 없다                                                                                                    |
+| P2       | `Navigation` 컴포넌트                 | Figma에 아직 색이 없다. 변수명이 `"아직 안 정함"`으로 디자인팀이 직접 표시해뒀다 — 확정되면 재조회한다                                                                                                                                                        |
+| P2       | Charcoal vs Grey                      | 두 계열의 사용 구분 기준. `#7a7c8a` 값이 중복된다                                                                                                                                                                                                             |
+| P2       | Heading 중복                          | Foundations에서 `Heading XL`이 32/130과 28/130 두 개로 표기돼 있다                                                                                                                                                                                            |
+| P2       | 폰트                                  | Pretendard 자체 호스팅 여부와 서브셋 범위. `Heading/Heading 2`만 Noto Sans에 바인딩된 것이 의도인지                                                                                                                                                           |
 
 ## 11. 접근성 실측 결과
 
@@ -529,6 +529,7 @@ WCAG 2.1 기준(일반 텍스트 4.5:1, Large Text 및 UI Component 3:1)으로 �
 | charcoal-900 on pearl-white                     | 15.01:1    | PASS     |
 | charcoal-700 on white                           | 6.44:1     | PASS     |
 | **charcoal-600 on white**                       | **4.14:1** | **FAIL** |
+| **charcoal-600 on pearl-white**                 | **3.86:1** | **FAIL** |
 | charcoal-500 on white                           | 2.70:1     | FAIL     |
 | blue-500 on white                               | 6.72:1     | PASS     |
 | white on `Button/primary` (charcoal-900)        | 16.08:1    | PASS     |
