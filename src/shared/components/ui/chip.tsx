@@ -1,10 +1,10 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentPropsWithRef } from "react";
 
 type ChipVariant = "primary" | "primaryLive";
 type ChipAppearance = "fill" | "outline" | "selected";
 type ChipSize = "sm" | "md";
 
-type ChipProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ChipProps = ComponentPropsWithRef<"button"> & {
   appearance?: ChipAppearance;
   size?: ChipSize;
   variant?: ChipVariant;

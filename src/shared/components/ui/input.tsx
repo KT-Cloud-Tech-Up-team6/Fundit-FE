@@ -1,6 +1,6 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 
-type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+type InputProps = ComponentPropsWithRef<"input"> & {
   endAdornment?: ReactNode;
   error?: boolean;
 };
