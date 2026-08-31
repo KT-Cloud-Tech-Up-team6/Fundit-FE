@@ -4,10 +4,14 @@ import "../src/app/globals.css";
 
 /**
  * light / dark 는 `globals.css`의 `[data-theme="dark"]` 블록으로 갈린다.
- * 툴바에서 테마를 바꾸면 루트에 `data-theme`를 걸고, read-tokens.ts 가
- * document.documentElement 의 계산된 값을 읽으므로 갤러리가 자동으로 dark 값을 보여준다.
+ * 스토리가 getComputedStyle 로 토큰 값을 읽으므로, 렌더 전에 루트 attribute 가
+ * 반영돼 있어야 한다. beforeEach 는 매 스토리 렌더(글로벌 변경 포함) 직전에 돌아
+ * React 렌더 밖에서 attribute 를 걸어준다.
  */
 const preview: Preview = {
+  async beforeEach({ globals }) {
+    document.documentElement.dataset.theme = globals.theme === "dark" ? "dark" : "light";
+  },
   parameters: {
     controls: {
       matchers: {
@@ -40,23 +44,17 @@ const preview: Preview = {
     },
   },
   decorators: [
-    (Story, context) => {
-      const theme = context.globals.theme === "dark" ? "dark" : "light";
-      if (typeof document !== "undefined") {
-        document.documentElement.dataset.theme = theme;
-      }
-      return (
-        <div
-          style={{
-            minHeight: "100vh",
-            background: "var(--layer-bg)",
-            color: "var(--text-default)",
-          }}
-        >
-          <Story />
-        </div>
-      );
-    },
+    (Story) => (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--layer-bg)",
+          color: "var(--text-default)",
+        }}
+      >
+        <Story />
+      </div>
+    ),
   ],
 };
 
