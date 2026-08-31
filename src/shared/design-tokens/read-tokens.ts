@@ -9,22 +9,32 @@ export type Token = {
   raw: string;
 };
 
-/** 규칙 셀렉터가 지금 루트 엘리먼트에 적용되는지. 잘못된 셀렉터면 무시한다. */
-function rootMatches(selectorText: string): boolean {
-  try {
-    return selectorText.length > 0 && document.documentElement.matches(selectorText);
-  } catch {
-    return false; // 의사요소 등 matches()가 던지는 셀렉터
-  }
+/**
+ * 이 규칙이 "토큰 선언 위치"인지. globals.css는 `:root`(light)와
+ * `[data-theme="dark"]`만 쓰고, Tailwind `@theme` 출력은 `:root, :host`다.
+ * `*`(Tailwind 내부 --tw-* 기본값)처럼 넓은 셀렉터는 걸러내서
+ * 인벤토리에 Tailwind 구현 변수가 섞이지 않게 한다.
+ *
+ * 활성 테마만 반영한다 — dark가 아니면 `[data-theme="dark"]` 선언은 무시.
+ */
+function isTokenRootSelector(selectorText: string): boolean {
+  const theme = document.documentElement.dataset.theme;
+  return selectorText.split(",").some((part) => {
+    const s = part.trim();
+    if (s === ":root" || s === ":host") return true;
+    // [data-theme="dark"] / :root[data-theme=dark] (따옴표는 브라우저마다 다름)
+    const match = /^(?::root)?\[data-theme=["']?([\w-]+)["']?\]$/.exec(s);
+    return match !== null && match[1] === theme;
+  });
 }
 
 /**
- * :root에 선언된 CSS 커스텀 프로퍼티를 스타일시트에서 직접 읽는다.
+ * :root(+ 활성 테마 셀렉터)에 선언된 CSS 커스텀 프로퍼티를 스타일시트에서 직접 읽는다.
  * 토큰 목록을 스토리에 복사해두면 globals.css와 어긋나므로 런타임에 읽는다.
  * globals.css에 토큰을 추가하면 갤러리에 자동으로 나타난다.
  *
- * 활성 테마를 따른다. `document.documentElement`에 매칭되는 규칙만 모으므로
- * dark일 때는 [data-theme="dark"] 재정의가 :root 선언을 덮는다(소스 순서 = 캐스케이드).
+ * 활성 테마를 따른다. dark일 때는 [data-theme="dark"] 재정의가 :root 선언을
+ * 덮는다(소스 순서 = 캐스케이드).
  *
  * ponytail: 캐시하지 않는다. 규칙 수십 개를 훑는 비용이 무시할 수준이고,
  * 캐시하면 globals.css를 고쳤을 때 HMR에서 값이 낡는다.
@@ -40,7 +50,7 @@ export function readTokens(): Token[] {
   const walk = (rules: CSSRuleList) => {
     for (const rule of Array.from(rules)) {
       if (rule instanceof CSSStyleRule) {
-        if (!rootMatches(rule.selectorText)) continue;
+        if (!isTokenRootSelector(rule.selectorText)) continue;
         for (const prop of Array.from(rule.style)) {
           if (prop.startsWith("--")) {
             declared.set(prop, rule.style.getPropertyValue(prop).trim());
