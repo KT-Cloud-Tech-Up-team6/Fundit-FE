@@ -11,7 +11,7 @@ export function ProgressBar({
   variant = "primary",
   ...props
 }: ProgressBarProps) {
-  const clampedValue = Math.min(100, Math.max(0, value));
+  const clampedValue = Number.isNaN(value) ? 0 : Math.min(100, Math.max(0, value));
   const indicatorClass =
     variant === "primary" ? "bg-layer-surface-primary" : "bg-layer-surface-primary-live";
 
