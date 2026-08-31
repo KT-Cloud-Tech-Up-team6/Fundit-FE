@@ -17,7 +17,7 @@ export function ProjectTabs({ projectId, activeTab }: { projectId: string; activ
         <Link
           key={tab}
           href={`/projects/${projectId}?tab=${tab}`}
-          className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold ${activeTab === tab ? "bg-brand text-white" : "bg-slate-100"}`}
+          className={`text-label-l rounded-full px-3 py-2 whitespace-nowrap ${activeTab === tab ? "bg-layer-surface-primary text-text-inverse" : "bg-layer-surface-disabled"}`}
         >
           {tab}
         </Link>

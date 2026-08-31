@@ -1,31 +1,314 @@
 @import "tailwindcss";
 
+/*
+Pretendard Variable — Copyright (c) 2021 Kil Hyung-jin, with Reserved Font
+Name Pretendard. https://github.com/orioncactus/pretendard
+Licensed under the SIL Open Font License, Version 1.1.
+http://scripts.sil.org/OFL
+*/
+@font-face {
+  font-family: "Pretendard Variable";
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+}
+
+/* ============================================================
+   Primitive — Figma: Color/Primitive
+   화면 코드에서 직접 쓰지 않는다. Semantic 정의부에서만 참조한다.
+   유틸리티가 생기지 않도록 의도적으로 @theme 밖에 둔다.
+   ============================================================ */
+
 :root {
-  --background: #f7f7f3;
-  --foreground: #1f2933;
-  --surface: #ffffff;
-  --muted: #667085;
-  --line: #e4e7ec;
-  --brand: #0f766e;
-  --brand-strong: #115e59;
-  --accent: #f59e0b;
+  --blue-50: #f1f2fd;
+  --blue-100: #e1e5fb;
+  --blue-200: #a5b1f4;
+  --blue-300: #687eec;
+  --blue-400: #4963e8;
+  --blue-500: #2947e5;
+  --blue-600: #1733bd;
+  --blue-700: #132b9b;
+  --blue-800: #0f2078;
+  --blue-900: #0a1756;
+
+  --charcoal-100: #eeeff0;
+  --charcoal-200: #dddee2;
+  --charcoal-300: #cdced4;
+  --charcoal-400: #bdbec6;
+  --charcoal-500: #9b9da8;
+  --charcoal-600: #7a7c8a;
+  --charcoal-700: #5c5e69;
+  --charcoal-800: #3f4049;
+  --charcoal-900: #202125;
+
+  --grey-white: #ffffff;
+  --grey-pearl-white: #f7f7f7;
+  --grey-bright-grey: #e4e5e8;
+  --grey-grey: #7a7c8a;
+  --grey-medium-grey: #53545c;
+  --grey-dark-grey: #383941;
+  --grey-midnight-grey: #323339;
+  --grey-midnight-black: #1f2024;
+  --grey-black: #1a1a1a;
+
+  --green: #10b834;
+  --bright-green: #e1f6e3;
+  --dark-green: #2d4334;
+  --red: #f04111;
+  --bright-red: #ffdad0;
+  --dark-red: #572920;
+  --orange: #ff9500;
+  --bright-orange: #fff1cc;
+  --dark-orange: #4c3e1d;
+
+  --alpha-10: #0000001a;
+  --alpha-30: #0000004d;
+  --alpha-60: #00000099;
+}
+
+/* ============================================================
+   Semantic — Figma: Color/Semantic (Light mode)
+   Figma Variables export(2026-08-27, mode: light_mode/dark_mode)로
+   확정. Dark는 아래 [data-theme="dark"] 블록에서 재정의한다.
+   Primitive와 화면 코드는 mode 전환에 관여하지 않는다.
+   ============================================================ */
+:root {
+  --layer-bg: var(--grey-pearl-white);
+  --layer-surface-default: var(--grey-white);
+  --layer-surface-disabled: var(--charcoal-100);
+  --layer-surface-primary: var(--charcoal-900);
+  --layer-surface-primary-live: var(--blue-500);
+
+  --text-title: var(--grey-black);
+  --text-default: var(--charcoal-900);
+  /* Figma 확정값. white 대비 4.14:1로 WCAG 4.5:1 미달.
+     docs/DESIGN_TOKENS.md 10장 P1 — 디자인 확인 필요. */
+  --text-secondary: var(--charcoal-600);
+  --text-disabled: var(--charcoal-600);
+  --text-inverse: var(--grey-white);
+  --text-primary-live: var(--blue-500);
+  --text-warning: var(--red);
+  --text-success: var(--green);
+  --text-error: var(--orange);
+  --text-info: var(--grey-grey);
+
+  --border-default: var(--charcoal-200);
+  --border-primary: var(--charcoal-900);
+  --border-primary-live: var(--blue-500);
+  --border-accent-warning: var(--red);
+  --border-accent-success: var(--green);
+  --border-accent-error: var(--orange);
+  --border-accent-info: var(--grey-grey);
+
+  --status-warning: var(--bright-red);
+  --status-success: var(--bright-green);
+  --status-error: var(--bright-orange);
+  --status-info: var(--grey-bright-grey);
+
+  /* static_* 와 Elevation/dim(모달 딤)은 두 모드에서 값이 같다. */
+  --text-static-white: #ffffff;
+  --text-static-black: var(--grey-black);
+  --text-static-primary-live: var(--blue-200);
+  --layer-overlay: var(--alpha-60);
+}
+
+/* Figma Variables export 기준. 바뀌는 토큰만 재정의한다 —
+   두 모드에서 값이 같은 토큰(text-secondary, text-warning/success/error/info,
+   border-accent-*, static-* 등)은 여기 없다. */
+[data-theme="dark"] {
+  --layer-bg: var(--grey-midnight-black);
+  --layer-surface-default: var(--grey-midnight-grey);
+  --layer-surface-disabled: var(--charcoal-700);
+  --layer-surface-primary: var(--charcoal-200);
+
+  --text-title: var(--grey-white);
+  --text-default: var(--charcoal-100);
+  --text-disabled: var(--charcoal-500);
+  --text-inverse: var(--charcoal-900);
+  --text-primary-live: var(--blue-200);
+
+  --border-default: var(--charcoal-700);
+  --border-primary: var(--charcoal-200);
+  --border-primary-live: var(--blue-300);
+
+  --status-warning: var(--dark-red);
+  --status-success: var(--dark-green);
+  --status-error: var(--dark-orange);
+  --status-info: var(--grey-dark-grey);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-brand: var(--brand);
-  --color-brand-strong: var(--brand-strong);
-  --color-accent: var(--accent);
+  /* Tailwind 기본 팔레트를 제거한다.
+     bg-slate-100 같은 비-디자인시스템 클래스가 컴파일되지 않아
+     토큰 우회를 빌드 단계에서 잡는다. */
+  --color-*: initial;
+
+  --color-layer-bg: var(--layer-bg);
+  --color-layer-surface-default: var(--layer-surface-default);
+  --color-layer-surface-disabled: var(--layer-surface-disabled);
+  --color-layer-surface-primary: var(--layer-surface-primary);
+  --color-layer-surface-primary-live: var(--layer-surface-primary-live);
+  --color-layer-overlay: var(--layer-overlay);
+
+  --color-text-title: var(--text-title);
+  --color-text-default: var(--text-default);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-primary-live: var(--text-primary-live);
+  --color-text-warning: var(--text-warning);
+  --color-text-success: var(--text-success);
+  --color-text-error: var(--text-error);
+  --color-text-info: var(--text-info);
+  --color-text-static-white: var(--text-static-white);
+  --color-text-static-black: var(--text-static-black);
+  --color-text-static-primary-live: var(--text-static-primary-live);
+
+  --color-border-default: var(--border-default);
+  --color-border-primary: var(--border-primary);
+  --color-border-primary-live: var(--border-primary-live);
+  --color-border-accent-warning: var(--border-accent-warning);
+  --color-border-accent-success: var(--border-accent-success);
+  --color-border-accent-error: var(--border-accent-error);
+  --color-border-accent-info: var(--border-accent-info);
+
+  --color-status-warning: var(--status-warning);
+  --color-status-success: var(--status-success);
+  --color-status-error: var(--status-error);
+  --color-status-info: var(--status-info);
+}
+
+/* mode와 무관한 토큰. static을 쓰면 사용 여부와 관계없이
+   모든 변수가 :root로 나온다. 토큰 갤러리(Storybook)가 이를 읽는다. */
+@theme static {
+  /* Typography — Figma: Foundations/Type (24종)
+     Pretendard variable. weight는 45~920 가변 축을 쓴다.
+     기본 유틸리티(text-sm, text-base 등)를 제거해 스케일 밖 크기를 막는다. */
+  --text-*: initial;
+
+  --text-display-xl: 3rem; /* 48 */
+  --text-display-xl--line-height: 1.2;
+  --text-display-xl--font-weight: 800;
+  --text-display-l: 2.5rem; /* 40 */
+  --text-display-l--line-height: 1.2;
+  --text-display-l--font-weight: 800;
+  --text-display-m: 2.25rem; /* 36 */
+  --text-display-m--line-height: 1.28;
+  --text-display-m--font-weight: 800;
+  --text-display-s: 1.75rem; /* 28 */
+  --text-display-s--line-height: 1.3;
+  --text-display-s--font-weight: 800;
+
+  --text-heading-xl: 2rem; /* 32 */
+  --text-heading-xl--line-height: 1.3;
+  --text-heading-xl--font-weight: 700;
+  --text-heading-l: 1.75rem; /* 28 */
+  --text-heading-l--line-height: 1.3;
+  --text-heading-l--font-weight: 700;
+  --text-heading-m: 1.5rem; /* 24 */
+  --text-heading-m--line-height: 1.35;
+  --text-heading-m--font-weight: 700;
+  --text-heading-s: 1.25rem; /* 20 */
+  --text-heading-s--line-height: 1.4;
+  --text-heading-s--font-weight: 700;
+
+  --text-title-l: 1.5rem; /* 24 */
+  --text-title-l--line-height: 1.35;
+  --text-title-l--font-weight: 600;
+  --text-title-m: 1.25rem; /* 20 */
+  --text-title-m--line-height: 1.4;
+  --text-title-m--font-weight: 600;
+  --text-title-s: 1.125rem; /* 18 */
+  --text-title-s--line-height: 1.4;
+  --text-title-s--font-weight: 600;
+  --text-title-emphasis: 1.25rem; /* 20 */
+  --text-title-emphasis--line-height: 1.4;
+  --text-title-emphasis--font-weight: 500;
+
+  --text-body-l: 1.125rem; /* 18 */
+  --text-body-l--line-height: 1.6;
+  --text-body-l--font-weight: 400;
+  --text-body-m: 1rem; /* 16 */
+  --text-body-m--line-height: 1.5;
+  --text-body-m--font-weight: 400;
+  --text-body-s: 0.875rem; /* 14 */
+  --text-body-s--line-height: 1.5;
+  --text-body-s--font-weight: 400;
+  --text-body-emphasis: 1rem; /* 16 */
+  --text-body-emphasis--line-height: 1.5;
+  --text-body-emphasis--font-weight: 500;
+  --text-body-strong: 1rem; /* 16 */
+  --text-body-strong--line-height: 1.5;
+  --text-body-strong--font-weight: 600;
+
+  /* ponytail: caption-emphasis는 정의하지 않는다.
+     Figma에서 Caption S와 값이 완전히 같다(regular 13/140%). 확인 후 추가한다. */
+  --text-caption-m: 0.875rem; /* 14 */
+  --text-caption-m--line-height: 1.4;
+  --text-caption-m--font-weight: 400;
+  --text-caption-s: 0.8125rem; /* 13 */
+  --text-caption-s--line-height: 1.4;
+  --text-caption-s--font-weight: 400;
+  --text-caption-strong: 0.75rem; /* 12 */
+  --text-caption-strong--line-height: 1.35;
+  --text-caption-strong--font-weight: 600;
+
+  --text-label-l: 0.875rem; /* 14 */
+  --text-label-l--line-height: 1.3;
+  --text-label-l--font-weight: 600;
+  --text-label-m: 0.75rem; /* 12 */
+  --text-label-m--line-height: 1.3;
+  --text-label-m--font-weight: 600;
+  --text-label-s: 0.6875rem; /* 11 */
+  --text-label-s--line-height: 1.3;
+  --text-label-s--font-weight: 600;
+
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+
+  /* Radius — Figma: Numeric/Radius/*.
+     Foundations Shape 섹션과 xs·sm 값이 충돌한다.
+     실제 컴포넌트에 바인딩된 변수를 기준으로 삼았다. */
+  --radius-*: initial;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Shadow — light/dark는 테마가 아니라 농도다. */
+  --shadow-*: initial;
+  --shadow-light-s: 1px 1px 2px 0 var(--alpha-10);
+  --shadow-light-m: 1px 2px 8px 0 var(--alpha-10);
+  --shadow-light-l: 1px 4px 12px 0 var(--alpha-10);
+  --shadow-dark-s: 1px 1px 2px 0 var(--alpha-30);
+  --shadow-dark-m: 1px 2px 8px 0 var(--alpha-30);
+  --shadow-dark-l: 1px 4px 12px 0 var(--alpha-30);
+}
+
+/* Border width — Tailwind에 대응 네임스페이스가 없어 직접 정의한다.
+   Figma: Numeric/Border/*.
+   ponytail: border-w- 접두어를 쓴다. border-l / border-s 로 두면
+   Tailwind 기본 border-left-width / border-inline-start-width 를 덮어쓴다. */
+@utility border-w-xs {
+  border-width: 1px;
+}
+@utility border-w-s {
+  border-width: 1.3px;
+}
+@utility border-w-m {
+  border-width: 1.5px;
+}
+@utility border-w-l {
+  border-width: 1.8px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  background: var(--layer-bg);
+  color: var(--text-default);
+  font-family: var(--font-sans);
 }
 
 a,

@@ -5,9 +5,9 @@ type ProjectStatusCardProps = {
 
 export function ProjectStatusCard({ label, value }: ProjectStatusCardProps) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-black">{value}</p>
+    <div className="border-border-default bg-layer-surface-default rounded-md border p-5">
+      <p className="text-body-s text-text-secondary">{label}</p>
+      <p className="text-heading-m mt-2">{value}</p>
     </div>
   );
 }
