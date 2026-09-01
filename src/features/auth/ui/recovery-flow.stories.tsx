@@ -24,20 +24,28 @@ export const MaskedEmail: Story = {
   args: { initialView: "masked-email" },
 };
 
-export const PhoneVerification: Story = {
-  args: { initialView: "phone-form" },
+export const IdentityVerificationReady: Story = {
+  args: { demoMode: true, initialView: "identity-ready" },
 };
 
-export const VerificationCode: Story = {
-  args: { initialView: "phone-code" },
+export const IdentityVerificationRequesting: Story = {
+  args: { initialView: "identity-requesting" },
 };
 
-export const VerificationMismatch: Story = {
-  args: { initialView: "phone-code-error" },
+export const IdentityVerificationCancelled: Story = {
+  args: { demoMode: true, initialView: "identity-cancelled" },
 };
 
-export const VerificationExpired: Story = {
-  args: { initialView: "phone-code-expired" },
+export const IdentityVerificationFailed: Story = {
+  args: { demoMode: true, initialView: "identity-failed" },
+};
+
+export const IdentityVerificationChecking: Story = {
+  args: { initialView: "identity-verifying" },
+};
+
+export const IdentityVerificationCheckFailed: Story = {
+  args: { demoMode: true, initialView: "identity-verification-failed" },
 };
 
 export const FullEmail: Story = {

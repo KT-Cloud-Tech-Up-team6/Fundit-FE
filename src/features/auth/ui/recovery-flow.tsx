@@ -10,14 +10,62 @@ import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 export type RecoveryView =
   | "email-form"
   | "masked-email"
-  | "phone-form"
-  | "phone-code"
-  | "phone-code-error"
-  | "phone-code-expired"
+  | "identity-ready"
+  | "identity-requesting"
+  | "identity-cancelled"
+  | "identity-failed"
+  | "identity-verifying"
+  | "identity-verification-failed"
   | "full-email"
   | "not-found"
   | "password-form"
   | "password-sent";
+
+type IdentityContent = {
+  action: string;
+  description: string;
+  status: string;
+  title: string;
+};
+
+const identityContentByView: Partial<Record<RecoveryView, IdentityContent>> = {
+  "identity-ready": {
+    title: "휴대폰 본인인증",
+    description: "전체 이메일 주소를 확인하려면\n본인인증이 필요해요.",
+    status: "포트원 본인인증 화면이 열립니다.",
+    action: "본인인증 시작",
+  },
+  "identity-requesting": {
+    title: "본인인증을 진행하고 있어요",
+    description: "열린 인증 창에서\n본인인증을 완료해 주세요.",
+    status: "포트원 본인인증 응답을 기다리고 있습니다.",
+    action: "본인인증 진행 중",
+  },
+  "identity-cancelled": {
+    title: "본인인증이 취소되었어요",
+    description: "전체 이메일을 확인하려면\n본인인증을 다시 진행해 주세요.",
+    status: "사용자가 본인인증을 취소했습니다.",
+    action: "다시 시도",
+  },
+  "identity-failed": {
+    title: "본인인증을 완료하지 못했어요",
+    description: "인증 과정에서 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
+    status: "포트원 본인인증 요청에 실패했습니다.",
+    action: "다시 시도",
+  },
+  "identity-verifying": {
+    title: "본인인증 결과를 확인하고 있어요",
+    description: "인증 결과를 안전하게 확인 중입니다.\n잠시만 기다려 주세요.",
+    status: "서버에서 포트원 인증 결과를 검증하고 있습니다.",
+    action: "결과 확인 중",
+  },
+  "identity-verification-failed": {
+    title: "본인인증 결과를 확인할 수 없어요",
+    description: "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
+    status: "서버 검증을 완료하지 못했습니다.",
+    action: "다시 시도",
+  },
+};
 
 type RecoveryFlowProps = {
   demoMode?: boolean;
@@ -49,7 +97,6 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
 
   function showLogin() {
     router.push("/auth/login");
@@ -127,7 +174,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
         <div className="mt-6 flex items-center justify-center gap-1">
           <button
             className="text-body-s flex h-9 w-28 items-center justify-center"
-            onClick={() => goTo("phone-form")}
+            onClick={() => goTo("identity-ready")}
             type="button"
           >
             전체 이메일 확인
@@ -258,108 +305,41 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
     );
   }
 
-  const codeError =
-    view === "phone-code-error"
-      ? "인증번호가 일치하지 않습니다"
-      : view === "phone-code-expired"
-        ? "인증번호가 만료되었습니다. 다시 요청해 주세요."
-        : undefined;
-  const hasCodeInput = view !== "phone-form";
+  const identityContent = identityContentByView[view];
 
-  function submitVerification(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!demoMode) return;
+  if (!identityContent) return null;
 
-    if (!hasCodeInput) {
-      goTo("phone-code");
-      return;
-    }
-    if (code === "123456") {
-      goTo("full-email");
+  const isPending = view === "identity-requesting" || view === "identity-verifying";
+  const isRetry =
+    view === "identity-cancelled" ||
+    view === "identity-failed" ||
+    view === "identity-verification-failed";
+
+  function handleIdentityAction() {
+    if (!demoMode || isPending) return;
+
+    if (isRetry) {
+      setView("identity-ready");
       return;
     }
 
-    setView("phone-code-error");
+    setView("identity-requesting");
   }
 
   return (
     <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
-      <AuthTitle>휴대폰 본인 인증</AuthTitle>
-      <RecoveryDescription>
-        {"전체 이메일 주소를 확인하려면\n본인 인증이 필요해요."}
-      </RecoveryDescription>
-      <form className="mt-16" onSubmit={submitVerification}>
-        <div className="flex flex-col gap-3">
-          <AuthInput
-            aria-label="이름"
-            onChange={(event) => setName(event.target.value)}
-            onClear={() => setName("")}
-            placeholder="이름 input field"
-            value={name}
-          />
-          <AuthInput
-            aria-label="휴대폰번호"
-            inputMode="tel"
-            onChange={(event) => setPhone(event.target.value)}
-            onClear={() => setPhone("")}
-            placeholder="통신사 ▾  휴대폰번호 input field"
-            value={phone}
-          />
-          {hasCodeInput ? (
-            <div>
-              <div className="border-w-xs border-border-primary bg-layer-surface-disabled flex h-13 items-center rounded-sm px-4">
-                <input
-                  aria-describedby={codeError ? "verification-code-error" : undefined}
-                  aria-invalid={codeError ? true : undefined}
-                  aria-label="인증번호 6자리"
-                  className="text-body-s min-w-0 flex-1 bg-transparent outline-none"
-                  inputMode="numeric"
-                  maxLength={6}
-                  onChange={(event) => {
-                    setCode(event.target.value.replace(/\D/g, ""));
-                    if (view === "phone-code-error") setView("phone-code");
-                  }}
-                  placeholder="인증번호 6자리"
-                  value={code}
-                />
-                <span className="text-caption-s font-semibold">
-                  {view === "phone-code-expired" ? "00:00" : "02:59"}
-                </span>
-                <button
-                  className="bg-layer-surface-default text-caption-s ml-2 rounded-xs px-2 py-1"
-                  onClick={() => setView("phone-code")}
-                  type="button"
-                >
-                  재전송
-                </button>
-              </div>
-              {codeError ? (
-                <p className="text-caption-s mt-2" id="verification-code-error" role="alert">
-                  {codeError}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <AuthButton disabled={!demoMode} type="submit">
-              인증 번호 전송
-            </AuthButton>
-          )}
+      <div aria-busy={isPending} aria-live="polite">
+        <AuthTitle>{identityContent.title}</AuthTitle>
+        <RecoveryDescription>{identityContent.description}</RecoveryDescription>
+        <div className="bg-layer-surface-disabled text-body-m mt-12 flex min-h-[118px] items-center justify-center rounded-sm px-6 text-center">
+          {identityContent.status}
         </div>
-        {hasCodeInput ? (
-          <button
-            className="text-body-s text-text-secondary mx-auto mt-8 block underline underline-offset-2"
-            onClick={() => setView("phone-code")}
-            type="button"
-          >
-            인증번호가 오지 않나요?
-          </button>
-        ) : null}
-        <div className={hasCodeInput ? "mt-3" : "mt-11"}>
-          <AuthButton disabled={!demoMode} type="submit">
-            확인
-          </AuthButton>
-        </div>
-      </form>
+      </div>
+      <AuthBottomAction>
+        <AuthButton disabled={!demoMode || isPending} onClick={handleIdentityAction}>
+          {identityContent.action}
+        </AuthButton>
+      </AuthBottomAction>
     </RecoveryHeader>
   );
 }
