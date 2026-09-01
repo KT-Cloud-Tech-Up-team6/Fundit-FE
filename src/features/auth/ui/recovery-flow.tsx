@@ -73,9 +73,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
   }
 
   const headerTitle =
-    view === "password-form" || view === "password-sent"
-      ? "페이지 명: 예) 비밀번호 찾기"
-      : "페이지 명: 이메일 찾기";
+    view === "password-form" || view === "password-sent" ? "비밀번호 찾기" : "이메일 찾기";
 
   if (view === "email-form") {
     function submitEmailSearch(event: FormEvent<HTMLFormElement>) {

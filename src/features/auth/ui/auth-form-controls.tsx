@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useId } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -10,7 +11,9 @@ type AuthInputProps = Omit<ComponentPropsWithoutRef<"input">, "className"> & {
 };
 
 export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputProps) {
-  const describedBy = errorMessage && props.id ? `${props.id}-error` : undefined;
+  const generatedId = useId();
+  const errorId = errorMessage ? `${props.id ?? generatedId}-error` : undefined;
+  const describedBy = [props["aria-describedby"], errorId].filter(Boolean).join(" ") || undefined;
   const hasValue = typeof value === "string" && value.length > 0;
 
   return (
@@ -20,7 +23,7 @@ export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputP
         aria-describedby={describedBy}
         className="bg-layer-surface-disabled focus-within:border-border-primary border-transparent"
         endAdornment={
-          hasValue && onClear ? (
+          hasValue && onClear && !props.disabled ? (
             <button
               aria-label={`${props["aria-label"] ?? "입력값"} 지우기`}
               onClick={onClear}
@@ -34,7 +37,7 @@ export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputP
         value={value}
       />
       {errorMessage ? (
-        <p className="text-caption-s text-text-default mt-2" id={describedBy} role="alert">
+        <p className="text-caption-s text-text-default mt-2" id={errorId} role="alert">
           {errorMessage}
         </p>
       ) : null}

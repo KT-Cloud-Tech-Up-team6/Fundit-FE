@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
@@ -28,6 +28,27 @@ export function LoginFlow({
   const [password, setPassword] = useState(initialError === "credentials" ? "password123" : "");
   const [error, setError] = useState<LoginError>(initialError);
   const [submitting, setSubmitting] = useState(initialSubmitting);
+  const submitTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (submitTimerRef.current !== null) {
+        window.clearTimeout(submitTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  function showMethodSelection() {
+    if (submitTimerRef.current !== null) {
+      window.clearTimeout(submitTimerRef.current);
+      submitTimerRef.current = null;
+    }
+
+    setSubmitting(false);
+    setError("none");
+    setView("method");
+  }
 
   if (view === "method") {
     return (
@@ -66,14 +87,15 @@ export function LoginFlow({
     if (!demoMode) return;
 
     setSubmitting(true);
-    window.setTimeout(() => {
+    submitTimerRef.current = window.setTimeout(() => {
+      submitTimerRef.current = null;
       setSubmitting(false);
       setError("credentials");
     }, 300);
   }
 
   return (
-    <AuthScreen onBack={() => setView("method")}>
+    <AuthScreen onBack={showMethodSelection}>
       <AuthTitle>{"로그인을 위한 단계\n더미 텍스트 입니다"}</AuthTitle>
       <form className="mt-16" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-3">
@@ -105,7 +127,10 @@ export function LoginFlow({
               setPassword(event.target.value);
               setError("none");
             }}
-            onClear={() => setPassword("")}
+            onClear={() => {
+              setPassword("");
+              setError("none");
+            }}
             placeholder="비밀번호"
             type="password"
             value={password}
