@@ -44,7 +44,7 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 ## 공통 레이아웃
 
 - `BuyerShell`은 mobile-first 하단 내비게이션과 데스크톱 상단 내비게이션을 제공한다.
-- `AuthShell`은 인증 카드와 홈 복귀 동선을 제공한다.
+- `AuthShell`은 인증 와이어프레임을 위한 전체 화면 반응형 영역을 제공한다.
 - `SellerShell`은 PC-first 사이드바와 판매자 프로젝트 컨텍스트 영역을 제공한다.
 - RootLayout은 메타데이터와 AppProviders만 소유하며 클라이언트 컴포넌트가 아니다.
 
