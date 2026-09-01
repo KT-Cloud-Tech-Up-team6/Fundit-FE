@@ -30,6 +30,12 @@ export function SignupTermsSheet({
   const requiredChecked = requiredTermIds.every((id) => checkedIds.includes(id));
   const detailTerm = signupTerms.find((term) => term.id === detailId);
 
+  /* 전문을 보다 ESC나 backdrop으로 닫으면 detailId가 남아 다시 열 때 전문이 뜬다. */
+  function closeSheet() {
+    setDetailId(undefined);
+    onClose();
+  }
+
   function toggleAll(checked: boolean) {
     setCheckedIds(checked ? signupTerms.map((term) => term.id) : []);
   }
@@ -42,7 +48,7 @@ export function SignupTermsSheet({
 
   if (detailTerm) {
     return (
-      <BottomSheet aria-label={detailTerm.label} onClose={onClose} open={open}>
+      <BottomSheet aria-label={detailTerm.label} onClose={closeSheet} open={open}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <IconButton label="약관 목록으로" onClick={() => setDetailId(undefined)}>
@@ -60,7 +66,7 @@ export function SignupTermsSheet({
   }
 
   return (
-    <BottomSheet aria-label="약관 동의" onClose={onClose} open={open}>
+    <BottomSheet aria-label="약관 동의" onClose={closeSheet} open={open}>
       <div className="flex items-center justify-between">
         <Checkbox
           checked={allChecked}
@@ -70,7 +76,7 @@ export function SignupTermsSheet({
         >
           펀딧 이용 약관 동의 (전체)
         </Checkbox>
-        <IconButton label="약관 동의 닫기" onClick={onClose}>
+        <IconButton label="약관 동의 닫기" onClick={closeSheet}>
           <CloseMark />
         </IconButton>
       </div>

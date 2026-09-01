@@ -52,7 +52,6 @@ export function SignupDoneFlow({
         >
           회원가입이 완료되었습니다
           <button
-            aria-label="알림 닫기"
             className="text-text-inverse shrink-0"
             onClick={() => setToastVisible(false)}
             type="button"

@@ -8,11 +8,10 @@ import { AuthScreen, AuthTitle } from "./auth-screen";
 import { SignupTermsSheet } from "./signup-terms-sheet";
 
 type SignupFlowProps = {
-  demoMode?: boolean;
   initialSheetOpen?: boolean;
 };
 
-export function SignupFlow({ demoMode = false, initialSheetOpen = false }: SignupFlowProps) {
+export function SignupFlow({ initialSheetOpen = false }: SignupFlowProps) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(initialSheetOpen);
 
@@ -31,9 +30,10 @@ export function SignupFlow({ demoMode = false, initialSheetOpen = false }: Signu
       </div>
 
       <SignupTermsSheet
+        /* 서버 응답이 필요 없는 화면 이동이라 항상 동작시킨다. */
         onAgree={() => {
           setSheetOpen(false);
-          if (demoMode) router.push("/auth/signup/verify");
+          router.push("/auth/signup/verify");
         }}
         onClose={() => setSheetOpen(false)}
         open={sheetOpen}

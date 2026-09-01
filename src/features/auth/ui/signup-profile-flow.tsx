@@ -22,13 +22,11 @@ export const passwordRules = [
 ];
 
 type SignupProfileFlowProps = {
-  demoMode?: boolean;
   initialEmailTaken?: boolean;
   initialView?: SignupProfileView;
 };
 
 export function SignupProfileFlow({
-  demoMode = false,
   initialEmailTaken = false,
   initialView = "email",
 }: SignupProfileFlowProps) {
@@ -36,13 +34,17 @@ export function SignupProfileFlow({
   const [view, setView] = useState<SignupProfileView>(initialView);
   const [emailLocal, setEmailLocal] = useState(initialEmailTaken ? "fundit" : "");
   const [domain, setDomain] = useState(initialEmailTaken ? emailDomains[0] : "");
+  const [customDomain, setCustomDomain] = useState("");
   const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [address, setAddress] = useState("");
 
   const usesCustomDomain = domain === CUSTOM_DOMAIN;
-  const emailFilled = emailLocal.length > 0 && domain.length > 0 && domain !== CUSTOM_DOMAIN;
+  /* 직접 입력 값을 domain에 그대로 담으면 첫 글자에서 usesCustomDomain이 꺼져
+     입력칸이 사라진다. 선택 값과 직접 입력 값을 분리해서 들고 있는다. */
+  const resolvedDomain = usesCustomDomain ? customDomain : domain;
+  const emailFilled = emailLocal.length > 0 && resolvedDomain.length > 0;
   const passwordValid = passwordRules.every((rule) => rule.test(password));
   const passwordMatched = password.length > 0 && password === passwordConfirm;
 
@@ -60,7 +62,7 @@ export function SignupProfileFlow({
             aria-label="비밀번호"
             autoComplete="new-password"
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="8-20자리 이상 입력해주세요"
+            placeholder="8-20자리로 입력해주세요"
             type="password"
             value={password}
           />
@@ -126,13 +128,10 @@ export function SignupProfileFlow({
     );
   }
 
+  /* 중복 확인은 API가 담당한다. 여기서는 오류를 지어내지 않고 다음 단계로 넘긴다.
+     중복 오류 화면은 initialEmailTaken으로만 표현한다. */
   function submitEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!demoMode) {
-      setEmailTaken(true);
-      return;
-    }
 
     setEmailTaken(false);
     setView("password");
@@ -162,10 +161,10 @@ export function SignupProfileFlow({
             {usesCustomDomain ? (
               <AuthInput
                 aria-label="이메일 도메인 직접 입력"
-                onChange={(event) => setDomain(event.target.value)}
-                onClear={() => setDomain("")}
+                onChange={(event) => setCustomDomain(event.target.value)}
+                onClear={() => setCustomDomain("")}
                 placeholder="@직접 입력"
-                value=""
+                value={customDomain}
               />
             ) : (
               <Select

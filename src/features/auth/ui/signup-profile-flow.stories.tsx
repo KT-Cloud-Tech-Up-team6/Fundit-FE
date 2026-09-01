@@ -15,7 +15,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const EmailForm: Story = {
-  args: { demoMode: true },
+  args: {},
 };
 
 export const EmailTaken: Story = {
@@ -23,9 +23,9 @@ export const EmailTaken: Story = {
 };
 
 export const PasswordForm: Story = {
-  args: { demoMode: true, initialView: "password" },
+  args: { initialView: "password" },
 };
 
 export const AddressForm: Story = {
-  args: { demoMode: true, initialView: "address" },
+  args: { initialView: "address" },
 };
