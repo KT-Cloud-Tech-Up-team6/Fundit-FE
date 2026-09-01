@@ -7,8 +7,8 @@
 | 공통        | `/auth/signup/terms`                             | `(auth)`    | 약관 확인              | AuthShell   | guest                     | placeholder | C-01, FL_C_ME_01_01         |
 | 공통        | `/auth/signup/verify`                            | `(auth)`    | 본인 인증              | AuthShell   | terms complete            | placeholder | C-02, FL_C_ME_01_02         |
 | 공통        | `/auth/signup/profile`                           | `(auth)`    | 회원정보 입력          | AuthShell   | verified guest            | placeholder | C-03, FL_C_ME_01_03         |
-| 공통        | `/auth/login`                                    | `(auth)`    | 로그인                 | AuthShell   | guest                     | placeholder | C-04, FL_C_ME_02_01         |
-| 공통        | `/auth/recovery`                                 | `(auth)`    | 계정 복구              | AuthShell   | guest                     | placeholder | C-05, FL_C_ME_02_01         |
+| 공통        | `/auth/login`                                    | `(auth)`    | 로그인                 | AuthShell   | guest                     | implemented | C-04, FL_C_ME_02_01         |
+| 공통        | `/auth/recovery`                                 | `(auth)`    | 계정 복구              | AuthShell   | guest                     | implemented | C-05, FL_C_ME_02_01         |
 | 구매자      | `/`                                              | `(buyer)`   | 홈 피드                | BuyerShell  | public                    | placeholder | B-01, FL_B_HM_01_01         |
 | 구매자      | `/categories/[slug]`                             | `(buyer)`   | 카테고리 목록          | BuyerShell  | public                    | placeholder | B-02, FL_B_HM_01_02         |
 | 구매자      | `/search`                                        | `(buyer)`   | 통합 검색              | BuyerShell  | public                    | placeholder | B-03, FL_B_HM_01_03         |
