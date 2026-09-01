@@ -9,13 +9,13 @@ type CheckboxProps = Omit<ComponentPropsWithoutRef<"input">, "children" | "type"
 
 /* 체크와 부분 선택 표시는 아이콘 asset 없이 pseudo element로 그린다.
    회전한 두 변이 체크, 가로 막대가 부분 선택이다. */
-const markClasses = [
+const markShapeClasses = [
   "after:absolute after:top-1/2 after:left-1/2 after:h-2.5 after:w-1.5",
   "after:-translate-x-1/2 after:-translate-y-[60%] after:rotate-45",
-  "after:border-text-inverse after:border-r-2 after:border-b-2 after:opacity-0",
+  "after:border-r-2 after:border-b-2 after:opacity-0",
   "before:absolute before:top-1/2 before:left-1/2 before:h-0.5 before:w-2.5",
   "before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full",
-  "before:bg-text-inverse before:opacity-0",
+  "before:opacity-0",
 ].join(" ");
 
 export function Checkbox({
@@ -27,11 +27,15 @@ export function Checkbox({
 }: CheckboxProps) {
   /* checked와 indeterminate가 동시에 켜지면 두 표시가 겹친다. Tailwind 변형끼리는
      출력 순서가 보장되지 않으므로 어느 쪽을 그릴지 JS에서 정한다. */
-  const stateClasses = disabled
+  const markClasses = indeterminate ? "before:opacity-100" : "peer-checked:after:opacity-100";
+  const markColorClasses = disabled
+    ? "after:border-text-disabled before:bg-text-disabled"
+    : "after:border-text-inverse before:bg-text-inverse";
+  const fillClasses = disabled
     ? "bg-layer-surface-disabled border-transparent"
     : indeterminate
-      ? "bg-layer-surface-primary border-transparent before:opacity-100"
-      : "peer-checked:bg-layer-surface-primary peer-checked:border-transparent peer-checked:after:opacity-100";
+      ? "bg-layer-surface-primary border-transparent"
+      : "peer-checked:bg-layer-surface-primary peer-checked:border-transparent";
 
   return (
     <label
@@ -57,8 +61,10 @@ export function Checkbox({
         className={[
           "border-border-default relative size-5 shrink-0 rounded-full border",
           "peer-focus-visible:outline-border-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
+          markShapeClasses,
+          markColorClasses,
           markClasses,
-          stateClasses,
+          fillClasses,
         ].join(" ")}
       />
       {children ? (
