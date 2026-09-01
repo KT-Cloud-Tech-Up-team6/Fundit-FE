@@ -188,7 +188,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
           로그인 화면으로
         </button>
         <AuthBottomAction>
-          <AuthButton onClick={() => router.push("/auth/signup/terms")}>회원가입하기</AuthButton>
+          <AuthButton onClick={() => router.push("/auth/signup")}>회원가입하기</AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
