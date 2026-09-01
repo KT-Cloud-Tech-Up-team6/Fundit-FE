@@ -1,14 +1,14 @@
 # 라우팅 설계
 
-현재 모든 페이지는 레이아웃과 화면 목적을 확인할 수 있는 placeholder 상태다. 접근 조건은 설계 계약이며 실제 인증·소유권 가드는 API 계약 후 구현한다.
+로그인과 계정 복구는 와이어프레임이 구현되었고 나머지 페이지는 레이아웃과 화면 목적을 확인할 수 있는 placeholder 상태다. 접근 조건은 설계 계약이며 실제 인증·소유권 가드는 API 계약 후 구현한다.
 
 | 사용자 유형 | URL                                              | Route Group | 페이지 목적            | 레이아웃    | 접근 조건                 | 상태        | 관련 요구사항               |
 | ----------- | ------------------------------------------------ | ----------- | ---------------------- | ----------- | ------------------------- | ----------- | --------------------------- |
 | 공통        | `/auth/signup/terms`                             | `(auth)`    | 약관 확인              | AuthShell   | guest                     | placeholder | C-01, FL_C_ME_01_01         |
 | 공통        | `/auth/signup/verify`                            | `(auth)`    | 본인 인증              | AuthShell   | terms complete            | placeholder | C-02, FL_C_ME_01_02         |
 | 공통        | `/auth/signup/profile`                           | `(auth)`    | 회원정보 입력          | AuthShell   | verified guest            | placeholder | C-03, FL_C_ME_01_03         |
-| 공통        | `/auth/login`                                    | `(auth)`    | 로그인                 | AuthShell   | guest                     | placeholder | C-04, FL_C_ME_02_01         |
-| 공통        | `/auth/recovery`                                 | `(auth)`    | 계정 복구              | AuthShell   | guest                     | placeholder | C-05, FL_C_ME_02_01         |
+| 공통        | `/auth/login`                                    | `(auth)`    | 로그인                 | AuthShell   | guest                     | implemented | C-04, FL_C_ME_02_01         |
+| 공통        | `/auth/recovery`                                 | `(auth)`    | 계정 복구              | AuthShell   | guest                     | implemented | C-05, FL_C_ME_02_01         |
 | 구매자      | `/`                                              | `(buyer)`   | 홈 피드                | BuyerShell  | public                    | placeholder | B-01, FL_B_HM_01_01         |
 | 구매자      | `/categories/[slug]`                             | `(buyer)`   | 카테고리 목록          | BuyerShell  | public                    | placeholder | B-02, FL_B_HM_01_02         |
 | 구매자      | `/search`                                        | `(buyer)`   | 통합 검색              | BuyerShell  | public                    | placeholder | B-03, FL_B_HM_01_03         |
