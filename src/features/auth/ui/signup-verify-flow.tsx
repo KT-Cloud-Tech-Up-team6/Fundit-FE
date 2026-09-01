@@ -23,16 +23,12 @@ const descriptionByStatus: Record<IdentityStatus, string> = {
 };
 
 type SignupVerifyFlowProps = {
-  demoMode?: boolean;
   initialView?: SignupVerifyView;
 };
 
 /* 이름·생년월일·통신사·휴대폰번호·인증번호 입력은 포트원 인증창이 담당한다.
    와이어프레임 FL_C_ME_AUTH_2~7의 자체 입력 폼은 구현하지 않는다. */
-export function SignupVerifyFlow({
-  demoMode = false,
-  initialView = "ready",
-}: SignupVerifyFlowProps) {
+export function SignupVerifyFlow({ initialView = "ready" }: SignupVerifyFlowProps) {
   const router = useRouter();
   const [view, setView] = useState<SignupVerifyView>(initialView);
 
@@ -54,8 +50,6 @@ export function SignupVerifyFlow({
   const status = view;
 
   function handleAction() {
-    if (!demoMode) return;
-
     if (isRetryIdentityStatus(status)) {
       setView("ready");
       return;
@@ -68,7 +62,6 @@ export function SignupVerifyFlow({
   return (
     <AuthScreen onBack={() => router.back()}>
       <AuthIdentityVerification
-        actionDisabled={!demoMode}
         description={descriptionByStatus[status]}
         onAction={handleAction}
         status={status}

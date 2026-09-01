@@ -14,20 +14,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Ready: Story = {
-  args: { demoMode: true },
-};
+export const Ready: Story = {};
 
 export const Requesting: Story = {
   args: { initialView: "requesting" },
 };
 
 export const Cancelled: Story = {
-  args: { demoMode: true, initialView: "cancelled" },
+  args: { initialView: "cancelled" },
 };
 
 export const Failed: Story = {
-  args: { demoMode: true, initialView: "failed" },
+  args: { initialView: "failed" },
 };
 
 export const Verifying: Story = {
@@ -35,7 +33,7 @@ export const Verifying: Story = {
 };
 
 export const VerificationFailed: Story = {
-  args: { demoMode: true, initialView: "verification-failed" },
+  args: { initialView: "verification-failed" },
 };
 
 export const Done: Story = {
