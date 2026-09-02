@@ -24,53 +24,44 @@ const funding = {
   goalAmount: 5_000_000,
 } as const;
 
-const mockProjects: Record<Status, { total: number; items: SellerProject[] }> = {
-  active: {
-    total: 2,
-    items: [
-      {
-        ...funding,
-        status: "active",
-        id: "p-1",
-        title: "친환경 소재로 만든 데일리 백",
-        badges: ["D-12", "목표 달성"],
-        currentAmount: 6_400_000,
-      },
-      {
-        ...funding,
-        status: "active",
-        id: "p-2",
-        title: "매일 드는 캔버스 토트백",
-        badges: ["D-12"],
-        currentAmount: 1_600_000,
-      },
-    ],
-  },
-  draft: {
-    total: 1,
-    items: [
-      {
-        status: "draft",
-        id: "p-3",
-        title: "친환경 소재로 만든 100% 오가닉! 데일리 백친환경 소재로 만든 100% 오가닉! 데일리 백",
-        badges: ["D-12"],
-        progressLabel: "스토리 작성 중 · 60% 완료",
-        openScheduledAt: "2026.09.21",
-        updatedAt: "2026.08.26 12:54",
-      },
-    ],
-  },
-  closed: {
-    total: 14,
-    items: Array.from({ length: 8 }, (_, index) => ({
+const mockProjects: Record<Status, SellerProject[]> = {
+  active: [
+    {
       ...funding,
-      status: "closed" as const,
-      id: `p-c${index + 1}`,
+      status: "active",
+      id: "p-1",
       title: "친환경 소재로 만든 데일리 백",
-      badges: ["배송 준비 중"],
-      currentAmount: index % 2 === 0 ? 6_400_000 : 1_600_000,
-    })),
-  },
+      badges: ["D-12", "목표 달성"],
+      currentAmount: 6_400_000,
+    },
+    {
+      ...funding,
+      status: "active",
+      id: "p-2",
+      title: "매일 드는 캔버스 토트백",
+      badges: ["D-12"],
+      currentAmount: 1_600_000,
+    },
+  ],
+  draft: [
+    {
+      status: "draft",
+      id: "p-3",
+      title: "친환경 소재로 만든 100% 오가닉! 데일리 백친환경 소재로 만든 100% 오가닉! 데일리 백",
+      badges: ["D-12"],
+      progressLabel: "스토리 작성 중 · 60% 완료",
+      openScheduledAt: "2026.09.21",
+      updatedAt: "2026.08.26 12:54",
+    },
+  ],
+  closed: Array.from({ length: 14 }, (_, index) => ({
+    ...funding,
+    status: "closed" as const,
+    id: `p-c${index + 1}`,
+    title: "친환경 소재로 만든 데일리 백",
+    badges: ["배송 준비 중"],
+    currentAmount: index % 2 === 0 ? 6_400_000 : 1_600_000,
+  })),
 };
 
 export default async function SellerProjectsPage({
@@ -80,9 +71,10 @@ export default async function SellerProjectsPage({
 }) {
   const params = await searchParams;
   const status = statuses.find((tab) => tab.value === params.status)?.value ?? "active";
-  const { total, items } = mockProjects[status];
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const all = mockProjects[status];
+  const totalPages = Math.ceil(all.length / PAGE_SIZE);
   const currentPage = Math.min(Math.max(1, Number(params.page) || 1), totalPages);
+  const items = all.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <>
@@ -98,7 +90,7 @@ export default async function SellerProjectsPage({
               size="sm"
             >
               {tab.label}
-              <span>{mockProjects[tab.value].total}</span>
+              <span>{mockProjects[tab.value].length}</span>
               <span className="sr-only">건</span>
             </Tab>
           ))}

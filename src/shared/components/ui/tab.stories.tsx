@@ -87,3 +87,16 @@ export const Gallery: Story = {
     </div>
   ),
 };
+
+/** selected와 disabled가 겹친 탭. 초기 로빙 tabindex(0)가 비활성 탭에 박히면
+    포커스를 못 받아 탭리스트 전체가 키보드로 진입 불가가 된다. */
+export const DisabledSelected: Story = {
+  render: () => (
+    <TabList aria-label="비활성 선택 탭">
+      <Tab disabled selected size="lg">
+        비활성
+      </Tab>
+      <Tab size="lg">활성</Tab>
+    </TabList>
+  ),
+};

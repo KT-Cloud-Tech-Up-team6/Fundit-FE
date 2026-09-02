@@ -135,6 +135,11 @@ const layoutClasses: Record<NonNullable<TabListProps["layout"]>, string> = {
   track: "border-border-default border-b-w-xl w-fit gap-3",
 };
 
+/* TabProps는 유니온이라 링크형(`<a>`)에는 disabled가 없다. `in`으로 좁혀서 읽는다. */
+function isDisabled(tab: ReactElement<TabProps>) {
+  return "disabled" in tab.props && Boolean(tab.props.disabled);
+}
+
 export function TabList({
   children,
   className,
@@ -151,12 +156,15 @@ export function TabList({
       isValidElement<TabProps>(child) && child.type === Tab,
   );
   const [uncontrolledIndex, setUncontrolledIndex] = useState(() => {
-    const selectedChildIndex = tabs.findIndex((tab) => tab.props.selected);
-
     if (defaultSelectedIndex !== undefined) return defaultSelectedIndex;
+
+    /* disabled 탭은 초기 선택에서 제외한다. Tab이 active = selected && !disabled 로
+       계산해 시각적 선택 상태가 사라지는데, 로빙 tabindex의 유일한 0이 포커스를
+       못 받는 버튼에 박혀 탭리스트 전체가 키보드로 진입 불가가 된다. */
+    const selectedChildIndex = tabs.findIndex((tab) => tab.props.selected && !isDisabled(tab));
     if (selectedChildIndex >= 0) return selectedChildIndex;
 
-    return tabs.findIndex((tab) => !("disabled" in tab.props && tab.props.disabled));
+    return tabs.findIndex((tab) => !isDisabled(tab));
   });
   const activeIndex = selectedIndex ?? uncontrolledIndex;
   const classes = ["flex items-center", layoutClasses[layout], className].filter(Boolean).join(" ");

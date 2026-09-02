@@ -21,6 +21,8 @@ const stepClasses =
   "text-body-s aria-disabled:text-text-disabled flex h-8 items-center gap-3 whitespace-nowrap aria-disabled:pointer-events-none";
 
 export function Pagination({ currentPage, totalPages, buildHref }: PaginationProps) {
+  if (totalPages < 1) return null;
+
   const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
   const isFirst = currentPage <= 1;
   const isLast = currentPage >= totalPages;
