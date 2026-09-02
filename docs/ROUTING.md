@@ -28,7 +28,8 @@
 | 구매자      | `/my/fundings/[fundingId]/refund/new?type=...`   | `(buyer)`   | 환불 신청              | BuyerShell  | owner + eligible          | placeholder | B-25, FL_B_RF_01_03~04      |
 | 구매자      | `/my/refunds`                                    | `(buyer)`   | 환불 목록·상태         | BuyerShell  | member                    | placeholder | B-24, FL_B_RF_01_01~05      |
 | 구매자      | `/my/notifications`                              | `(buyer)`   | 알림함·설정            | BuyerShell  | member                    | placeholder | B-26, FL_B_MY_04_01         |
-| 판매자      | `/seller/projects`                               | `(seller)`  | 프로젝트 관리 홈       | SellerShell | seller                    | placeholder | S-01, FL_S_PR_01_01         |
+| 판매자      | `/seller/projects?status=...`                    | `(seller)`  | 프로젝트 관리 홈       | SellerShell | seller                    | implemented | S-01, FL_S_PR_LIST          |
+| 판매자      | `/seller/live`                                   | `(seller)`  | LIVE 스튜디오 홈       | SellerShell | seller                    | placeholder | FL_S_LV_HOME 확인 필요      |
 | 판매자      | `/seller/projects/new`                           | `(seller)`  | 프로젝트 기본정보      | SellerShell | seller                    | placeholder | S-02, FL_S_PR_02_01~02      |
 | 판매자      | `/seller/projects/[projectId]/edit?section=...`  | `(seller)`  | 직접·AI 상세 작성      | SellerShell | owner seller              | placeholder | S-03~S-06, FL_S_PR_03_01    |
 | 판매자      | `/seller/projects/[projectId]/preview`           | `(seller)`  | 구매자 화면 미리보기   | SellerShell | owner seller              | placeholder | S-07, FL_S_PR_03_02         |
@@ -46,6 +47,8 @@
 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`를 허용한다. 현재 잘못된 값은 `story` UI로 정규화한다.
 - LIVE `mode`는 `live`와 `replay`를 사용한다. 실제 구현에서는 서버 LIVE 상태가 최종 기준이다.
+- 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정과 잘못된 값은 `active`로 정규화한다. IA는 `준비중/진행중/종료`, API 명세는 `전체` 포함 4개로 서로 달라 Figma 와이어프레임(`FL_S_PR_LIST`) 기준을 따랐다.
+- 판매자 프로젝트 목록 `page`는 1부터 시작한다. API `page`가 0부터라 호출 시점에 변환한다.
 - 판매자 편집 `section`은 `story`, `rewards`, `policy`, `news`, `ai-story`를 사용한다.
 - 환불 `type`은 `defect`와 `delay`를 사용하고 실제 폼 진입은 서버 eligibility가 결정한다.
 
