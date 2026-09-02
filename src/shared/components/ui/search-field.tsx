@@ -3,10 +3,14 @@
 import { useState } from "react";
 import type { ChangeEvent, ComponentPropsWithRef } from "react";
 
-type SearchFieldProps = ComponentPropsWithRef<"input"> & {
+type SearchFieldProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
   clearLabel?: string;
   onClear?: () => void;
+  size?: "sm" | "md";
 };
+
+const fieldSizeClasses = { sm: "h-9", md: "h-13" } as const;
+const slotSizeClasses = { sm: "size-7", md: "size-10" } as const;
 
 export function SearchField({
   className,
@@ -15,6 +19,7 @@ export function SearchField({
   disabled,
   onChange,
   onClear,
+  size = "md",
   value,
   ...props
 }: SearchFieldProps) {
@@ -35,7 +40,8 @@ export function SearchField({
   return (
     <div
       className={[
-        "border-w-xs bg-layer-surface-default flex h-13 w-full items-center gap-1 overflow-hidden rounded-sm py-1 pr-1.5 pl-1.5",
+        "border-w-xs bg-layer-surface-default flex w-full items-center gap-1 overflow-hidden rounded-sm py-1 pr-1.5 pl-1.5",
+        fieldSizeClasses[size],
         "border-border-default focus-within:border-border-primary",
         disabled && "bg-layer-surface-disabled border-transparent",
         className,
@@ -43,7 +49,7 @@ export function SearchField({
         .filter(Boolean)
         .join(" ")}
     >
-      <span className="flex size-10 shrink-0 items-center justify-center">
+      <span className={`flex ${slotSizeClasses[size]} shrink-0 items-center justify-center`}>
         <span
           className={[
             "size-5 [mask-image:url('/icons/search.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]",
@@ -61,7 +67,7 @@ export function SearchField({
       {currentValue && !disabled ? (
         <button
           type="button"
-          className="focus-visible:outline-border-primary flex size-10 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+          className={`focus-visible:outline-border-primary flex ${slotSizeClasses[size]} shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-[-2px]`}
           aria-label={clearLabel}
           onClick={handleClear}
         >

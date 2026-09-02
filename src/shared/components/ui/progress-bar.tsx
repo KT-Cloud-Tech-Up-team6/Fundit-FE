@@ -1,12 +1,15 @@
 import type { ComponentPropsWithRef } from "react";
 
 type ProgressBarProps = Omit<ComponentPropsWithRef<"div">, "children"> & {
+  /** Figma progress bar 컴포넌트는 끝점에 손잡이가 있고, 목록 카드의 rating_bar는 없다. */
+  knob?: boolean;
   value?: number;
   variant?: "primary" | "primaryLive";
 };
 
 export function ProgressBar({
   className,
+  knob = true,
   value = 33.333,
   variant = "primary",
   ...props
@@ -32,12 +35,14 @@ export function ProgressBar({
         ].join(" ")}
         style={{ width: `${clampedValue}%` }}
       >
-        <span
-          className={[
-            "absolute top-1/2 right-0 size-3.5 translate-x-1/2 -translate-y-1/2 rounded-full",
-            indicatorClass,
-          ].join(" ")}
-        />
+        {knob ? (
+          <span
+            className={[
+              "absolute top-1/2 right-0 size-3.5 translate-x-1/2 -translate-y-1/2 rounded-full",
+              indicatorClass,
+            ].join(" ")}
+          />
+        ) : null}
       </div>
     </div>
   );
