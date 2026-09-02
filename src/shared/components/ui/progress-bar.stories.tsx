@@ -20,6 +20,7 @@ const meta = {
     variant: "primary",
   },
   argTypes: {
+    knob: { control: "boolean" },
     value: { control: { min: 0, max: 100, step: 1, type: "range" } },
     variant: { control: "radio", options: ["primary", "primaryLive"] },
   },
@@ -34,11 +35,18 @@ export const PrimaryLive: Story = {
   args: { variant: "primaryLive" },
 };
 
+/** 판매자 프로젝트 목록 카드의 rating_bar 는 끝점 손잡이가 없다. */
+export const NoKnob: Story = {
+  args: { knob: false },
+};
+
 export const Gallery: Story = {
   render: (args) => (
     <div className="flex flex-col gap-9">
       <ProgressBar {...args} variant="primary" />
       <ProgressBar {...args} variant="primaryLive" />
+      <ProgressBar {...args} knob={false} variant="primary" />
+      <ProgressBar {...args} knob={false} variant="primaryLive" />
     </div>
   ),
 };
