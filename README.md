@@ -112,8 +112,8 @@ Fundit-FE/
 
 | 사용자 | 경로                                       | 화면                       | 상태        |
 | ------ | ------------------------------------------ | -------------------------- | ----------- |
-| 공통   | `/auth/signup/terms`                       | 회원가입 약관              | placeholder |
-| 공통   | `/auth/login`                              | 로그인                     | placeholder |
+| 공통   | `/auth/signup`                             | 가입 방식 선택·약관        | implemented |
+| 공통   | `/auth/login`                              | 로그인                     | implemented |
 | 구매자 | `/`                                        | 홈 피드                    | placeholder |
 | 구매자 | `/live`, `/live/[liveId]`                  | LIVE 목록·시청·다시보기    | placeholder |
 | 구매자 | `/projects/[projectId]?tab=...`            | 프로젝트 상세 7개 탭       | placeholder |

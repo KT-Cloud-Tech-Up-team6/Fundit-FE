@@ -67,7 +67,7 @@ export function LoginFlow({
           <p className="text-body-s text-text-default">계정이 없을 때 더미텍스트</p>
           <Link
             className="text-body-s text-text-secondary mt-2 inline-block underline underline-offset-2"
-            href="/auth/signup/terms"
+            href="/auth/signup"
           >
             회원가입하기
           </Link>
