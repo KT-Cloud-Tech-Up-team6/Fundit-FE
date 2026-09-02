@@ -333,3 +333,11 @@ a,
 button {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Tailwind v4 preflight는 button의 cursor를 default로 되돌린다.
+   @layer base 에 두어 개별 cursor-* 유틸리티가 항상 이긴다. */
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
