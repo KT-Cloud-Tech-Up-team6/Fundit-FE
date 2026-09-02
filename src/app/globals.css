@@ -79,6 +79,12 @@ http://scripts.sil.org/OFL
   --layer-surface-disabled: var(--charcoal-100);
   --layer-surface-primary: var(--charcoal-900);
   --layer-surface-primary-live: var(--blue-500);
+  /* hover는 Figma Component 층(Button/primary_hover, Button/primary_live_hover)에만
+     있었다. Component 토큰을 CSS 변수로 만들지 않는다는 2항 원칙을 지키려면
+     참조할 Semantic이 있어야 해서 여기로 올렸다. 두 값 모두 Light/Dark 동일이라
+     [data-theme="dark"] 블록에서 재정의하지 않는다. */
+  --layer-surface-primary-hover: var(--charcoal-800);
+  --layer-surface-primary-live-hover: var(--blue-700);
 
   --text-title: var(--grey-black);
   --text-default: var(--charcoal-900);
@@ -149,6 +155,8 @@ http://scripts.sil.org/OFL
   --color-layer-surface-disabled: var(--layer-surface-disabled);
   --color-layer-surface-primary: var(--layer-surface-primary);
   --color-layer-surface-primary-live: var(--layer-surface-primary-live);
+  --color-layer-surface-primary-hover: var(--layer-surface-primary-hover);
+  --color-layer-surface-primary-live-hover: var(--layer-surface-primary-live-hover);
   --color-layer-overlay: var(--layer-overlay);
 
   --color-text-title: var(--text-title);
@@ -278,6 +286,9 @@ http://scripts.sil.org/OFL
   --radius-lg: 24px;
   --radius-full: 9999px;
 
+  /* Grid — docs/DESIGN_TOKENS.md 6.11. 콘텐츠 최대 폭만 토큰으로 둔다. */
+  --container-content: 1200px;
+
   /* Shadow — light/dark는 테마가 아니라 농도다. */
   --shadow-*: initial;
   --shadow-light-s: 1px 1px 2px 0 var(--alpha-10);
@@ -303,6 +314,13 @@ http://scripts.sil.org/OFL
 }
 @utility border-w-l {
   border-width: 1.8px;
+}
+@utility border-w-xl {
+  border-width: 2px;
+}
+/* 방향별 변형은 필요한 단계에만 만든다. 탭 인디케이터 트랙이 유일한 소비자다. */
+@utility border-b-w-xl {
+  border-bottom-width: 2px;
 }
 
 body {

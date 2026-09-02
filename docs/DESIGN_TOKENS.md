@@ -12,6 +12,7 @@ Figma `Fundit 디자인 시스템 > Foundations`를 프론트엔드 토큰으로
 
 1. **Figma와 동일하게 3계층으로 관리한다.** Primitive(값) → Semantic(역할) → Component(사용 위치).
 2. **코드에서 CSS 변수로 만드는 건 Primitive와 Semantic까지다.** Component 토큰은 CSS 변수로 만들지 않고 해당 컴포넌트 파일에서 Semantic을 직접 참조한다. Component 토큰은 소비자가 컴포넌트 하나뿐이라 전역 변수로 승격해도 참조 단계만 늘고 유지비가 커진다. Figma에는 Component 계층을 그대로 두고, 코드에서는 컴포넌트 파일이 그 역할을 대신한다.
+   **예외 — 대응 Semantic이 없는 상태값.** hover처럼 Figma가 Component 층에만 정의한 값은 참조할 Semantic이 없어 컴포넌트 파일이 Primitive를 직접 쓰게 되고, 그러면 3항이 깨진다. 이런 값은 Semantic으로 승격한다(7항의 `layer-surface-primary-hover` 등). 승격 기준은 "소비자가 컴포넌트 하나뿐인가"가 아니라 **"3항을 지킬 수단이 있는가"**다.
 3. **화면 코드는 Semantic만 쓴다.** Primitive는 Semantic 정의부에서만 참조한다.
 4. **Tailwind 기본 스케일과 겹치는 토큰은 새로 만들지 않는다.** Figma 간격 체계가 4px 배수라 Tailwind v4 기본 숫자 유틸리티와 값이 그대로 일치한다.
 5. **Figma에 없는 값은 코드에서 만들지 않는다.** 필요하면 디자이너에게 토큰 추가를 요청하고, 임시로 쓸 때는 `arbitrary value`로 남겨 눈에 띄게 둔다.
@@ -45,7 +46,7 @@ Figma 변수의 `_live` 접미사가 이 구분을 담당한다. 따라서 4항�
 | `Text/default`             | `--color-text-default`           |                                                 |
 | `Text/primary_live`        | `--color-text-primary-live`      | `_live`는 유지한다. 2항 참고                    |
 | `Layer/surface_disbaled`   | `--color-layer-surface-disabled` | Figma 오타는 코드에서 교정한다                  |
-| `Button/primary_hover`     | CSS 변수 없음                    | Component 층. 컴포넌트 파일에서 Semantic 참조   |
+| `Button/primary_hover`     | `--layer-surface-primary-hover`  | Semantic으로 승격. 2항 예외 참고                |
 | `Numeric/Border/Radius/lg` | `--radius-lg`                    | `Numeric` 접두어 제거                           |
 | `shadow/light_m`           | `--shadow-light-m`               |                                                 |
 | Type `Body/Boby M`         | `--text-body-m`                  | Figma 오타(`Boby`)는 코드에서 `body`로 교정한다 |
@@ -325,10 +326,17 @@ Tailwind v4의 `--text-*--line-height` / `--text-*--font-weight` 짝을 써서 �
 | `border-w-s`  | `1.3px` | `Numeric/Border/s`  |
 | `border-w-m`  | `1.5px` | `Numeric/Border/m`  |
 | `border-w-l`  | `1.8px` | `Numeric/Border/l`  |
+| `border-w-xl` | `2px`   | 없음 — 6.9a 참고    |
 
 Tailwind에 border-width 네임스페이스가 없어 `@utility`로 직접 정의한다.
 
 **`border-w-` 접두어를 쓴다.** Figma 이름 그대로 `border-s` / `border-l`로 정의하면 Tailwind 기본 `border-inline-start-width` / `border-left-width`를 덮어쓴다. 실제로 `.border-l{border-width:1.8px}`가 생성되는 것을 확인했다.
+
+### 6.9a `border-w-xl`(2px)과 방향별 변형
+
+`Numeric/Border` 컬렉션에는 2px가 없는데 판매자 프로젝트 목록(`FL_S_PR_LIST`)의 탭 인디케이터 트랙이 2px다. 스케일 밖 값을 `border-b-2` 리터럴로 두는 대신 `border-w-xl`을 추가했다. **Figma 변수 쪽에도 `Numeric/Border/xl` 추가를 요청해야 한다** — 현재는 코드에만 있는 값이다.
+
+`@utility border-w-*`는 네 방향을 한꺼번에 지정한다. 한 방향만 필요하면 `border-b-w-xl`처럼 방향별 변형이 필요한데, **실제 소비자가 생긴 단계에만 만든다.** 지금은 `border-b-w-xl` 하나뿐이다. `tab.tsx`가 `border-b-[1.5px]` / `border-b-[1.8px]`를 arbitrary로 쓰고 있는 것도 같은 이유이며, 이 컴포넌트를 손볼 때 `border-b-w-m` / `border-b-w-l`을 함께 만든다.
 
 ### 6.10 Shadow
 
@@ -371,27 +379,31 @@ Tailwind에 border-width 네임스페이스가 없어 `@utility`로 직접 정�
 
 Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모드에서 값이 같은 토큰(`text-secondary`, `text-warning/success/error/info`, `border-accent-*`, `static-*`, `layer-overlay`)은 재정의하지 않는다 — `:root`에 한 번만 있으면 두 모드에 다 적용된다.
 
-| 토큰                         | Light              | Dark                  |
-| ---------------------------- | ------------------ | --------------------- |
-| `layer-bg`                   | `grey-pearl-white` | `grey-midnight-black` |
-| `layer-surface-default`      | `grey-white`       | `grey-midnight-grey`  |
-| `layer-surface-disabled`     | `charcoal-100`     | `charcoal-700`        |
-| `layer-surface-primary`      | `charcoal-900`     | `charcoal-200`        |
-| `layer-surface-primary-live` | `blue-500`         | 동일                  |
-| `text-title`                 | `grey-black`       | `grey-white`          |
-| `text-default`               | `charcoal-900`     | `charcoal-100`        |
-| `text-disabled`              | `charcoal-600`     | `charcoal-500`        |
-| `text-inverse`               | `grey-white`       | `charcoal-900`        |
-| `text-primary-live`          | `blue-500`         | `blue-200`            |
-| `border-default`             | `charcoal-200`     | `charcoal-700`        |
-| `border-primary`             | `charcoal-900`     | `charcoal-200`        |
-| `border-primary-live`        | `blue-500`         | `blue-300`            |
-| `status-warning`             | `bright-red`       | `dark-red`            |
-| `status-success`             | `bright-green`     | `dark-green`          |
-| `status-error`               | `bright-orange`    | `dark-orange`         |
-| `status-info`                | `grey-bright-grey` | `grey-dark-grey`      |
+| 토큰                               | Light              | Dark                  |
+| ---------------------------------- | ------------------ | --------------------- |
+| `layer-bg`                         | `grey-pearl-white` | `grey-midnight-black` |
+| `layer-surface-default`            | `grey-white`       | `grey-midnight-grey`  |
+| `layer-surface-disabled`           | `charcoal-100`     | `charcoal-700`        |
+| `layer-surface-primary`            | `charcoal-900`     | `charcoal-200`        |
+| `layer-surface-primary-live`       | `blue-500`         | 동일                  |
+| `layer-surface-primary-hover`      | `charcoal-800`     | 동일                  |
+| `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |
+| `text-title`                       | `grey-black`       | `grey-white`          |
+| `text-default`                     | `charcoal-900`     | `charcoal-100`        |
+| `text-disabled`                    | `charcoal-600`     | `charcoal-500`        |
+| `text-inverse`                     | `grey-white`       | `charcoal-900`        |
+| `text-primary-live`                | `blue-500`         | `blue-200`            |
+| `border-default`                   | `charcoal-200`     | `charcoal-700`        |
+| `border-primary`                   | `charcoal-900`     | `charcoal-200`        |
+| `border-primary-live`              | `blue-500`         | `blue-300`            |
+| `status-warning`                   | `bright-red`       | `dark-red`            |
+| `status-success`                   | `bright-green`     | `dark-green`          |
+| `status-error`                     | `bright-orange`    | `dark-orange`         |
+| `status-info`                      | `grey-bright-grey` | `grey-dark-grey`      |
 
 `layer-surface-primary-live`, `text-warning/success/error/info`, `border-accent-*`는 두 모드에서 값이 같다 — 확정 색이라 테마와 무관하게 고정한 것으로 보인다.
+
+`layer-surface-primary-hover`(charcoal-800)와 `layer-surface-primary-live-hover`(blue-700)도 Figma 6.6 표가 Dark를 "동일"로 적어 두 모드 공통으로 뒀다. **다만 Dark에서 `layer-surface-primary`가 charcoal-200(밝은색)으로 뒤집히는데 hover만 charcoal-800(어두운색)으로 남으면 hover 시 명암이 역전된다.** Figma 값 그대로 반영했으나 다크 모드 토글이 생기기 전에 디자인 확인이 필요하다.
 
 **대비 재검증.** Dark 값이 처음 나왔을 때 `text-primary-live`(blue-500 유지 추정)가 다크 배경에서 1.87:1로 실패한다고 잠정 결론 냈었는데, 실제 export를 정밀 대조하니 Dark는 blue-200으로 바뀌어 있었다 — 그 추정은 export 이전의 부분 조회 데이터를 잘못 해석한 것이었다. 실제 Dark 값 전부 재계산 결과:
 
