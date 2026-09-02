@@ -9,6 +9,7 @@ import { AuthButton } from "./auth-form-controls";
 import { requiredTermIds, signupTerms } from "./signup-terms";
 
 type SignupTermsSheetProps = {
+  initialCheckedIds?: string[];
   initialDetailId?: string;
   onAgree: () => void;
   onClose: () => void;
@@ -18,12 +19,13 @@ type SignupTermsSheetProps = {
 /* 약관 전문은 스택된 두 번째 시트가 아니라 같은 시트의 내부 뷰다.
    전문 화면의 뒤로(<)와 닫기(x)가 모두 목록으로 돌아가고, 시트를 닫는 경로는 목록의 x뿐이다. */
 export function SignupTermsSheet({
+  initialCheckedIds = [],
   initialDetailId,
   onAgree,
   onClose,
   open,
 }: SignupTermsSheetProps) {
-  const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const [checkedIds, setCheckedIds] = useState<string[]>(initialCheckedIds);
   const [detailId, setDetailId] = useState<string | undefined>(initialDetailId);
 
   const allChecked = checkedIds.length === signupTerms.length;
