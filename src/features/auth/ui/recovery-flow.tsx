@@ -5,6 +5,8 @@ import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
+import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
+import type { IdentityStatus } from "./auth-identity-verification";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 
 export type RecoveryView =
@@ -21,50 +23,25 @@ export type RecoveryView =
   | "password-form"
   | "password-sent";
 
-type IdentityContent = {
-  action: string;
-  description: string;
-  status: string;
-  title: string;
+const identityStatusByView: Partial<Record<RecoveryView, IdentityStatus>> = {
+  "identity-ready": "ready",
+  "identity-requesting": "requesting",
+  "identity-cancelled": "cancelled",
+  "identity-failed": "failed",
+  "identity-verifying": "verifying",
+  "identity-verification-failed": "verification-failed",
 };
 
-const identityContentByView: Partial<Record<RecoveryView, IdentityContent>> = {
-  "identity-ready": {
-    title: "휴대폰 본인인증",
-    description: "전체 이메일 주소를 확인하려면\n본인인증이 필요해요.",
-    status: "포트원 본인인증 화면이 열립니다.",
-    action: "본인인증 시작",
-  },
-  "identity-requesting": {
-    title: "본인인증을 진행하고 있어요",
-    description: "열린 인증 창에서\n본인인증을 완료해 주세요.",
-    status: "포트원 본인인증 응답을 기다리고 있습니다.",
-    action: "본인인증 진행 중",
-  },
-  "identity-cancelled": {
-    title: "본인인증이 취소되었어요",
-    description: "전체 이메일을 확인하려면\n본인인증을 다시 진행해 주세요.",
-    status: "사용자가 본인인증을 취소했습니다.",
-    action: "다시 시도",
-  },
-  "identity-failed": {
-    title: "본인인증을 완료하지 못했어요",
-    description: "인증 과정에서 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
-    status: "포트원 본인인증 요청에 실패했습니다.",
-    action: "다시 시도",
-  },
-  "identity-verifying": {
-    title: "본인인증 결과를 확인하고 있어요",
-    description: "인증 결과를 안전하게 확인 중입니다.\n잠시만 기다려 주세요.",
-    status: "서버에서 포트원 인증 결과를 검증하고 있습니다.",
-    action: "결과 확인 중",
-  },
-  "identity-verification-failed": {
-    title: "본인인증 결과를 확인할 수 없어요",
-    description: "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
-    status: "서버 검증을 완료하지 못했습니다.",
-    action: "다시 시도",
-  },
+/* 제목·상태 문구·버튼 라벨은 AuthIdentityVerification이 소유한다. 여기서는 계정 복구
+   맥락에서만 달라지는 안내 문구를 준다. */
+const identityDescriptionByStatus: Record<IdentityStatus, string> = {
+  ready: "전체 이메일 주소를 확인하려면\n본인인증이 필요해요.",
+  requesting: "열린 인증 창에서\n본인인증을 완료해 주세요.",
+  cancelled: "전체 이메일을 확인하려면\n본인인증을 다시 진행해 주세요.",
+  failed: "인증 과정에서 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
+  verifying: "인증 결과를 안전하게 확인 중입니다.\n잠시만 기다려 주세요.",
+  "verification-failed":
+    "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
 };
 
 type RecoveryFlowProps = {
@@ -211,7 +188,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
           로그인 화면으로
         </button>
         <AuthBottomAction>
-          <AuthButton onClick={() => router.push("/auth/signup/terms")}>회원가입하기</AuthButton>
+          <AuthButton onClick={() => router.push("/auth/signup")}>회원가입하기</AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
@@ -305,41 +282,24 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
     );
   }
 
-  const identityContent = identityContentByView[view];
+  const identityStatus = identityStatusByView[view];
 
-  if (!identityContent) return null;
-
-  const isPending = view === "identity-requesting" || view === "identity-verifying";
-  const isRetry =
-    view === "identity-cancelled" ||
-    view === "identity-failed" ||
-    view === "identity-verification-failed";
+  if (!identityStatus) return null;
 
   function handleIdentityAction() {
-    if (!demoMode || isPending) return;
+    if (!demoMode || !identityStatus) return;
 
-    if (isRetry) {
-      setView("identity-ready");
-      return;
-    }
-
-    setView("identity-requesting");
+    setView(isRetryIdentityStatus(identityStatus) ? "identity-ready" : "identity-requesting");
   }
 
   return (
     <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
-      <div aria-busy={isPending} aria-live="polite">
-        <AuthTitle>{identityContent.title}</AuthTitle>
-        <RecoveryDescription>{identityContent.description}</RecoveryDescription>
-        <div className="bg-layer-surface-disabled text-body-m mt-12 flex min-h-[118px] items-center justify-center rounded-sm px-6 text-center">
-          {identityContent.status}
-        </div>
-      </div>
-      <AuthBottomAction>
-        <AuthButton disabled={!demoMode || isPending} onClick={handleIdentityAction}>
-          {identityContent.action}
-        </AuthButton>
-      </AuthBottomAction>
+      <AuthIdentityVerification
+        actionDisabled={!demoMode}
+        description={identityDescriptionByStatus[identityStatus]}
+        onAction={handleIdentityAction}
+        status={identityStatus}
+      />
     </RecoveryHeader>
   );
 }
