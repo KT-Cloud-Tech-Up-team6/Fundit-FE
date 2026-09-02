@@ -5,6 +5,6 @@ export const buyerNavigation = [
 ] as const;
 
 export const sellerNavigation = [
-  { href: "/seller/projects", label: "프로젝트" },
-  { href: "/seller/projects/new", label: "새 프로젝트" },
+  { href: "/seller/projects", label: "내 프로젝트", icon: "archive" },
+  { href: "/seller/live", label: "LIVE 스튜디오", icon: "live" },
 ] as const;
