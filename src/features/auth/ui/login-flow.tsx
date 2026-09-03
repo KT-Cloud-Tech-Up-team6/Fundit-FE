@@ -143,14 +143,14 @@ export function LoginFlow({
       <nav aria-label="계정 복구" className="mt-6 flex items-center justify-center gap-1">
         <Link
           className="text-body-s flex h-9 w-28 items-center justify-center"
-          href="/auth/recovery?view=email"
+          href="/auth/recovery/email"
         >
           아이디 찾기
         </Link>
         <span aria-hidden="true" className="bg-border-default h-3 w-px" />
         <Link
           className="text-body-s flex h-9 w-28 items-center justify-center"
-          href="/auth/recovery?view=password"
+          href="/auth/recovery/password"
         >
           비밀번호 찾기
         </Link>

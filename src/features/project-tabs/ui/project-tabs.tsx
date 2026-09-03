@@ -8,6 +8,7 @@ const tabs = [
   "supporters",
   "refund-policy",
   "reward-info",
+  "maker",
 ] as const;
 
 export function ProjectTabs({ projectId, activeTab }: { projectId: string; activeTab: string }) {

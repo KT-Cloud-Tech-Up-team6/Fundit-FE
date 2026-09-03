@@ -1,7 +1,7 @@
 export const buyerNavigation = [
   { href: "/", label: "홈" },
   { href: "/live", label: "LIVE" },
-  { href: "/my/fundings", label: "마이" },
+  { href: "/my", label: "마이" },
 ] as const;
 
 export const sellerNavigation = [

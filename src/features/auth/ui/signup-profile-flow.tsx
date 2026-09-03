@@ -111,7 +111,7 @@ export function SignupProfileFlow({
         </div>
         <button
           className="text-body-s text-text-secondary mx-auto mt-6 block underline underline-offset-2"
-          onClick={() => router.push("/auth/signup/done")}
+          onClick={() => router.push("/auth/signup/complete")}
           type="button"
         >
           다음에 설정할게요
@@ -119,7 +119,7 @@ export function SignupProfileFlow({
         <AuthBottomAction>
           <AuthButton
             disabled={address.length === 0}
-            onClick={() => router.push("/auth/signup/done")}
+            onClick={() => router.push("/auth/signup/complete")}
           >
             다음
           </AuthButton>

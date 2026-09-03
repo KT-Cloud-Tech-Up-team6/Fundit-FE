@@ -1,58 +1,119 @@
 # 라우팅 설계
 
-회원가입, 로그인, 계정 복구는 와이어프레임이 구현되었고 나머지 페이지는 레이아웃과 화면 목적을 확인할 수 있는 placeholder 상태다. 접근 조건은 설계 계약이며 실제 인증·소유권 가드는 API 계약 후 구현한다.
+IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화.docx`를 기준으로 한 프론트엔드 canonical route입니다. 모달·드로어·시트·패널은 독립 URL을 만들지 않고 상위 화면에서 상태로 관리합니다.
 
-| 사용자 유형 | URL                                              | Route Group | 페이지 목적            | 레이아웃    | 접근 조건                 | 상태        | 관련 요구사항               |
-| ----------- | ------------------------------------------------ | ----------- | ---------------------- | ----------- | ------------------------- | ----------- | --------------------------- |
-| 공통        | `/auth/signup`                                   | `(auth)`    | 가입 방식 선택·약관    | AuthShell   | guest                     | implemented | C-01, FL_C_ME_TERMS         |
-| 공통        | `/auth/signup/verify`                            | `(auth)`    | 본인 인증              | AuthShell   | terms complete            | implemented | C-02, FL_C_ME_AUTH          |
-| 공통        | `/auth/signup/profile`                           | `(auth)`    | 회원정보 입력          | AuthShell   | verified guest            | implemented | C-03, FL_C_ME_INFO          |
-| 공통        | `/auth/signup/done`                              | `(auth)`    | 가입 완료              | AuthShell   | verified guest            | implemented | C-03, FL_C_ME_DONE          |
-| 공통        | `/auth/login`                                    | `(auth)`    | 로그인                 | AuthShell   | guest                     | implemented | C-04, FL_C_ME_02_01         |
-| 공통        | `/auth/recovery`                                 | `(auth)`    | 계정 복구              | AuthShell   | guest                     | implemented | C-05, FL_C_ME_02_01         |
-| 구매자      | `/`                                              | `(buyer)`   | 홈 피드                | BuyerShell  | public                    | placeholder | B-01, FL_B_HM_01_01         |
-| 구매자      | `/categories/[slug]`                             | `(buyer)`   | 카테고리 목록          | BuyerShell  | public                    | placeholder | B-02, FL_B_HM_01_02         |
-| 구매자      | `/search`                                        | `(buyer)`   | 통합 검색              | BuyerShell  | public                    | placeholder | B-03, FL_B_HM_01_03         |
-| 구매자      | `/my/wishlist`                                   | `(buyer)`   | 찜 목록                | BuyerShell  | member                    | placeholder | B-04, FL_B_HM_01_04         |
-| 구매자      | `/live`                                          | `(buyer)`   | LIVE 목록              | BuyerShell  | public                    | placeholder | B-05, FL_B_LV_01_01         |
-| 구매자      | `/live/[liveId]`                                 | `(buyer)`   | 실시간 시청·채팅       | BuyerShell  | read public, write member | placeholder | B-06–B-07, FL_B_LV_01_02–03 |
-| 구매자      | `/live/[liveId]?mode=replay`                     | `(buyer)`   | LIVE 다시보기          | BuyerShell  | public                    | placeholder | B-08, FL_B_LV_01_04         |
-| 구매자      | `/projects/[projectId]`                          | `(buyer)`   | 프로젝트 상세 허브     | BuyerShell  | public                    | placeholder | B-09, FL_B_PJ_01_01         |
-| 구매자      | `/projects/[projectId]?tab=...`                  | `(buyer)`   | 상세 7개 탭            | BuyerShell  | public 또는 조건부        | placeholder | B-10–B-16, FL_B_PJ_01_01–07 |
-| 구매자      | `/funding/[projectId]/rewards`                   | `(buyer)`   | 리워드 선택            | BuyerShell  | member                    | placeholder | B-17, FL_B_PY_01_01         |
-| 구매자      | `/funding/[projectId]/checkout`                  | `(buyer)`   | 주문서                 | BuyerShell  | member + selection        | placeholder | B-18, FL_B_PY_01_02         |
-| 구매자      | `/funding/[projectId]/payment`                   | `(buyer)`   | 결제 요청              | BuyerShell  | member + valid order      | placeholder | B-19, FL_B_PY_01_03         |
-| 구매자      | `/payment/result`                                | `(buyer)`   | 결제 결과              | BuyerShell  | member                    | placeholder | B-20, FL_B_PY_01_03         |
-| 구매자      | `/my/fundings`                                   | `(buyer)`   | 펀딩 내역              | BuyerShell  | member                    | placeholder | B-21, FL_B_MY_01_01         |
-| 구매자      | `/my/fundings/[fundingId]`                       | `(buyer)`   | 개별 펀딩 관리         | BuyerShell  | owner                     | placeholder | B-22, FL_B_MY_01_02         |
-| 구매자      | `/my/fundings/[fundingId]/fulfillment`           | `(buyer)`   | 제작·배송 현황         | BuyerShell  | owner                     | placeholder | B-23, FL_B_MY_02_01         |
-| 구매자      | `/my/fundings/[fundingId]/refund/new?type=...`   | `(buyer)`   | 환불 신청              | BuyerShell  | owner + eligible          | placeholder | B-25, FL_B_RF_01_03~04      |
-| 구매자      | `/my/refunds`                                    | `(buyer)`   | 환불 목록·상태         | BuyerShell  | member                    | placeholder | B-24, FL_B_RF_01_01~05      |
-| 구매자      | `/my/notifications`                              | `(buyer)`   | 알림함·설정            | BuyerShell  | member                    | placeholder | B-26, FL_B_MY_04_01         |
-| 판매자      | `/seller/projects`                               | `(seller)`  | 프로젝트 관리 홈       | SellerShell | seller                    | placeholder | S-01, FL_S_PR_01_01         |
-| 판매자      | `/seller/projects/new`                           | `(seller)`  | 프로젝트 기본정보      | SellerShell | seller                    | placeholder | S-02, FL_S_PR_02_01~02      |
-| 판매자      | `/seller/projects/[projectId]/edit?section=...`  | `(seller)`  | 직접·AI 상세 작성      | SellerShell | owner seller              | placeholder | S-03~S-06, FL_S_PR_03_01    |
-| 판매자      | `/seller/projects/[projectId]/preview`           | `(seller)`  | 구매자 화면 미리보기   | SellerShell | owner seller              | placeholder | S-07, FL_S_PR_03_02         |
-| 판매자      | `/seller/projects/[projectId]/live/new`          | `(seller)`  | 프로젝트 LIVE 생성     | SellerShell | owner seller              | placeholder | S-08, FL_S_LV_01_01         |
-| 판매자      | `/seller/live/[liveId]/setup`                    | `(seller)`  | LIVE 설정·AI 큐시트    | SellerShell | live owner                | placeholder | S-09, FL_S_LV_01_02         |
-| 판매자      | `/seller/live/[liveId]/console`                  | `(seller)`  | 송출·채팅·Copilot 콘솔 | SellerShell | live owner                | placeholder | S-10, FL_S_LV_01_03~04      |
-| 판매자      | `/seller/projects/[projectId]/live-proof`        | `(seller)`  | 방송 종료 후 검증      | SellerShell | owner seller              | placeholder | S-11, FL_S_LV_01_05         |
-| 판매자      | `/seller/projects/[projectId]/funding`           | `(seller)`  | 펀딩 현황              | SellerShell | owner seller              | placeholder | S-12, FL_S_FD_01_01         |
-| 판매자      | `/seller/projects/[projectId]/community`         | `(seller)`  | 문의 관리              | SellerShell | owner seller              | placeholder | S-13, FL_S_FD_02_01         |
-| 판매자      | `/seller/projects/[projectId]/fulfillment`       | `(seller)`  | 5단계 제작·배송 관리   | SellerShell | owner seller              | placeholder | S-14, FL_S_DL_01_01         |
-| 판매자      | `/seller/projects/[projectId]/fulfillment/delay` | `(seller)`  | 일정 변경·지연 등록    | SellerShell | owner seller              | placeholder | S-15, FL_S_DL_02_01         |
-| 판매자      | `/seller/projects/[projectId]/shipping`          | `(seller)`  | 발송 정보 등록         | SellerShell | owner seller              | placeholder | S-16, FL_S_DL_03_01         |
+## 공통·인증
+
+| URL                       | 화면                           | 접근 조건      | 상태        |
+| ------------------------- | ------------------------------ | -------------- | ----------- |
+| `/auth/signup`            | 가입 방식·약관                 | guest          | implemented |
+| `/auth/signup/verify`     | 포트원 본인인증 진행·결과 확인 | terms complete | implemented |
+| `/auth/signup/profile`    | 회원정보 입력                  | verified guest | implemented |
+| `/auth/signup/complete`   | 가입 완료                      | verified guest | implemented |
+| `/auth/login`             | 로그인                         | guest          | implemented |
+| `/auth/recovery/email`    | 이메일 찾기                    | guest          | implemented |
+| `/auth/recovery/password` | 비밀번호 재설정                | guest          | implemented |
+
+약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 포트원 SDK 호출과 서버 검증 결과를 연결하는 프론트엔드 진행 경로이며, 본인인증 입력 화면을 직접 구현하지 않습니다.
+
+## 구매자 탐색·LIVE
+
+| URL                     | 화면                    | 접근 조건                 | 상태        |
+| ----------------------- | ----------------------- | ------------------------- | ----------- |
+| `/`                     | 홈                      | public                    | placeholder |
+| `/categories/[slug]`    | 카테고리                | public                    | placeholder |
+| `/search`               | 통합 검색               | public                    | placeholder |
+| `/live`                 | LIVE 메인               | public                    | placeholder |
+| `/live/new`             | 신규 LIVE               | public                    | placeholder |
+| `/live/rank`            | 실시간 순위             | public                    | placeholder |
+| `/live/recommended`     | 추천 LIVE               | public                    | placeholder |
+| `/live/following`       | 팔로우 LIVE             | member                    | placeholder |
+| `/live/upcoming`        | 예정 LIVE               | public                    | placeholder |
+| `/live/search`          | LIVE 검색·결과          | public                    | placeholder |
+| `/live/[liveId]`        | LIVE 방송·채팅·다시보기 | read public, write member | placeholder |
+| `/projects/[projectId]` | 프로젝트 상세 탭        | public 또는 조건부        | placeholder |
+
+## 펀딩·결제
+
+| URL                             | 화면                         | 접근 조건          | 상태        |
+| ------------------------------- | ---------------------------- | ------------------ | ----------- |
+| `/funding/[projectId]/rewards`  | 리워드 선택                  | member             | placeholder |
+| `/funding/[projectId]/checkout` | 주문서·배송지·쿠폰·결제 약관 | member + selection | placeholder |
+| `/payment/result`               | 결제 결과                    | member             | placeholder |
+
+PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/result`에서 서버 재조회로 복구합니다.
+
+## 마이·고객센터
+
+| URL                                    | 화면                     | 접근 조건        | 상태        |
+| -------------------------------------- | ------------------------ | ---------------- | ----------- |
+| `/my`                                  | 마이페이지               | member           | placeholder |
+| `/my/fundings`                         | 펀딩내역                 | member           | placeholder |
+| `/my/fundings/[fundingId]`             | 개별 펀딩 관리           | owner            | placeholder |
+| `/my/fundings/[fundingId]/cancel`      | 펀딩 취소                | owner + eligible | placeholder |
+| `/my/fundings/[fundingId]/fulfillment` | 제작·배송 현황           | owner            | placeholder |
+| `/my/fundings/[fundingId]/refund/new`  | 취소·하자·지연 환불 신청 | owner + eligible | placeholder |
+| `/my/refunds`                          | 환불내역                 | member           | placeholder |
+| `/my/wishlist`                         | 찜                       | member           | placeholder |
+| `/my/notifications`                    | 알림함                   | member           | placeholder |
+| `/my/notifications/settings`           | 알림 설정                | member           | placeholder |
+| `/my/preferences`                      | 맞춤 정보                | member           | placeholder |
+| `/my/support/inquiries`                | 1:1 문의                 | member           | placeholder |
+| `/my/settings`                         | 설정                     | member           | placeholder |
+| `/my/profile`                          | 회원정보 관리            | member           | placeholder |
+| `/my/addresses`                        | 배송지 관리              | member           | placeholder |
+| `/support/faq`                         | FAQ                      | public           | placeholder |
+| `/support/notices`                     | 공지사항                 | public           | placeholder |
+
+## 판매자
+
+| URL                                                  | 화면                    | 접근 조건               | 상태        |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | ----------- |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | placeholder |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | placeholder |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | placeholder |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | placeholder |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder |
+
+판매자 최초 개인정보 동의는 `/seller` 진입 시 모달로 처리합니다. 프로젝트 작성과 운영은 `/seller/projects/[projectId]?tab=...`을 기준으로 통합합니다.
 
 ## 쿼리 규칙
 
-- 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`를 허용한다. 현재 잘못된 값은 `story` UI로 정규화한다.
-- LIVE `mode`는 `live`와 `replay`를 사용한다. 실제 구현에서는 서버 LIVE 상태가 최종 기준이다.
-- 판매자 편집 `section`은 `story`, `rewards`, `policy`, `news`, `ai-story`를 사용한다.
-- 환불 `type`은 `defect`와 `delay`를 사용하고 실제 폼 진입은 서버 eligibility가 결정한다.
+- 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
+- LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
+- 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
+- 판매자 프로젝트 `tab`은 `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `settlement`, `live`를 허용합니다.
+- LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 
-## 가드 구현 원칙
+## 이전 경로 호환
 
-- public 화면은 로그인 없이 읽을 수 있고 쓰기 동작에서 로그인 요청을 표시한다.
-- buyer protected 화면은 member 여부를 확인하고 원래 목적지 `returnTo`를 보존한다.
-- seller protected 화면은 판매자 등록과 역할을 확인한다.
-- owner protected 화면은 URL을 신뢰하지 않고 서버에서 리소스 소유권을 다시 확인한다.
+기존 북마크와 진행 중인 작업 링크를 보호하기 위해 아래 주소는 canonical route로 임시 redirect합니다.
+
+| 이전 URL                                         | 이동 URL                                       |
+| ------------------------------------------------ | ---------------------------------------------- |
+| `/auth/signup/terms`                             | `/auth/signup`                                 |
+| `/auth/signup/done`                              | `/auth/signup/complete`                        |
+| `/auth/recovery?view=email`                      | `/auth/recovery/email`                         |
+| `/auth/recovery?view=password`                   | `/auth/recovery/password`                      |
+| `/funding/[projectId]/payment`                   | `/funding/[projectId]/checkout`                |
+| `/seller/projects/[projectId]/edit?section=...`  | `/seller/projects/[projectId]?tab=...`         |
+| `/seller/projects/[projectId]/funding`           | `/seller/projects/[projectId]?tab=funding`     |
+| `/seller/projects/[projectId]/community`         | `/seller/projects/[projectId]?tab=community`   |
+| `/seller/projects/[projectId]/fulfillment`       | `/seller/projects/[projectId]?tab=fulfillment` |
+| `/seller/projects/[projectId]/fulfillment/delay` | `/seller/projects/[projectId]?tab=fulfillment` |
+| `/seller/projects/[projectId]/shipping`          | `/seller/projects/[projectId]?tab=fulfillment` |
+| `/seller/projects/[projectId]/live-proof`        | `/seller/projects/[projectId]?tab=live`        |
+| `/seller/live/[liveId]/setup`                    | `/seller/live/[liveId]/cue-sheet`              |
+
+## 접근 제어 원칙
+
+- public 화면은 로그인 없이 읽을 수 있고 쓰기 동작에서 로그인을 요청합니다.
+- member 화면은 Access Token을 확인하고 원래 목적지 `returnTo`를 보존합니다.
+- seller 화면은 회원 인증과 판매자 개인정보 동의를 확인합니다.
+- owner 화면은 URL 식별자를 신뢰하지 않고 서버에서 리소스 소유권을 재검증합니다.
+- 환불·취소 등 조건부 화면은 FE 시간 계산이 아니라 서버 eligibility와 불가 사유를 따릅니다.
