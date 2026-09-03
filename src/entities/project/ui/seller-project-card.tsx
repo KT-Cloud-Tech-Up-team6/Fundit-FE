@@ -42,7 +42,7 @@ export function SellerProjectCard(project: SellerProject) {
   const href = destinations[project.status](project.id);
 
   return (
-    <article className="border-border-default bg-layer-surface-default flex h-[146px] items-start justify-between gap-6 border-b p-5">
+    <article className="border-border-default flex h-[146px] items-start justify-between gap-6 border-b p-5">
       <div className="flex min-w-0 flex-1 gap-6">
         <div className="bg-border-default text-body-s text-text-primary-live flex size-[81px] shrink-0 items-center justify-center">
           IMG

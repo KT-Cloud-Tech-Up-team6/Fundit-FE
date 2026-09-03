@@ -46,7 +46,7 @@ const meta: Meta<SellerProject> = {
   parameters: { layout: "centered", nextjs: { appDirectory: true } },
   decorators: [
     (Story) => (
-      <div className="w-[588px]">
+      <div className="bg-layer-surface-default w-[588px]">
         <Story />
       </div>
     ),

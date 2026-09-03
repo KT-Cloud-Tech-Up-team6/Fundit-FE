@@ -13,12 +13,12 @@ const headerActions = [
 
 export function SellerShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <header className="bg-layer-surface-default border-border-default h-[70px] border-b">
+    <div className="bg-layer-surface-default min-h-screen">
+      <header className="border-border-default h-[70px] border-b">
         <div className="max-w-content mx-auto flex h-full w-full items-center gap-4 px-5 xl:px-0">
           <Link
             href="/seller/projects"
-            className="bg-layer-surface-disabled text-label-l flex h-[54px] w-[102px] shrink-0 items-center justify-center"
+            className="bg-border-default text-label-l flex h-[54px] w-[102px] shrink-0 items-center justify-center"
           >
             로고
           </Link>

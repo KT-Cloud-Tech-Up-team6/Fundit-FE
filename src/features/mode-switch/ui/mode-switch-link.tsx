@@ -12,7 +12,7 @@ export function ModeSwitchLink({ mode }: ModeSwitchLinkProps) {
   return (
     <Link
       href={target}
-      className="border-w-s border-border-primary bg-layer-surface-default text-body-s text-text-default hover:bg-layer-surface-disabled flex h-9 w-[102px] items-center justify-center gap-2 rounded-xs whitespace-nowrap transition"
+      className="border-w-xs border-border-primary bg-layer-surface-default text-body-s text-text-default hover:bg-layer-surface-disabled flex h-9 w-[102px] items-center justify-center gap-2 rounded-xs whitespace-nowrap transition"
     >
       {label}
       <Icon name="swap" className="size-3.5 shrink-0" />
