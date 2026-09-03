@@ -21,7 +21,7 @@ src/
 - `features`는 모드 전환, 찜, 결제 진행처럼 사용자 행동 단위의 상태와 UI를 소유한다.
 - `entities`는 프로젝트, 리워드, LIVE, 펀딩, 배송, 환불처럼 여러 기능에서 재사용되는 도메인 표현을 소유한다.
 - `shared`는 도메인 타입을 알 필요가 없는 레이아웃, 기본 UI, 상수와 유틸리티를 소유한다.
-- `providers`는 인증, 서버 상태, 테마, LIVE·채팅 어댑터를 나중에 한곳에서 조합하기 위한 경계다. 현재는 외부 상태 라이브러리를 설치하지 않은 빈 조합 지점이다.
+- `providers`는 인증, TanStack Query, 테마 Provider와 LIVE·채팅 adapter factory 또는 interface를 조합하는 경계다. LIVE·채팅 연결과 연결 상태는 각 feature 경계에서 생성하고 소유한다. 현재는 첫 API 계약 전이라 외부 상태 라이브러리를 설치하지 않은 빈 조합 지점이다.
 
 ## 컴포넌트 배치 기준
 
@@ -59,9 +59,10 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 ## API와 상태관리 연결 위치
 
 - HTTP client와 공통 오류 매핑은 계약 확정 후 `shared/lib`에 둔다.
-- 서버 상태 캐시는 도입 결정 후 `providers`에서 연결하고 각 feature가 query 정의를 소유한다.
+- 클라이언트 서버 상태는 TanStack Query로 관리한다. 첫 API 계약과 MSW handler가 확정되는 기능에서 설치하고 `providers`에 연결하며, 각 feature가 query 정의를 소유한다.
+- 서버 렌더링 전용 데이터는 Server Component와 Next.js `fetch`가 소유하고 같은 리소스를 Query Cache에 중복 저장하지 않는다.
 - 입력 draft와 schema validation은 각 feature의 form boundary에 둔다.
 - 인증 사용자와 현재 모드처럼 제한된 전역 상태만 `providers`에서 제공한다.
-- 스트리밍·채팅·AI는 각각 adapter 인터페이스로 분리해 한 영역의 실패가 다른 영역을 중단하지 않게 한다.
+- 스트리밍·채팅·AI는 각각 adapter interface로 분리하고 연결은 해당 feature에서 생성해 한 영역의 실패가 다른 영역을 중단하지 않게 한다.
 
-관련 미확정 항목은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.
+세부 상태 분류와 도구 선택 근거는 [STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md), 미확정 계약은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.

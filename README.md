@@ -58,7 +58,7 @@ Fundit은 구매자가 프로젝트와 LIVE를 탐색하고 리워드 펀딩에 
 | Language        | <img src="https://img.shields.io/badge/TypeScript_5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 5" />        | strict mode로 라우트와 기능 경계의 타입 안전성을 확보합니다.                                           |
 | Styling         | <img src="https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4" />   | 구매자 mobile-first와 판매자 PC-first 반응형 구조를 빠르게 공유합니다.                                 |
 | Validation      | 미도입                                                                                                                                       | 폼 필드와 BE 계약이 확정된 뒤 실제 요구사항에 맞는 schema 도구를 선정합니다.                           |
-| State           | 미도입                                                                                                                                       | 서버 상태·draft·전역 UI의 소유권을 먼저 확정하고 필요한 도구만 도입합니다.                             |
+| State           | TanStack Query 도입 예정                                                                                                                     | 클라이언트 서버 상태에만 사용하며 첫 API 계약과 MSW handler 확정 시 설치합니다.                        |
 | Formatting      | <img src="https://img.shields.io/badge/Prettier_3-F7B93E?style=for-the-badge&logo=prettier&logoColor=111827" alt="Prettier 3" />             | 팀 공통 코드 형식을 자동화합니다.                                                                      |
 | Package Manager | <img src="https://img.shields.io/badge/pnpm_10-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm 10" />                        | 고정된 lockfile과 효율적인 의존성 설치를 제공합니다.                                                   |
 | CI              | <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" /> | PR과 main 변경에서 lint·typecheck·build를 검증합니다.                                                  |
@@ -77,7 +77,8 @@ Fundit-FE/
 ├─ docs/
 │  ├─ ARCHITECTURE.md               # 디렉터리·의존성·상태 소유 원칙
 │  ├─ OPEN_DECISIONS.md             # 미확정 정책과 연동 계약
-│  └─ ROUTING.md                    # 전체 URL·가드·요구사항 추적표
+│  ├─ ROUTING.md                    # 전체 URL·가드·요구사항 추적표
+│  └─ STATE_MANAGEMENT.md           # 상태 분류·도구 선택·MSW 연결 원칙
 ├─ public/
 ├─ src/
 │  ├─ app/
@@ -173,6 +174,7 @@ Copy-Item .env.example .env.local
 - [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 - [ROUTING.md](./docs/ROUTING.md).
+- [STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md).
 - [OPEN_DECISIONS.md](./docs/OPEN_DECISIONS.md).
 
 ## 개발 참여
