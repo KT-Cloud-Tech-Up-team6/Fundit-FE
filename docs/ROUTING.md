@@ -2,6 +2,8 @@
 
 IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화.docx`를 기준으로 한 프론트엔드 canonical route입니다. 모달·드로어·시트·패널은 독립 URL을 만들지 않고 상위 화면에서 상태로 관리합니다.
 
+표의 `상태`는 화면 구현 상태만 나타냅니다. `접근 조건`은 목표 설계 계약이며, 실제 인증·판매자 동의·소유권 가드는 세션과 API 계약 확정 후 별도 구현합니다.
+
 ## 공통·인증
 
 | URL                       | 화면                           | 접근 조건      | 상태        |
@@ -113,7 +115,9 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/seller/projects/[projectId]/live-proof`        | `/seller/projects/[projectId]?tab=live`        |
 | `/seller/live/[liveId]/setup`                    | `/seller/live/[liveId]/cue-sheet`              |
 
-## 접근 제어 원칙
+## 접근 제어 계약
+
+현재 접근 제어 코드는 구현하지 않았습니다. 인증 세션과 판매자 동의 API가 확정되면 아래 원칙에 따라 공통 경계에서 적용합니다.
 
 - public 화면은 로그인 없이 읽을 수 있고 쓰기 동작에서 로그인을 요청합니다.
 - member 화면은 Access Token을 확인하고 원래 목적지 `returnTo`를 보존합니다.
