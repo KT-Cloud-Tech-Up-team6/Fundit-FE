@@ -69,7 +69,8 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 | URL                                                  | 화면                    | 접근 조건               | 상태        |
 | ---------------------------------------------------- | ----------------------- | ----------------------- | ----------- |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | placeholder |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | placeholder |
 | `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder |
 | `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | placeholder |
 | `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder |
@@ -80,13 +81,15 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | placeholder |
 | `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder |
 
-판매자 최초 개인정보 동의는 `/seller` 진입 시 모달로 처리합니다. 프로젝트 작성과 운영은 `/seller/projects/[projectId]?tab=...`을 기준으로 통합합니다.
+`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 `/seller` 진입 시 모달로 처리합니다.
 
 ## 쿼리 규칙
 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
 - 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
+- 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
+- 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `settlement`, `live`를 허용합니다.
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 

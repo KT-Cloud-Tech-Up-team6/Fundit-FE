@@ -315,6 +315,7 @@ export const BorderWidth: Story = {
             ["border-w-s", "1.3px"],
             ["border-w-m", "1.5px"],
             ["border-w-l", "1.8px"],
+            ["border-w-xl", "2px"],
           ] as const
         ).map(([cls, value]) => (
           <li key={cls} className="w-36">

@@ -79,6 +79,17 @@ http://scripts.sil.org/OFL
   --layer-surface-disabled: var(--charcoal-100);
   --layer-surface-primary: var(--charcoal-900);
   --layer-surface-primary-live: var(--blue-500);
+  /* hover는 Figma Component 층(Button/primary_hover, Button/primary_live_hover)에만
+     있었다. Component 토큰을 CSS 변수로 만들지 않는다는 2항 원칙을 지키려면
+     참조할 Semantic이 있어야 해서 여기로 올렸다.
+     Light/Dark 동일이라고 두었더니 다크에서 대비가 무너졌다. primary는 다크에서
+     밝은 면(charcoal-200)인데 hover만 어두운 charcoal-800으로 남아 text-inverse가
+     1.56:1이 됐다. 아래 [data-theme="dark"]에서 재정의한다. */
+  --layer-surface-primary-hover: var(--charcoal-800);
+  --layer-surface-primary-live-hover: var(--blue-700);
+  /* 보조 버튼(카드의 `관리`/`확인하기`) hover. 화면 코드가 --charcoal-200을 직접
+     참조해 다크에서 밝은 배경 + 밝은 글자로 1.17:1이 됐다. Semantic으로 올린다. */
+  --layer-surface-disabled-hover: var(--charcoal-200);
 
   --text-title: var(--grey-black);
   --text-default: var(--charcoal-900);
@@ -121,6 +132,10 @@ http://scripts.sil.org/OFL
   --layer-surface-default: var(--grey-midnight-grey);
   --layer-surface-disabled: var(--charcoal-700);
   --layer-surface-primary: var(--charcoal-200);
+  /* 다크는 두 surface의 명암이 뒤집힌다. primary는 밝은 면이라 hover도 밝은 쪽으로,
+     disabled는 어두운 면이라 hover도 어두운 쪽으로 한 단계 움직여야 글자가 남는다. */
+  --layer-surface-primary-hover: var(--charcoal-300);
+  --layer-surface-disabled-hover: var(--charcoal-800);
 
   --text-title: var(--grey-white);
   --text-default: var(--charcoal-100);
@@ -147,8 +162,11 @@ http://scripts.sil.org/OFL
   --color-layer-bg: var(--layer-bg);
   --color-layer-surface-default: var(--layer-surface-default);
   --color-layer-surface-disabled: var(--layer-surface-disabled);
+  --color-layer-surface-disabled-hover: var(--layer-surface-disabled-hover);
   --color-layer-surface-primary: var(--layer-surface-primary);
   --color-layer-surface-primary-live: var(--layer-surface-primary-live);
+  --color-layer-surface-primary-hover: var(--layer-surface-primary-hover);
+  --color-layer-surface-primary-live-hover: var(--layer-surface-primary-live-hover);
   --color-layer-overlay: var(--layer-overlay);
 
   --color-text-title: var(--text-title);
@@ -278,6 +296,9 @@ http://scripts.sil.org/OFL
   --radius-lg: 24px;
   --radius-full: 9999px;
 
+  /* Grid — docs/DESIGN_TOKENS.md 6.11. 콘텐츠 최대 폭만 토큰으로 둔다. */
+  --container-content: 1200px;
+
   /* Shadow — light/dark는 테마가 아니라 농도다. */
   --shadow-*: initial;
   --shadow-light-s: 1px 1px 2px 0 var(--alpha-10);
@@ -304,6 +325,13 @@ http://scripts.sil.org/OFL
 @utility border-w-l {
   border-width: 1.8px;
 }
+@utility border-w-xl {
+  border-width: 2px;
+}
+/* 방향별 변형은 필요한 단계에만 만든다. 탭 인디케이터 트랙이 유일한 소비자다. */
+@utility border-b-w-xl {
+  border-bottom-width: 2px;
+}
 
 body {
   background: var(--layer-bg);
@@ -314,4 +342,12 @@ body {
 a,
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Tailwind v4 preflight는 button의 cursor를 default로 되돌린다.
+   @layer base 에 두어 개별 cursor-* 유틸리티가 항상 이긴다. */
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }

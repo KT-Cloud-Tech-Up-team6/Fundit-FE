@@ -10,9 +10,9 @@ type ButtonProps = ComponentPropsWithRef<"button"> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-layer-surface-primary text-text-inverse enabled:hover:bg-[var(--charcoal-800)] focus-visible:outline-border-primary",
+    "bg-layer-surface-primary text-text-inverse enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary",
   primaryLive:
-    "bg-layer-surface-primary-live text-text-inverse enabled:hover:bg-[var(--blue-700)] focus-visible:outline-border-primary-live",
+    "bg-layer-surface-primary-live text-text-inverse enabled:hover:bg-layer-surface-primary-live-hover focus-visible:outline-border-primary-live",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
