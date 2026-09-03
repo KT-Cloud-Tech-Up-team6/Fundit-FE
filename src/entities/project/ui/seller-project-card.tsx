@@ -42,12 +42,12 @@ export function SellerProjectCard(project: SellerProject) {
   const href = destinations[project.status](project.id);
 
   return (
-    <article className="border-border-default flex h-[146px] items-start justify-between gap-6 border-b p-5">
-      <div className="flex min-w-0 flex-1 gap-6">
+    <article className="border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:h-[146px] md:flex-row md:items-start md:justify-between md:gap-6">
+      <div className="flex min-w-0 flex-1 gap-4 md:gap-6">
         <div className="bg-border-default text-body-s text-text-primary-live flex size-[81px] shrink-0 items-center justify-center">
           IMG
         </div>
-        <div className="flex max-w-[268px] min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col md:max-w-[268px]">
           <h3 className="text-body-strong truncate">
             <Link href={href} className="hover:underline">
               {project.title}
@@ -73,7 +73,7 @@ export function SellerProjectCard(project: SellerProject) {
               <p className="text-caption-m text-text-secondary flex min-w-0 items-center gap-1 truncate">
                 <span>{project.category}</span>
                 <span aria-hidden>·</span>
-                <span>{project.period}</span>
+                <span className="truncate">{project.period}</span>
                 <span aria-hidden>·</span>
                 <span className="inline-flex shrink-0 items-center gap-1">
                   <Icon name="people" className="size-3.5" />
@@ -89,8 +89,8 @@ export function SellerProjectCard(project: SellerProject) {
         </div>
       </div>
 
-      <div className="flex h-[106px] w-34 shrink-0 flex-col items-end justify-between">
-        <div className="flex gap-1">
+      <div className="flex w-full shrink-0 items-center justify-between gap-2 md:h-[106px] md:w-34 md:flex-col md:items-end md:justify-between">
+        <div className="flex min-w-0 flex-wrap gap-1">
           {project.badges.map((badge) => (
             <span
               key={badge}
@@ -102,7 +102,7 @@ export function SellerProjectCard(project: SellerProject) {
         </div>
         <Link
           href={href}
-          className="text-body-s bg-layer-surface-disabled focus-visible:outline-border-primary flex h-9 w-full items-center justify-center rounded-xs hover:bg-[var(--charcoal-200)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="text-body-s bg-layer-surface-disabled focus-visible:outline-border-primary hover:bg-layer-surface-disabled-hover flex h-9 w-28 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 md:w-full"
         >
           {actionLabels[project.status]}
         </Link>

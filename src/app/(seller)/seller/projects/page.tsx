@@ -73,7 +73,7 @@ export default async function SellerProjectsPage({
   const status = statuses.find((tab) => tab.value === params.status)?.value ?? "active";
   const all = mockProjects[status];
   const totalPages = Math.ceil(all.length / PAGE_SIZE);
-  const currentPage = Math.min(Math.max(1, Number(params.page) || 1), totalPages);
+  const currentPage = Math.min(Math.max(1, Math.trunc(Number(params.page)) || 1), totalPages);
   const items = all.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
@@ -96,8 +96,8 @@ export default async function SellerProjectsPage({
           ))}
         </TabList>
 
-        <div className="flex items-center gap-6">
-          <div className="w-[282px]">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:gap-6">
+          <div className="min-w-[180px] flex-1 sm:w-[282px] sm:flex-none">
             <SearchField size="sm" placeholder="검색하기" aria-label="프로젝트 검색" />
           </div>
           <Link

@@ -18,7 +18,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
         <div className="max-w-content mx-auto flex h-full w-full items-center gap-4 px-5 xl:px-0">
           <Link
             href="/seller/projects"
-            className="bg-border-default text-label-l flex h-[54px] w-[102px] shrink-0 items-center justify-center"
+            className="bg-border-default text-label-l flex h-[54px] w-16 shrink-0 items-center justify-center md:w-[102px]"
           >
             로고
           </Link>

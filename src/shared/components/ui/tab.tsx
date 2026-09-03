@@ -33,7 +33,7 @@ type TabProps =
 /* sm(데스크톱)은 배경과 패딩이 없고 인디케이터를 요소 밖에 겹쳐 그린다.
    md·lg(모바일)는 각 탭이 자기 밑줄을 그려 이어 붙는 구조라 overflow-hidden 이 필요하다. */
 const sizeClasses: Record<TabSize, string> = {
-  sm: "h-10 w-30 text-body-s",
+  sm: "h-10 min-w-0 flex-1 text-body-s md:w-30 md:flex-none",
   md: "bg-layer-surface-default h-13 w-[130px] overflow-hidden p-2 text-body-emphasis",
   lg: "bg-layer-surface-default h-13 w-[195px] overflow-hidden p-2 text-title-s font-medium",
 };
@@ -132,7 +132,7 @@ type TabListProps = Omit<ComponentPropsWithRef<"div">, "children"> & {
 
 const layoutClasses: Record<NonNullable<TabListProps["layout"]>, string> = {
   fill: "w-[390px]",
-  track: "border-border-default border-b-w-xl w-fit gap-3",
+  track: "border-border-default border-b-w-xl w-full gap-3 md:w-fit",
 };
 
 /* TabProps는 유니온이라 링크형(`<a>`)에는 disabled가 없다. `in`으로 좁혀서 읽는다. */

@@ -18,12 +18,12 @@ export function SellerNavLink({ href, label, icon }: SellerNavLinkProps) {
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`text-body-emphasis flex h-10 w-[126px] items-center justify-center gap-2 rounded-xs whitespace-nowrap ${
+      className={`text-body-emphasis flex h-10 w-10 items-center justify-center gap-2 rounded-xs whitespace-nowrap md:w-[126px] ${
         active ? "text-text-default" : "text-text-secondary"
       }`}
     >
       <Icon name={icon} className="size-4 shrink-0" />
-      {label}
+      <span className="sr-only md:not-sr-only">{label}</span>
     </Link>
   );
 }
