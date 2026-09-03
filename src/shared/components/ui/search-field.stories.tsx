@@ -17,6 +17,9 @@ const meta = {
   args: {
     placeholder: "검색어를 입력해 주세요",
   },
+  argTypes: {
+    size: { control: "radio", options: ["sm", "md"] },
+  },
 } satisfies Meta<typeof SearchField>;
 
 export default meta;
@@ -32,12 +35,18 @@ export const Disabled: Story = {
   args: { disabled: true },
 };
 
+/** 판매자 프로젝트 목록의 검색 필드. Figma 36px 높이다. */
+export const Small: Story = {
+  args: { placeholder: "검색하기", size: "sm" },
+};
+
 export const Gallery: Story = {
   render: (args) => (
     <div className="flex flex-col gap-9">
       <SearchField {...args} />
       <SearchField {...args} autoFocus defaultValue="검색어" />
       <SearchField {...args} disabled />
+      <SearchField {...args} placeholder="검색하기" size="sm" />
     </div>
   ),
 };

@@ -6,7 +6,7 @@ const meta = {
   title: "Shared/UI/Tab",
   component: Tab,
   tags: ["autodocs"],
-  parameters: { layout: "centered" },
+  parameters: { layout: "centered", nextjs: { appDirectory: true } },
   args: {
     children: "text",
     selected: true,
@@ -14,7 +14,7 @@ const meta = {
     variant: "primary",
   },
   argTypes: {
-    size: { control: "radio", options: ["md", "lg"] },
+    size: { control: "radio", options: ["sm", "md", "lg"] },
     variant: { control: "radio", options: ["primary", "primaryLive"] },
   },
 } satisfies Meta<typeof Tab>;
@@ -30,6 +30,24 @@ export const PrimaryLive: Story = {
 
 export const Inactive: Story = {
   args: { selected: false },
+};
+
+/** 링크형. URL로 전환하므로 role="tab" 대신 aria-current를 쓴다. */
+export const NavLinks: Story = {
+  parameters: { nextjs: { appDirectory: true } },
+  render: () => (
+    <TabList aria-label="프로젝트 상태" layout="track" mode="nav">
+      <Tab href="?status=active" selected size="sm">
+        진행중 <span>2</span>
+      </Tab>
+      <Tab href="?status=draft" size="sm">
+        준비중 <span>1</span>
+      </Tab>
+      <Tab href="?status=closed" size="sm">
+        완료 <span>14</span>
+      </Tab>
+    </TabList>
+  ),
 };
 
 export const Gallery: Story = {
@@ -55,6 +73,30 @@ export const Gallery: Story = {
         <Tab size="md">text</Tab>
         <Tab size="md">text</Tab>
       </TabList>
+      <TabList aria-label="상태" layout="track" mode="nav">
+        <Tab href="#active" selected size="sm">
+          진행중 <span>2</span>
+        </Tab>
+        <Tab href="#draft" size="sm">
+          준비중 <span>1</span>
+        </Tab>
+        <Tab href="#closed" size="sm">
+          완료 <span>14</span>
+        </Tab>
+      </TabList>
     </div>
+  ),
+};
+
+/** selected와 disabled가 겹친 탭. 초기 로빙 tabindex(0)가 비활성 탭에 박히면
+    포커스를 못 받아 탭리스트 전체가 키보드로 진입 불가가 된다. */
+export const DisabledSelected: Story = {
+  render: () => (
+    <TabList aria-label="비활성 선택 탭">
+      <Tab disabled selected size="lg">
+        비활성
+      </Tab>
+      <Tab size="lg">활성</Tab>
+    </TabList>
   ),
 };
