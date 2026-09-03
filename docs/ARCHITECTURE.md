@@ -26,7 +26,7 @@ src/
 ## 컴포넌트 배치 기준
 
 1. 라우트 파라미터·메타데이터·페이지 조합은 `app`에 둔다.
-2. 여러 화면에서 반복되는 도메인 비의존 UI는 `shared/components`에 둔다.
+2. 여러 화면에서 반복되는 도메인 비의존 UI primitive는 `shared/components/ui`에 두고, 여러 라우트가 공유하는 Shell은 `shared/components/layout`에 둔다.
 3. 사용자의 구체적 행동을 수행하는 UI와 상태는 `features/<feature>`에 둔다.
 4. 도메인 모델과 재사용 표시 요소는 `entities/<entity>`에 둔다.
 5. 한 페이지에서만 쓰이는 단순 마크업은 페이지에 유지한다.
@@ -65,4 +65,4 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 - 인증 사용자와 현재 모드처럼 제한된 전역 상태만 `providers`에서 제공한다.
 - 스트리밍·채팅·AI는 각각 adapter interface로 분리하고 연결은 해당 feature에서 생성해 한 영역의 실패가 다른 영역을 중단하지 않게 한다.
 
-세부 상태 분류와 도구 선택 근거는 [STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md), 미확정 계약은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.
+공용 UI의 승격·API·접근성 기준은 [SHARED_COMPONENTS.md](./SHARED_COMPONENTS.md), 세부 상태 분류와 도구 선택 근거는 [STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md), 미확정 계약은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.
