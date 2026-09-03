@@ -15,7 +15,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
   return (
     <div className="bg-layer-surface-default min-h-screen">
       <header className="border-border-default h-[70px] border-b">
-        <div className="max-w-content mx-auto flex h-full w-full items-center gap-4 px-5 xl:px-0">
+        <div className="max-w-content mx-auto flex h-full w-full items-center gap-2 px-5 md:gap-4 xl:px-0">
           <Link
             href="/seller/projects"
             className="bg-border-default text-label-l flex h-[54px] w-16 shrink-0 items-center justify-center md:w-[102px]"
@@ -27,7 +27,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
               <SellerNavLink key={item.href} {...item} />
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 md:gap-3">
             {headerActions.map((action) => (
               <button
                 key={action.name}
