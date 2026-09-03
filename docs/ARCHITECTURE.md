@@ -26,7 +26,7 @@ src/
 ## 컴포넌트 배치 기준
 
 1. 라우트 파라미터·메타데이터·페이지 조합은 `app`에 둔다.
-2. 여러 화면에서 반복되는 도메인 비의존 UI는 `shared/components`에 둔다.
+2. 여러 화면에서 반복되는 도메인 비의존 UI primitive는 `shared/components/ui`에 두고, 여러 라우트가 공유하는 Shell은 `shared/components/layout`에 둔다.
 3. 사용자의 구체적 행동을 수행하는 UI와 상태는 `features/<feature>`에 둔다.
 4. 도메인 모델과 재사용 표시 요소는 `entities/<entity>`에 둔다.
 5. 한 페이지에서만 쓰이는 단순 마크업은 페이지에 유지한다.
