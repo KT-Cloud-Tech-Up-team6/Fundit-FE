@@ -119,8 +119,10 @@ Fundit-FE/
 | 구매자 | `/projects/[projectId]?tab=...`        | 프로젝트 상세 8개 탭       | placeholder |
 | 구매자 | `/funding/[projectId]/rewards`         | 리워드 선택·주문·결제 흐름 | placeholder |
 | 구매자 | `/my`, `/my/fundings`                  | 마이·펀딩·제작·배송 관리   | placeholder |
-| 판매자 | `/seller/projects`                     | 프로젝트 관리              | placeholder |
+| 판매자 | `/seller/projects`                     | 프로젝트 관리              | implemented |
 | 판매자 | `/seller/projects/[projectId]?tab=...` | 프로젝트 작성·운영 탭      | placeholder |
+| 판매자 | `/seller/live`                         | LIVE 스튜디오 홈           | placeholder |
+| 판매자 | `/seller/live/[liveId]/cue-sheet`      | AI 큐시트                  | placeholder |
 | 판매자 | `/seller/live/[liveId]/console`        | LIVE 송출·채팅·Copilot     | placeholder |
 | 판매자 | `/seller/live/[liveId]/review`         | 검증·하이라이트 검수       | placeholder |
 
