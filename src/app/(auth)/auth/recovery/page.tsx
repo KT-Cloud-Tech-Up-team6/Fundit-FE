@@ -1,4 +1,4 @@
-import { RecoveryFlow } from "@/features/auth/ui/recovery-flow";
+import { redirect } from "next/navigation";
 
 type RecoveryPageProps = {
   searchParams: Promise<{ view?: string }>;
@@ -7,5 +7,5 @@ type RecoveryPageProps = {
 export default async function RecoveryPage({ searchParams }: RecoveryPageProps) {
   const { view } = await searchParams;
 
-  return <RecoveryFlow initialView={view === "password" ? "password-form" : "email-form"} />;
+  redirect(view === "password" ? "/auth/recovery/password" : "/auth/recovery/email");
 }

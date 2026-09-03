@@ -26,12 +26,11 @@ export type SellerProject = SellerProjectBase &
       }
   );
 
-/* IA FL_S_PR_LIST → FL_S_PR_DTL. 상태별 기본 진입 탭이 달라 목적지도 갈린다.
-   ponytail: 상세 허브 라우트가 아직 없어 각 탭 URL로 직접 보낸다. */
+/* IA FL_S_PR_LIST → FL_S_PR_DTL. 상태별 기본 진입 탭이 달라 목적지도 갈린다. */
 const destinations = {
-  draft: (id: string) => `/seller/projects/${id}/edit`,
-  active: (id: string) => `/seller/projects/${id}/funding`,
-  closed: (id: string) => `/seller/projects/${id}/fulfillment`,
+  draft: (id: string) => `/seller/projects/${id}?tab=story`,
+  active: (id: string) => `/seller/projects/${id}?tab=funding`,
+  closed: (id: string) => `/seller/projects/${id}?tab=fulfillment`,
 } as const;
 
 const actionLabels = { draft: "관리", active: "관리", closed: "확인하기" } as const;

@@ -2,7 +2,7 @@
 
 라이브 커머스형 리워드 펀딩 서비스 Fundit의 프론트엔드 저장소입니다.
 
-> 현재 저장소는 요구사항 정의서 v0.1과 FE 화면·컴포넌트·라우팅 설계서를 기준으로 만든 초기 구조입니다. 실제 API, 결제, 스트리밍, 채팅, AI 연동은 포함하지 않습니다.
+> 현재 저장소는 IA v1.2와 최신 FE 화면·컴포넌트·라우팅 설계서를 기준으로 만든 초기 구조입니다. 실제 API, 결제, 스트리밍, 채팅, AI 연동은 포함하지 않습니다.
 
 ## 프로젝트 소개
 
@@ -110,18 +110,21 @@ Fundit-FE/
 
 ## 주요 라우팅
 
-| 사용자 | 경로                                       | 화면                       | 상태        |
-| ------ | ------------------------------------------ | -------------------------- | ----------- |
-| 공통   | `/auth/signup`                             | 가입 방식 선택·약관        | implemented |
-| 공통   | `/auth/login`                              | 로그인                     | implemented |
-| 구매자 | `/`                                        | 홈 피드                    | placeholder |
-| 구매자 | `/live`, `/live/[liveId]`                  | LIVE 목록·시청·다시보기    | placeholder |
-| 구매자 | `/projects/[projectId]?tab=...`            | 프로젝트 상세 7개 탭       | placeholder |
-| 구매자 | `/funding/[projectId]/rewards`             | 리워드 선택·주문·결제 흐름 | placeholder |
-| 구매자 | `/my/fundings`                             | 펀딩·제작·배송 관리        | placeholder |
-| 판매자 | `/seller/projects`                         | 프로젝트 관리              | placeholder |
-| 판매자 | `/seller/live/[liveId]/console`            | LIVE 송출·채팅·Copilot     | placeholder |
-| 판매자 | `/seller/projects/[projectId]/fulfillment` | 제작·배송 운영             | placeholder |
+| 사용자 | 경로                                   | 화면                       | 상태        |
+| ------ | -------------------------------------- | -------------------------- | ----------- |
+| 공통   | `/auth/signup`, `/auth/signup/*`       | 회원가입·포트원 본인인증   | implemented |
+| 공통   | `/auth/login`, `/auth/recovery/*`      | 로그인·계정 복구           | implemented |
+| 구매자 | `/`                                    | 홈 피드                    | placeholder |
+| 구매자 | `/live`, `/live/[liveId]`              | LIVE 목록·시청·다시보기    | placeholder |
+| 구매자 | `/projects/[projectId]?tab=...`        | 프로젝트 상세 8개 탭       | placeholder |
+| 구매자 | `/funding/[projectId]/rewards`         | 리워드 선택·주문·결제 흐름 | placeholder |
+| 구매자 | `/my`, `/my/fundings`                  | 마이·펀딩·제작·배송 관리   | placeholder |
+| 판매자 | `/seller/projects`                     | 프로젝트 관리              | implemented |
+| 판매자 | `/seller/projects/[projectId]?tab=...` | 프로젝트 작성·운영 탭      | placeholder |
+| 판매자 | `/seller/live`                         | LIVE 스튜디오 홈           | placeholder |
+| 판매자 | `/seller/live/[liveId]/cue-sheet`      | AI 큐시트                  | placeholder |
+| 판매자 | `/seller/live/[liveId]/console`        | LIVE 송출·채팅·Copilot     | placeholder |
+| 판매자 | `/seller/live/[liveId]/review`         | 검증·하이라이트 검수       | placeholder |
 
 전체 라우트와 접근 조건은 [라우팅 문서](./docs/ROUTING.md)를 확인하세요.
 
@@ -180,8 +183,8 @@ Copy-Item .env.example .env.local
 
 - Next.js App Router와 TypeScript strict, Tailwind CSS, ESLint, Prettier, pnpm 구성.
 - BuyerShell, AuthShell, SellerShell과 반응형 기본 내비게이션.
-- 설계서 C-01–C-05, B-01–B-26, S-01–S-16에 대응하는 접근 가능한 route placeholder.
-- 프로젝트 상세 `tab`, LIVE `mode`, 판매자 편집 `section`, 환불 `type` 쿼리 구조.
+- IA v1.2 화면 ID에 대응하는 canonical route placeholder와 이전 경로 호환 redirect.
+- 프로젝트 상세 `tab`, LIVE `mode`, 판매자 프로젝트 `tab`, LIVE 검토 `tab`, 환불 `type` 쿼리 구조.
 - 공통 loading, error, not-found 경계.
 - GitHub Actions CI와 PR 템플릿.
 

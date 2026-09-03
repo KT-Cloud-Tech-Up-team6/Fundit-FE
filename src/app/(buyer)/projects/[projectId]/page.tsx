@@ -9,6 +9,7 @@ const allowedTabs = new Set([
   "supporters",
   "refund-policy",
   "reward-info",
+  "maker",
 ]);
 
 export default async function ProjectDetailPage({
