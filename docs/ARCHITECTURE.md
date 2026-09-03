@@ -64,4 +64,4 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 - 인증 사용자와 현재 모드처럼 제한된 전역 상태만 `providers`에서 제공한다.
 - 스트리밍·채팅·AI는 각각 adapter 인터페이스로 분리해 한 영역의 실패가 다른 영역을 중단하지 않게 한다.
 
-관련 미확정 항목은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.
+공용 UI의 승격·API·접근성 기준은 [SHARED_COMPONENTS.md](./SHARED_COMPONENTS.md), 관련 미확정 항목은 [OPEN_DECISIONS.md](./OPEN_DECISIONS.md)에 기록한다.

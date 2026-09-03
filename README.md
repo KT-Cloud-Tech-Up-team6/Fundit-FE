@@ -77,7 +77,8 @@ Fundit-FE/
 ├─ docs/
 │  ├─ ARCHITECTURE.md               # 디렉터리·의존성·상태 소유 원칙
 │  ├─ OPEN_DECISIONS.md             # 미확정 정책과 연동 계약
-│  └─ ROUTING.md                    # 전체 URL·가드·요구사항 추적표
+│  ├─ ROUTING.md                    # 전체 URL·가드·요구사항 추적표
+│  └─ SHARED_COMPONENTS.md          # 공용 UI 승격·API·접근성 기준
 ├─ public/
 ├─ src/
 │  ├─ app/
@@ -173,6 +174,7 @@ Copy-Item .env.example .env.local
 - [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 - [ROUTING.md](./docs/ROUTING.md).
+- [SHARED_COMPONENTS.md](./docs/SHARED_COMPONENTS.md).
 - [OPEN_DECISIONS.md](./docs/OPEN_DECISIONS.md).
 
 ## 개발 참여
