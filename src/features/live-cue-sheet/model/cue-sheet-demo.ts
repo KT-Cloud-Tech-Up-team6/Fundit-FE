@@ -8,10 +8,32 @@ export type CueScene = {
   script: string;
 };
 
-export const demoProject = {
+export type CueSheetProject = {
+  title: string;
+  category: string;
+  period: string;
+  description: string;
+  participantCount: number;
+  currentAmount: number;
+  goalAmount: number;
+  reward?: string;
+};
+
+export type SavedCueSheet = {
+  scenes: CueScene[];
+  type: CueSheetType;
+  minutes: number;
+  answers?: string[];
+};
+
+export const demoProject: CueSheetProject = {
   title: "로보락 F25",
   category: "가전",
   period: "2026.07.01 - 2026.08.12",
+  participantCount: 132,
+  currentAmount: 6_400_000,
+  goalAmount: 5_000_000,
+  reward: "로보락 F25 본체 단품 699,000원",
   description:
     "로보락 F25는 180도 완전히 평평하게 눕혀지는 플랫 디자인으로 가구 밑 좁은 틈새까지 빈틈없이 청소합니다. 20,000Pa의 강력한 흡입력과 고온 세척 및 열풍 건조 기능을 갖추어 먼지 흡입부터 물걸레 관리까지 완벽하게 해결합니다. 여기에 스마트 오염도 감지 센서가 탑재되어 바닥 상태에 맞춰 흡입력과 물 분사량을 알아서 조절합니다. 가볍고 유연한 핸들링으로 힘들이지 않고 매일 깨끗한 바닥을 유지해 보세요.",
 };
@@ -43,16 +65,22 @@ const sceneTemplates = [
   ["마무리 클로징", 10, "핵심 내용 요약과 감사 인사"],
 ] as const;
 
-export function createDemoScenes(minutes: number, answers: string[]): CueScene[] {
+export function createDemoScenes(
+  minutes: number,
+  answers: string[],
+  project = demoProject,
+): CueScene[] {
+  const answer = (index: number) =>
+    answers[index] || "입력하지 않은 내용입니다. 방송 전에 확인해주세요.";
   const details = [
-    `안녕하세요. 오늘은 ${demoProject.title}를 직접 보면서 물걸레 청소와 진공청소기를 하나로 합치게 된 이야기부터 말씀드릴게요.`,
-    demoProject.description,
-    `${answers[0] || demoAnswers[0]}\n${answers[1] || demoAnswers[1]}`,
-    answers[3] || demoAnswers[3],
-    `리워드는 로보락 F25 본체 단품으로 699,000원에 준비했어요. ${answers[4] || demoAnswers[4]}`,
-    answers[2] || demoAnswers[2],
-    answers[4] || demoAnswers[4],
-    "오늘 함께해 주셔서 감사합니다. 로보락 F25와 함께하는 새로운 청소 경험을 만나보세요.",
+    `안녕하세요. 오늘 소개할 제품은 ${project.title}입니다.`,
+    project.description,
+    `${answer(0)}\n${answer(1)}`,
+    answer(3),
+    `${project.reward || "리워드 정보는 입력하지 않았습니다."}\n${answer(4)}`,
+    answer(2),
+    answer(4),
+    `오늘 함께해 주셔서 감사합니다. ${project.title} 프로젝트에 관심을 가져주세요.`,
   ];
   let elapsed = 0;
   return sceneTemplates.map(([title, seconds, outline], index) => {
@@ -63,7 +91,12 @@ export function createDemoScenes(minutes: number, answers: string[]): CueScene[]
       id: `scene-${index + 1}`,
       title,
       duration: end - start,
-      outline,
+      outline:
+        index === 1
+          ? `${project.title}의 핵심 기능과 사용 환경 소개`
+          : index === 4
+            ? `${project.reward || "리워드 정보 확인 필요"}\n리워드 구성과 일정 안내`
+            : outline,
       script: details[index],
     };
   });

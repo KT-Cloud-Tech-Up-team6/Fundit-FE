@@ -13,7 +13,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Chat: Story = {};
-export const Studio: Story = { args: { initialStep: "studio" } };
+export const Closed: Story = { args: { initialStep: "closed" } };
 export const TypeSelection: Story = { args: { initialStep: "options" } };
 export const Editor: Story = { args: { initialStep: "editor" } };
 
@@ -54,7 +54,7 @@ export const GenerationComplete: Story = {
 
 export const Saved: Story = {
   args: {
-    initialStep: "create",
+    initialStep: "closed",
     initialAnswers: demoAnswers,
     initialSavedCueSheet: {
       scenes: createDemoScenes(10, demoAnswers),
