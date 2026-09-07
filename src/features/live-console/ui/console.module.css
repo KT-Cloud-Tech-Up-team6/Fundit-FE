@@ -1,0 +1,119 @@
+.console {
+  min-height: 100vh;
+  background: var(--layer-surface-default);
+  color: var(--text-default);
+}
+
+.console :is(button, a, input, textarea):focus-visible,
+.dialog :is(button, a, input, textarea):focus-visible {
+  outline: 2px solid var(--border-primary);
+  outline-offset: 2px;
+}
+
+.header {
+  border-bottom: 1px solid var(--border-default);
+}
+
+.headerInner {
+  max-width: 1200px;
+  min-height: 70px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.grid {
+  max-width: 1200px;
+  margin: 40px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.panel {
+  min-width: 0;
+  height: 726px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.secondary {
+  background: var(--layer-surface-disabled);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+}
+
+.secondary:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dialog {
+  margin: auto;
+  padding: 0;
+  width: min(588px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  border-radius: var(--radius-sm);
+  background: var(--layer-surface-default);
+  color: var(--text-default);
+}
+
+.dialog::backdrop {
+  background: var(--layer-overlay);
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 672px;
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+}
+
+.dialogContent {
+  width: 100%;
+  max-width: 394px;
+  margin: 16px auto 0;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+@media (max-width: 1240px) {
+  .headerInner {
+    padding: 8px 20px;
+  }
+
+  .grid {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .headerInner {
+    flex-wrap: wrap;
+  }
+
+  .headerInner h1 {
+    flex: 1 1 calc(100% - 118px);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 24px;
+  }
+
+  .panel {
+    height: 600px;
+  }
+}

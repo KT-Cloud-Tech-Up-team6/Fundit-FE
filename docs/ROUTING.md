@@ -4,6 +4,20 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 표의 `상태`는 화면 구현 상태만 나타냅니다. `접근 조건`은 목표 설계 계약이며, 실제 인증·판매자 동의·소유권 가드는 세션과 API 계약 확정 후 별도 구현합니다.
 
+## Design Source
+
+- 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
+- `/seller/live/demo-live/console`에서 시작 전 → 목업 방송 시작 → 질문·답변·채팅 → 종료 → LIVE 체크 선택 흐름을 확인할 수 있습니다. 상태별 화면은 Storybook `Features/LiveConsole/Console`에서 확인합니다.
+- 콘솔은 전용 헤더를 위해 `(live-console)` 그룹에 두며 일반 `SellerShell`을 사용하지 않습니다. URL은 바뀌지 않습니다. 인증·소유권 가드는 아직 구현하지 않았습니다.
+- 실제 송출·카메라·마이크·AI·API·실시간 채팅·영구 저장은 포함하지 않습니다. 설정·리허설은 미구현으로 비활성화하고, LIVE 체크 생성은 로컬 결과만 표시합니다.
+- 질문·답변·큐시트는 예시입니다. 기존 큐시트 편집 화면과 데이터 전달은 아직 연결하지 않았습니다. 목업 시작 시 예시 답변을 채우고, 전송한 답변은 완료 목록과 채팅에 반영합니다. 목록 건수는 실제 목업 데이터에서 계산합니다.
+- 콘솔 상태는 기능 내부에서만 유지하며 새로고침·페이지 이동·`liveId` 변경 시 초기화합니다. 질문 상세·모달·입력값을 URL 또는 브라우저 저장소에 복사하지 않습니다.
+- 판매자 AI 큐시트는 [공유 Figma의 판매자_AI큐시트 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=415-9981)을 기준으로 합니다.
+- 구현 범위는 지정 영역의 질문·요약·유형 선택·생성 상태·결과 편집·저장 후 LIVE 생성 화면입니다. 관련 작업은 [Issue #32](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/32)입니다.
+- `/seller/live`에서 라이브 생성하기로 진입하거나 `/seller/live/demo-live/cue-sheet`에서 질문 화면을 바로 확인할 수 있습니다.
+- AI 생성과 목록은 목업입니다. 저장은 현재 화면의 메모리 상태에만 유지되며 새로고침이나 페이지 이동 시 초기화됩니다. 실제 AI·API·송출·권한 검증은 포함하지 않습니다.
+- 방송 시간은 최대 10분이며, 구간 추가 시 선택 구간의 시간을 둘로 나누어 전체 시간을 유지합니다. 제목·순서·진행 개요·대사를 수정할 수 있습니다. 건너뛴 질문은 목업 생성 시 예시 내용으로 대체합니다.
+
 ## 공통·인증
 
 | URL                       | 화면                           | 접근 조건      | 상태        |
@@ -72,15 +86,15 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | URL                                                  | 화면                    | 접근 조건               | 상태        |
 | ---------------------------------------------------- | ----------------------- | ----------------------- | ----------- |
 | `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | placeholder |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented |
 | `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder |
 | `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | placeholder |
 | `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder |
 | `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder |
 | `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder |
 | `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | placeholder |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | placeholder |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented |
 | `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.

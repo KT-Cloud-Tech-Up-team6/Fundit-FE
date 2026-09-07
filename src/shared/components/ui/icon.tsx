@@ -1,12 +1,22 @@
 /* SVG를 mask로 깔고 색은 bg-current로 상속받는다. SearchField와 같은 방식이라
    파일에 박힌 stroke 색과 무관하게 토큰 색을 따른다. */
 const iconFiles = {
+  avatar: "avatar",
+  chat: "chat",
+  funding: "funding",
+  next: "next",
+  play: "play",
+  previous: "previous",
+  stream: "stream",
+  viewers: "viewers",
+  warning: "warning",
   archive: "archive_box",
   bell: "ringing_bell",
   close: "remove_cancel",
   live: "live_video",
   people: "people",
   profile: "profile",
+  send: "send",
   settings: "cog_setting",
   swap: "refresh",
 } as const;

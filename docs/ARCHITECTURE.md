@@ -38,6 +38,7 @@ src/
 - `(buyer)`는 공개·구매자 화면을 묶고 BuyerShell을 적용한다.
 - `(auth)`는 로그인과 3단계 회원가입에 AuthShell을 적용한다.
 - `(seller)`는 `/seller` 하위 운영 화면에 SellerShell을 적용한다.
+- `(live-console)`는 `/seller/live/[liveId]/console`에 전용 방송 헤더를 적용하기 위해 SellerShell과 분리한다. RootLayout과 AppProviders는 그대로 공유하고 URL·목표 접근 조건은 유지한다.
 
 Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 책임은 각 그룹 내부의 실제 URL 디렉터리로 분리한다. 동일 프로젝트 상세 탭은 `?tab=`, LIVE 재생 모드는 `?mode=`를 사용해 공통 데이터와 레이아웃 중복을 피한다.
 
@@ -57,6 +58,18 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 - 프로젝트·LIVE·펀딩·배송·환불 상태값은 BE 계약 전까지 코드 enum으로 확정하지 않는다.
 
 ## API와 상태관리 연결 위치
+
+### LIVE 생성과 AI 큐시트 목업 연결
+
+- `/seller/live`는 `main`의 서버 페이지가 상태 탭·검색·페이지네이션과 `CreateLiveButton`을 조합합니다. 큐시트 기능의 중복 스튜디오·생성 확인 화면은 제거했습니다.
+- `CreateLiveButton`은 선택한 프로젝트와 소개 문구, 생성 확인 단계와 저장한 목업 큐시트를 소유합니다. AI 큐시트 버튼은 이 정보를 `LiveCueSheetFlow`의 props로 전달합니다.
+- `LiveCueSheetFlow`는 질문·요약·유형·생성·편집만 담당합니다. 저장 시 장면·유형·방송 시간·답변 snapshot을 상위로 반환하고 생성 확인 화면으로 돌아갑니다. 다시 열면 저장한 편집 내용과 답변을 복원합니다.
+- 생성 창을 닫으면 프로젝트 입력과 저장 큐시트는 초기화됩니다. 서버 저장·브라우저 저장소·가상의 생성 API는 사용하지 않습니다. 프로젝트별 실사용 ID를 발급하거나 실제 방송을 시작하지 않습니다.
+- `/seller/live/[liveId]/cue-sheet` 직접 진입은 기존 데모 프로젝트로 확인할 수 있습니다. 해당 경로의 안내 화면은 중복 스튜디오가 아니라 큐시트 재열기와 스튜디오 복귀 링크만 제공합니다.
+- 선택한 프로젝트의 소개·카테고리·모금액을 사용하며, 미입력 답변·리워드를 다른 상품의 예시 정보로 대체하지 않습니다. 이 타입은 UI 목업 전용이며 API 계약이 아닙니다.
+- 회귀 검증은 `create-live-button.stories.tsx`의 `ProjectToSavedCueSheet`와 `cue-sheet-demo.test.mjs`에 둡니다.
+
+### 공통 연결 원칙
 
 - HTTP client와 공통 오류 매핑은 계약 확정 후 `shared/lib`에 둔다.
 - 클라이언트 서버 상태는 TanStack Query로 관리한다. 첫 API 계약과 MSW handler가 확정되는 기능에서 설치하고 `providers`에 연결하며, 각 feature가 query 정의를 소유한다.

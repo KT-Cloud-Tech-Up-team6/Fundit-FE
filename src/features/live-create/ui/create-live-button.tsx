@@ -7,6 +7,8 @@ import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
 import { Select } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { LiveCueSheetFlow } from "@/features/live-cue-sheet/ui/live-cue-sheet-flow";
+import type { SavedCueSheet } from "@/features/live-cue-sheet/model/cue-sheet-demo";
 
 type PickableProject = {
   id: string;
@@ -116,7 +118,9 @@ function ProjectSummary({
 
 export function CreateLiveButton() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"form" | "confirm">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "cue">("form");
+  const [savedCueSheet, setSavedCueSheet] = useState<SavedCueSheet | null>(null);
+  const [showStartNotice, setShowStartNotice] = useState(false);
   const [category, setCategory] = useState("");
   const [projectId, setProjectId] = useState<string | null>(null);
   const [intro, setIntro] = useState("");
@@ -156,6 +160,8 @@ export function CreateLiveButton() {
     setProjectId(null);
     setIntro("");
     setScheduled(false);
+    setSavedCueSheet(null);
+    setShowStartNotice(false);
   };
 
   return (
@@ -164,7 +170,7 @@ export function CreateLiveButton() {
         라이브 생성하기
       </Button>
 
-      <Modal className="h-168" onClose={close} open={open} title="LIVE 생성하기">
+      <Modal className="h-168" onClose={close} open={open && step !== "cue"} title="LIVE 생성하기">
         {step === "form" ? (
           <div className="flex h-full flex-col">
             <Select
@@ -174,6 +180,7 @@ export function CreateLiveButton() {
                 setCategory(event.target.value);
                 setProjectId(null);
                 setIntro("");
+                setSavedCueSheet(null);
               }}
               value={category}
             >
@@ -205,7 +212,10 @@ export function CreateLiveButton() {
                   aria-label="소개 문구"
                   className="mt-2 h-40 shrink-0"
                   maxLength={INTRO_MAX_LENGTH}
-                  onChange={(event) => setIntro(event.target.value)}
+                  onChange={(event) => {
+                    setIntro(event.target.value);
+                    setSavedCueSheet(null);
+                  }}
                   placeholder={`소개 문구를 입력해주세요 (최대 ${INTRO_MAX_LENGTH}자)`}
                   ref={introRef}
                   value={intro}
@@ -307,16 +317,33 @@ export function CreateLiveButton() {
                 readOnly
                 value={intro}
               />
-              {/* ponytail: AI 큐시트는 생성 API가 반환할 liveId가 있어야 갈 곳이 정해져서
-                  (/seller/live/[liveId]/cue-sheet · console) 계약 확정 전까지 비활성.
-                  라이브 시작은 Figma 시안이 활성 상태라 시각적으로만 활성화하고 onClick은 API 확정 후 붙인다.
+              {/* AI 큐시트는 현재 선택한 프로젝트를 전달하는 로컬 목업이다.
+                  라이브 시작은 생성 API 계약 확정 후 연결한다.
                   size="sm"은 md가 강제하는 text-title-s(18px)를 피하려는 것 — Figma cta_button의
                   `라이브 시작`은 16px SemiBold(text-body-m + font-semibold). */}
-              <div className="mt-[78px] flex shrink-0 items-center gap-3">
-                <button className={`${secondaryButtonClasses} h-10 flex-1`} disabled type="button">
+              <p role="status" className="text-caption-s mt-6 text-center">
+                {showStartNotice
+                  ? "목업 화면입니다. 실제 방송은 시작되지 않습니다. 송출 기능은 연동 예정입니다."
+                  : savedCueSheet
+                    ? "저장된 목업 큐시트가 있어요. 다시 열어 편집할 수 있습니다."
+                    : "AI 큐시트는 목업입니다. 실제 생성·서버 저장은 하지 않습니다."}
+              </p>
+              <div className="mt-auto flex shrink-0 items-center gap-3">
+                <button
+                  className={`${secondaryButtonClasses} h-10 flex-1`}
+                  onClick={() => {
+                    setShowStartNotice(false);
+                    setStep("cue");
+                  }}
+                  type="button"
+                >
                   AI 큐시트 생성
                 </button>
-                <Button className="h-10 flex-1 font-semibold" size="sm">
+                <Button
+                  className="h-10 flex-1 font-semibold"
+                  size="sm"
+                  onClick={() => setShowStartNotice(true)}
+                >
                   라이브 시작
                 </Button>
               </div>
@@ -324,6 +351,19 @@ export function CreateLiveButton() {
           )
         )}
       </Modal>
+      {open && step === "cue" && selectedProject && (
+        <LiveCueSheetFlow
+          key={selectedProject.id}
+          project={{ ...selectedProject, description: intro }}
+          initialStep={savedCueSheet ? "editor" : "chat"}
+          initialSavedCueSheet={savedCueSheet ?? undefined}
+          onClose={() => setStep("confirm")}
+          onSave={(saved) => {
+            setSavedCueSheet(saved);
+            setStep("confirm");
+          }}
+        />
+      )}
     </>
   );
 }
