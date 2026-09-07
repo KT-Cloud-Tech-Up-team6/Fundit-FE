@@ -60,7 +60,7 @@ export function FundingStoryModal({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "24px";
-      textarea.style.height = `${Math.max(24, Math.min(textarea.scrollHeight, 160))}px`;
+      if (input) textarea.style.height = `${Math.max(24, Math.min(textarea.scrollHeight, 160))}px`;
     }
     const history = historyRef.current;
     if (history && followBottom.current) history.scrollTop = history.scrollHeight;

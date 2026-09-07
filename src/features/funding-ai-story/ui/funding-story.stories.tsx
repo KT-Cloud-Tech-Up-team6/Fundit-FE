@@ -49,6 +49,24 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Initial: Story = {};
+export const InputHeightLimit: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = await canvas.findByRole("textbox", { name: "스토리 메시지" });
+    await userEvent.click(input);
+    await userEvent.paste(Array.from({ length: 30 }, (_, i) => `제품 설명 ${i + 1}`).join("\n"));
+    await waitFor(() => {
+      expect(input.getBoundingClientRect().height).toBe(160);
+      expect(input.closest("form")?.getBoundingClientRect().height).toBe(178);
+      expect(input.scrollHeight).toBeGreaterThan(input.clientHeight);
+    });
+    await userEvent.click(canvas.getByRole("button", { name: "메시지 보내기" }));
+    await waitFor(() => {
+      expect(input).toHaveValue("");
+      expect(input.getBoundingClientRect().height).toBe(24);
+    });
+  },
+};
 export const Questions: Story = { args: { stage: "questions" } };
 export const Summarizing: Story = { args: { stage: "summarizing", pauseDemo: true } };
 export const Summary: Story = { args: { stage: "summary" } };
