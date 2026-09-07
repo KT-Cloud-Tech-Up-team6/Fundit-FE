@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { StoryEditor } from "./story-editor";
 import { ThumbnailUpload } from "./thumbnail-upload";
@@ -5,6 +8,8 @@ import { ThumbnailUpload } from "./thumbnail-upload";
 const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록", "스토리 작성"];
 
 export function ProjectStoryForm() {
+  const [title, setTitle] = useState("");
+
   return (
     <div className="min-w-0 flex-1">
       <nav aria-label="이동 경로" className="text-label-m text-text-secondary">
@@ -36,6 +41,8 @@ export function ProjectStoryForm() {
           <input
             id="project-title"
             placeholder="프로젝트 제목을 입력해주세요"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
             className="text-body-s placeholder:text-text-disabled bg-layer-surface-disabled mt-2 h-10 w-full rounded-xs px-4 outline-none"
           />
         </div>
@@ -46,7 +53,7 @@ export function ProjectStoryForm() {
         </div>
       </div>
 
-      <StoryEditor />
+      <StoryEditor projectTitle={title} />
 
       <div className="mt-6 flex items-center justify-between">
         {/* ponytail: 6팀_IA_v1.2.xlsx 판매자 IA #36은 미리보기를 "(후순위)"로 표시하고

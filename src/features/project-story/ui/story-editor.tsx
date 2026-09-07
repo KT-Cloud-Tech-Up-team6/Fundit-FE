@@ -153,7 +153,7 @@ const toolbarButtonClasses = (active: boolean) =>
 
    URL이냐 파일이냐를 물어보는 선택 UI가 필요한데, 이 저장소엔 드롭다운/팝오버 컴포넌트가
    따로 없다. 새로 만들지 않고 네이티브 <details>/<summary>로 여닫는 작은 메뉴를 쓴다. */
-export function StoryEditor() {
+export function StoryEditor({ projectTitle }: { projectTitle: string }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
@@ -324,7 +324,7 @@ export function StoryEditor() {
 
       {isAiModalOpen && (
         <FundingStoryModal
-          projectTitle="프로젝트"
+          projectTitle={projectTitle || "프로젝트"}
           onClose={() => setAiModalOpen(false)}
           onImport={(body) => {
             editor?.chain().focus().setContent(storyBodyToHtml(body)).run();
