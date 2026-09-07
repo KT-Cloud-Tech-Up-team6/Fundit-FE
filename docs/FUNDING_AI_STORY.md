@@ -33,6 +33,6 @@ AI 질문·요약·생성·재생성 API와 오류·취소 계약, 구조화 본
 
 ## 검증 명령
 
-`node --test src/features/funding-ai-story/model/story-demo.test.mjs`로 상태 전이·건너뛰기·수정 요청·재생성을 검증합니다. 프로젝트의 format, lint, typecheck, build, build-storybook 기준을 함께 적용합니다.
+`pnpm test`로 콘솔·큐시트와 함께 상태 전이·건너뛰기·수정 요청·재생성을 검증합니다. CI에서도 같은 명령을 실행하며, `tsx`를 사용해 Node 20에서 TypeScript 모델을 불러옵니다. 프로젝트의 format, lint, typecheck, build, build-storybook 기준을 함께 적용합니다.
 
 2026-09-07 검증에서 모델 테스트 4개와 전체 format·lint·typecheck, Next.js·Storybook 빌드를 통과했습니다. Chrome에서 1440×900 및 390×844의 8개 상태와 다크 테마 3개 상태의 WCAG 2 A/AA·2.1 AA 자동 검사를 통과했습니다. Enter·한글 조합, 입력 높이 제한, 요약 수정, 재생성, 본문 가져오기, 미리보기, Escape·포커스 복원, 이전 대화 읽기·하단 추적 재개도 확인했습니다. Storybook의 기존 번들 크기 경고는 남아 있습니다.
