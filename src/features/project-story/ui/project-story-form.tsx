@@ -57,15 +57,18 @@ export function ProjectStoryForm() {
         <button
           type="button"
           aria-disabled="true"
-          className={`${secondaryButtonClasses} h-[46px] w-45 cursor-not-allowed`}
+          className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 cursor-not-allowed`}
         >
           미리보기
         </button>
         <div className="flex gap-2">
-          <button type="button" className={`${secondaryButtonClasses} h-[46px] w-45`}>
+          <button
+            type="button"
+            className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45`}
+          >
             임시저장
           </button>
-          <Button size="lg" className="w-45">
+          <Button size="lg" className="text-body-strong! w-45">
             저장
           </Button>
         </div>
