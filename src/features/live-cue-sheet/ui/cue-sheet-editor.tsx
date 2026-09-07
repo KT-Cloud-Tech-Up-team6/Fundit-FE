@@ -51,7 +51,10 @@ export function CueSheetEditor({
     const duration = Math.floor(selected.duration / 2);
     if (!duration) return;
     const scene: CueScene = {
-      id: crypto.randomUUID(),
+      id:
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `scene-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       title: "새 구간",
       duration,
       outline: "",
@@ -86,7 +89,9 @@ export function CueSheetEditor({
                 <li
                   key={scene.id}
                   draggable={renaming !== scene.id}
-                  onDragStart={() => {
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData("text/plain", scene.id);
+                    event.dataTransfer.effectAllowed = "move";
                     draggedId.current = scene.id;
                   }}
                   onDragEnd={() => {
