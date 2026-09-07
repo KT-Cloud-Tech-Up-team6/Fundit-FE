@@ -83,23 +83,25 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 ## 판매자
 
-| URL                                                  | 화면                    | 접근 조건               | 상태        |
-| ---------------------------------------------------- | ----------------------- | ----------------------- | ----------- |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder |
-| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | placeholder |
-| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder |
-| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder |
-| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented |
-| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder |
+| URL                                                  | 화면                    | 접근 조건               | 상태                                           |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | ---------------------------------------------- |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                    |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                    |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder                                    |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`만 구현, 나머지 placeholder) |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                    |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                    |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                    |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                    |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                    |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                    |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                    |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.
 
 ## 쿼리 규칙
+
+판매자 프로젝트의 `story` 탭은 [AI 스토리 목업](./FUNDING_AI_STORY.md)을 제공합니다. 다른 작성·운영 탭은 기존 placeholder를 유지합니다. AI 대화·생성 결과·본문 미리보기는 편집기 내부 모달이며 별도 URL을 만들지 않습니다.
 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
