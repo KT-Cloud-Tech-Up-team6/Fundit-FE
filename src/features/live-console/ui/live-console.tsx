@@ -11,7 +11,7 @@ import {
   demoQuestions,
 } from "../model/console-demo";
 import { ConsoleDialog } from "./console-dialog";
-import { ConsoleIcon } from "./console-icon";
+import { Icon } from "@/shared/components/ui/icon";
 import { OriginalQuestions, QuestionManager, type ManagerView } from "./question-manager";
 import styles from "./console.module.css";
 
@@ -88,7 +88,7 @@ function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
           onClick={() => setIndex(index - 1)}
           className={`${styles.secondary} flex h-7 items-center px-6!`}
         >
-          <ConsoleIcon name="previous" className="size-3" />
+          <Icon name="previous" className="inline-block size-3 shrink-0" />
         </button>
         <button
           type="button"
@@ -97,7 +97,7 @@ function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
           onClick={() => setIndex(index + 1)}
           className={`${styles.secondary} flex h-7 items-center px-6!`}
         >
-          <ConsoleIcon name="next" className="size-3" />
+          <Icon name="next" className="inline-block size-3 shrink-0" />
         </button>
       </div>
     </section>
@@ -233,21 +233,21 @@ export function LiveConsole({
               }
             >
               스트림 상태 확인
-              <ConsoleIcon name="stream" />
+              <Icon name="stream" className="inline-block size-3.5 shrink-0" />
             </button>
           </div>
           <div className="bg-layer-surface-disabled relative min-h-0 flex-1 p-3">
             <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="bg-border-default text-caption-s flex items-center gap-1 rounded-xs px-2 py-1">
-                <ConsoleIcon name="viewers" />
+                <Icon name="viewers" className="inline-block size-3.5 shrink-0" />
                 0명
               </span>
               <span className="bg-border-default text-caption-s flex items-center gap-1 rounded-xs px-2 py-1">
-                <ConsoleIcon name="funding" />
+                <Icon name="funding" className="inline-block size-3.5 shrink-0" />
                 펀딩 0건 · 총 0원
               </span>
               <span className="bg-border-default text-caption-s flex items-center gap-1 rounded-xs px-2 py-1">
-                <ConsoleIcon name="play" />
+                <Icon name="play" className="inline-block size-3.5 shrink-0" />
                 {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
                 {String(elapsed % 60).padStart(2, "0")}
               </span>
@@ -273,7 +273,7 @@ export function LiveConsole({
                 aria-label={`채팅 ${state.messages.length}개`}
                 className="bg-border-default text-caption-s absolute top-3 right-3 z-10 flex items-center gap-1 rounded-xs px-2 py-1"
               >
-                <ConsoleIcon name="chat" />
+                <Icon name="chat" className="inline-block size-3.5 shrink-0" />
                 {state.messages.length}
               </span>
               <div
@@ -331,7 +331,7 @@ export function LiveConsole({
                 disabled={state.phase !== "live" || !chat.trim()}
                 className="disabled:text-text-disabled flex size-9 shrink-0 items-center justify-center"
               >
-                <ConsoleIcon name="send" className="size-5" />
+                <Icon name="send" className="inline-block size-5 shrink-0" />
               </button>
             </form>
           </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { ConsoleIcon } from "./console-icon";
+import { Icon } from "@/shared/components/ui/icon";
 import styles from "./console.module.css";
 
 export function ConsoleDialog({
@@ -73,7 +73,7 @@ export function ConsoleDialog({
             onClick={onClose}
             className="flex size-9 shrink-0 items-center justify-center"
           >
-            <ConsoleIcon name="close" className="size-5" />
+            <Icon name="close" className="inline-block size-5 shrink-0" />
           </button>
         </div>
         <div className={styles.dialogContent}>{children}</div>

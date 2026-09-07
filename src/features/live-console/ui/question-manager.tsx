@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { demoQuestions, type ConsoleDemoState, type DemoQuestion } from "../model/console-demo";
-import { ConsoleIcon } from "./console-icon";
+import { Icon } from "@/shared/components/ui/icon";
 import styles from "./console.module.css";
 
 export type ManagerView =
@@ -17,7 +17,7 @@ export function OriginalQuestions({ question }: { question: DemoQuestion }) {
           key={index}
           className="border-border-default flex items-center gap-2 rounded-xs border px-3 py-2"
         >
-          <ConsoleIcon name="avatar" className="text-border-default size-[30px]" />
+          <Icon name="avatar" className="text-border-default inline-block size-[30px] shrink-0" />
           <div className="min-w-0">
             <p className="text-caption-strong">아이디</p>
             <p className="text-body-s break-words">{text}</p>
@@ -46,7 +46,7 @@ function AnswerForm({
       <h3 className="text-body-emphasis">{sentAnswer ? "보낸 답변" : "추천 답변"}</h3>
       {question.suggestion === null ? (
         <div className="bg-layer-surface-disabled text-body-s flex flex-col items-center gap-4 rounded-xs px-4 py-6 text-center">
-          <ConsoleIcon name="warning" className="size-8" />
+          <Icon name="warning" className="inline-block size-8 shrink-0" />
           <p>
             상품 정보가 부족해 추천 답변을 생성할 수 없어요
             <br />
@@ -190,7 +190,9 @@ export function QuestionManager({
                             onClick={() => onView({ kind: "answer", questionId: q.id })}
                           >
                             <span className="flex-1">{q.title}</span>
-                            {!q.suggestion && <ConsoleIcon name="warning" />}
+                            {!q.suggestion && (
+                              <Icon name="warning" className="inline-block size-3.5 shrink-0" />
+                            )}
                           </button>
                           <button
                             type="button"
