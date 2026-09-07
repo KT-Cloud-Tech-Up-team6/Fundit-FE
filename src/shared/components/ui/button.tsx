@@ -21,6 +21,17 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: "h-[46px] text-title-s font-medium",
 };
 
+/* ponytail: Foundations의 Button은 primary / primary_live 둘뿐이라 보조 CTA variant가 없다.
+   Foundations에 secondary가 생기면 Button variant로 올린다. 그 전까지는 이 클래스 조합을
+   여러 화면이 그대로 가져다 쓴다(live-create, project-story 등) — 각자 복붙하지 않는다. */
+export const secondaryButtonClasses = [
+  "text-body-s bg-layer-surface-disabled text-text-default rounded-xs",
+  "flex items-center justify-center whitespace-nowrap",
+  "enabled:hover:bg-layer-surface-disabled-hover",
+  "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
+  "disabled:text-text-disabled disabled:cursor-not-allowed",
+].join(" ");
+
 export function Button({
   className,
   variant = "primary",
