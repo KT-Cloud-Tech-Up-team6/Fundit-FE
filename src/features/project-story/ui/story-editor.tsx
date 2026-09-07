@@ -214,7 +214,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
 
   return (
     <div className="border-w-xs border-border-default mt-8 rounded-sm">
-      <div className="flex items-center justify-between p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4">
         <span className="text-title-s font-semibold">프로젝트 소개</span>
         <button
           type="button"
@@ -225,7 +225,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
         </button>
       </div>
 
-      <div className="border-border-default flex items-center gap-3 border-y px-4 py-2">
+      <div className="border-border-default flex flex-wrap items-center gap-3 border-y px-4 py-2">
         {formatButtons.map(({ icon, label, isActive, onClick }) => (
           <button
             key={icon}

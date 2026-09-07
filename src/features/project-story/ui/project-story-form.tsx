@@ -55,7 +55,7 @@ export function ProjectStoryForm() {
 
       <StoryEditor projectTitle={title} />
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         {/* ponytail: 6팀_IA_v1.2.xlsx 판매자 IA #36은 미리보기를 "(후순위)"로 표시하고
            FL_S_PR_PREV를 모달로 정의한다. docs/ROUTING.md엔 이미 /seller/projects/[projectId]/preview
            페이지 라우트가 있어 모달 vs 페이지가 어긋난다 — 임의로 고르지 않고 비활성으로 둔다.
@@ -71,7 +71,7 @@ export function ProjectStoryForm() {
         {/* ponytail: 임시저장·저장은 저장 API가 없어 disabled로 막는다. 입력값은 title
            state·Tiptap 에디터·ThumbnailUpload에 남아있지만 서버로 보낼 수단이 없다.
            API가 생기면 실제 저장 동작을 연결한다. */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled

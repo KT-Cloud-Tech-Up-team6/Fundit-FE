@@ -24,7 +24,7 @@ export function ProjectEditSidebar({
   return (
     <nav
       aria-label="프로젝트 편집 메뉴"
-      className="border-w-xs border-border-default bg-layer-surface-default flex w-45 shrink-0 flex-col gap-2 self-stretch rounded-xs p-2 py-3"
+      className="border-w-xs border-border-default bg-layer-surface-default flex w-full shrink-0 flex-col gap-2 self-stretch rounded-xs p-2 py-3 lg:w-45"
     >
       <div className="border-border-default flex flex-col gap-1 border-b px-2 pt-2 pb-3">
         <Link
@@ -36,7 +36,7 @@ export function ProjectEditSidebar({
         <p className="text-body-strong">{projectName}</p>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-wrap gap-2 lg:flex-col">
         <li className="text-body-emphasis text-text-disabled flex h-7 items-center rounded-xs px-2">
           기본 정보 수정
         </li>

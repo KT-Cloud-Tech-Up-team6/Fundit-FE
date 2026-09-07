@@ -30,7 +30,7 @@ export default async function SellerProjectPage({
 
   if (editTabs.has(activeTab)) {
     return (
-      <div className="mt-10 flex gap-10">
+      <div className="mt-10 flex flex-col gap-6 lg:flex-row lg:gap-10">
         <ProjectEditSidebar
           activeTab={activeTab}
           projectId={projectId}
