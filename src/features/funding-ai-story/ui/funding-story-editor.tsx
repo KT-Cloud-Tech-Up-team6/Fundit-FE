@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Modal } from "@/shared/components/ui/modal";
@@ -26,6 +26,8 @@ const editorTools = [
 ] as const;
 
 export function FundingStoryEditor({ projectId }: { projectId: string }) {
+  const headingId = useId();
+  const bodyId = useId();
   const [title, setTitle] = useState(demoProjectTitle);
   const [body, setBody] = useState(initialStoryBody);
   const [modal, setModal] = useState<"ai" | "preview" | null>(null);
@@ -77,9 +79,9 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
           ))}
         </nav>
       </aside>
-      <section aria-labelledby="story-heading" className="min-w-0 flex-1 lg:max-w-198">
+      <section aria-labelledby={headingId} className="min-w-0 flex-1 lg:max-w-198">
         <p className="text-caption-strong py-1">내 프로젝트 &gt; 기본 정보 등록 &gt; 스토리 작성</p>
-        <h1 id="story-heading" className="text-heading-l py-3">
+        <h1 id={headingId} className="text-heading-l py-3">
           스토리 작성
         </h1>
         <p className="text-caption-s mb-3">
@@ -115,7 +117,7 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
         </div>
         <div className="border-border-default flex h-131 flex-col overflow-hidden rounded-xs border">
           <div className="border-border-default flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
-            <label htmlFor="story-body" className="text-title-s">
+            <label htmlFor={bodyId} className="text-title-s">
               프로젝트 소개
             </label>
             <button
@@ -144,7 +146,7 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
             ))}
           </div>
           <Textarea
-            id="story-body"
+            id={bodyId}
             className="min-h-0 flex-1 border-0! py-6!"
             value={body}
             onChange={(event) => {
