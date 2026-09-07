@@ -38,6 +38,7 @@ src/
 - `(buyer)`는 공개·구매자 화면을 묶고 BuyerShell을 적용한다.
 - `(auth)`는 로그인과 3단계 회원가입에 AuthShell을 적용한다.
 - `(seller)`는 `/seller` 하위 운영 화면에 SellerShell을 적용한다.
+- `(live-console)`는 `/seller/live/[liveId]/console`에 전용 방송 헤더를 적용하기 위해 SellerShell과 분리한다. RootLayout과 AppProviders는 그대로 공유하고 URL·목표 접근 조건은 유지한다.
 
 Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 책임은 각 그룹 내부의 실제 URL 디렉터리로 분리한다. 동일 프로젝트 상세 탭은 `?tab=`, LIVE 재생 모드는 `?mode=`를 사용해 공통 데이터와 레이아웃 중복을 피한다.
 
