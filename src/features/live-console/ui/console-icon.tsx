@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { Icon } from "@/shared/components/ui/icon";
 
 type ConsoleIconName =
   | "play"
@@ -20,6 +21,10 @@ export function ConsoleIcon({
   name: ConsoleIconName;
   className?: string;
 }) {
+  if (name === "close" || name === "send") {
+    return <Icon name={name} className={`inline-block shrink-0 ${className}`} />;
+  }
+
   return (
     <span
       aria-hidden

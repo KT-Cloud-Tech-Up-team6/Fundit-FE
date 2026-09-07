@@ -7,6 +7,7 @@ const iconFiles = {
   live: "live_video",
   people: "people",
   profile: "profile",
+  send: "send",
   settings: "cog_setting",
   swap: "refresh",
 } as const;
