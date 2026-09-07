@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 type DialogBaseProps = Omit<ComponentPropsWithoutRef<"dialog">, "children" | "onClose" | "open"> & {
@@ -35,6 +35,15 @@ export function DialogBase({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  /* ponytail: `{open && <Modal open .../>}`처럼 조건부 마운트로 닫는 호출자는 open=false
+     전환 없이 사라져 위 effect의 dialog.close()가 실행되지 않는다. close()가 없으면 네이티브
+     <dialog>의 포커스 복원도 일어나지 않아, 키보드로 연 사용자가 body로 튕긴다.
+     DOM에서 떨어지기 전에 닫아야 복원되므로 layout effect로 언마운트 시 한 번 닫는다. */
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    return () => dialog?.close();
+  }, []);
 
   /* showModal()은 배경을 inert로 만들 뿐 문서 스크롤까지 막아주지는 않는다.
      ponytail: body overflow만 잠근다. iOS Safari는 터치 스크롤이 새는 것으로
