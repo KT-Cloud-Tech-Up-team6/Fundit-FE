@@ -79,6 +79,11 @@ http://scripts.sil.org/OFL
   --layer-surface-disabled: var(--charcoal-100);
   --layer-surface-primary: var(--charcoal-900);
   --layer-surface-primary-live: var(--blue-500);
+  /* primary CTA의 비활성 면. Figma 라이브 생성 와이어프레임의 `다음`(wireframe4 #959595)
+     처럼 보조 버튼(layer-surface-disabled)보다 진한 회색 + text-inverse 조합이라
+     별도 역할이 필요하다. 대응 Semantic이 없어 charcoal-500을 승격한다(문서 3항 예외).
+     Light/Dark 동일이라 [data-theme="dark"]에는 두지 않는다. */
+  --layer-surface-primary-disabled: var(--charcoal-500);
   /* hover는 Figma Component 층(Button/primary_hover, Button/primary_live_hover)에만
      있었다. Component 토큰을 CSS 변수로 만들지 않는다는 2항 원칙을 지키려면
      참조할 Semantic이 있어야 해서 여기로 올렸다.
@@ -167,6 +172,7 @@ http://scripts.sil.org/OFL
   --color-layer-surface-primary-live: var(--layer-surface-primary-live);
   --color-layer-surface-primary-hover: var(--layer-surface-primary-hover);
   --color-layer-surface-primary-live-hover: var(--layer-surface-primary-live-hover);
+  --color-layer-surface-primary-disabled: var(--layer-surface-primary-disabled);
   --color-layer-overlay: var(--layer-overlay);
 
   --color-text-title: var(--text-title);
