@@ -244,10 +244,7 @@ export function LiveCueSheetFlow({
               className="flex size-9 items-center justify-center rounded-xs"
               onClick={() => close()}
             >
-              <span
-                aria-hidden
-                className="size-5 bg-current [mask-image:url('/images/live-cue-sheet/close.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-              />
+              <Icon name="close" className="size-5" />
             </button>
           </header>
 
@@ -378,10 +375,7 @@ export function LiveCueSheetFlow({
                           disabled={!draft.trim()}
                           className="bg-layer-surface-primary text-text-inverse disabled:bg-border-default flex h-10 w-14 items-center justify-center rounded-xs"
                         >
-                          <span
-                            aria-hidden
-                            className="size-5 bg-current [mask-image:url('/images/live-cue-sheet/send.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-                          />
+                          <Icon name="send" className="size-5" />
                         </button>
                       </form>
                     </div>
