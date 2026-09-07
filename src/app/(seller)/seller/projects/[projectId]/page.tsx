@@ -1,4 +1,5 @@
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
+import { FundingStoryEditor } from "@/features/funding-ai-story/ui/funding-story-editor";
 
 const allowedTabs = new Set([
   "story",
@@ -20,6 +21,10 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+
+  if (activeTab === "story") {
+    return <FundingStoryEditor key={projectId} projectId={projectId} />;
+  }
 
   return (
     <PagePlaceholder

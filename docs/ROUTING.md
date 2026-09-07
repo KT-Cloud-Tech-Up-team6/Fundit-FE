@@ -87,6 +87,8 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 ## 쿼리 규칙
 
+판매자 프로젝트의 `story` 탭은 [AI 스토리 목업](./FUNDING_AI_STORY.md)을 제공합니다. 다른 작성·운영 탭은 기존 placeholder를 유지합니다. AI 대화·생성 결과·본문 미리보기는 편집기 내부 모달이며 별도 URL을 만들지 않습니다.
+
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
 - 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
