@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/shared/components/ui/button";
+import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
@@ -66,17 +66,6 @@ const mockProjects: PickableProject[] = [
 const categories = Array.from(new Set(mockProjects.map((project) => project.category)));
 
 const INTRO_MAX_LENGTH = 300;
-
-/* ponytail: Foundations의 Button은 primary / primary_live 둘뿐이라 보조 CTA variant가 없다.
-   Figma의 회색 배경 + 검정 글자는 seller-project-card의 "관리" 버튼과 같은 조합으로 맞춘다.
-   Foundations에 secondary가 생기면 Button variant로 올린다. */
-const secondaryButtonClasses = [
-  "text-body-s bg-layer-surface-disabled text-text-default rounded-xs",
-  "flex items-center justify-center whitespace-nowrap",
-  "enabled:hover:bg-layer-surface-disabled-hover",
-  "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
-  "disabled:text-text-disabled disabled:cursor-not-allowed",
-].join(" ");
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
