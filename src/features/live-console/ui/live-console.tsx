@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useId, useReducer, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -29,6 +29,7 @@ type CheckDialog =
   { kind: "ended" | "check" } | { kind: "detail" | "originals"; questionId: string };
 
 function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
+  const outlineId = useId();
   const [index, setIndex] = useState(0);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const cue = demoCues[index];
@@ -52,7 +53,7 @@ function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
         className={`bg-layer-surface-disabled rounded-xs px-2 pt-3 pb-1 ${collapsed ? "flex items-center" : ""}`}
       >
         <ul
-          id="console-cue-outline"
+          id={outlineId}
           className={`text-body-s list-disc pl-5 ${collapsed ? "min-w-0 flex-1" : ""}`}
         >
           {(collapsed ? cue.outline.slice(0, 1) : cue.outline).map((line) => (
@@ -64,7 +65,7 @@ function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
         <button
           type="button"
           aria-expanded={!collapsed}
-          aria-controls="console-cue-outline"
+          aria-controls={outlineId}
           className={`${styles.link} text-caption-strong ml-auto block shrink-0 px-2 py-1`}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -375,6 +376,7 @@ export function LiveConsole({
                 disabled={!selectedIds.length}
                 onClick={() => {
                   dispatch({ type: "publish", ids: selectedIds });
+                  setSelectedIds([]);
                   closeDialog();
                   setNotice(
                     `목업 LIVE 체크 ${selectedIds.length}건을 생성했습니다. 실제 게시되지 않습니다.`,
