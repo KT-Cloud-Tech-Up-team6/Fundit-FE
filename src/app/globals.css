@@ -357,3 +357,13 @@ button {
     cursor: pointer;
   }
 }
+
+/* Tiptap Placeholder 확장은 빈 노드에 이 클래스·data attribute만 붙이고 스타일은 안 준다.
+   토큰 색만 여기서 지정한다 (project-story-form의 스토리 에디터). */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-disabled);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

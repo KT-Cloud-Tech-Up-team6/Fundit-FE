@@ -109,6 +109,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `settlement`, `live`를 허용합니다.
+- 판매자 프로젝트 편집 사이드바의 "기본 정보 수정" 탭은 아직 이 `tab` 값에 대응하는 항목이 없습니다. 값이 정해지면 이 표에 추가합니다(`docs/OPEN_DECISIONS.md` 참고).
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 
 ## 이전 경로 호환
