@@ -68,14 +68,18 @@ export function ProjectStoryForm() {
         >
           미리보기
         </button>
+        {/* ponytail: 임시저장·저장은 저장 API가 없어 disabled로 막는다. 입력값은 title
+           state·Tiptap 에디터·ThumbnailUpload에 남아있지만 서버로 보낼 수단이 없다.
+           API가 생기면 실제 저장 동작을 연결한다. */}
         <div className="flex gap-2">
           <button
             type="button"
+            disabled
             className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45`}
           >
             임시저장
           </button>
-          <Button size="lg" className="text-body-strong! w-45">
+          <Button disabled size="lg" className="text-body-strong! w-45">
             저장
           </Button>
         </div>
