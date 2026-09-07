@@ -8,9 +8,21 @@ import { Color, TextStyle } from "@tiptap/extension-text-style";
 import Youtube from "@tiptap/extension-youtube";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
 import { secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
+
+/* ponytail: #38(펀딩 AI 스토리 챗봇) 목업 결과는 일반 텍스트라 문단(\n\n)·줄바꿈(\n)만 있다.
+   Tiptap에 그대로 setContent하면 개행이 사라져서 <p>/<br>로 변환해 붙인다. */
+const escapeHtml = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+
+const storyBodyToHtml = (body: string) =>
+  body
+    .split("\n\n")
+    .map((paragraph) => `<p>${paragraph.split("\n").map(escapeHtml).join("<br>")}</p>`)
+    .join("");
 
 /* ponytail: mp4 등 직접 영상 파일 URL을 위한 공식 Tiptap 확장이 없어 최소 커스텀 노드로
    직접 만든다. 업로드가 아니라 이미 어딘가에 호스팅된 URL을 받아 <video>로 재생만 한다. */
@@ -126,13 +138,10 @@ const toolbarButtonClasses = (active: boolean) =>
       : "text-text-secondary hover:bg-layer-surface-disabled",
   ].join(" ");
 
-/* ponytail: AI 생성은 docs/OPEN_DECISIONS.md P1 "AI Story·Copilot"이 BE·AI 계약 확정 전이라
-   버튼만 배치하고 비활성으로 둔다. 6팀_IA_v1.2.xlsx(판매자 IA #34-35, UCS #61-63) 기준으로는
-   AI로 펀딩 스토리 작성 클릭 시 별도 모달(FL_S_PR_AI 대화 세션 → FL_S_PR_AIEDIT 생성 결과
-   편집·재생성·반영하기)로 이어지는 큰 플로우라, 계약이 정해지면 이 버튼 하나가 아니라 새
-   모달 컴포넌트로 뺀다. 예외케이스 시트에 생성 실패·응답 지연(#28)·할루시네이션(#32) 처리도
-   명시돼 있으니 그때 같이 반영한다. Figma는 비활성 상태를 표현하지 않고 항상 활성 색으로
-   그려서, disabled 대신 aria-disabled로 눌리지 않게만 막고 색은 그대로 둔다.
+/* ponytail: AI로 펀딩 스토리 작성은 #38에서 구현된 FundingStoryModal(목업 챗봇 대화 → 생성 →
+   결과 불러오기)을 그대로 재사용한다. 실제 AI·API 계약은 여전히 미정(docs/OPEN_DECISIONS.md
+   P1 "AI Story·Copilot")이라 모달 내부는 전부 목업이고, 결과를 "불러오기"하면 이 에디터의
+   콘텐츠를 통째로 덮어쓴다(IA의 "전체 덮어쓰기"에 해당, "복사하기"는 모달에 없어 미구현).
 
    이미지 삽입은 업로드 서버가 없어 base64로 에디터 콘텐츠에 직접 임베드한다 — 데모/작성
    단계에서만 쓸 수 있고, 실제 저장 시엔 콘텐츠 용량이 커진다. 업로드 API가 생기면 base64
@@ -149,6 +158,7 @@ export function StoryEditor() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const [isAiModalOpen, setAiModalOpen] = useState(false);
   /* shouldRerenderOnTransaction을 명시적으로 true로 안 주면(기본값 취급 시) 이 설치 버전의
      useEditor가 트랜잭션마다 재렌더링을 트리거하지 않는다 — 굵게/기울임을 눌러도 버튼의
      isActive 표시가 안 바뀌던 원인이 이거였다. */
@@ -208,8 +218,8 @@ export function StoryEditor() {
         <span className="text-title-s font-semibold">프로젝트 소개</span>
         <button
           type="button"
-          aria-disabled="true"
-          className={`${secondaryButtonClasses} h-9 cursor-not-allowed px-4`}
+          onClick={() => setAiModalOpen(true)}
+          className={`${secondaryButtonClasses} h-9 px-4`}
         >
           AI로 펀딩 스토리 작성
         </button>
@@ -311,6 +321,17 @@ export function StoryEditor() {
         editor={editor}
         className="text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap]:h-100 [&_.tiptap]:overflow-y-auto [&_.tiptap]:p-4 [&_.tiptap]:outline-none [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs"
       />
+
+      {isAiModalOpen && (
+        <FundingStoryModal
+          projectTitle="프로젝트"
+          onClose={() => setAiModalOpen(false)}
+          onImport={(body) => {
+            editor?.chain().focus().setContent(storyBodyToHtml(body)).run();
+            setAiModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
