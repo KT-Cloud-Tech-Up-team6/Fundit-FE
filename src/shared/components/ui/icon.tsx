@@ -3,6 +3,7 @@
 const iconFiles = {
   archive: "archive_box",
   bell: "ringing_bell",
+  close: "remove_cancel",
   live: "live_video",
   people: "people",
   profile: "profile",

@@ -26,6 +26,9 @@ export function Pagination({ currentPage, totalPages, buildHref }: PaginationPro
   const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
   const isFirst = currentPage <= 1;
   const isLast = currentPage >= totalPages;
+  /* 비활성 이전·다음 링크에도 href는 남는다(pointer-events-none로 클릭만 막음).
+     범위 밖 page가 URL에 들어가지 않게 1..totalPages로 가둔다. */
+  const stepHref = (page: number) => buildHref(Math.min(Math.max(page, 1), totalPages));
 
   return (
     <nav
@@ -33,7 +36,7 @@ export function Pagination({ currentPage, totalPages, buildHref }: PaginationPro
       className="mt-auto flex items-center justify-center gap-[13px] pt-4"
     >
       <Link
-        href={buildHref(currentPage - 1)}
+        href={stepHref(currentPage - 1)}
         aria-disabled={isFirst}
         tabIndex={isFirst ? -1 : undefined}
         className={stepClasses}
@@ -55,7 +58,7 @@ export function Pagination({ currentPage, totalPages, buildHref }: PaginationPro
         ))}
       </ol>
       <Link
-        href={buildHref(currentPage + 1)}
+        href={stepHref(currentPage + 1)}
         aria-disabled={isLast}
         tabIndex={isLast ? -1 : undefined}
         className={stepClasses}

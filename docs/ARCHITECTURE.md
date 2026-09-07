@@ -59,6 +59,18 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 
 ## API와 상태관리 연결 위치
 
+### LIVE 생성과 AI 큐시트 목업 연결
+
+- `/seller/live`는 `main`의 서버 페이지가 상태 탭·검색·페이지네이션과 `CreateLiveButton`을 조합합니다. 큐시트 기능의 중복 스튜디오·생성 확인 화면은 제거했습니다.
+- `CreateLiveButton`은 선택한 프로젝트와 소개 문구, 생성 확인 단계와 저장한 목업 큐시트를 소유합니다. AI 큐시트 버튼은 이 정보를 `LiveCueSheetFlow`의 props로 전달합니다.
+- `LiveCueSheetFlow`는 질문·요약·유형·생성·편집만 담당합니다. 저장 시 장면·유형·방송 시간·답변 snapshot을 상위로 반환하고 생성 확인 화면으로 돌아갑니다. 다시 열면 저장한 편집 내용과 답변을 복원합니다.
+- 생성 창을 닫으면 프로젝트 입력과 저장 큐시트는 초기화됩니다. 서버 저장·브라우저 저장소·가상의 생성 API는 사용하지 않습니다. 프로젝트별 실사용 ID를 발급하거나 실제 방송을 시작하지 않습니다.
+- `/seller/live/[liveId]/cue-sheet` 직접 진입은 기존 데모 프로젝트로 확인할 수 있습니다. 해당 경로의 안내 화면은 중복 스튜디오가 아니라 큐시트 재열기와 스튜디오 복귀 링크만 제공합니다.
+- 선택한 프로젝트의 소개·카테고리·모금액을 사용하며, 미입력 답변·리워드를 다른 상품의 예시 정보로 대체하지 않습니다. 이 타입은 UI 목업 전용이며 API 계약이 아닙니다.
+- 회귀 검증은 `create-live-button.stories.tsx`의 `ProjectToSavedCueSheet`와 `cue-sheet-demo.test.mjs`에 둡니다.
+
+### 공통 연결 원칙
+
 - HTTP client와 공통 오류 매핑은 계약 확정 후 `shared/lib`에 둔다.
 - 클라이언트 서버 상태는 TanStack Query로 관리한다. 첫 API 계약과 MSW handler가 확정되는 기능에서 설치하고 `providers`에 연결하며, 각 feature가 query 정의를 소유한다.
 - 서버 렌더링 전용 데이터는 Server Component와 Next.js `fetch`가 소유하고 같은 리소스를 Query Cache에 중복 저장하지 않는다.

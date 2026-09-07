@@ -1,0 +1,79 @@
+.dialog {
+  margin: auto;
+  padding: 0;
+  width: min(996px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--layer-surface-default);
+  color: var(--text-default);
+}
+
+.dialog::backdrop {
+  background: var(--layer-overlay);
+}
+
+.frame {
+  min-height: 672px;
+  padding: 24px;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 596px);
+  gap: 20px;
+  max-width: 812px;
+  margin: 56px auto 20px;
+}
+
+.panel {
+  height: 418px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+}
+
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 6px 16px;
+  border-radius: var(--radius-xs);
+  background: var(--layer-surface-disabled);
+  font-size: var(--text-body-s);
+}
+
+.secondary:hover:enabled {
+  background: var(--layer-surface-disabled-hover);
+}
+
+.secondary:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.frame :is(button, input, textarea, a):focus-visible {
+  outline: 2px solid var(--border-primary);
+  outline-offset: 2px;
+}
+
+.frame textarea {
+  resize: vertical;
+}
+
+@media (max-width: 767px) {
+  .frame {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 24px;
+  }
+
+  .panel {
+    height: 380px;
+  }
+}
