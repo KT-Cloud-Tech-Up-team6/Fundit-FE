@@ -19,6 +19,8 @@ export const ProjectToSavedCueSheet: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "선택" }));
     await userEvent.type(dialog.getByRole("textbox", { name: "소개 문구" }), "가방 전용 소개 문구");
     await userEvent.click(dialog.getByRole("button", { name: "다음" }));
+    await userEvent.click(dialog.getByRole("button", { name: "라이브 시작" }));
+    await expect(dialog.getByRole("status")).toHaveTextContent("실제 방송은 시작되지 않습니다.");
     await userEvent.click(dialog.getByRole("button", { name: "AI 큐시트 생성" }));
     dialog = within(await canvas.findByRole("dialog", { name: /친환경 소재로 만든 데일리 백/ }));
     await userEvent.type(dialog.getByRole("textbox", { name: "AI에게 답변" }), "가방 개발 이야기");
@@ -45,6 +47,8 @@ export const ProjectToSavedCueSheet: Story = {
       "가방 전용 소개 문구",
     );
     await expect(dialog.getByRole("status")).toHaveTextContent("저장된 목업 큐시트");
+    await userEvent.click(dialog.getByRole("button", { name: "라이브 시작" }));
+    await expect(dialog.getByRole("status")).toHaveTextContent("실제 방송은 시작되지 않습니다.");
     await userEvent.click(dialog.getByRole("button", { name: "AI 큐시트 생성" }));
     dialog = within(await canvas.findByRole("dialog", { name: /친환경 소재로 만든 데일리 백/ }));
     await expect(dialog.getByRole("textbox", { name: "대사" })).toHaveValue("수정한 가방 오프닝");

@@ -120,6 +120,7 @@ export function CreateLiveButton() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"form" | "confirm" | "cue">("form");
   const [savedCueSheet, setSavedCueSheet] = useState<SavedCueSheet | null>(null);
+  const [showStartNotice, setShowStartNotice] = useState(false);
   const [category, setCategory] = useState("");
   const [projectId, setProjectId] = useState<string | null>(null);
   const [intro, setIntro] = useState("");
@@ -160,6 +161,7 @@ export function CreateLiveButton() {
     setIntro("");
     setScheduled(false);
     setSavedCueSheet(null);
+    setShowStartNotice(false);
   };
 
   return (
@@ -320,19 +322,28 @@ export function CreateLiveButton() {
                   size="sm"은 md가 강제하는 text-title-s(18px)를 피하려는 것 — Figma cta_button의
                   `라이브 시작`은 16px SemiBold(text-body-m + font-semibold). */}
               <p role="status" className="text-caption-s mt-6 text-center">
-                {savedCueSheet
-                  ? "저장된 목업 큐시트가 있어요. 다시 열어 편집할 수 있습니다."
-                  : "AI 큐시트는 목업입니다. 실제 생성·서버 저장은 하지 않습니다."}
+                {showStartNotice
+                  ? "목업 화면입니다. 실제 방송은 시작되지 않습니다. 송출 기능은 연동 예정입니다."
+                  : savedCueSheet
+                    ? "저장된 목업 큐시트가 있어요. 다시 열어 편집할 수 있습니다."
+                    : "AI 큐시트는 목업입니다. 실제 생성·서버 저장은 하지 않습니다."}
               </p>
               <div className="mt-auto flex shrink-0 items-center gap-3">
                 <button
                   className={`${secondaryButtonClasses} h-10 flex-1`}
-                  onClick={() => setStep("cue")}
+                  onClick={() => {
+                    setShowStartNotice(false);
+                    setStep("cue");
+                  }}
                   type="button"
                 >
                   AI 큐시트 생성
                 </button>
-                <Button className="h-10 flex-1 font-semibold" size="sm">
+                <Button
+                  className="h-10 flex-1 font-semibold"
+                  size="sm"
+                  onClick={() => setShowStartNotice(true)}
+                >
                   라이브 시작
                 </Button>
               </div>
