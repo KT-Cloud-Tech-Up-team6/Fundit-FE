@@ -34,7 +34,7 @@ export default async function SellerProjectPage({
         <ProjectEditSidebar
           activeTab={activeTab}
           projectId={projectId}
-          projectName="프로젝트 이름이 들어갈 자리"
+          projectName={`프로젝트 이름이 들어갈 자리 (${projectId})`}
         />
         {activeTab === "story" ? (
           <ProjectStoryForm />
