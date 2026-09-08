@@ -4,6 +4,7 @@ import {
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
 import { FulfillmentBoard } from "@/features/fulfillment-tracking/ui/fulfillment-board";
+import { FundingStatusBoard } from "@/features/funding-status/ui/funding-status-board";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
@@ -72,12 +73,14 @@ export default async function SellerProjectPage({
         />
         {activeTab === "fulfillment" ? (
           <FulfillmentBoard projectId={projectId} />
+        ) : activeTab === "funding" ? (
+          <FundingStatusBoard />
         ) : (
           <PagePlaceholder
             eyebrow="Seller · Project"
             title={`프로젝트 관리 · ${projectId}`}
-            description="펀딩·커뮤니티·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
-            screenIds="FL_S_FD_STATUS, FL_S_FD_COMM, FL_S_PR_CAL"
+            description="커뮤니티·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
+            screenIds="FL_S_FD_COMM, FL_S_PR_CAL"
             access="owner"
             sections={[`${activeTab} 탭`]}
           />

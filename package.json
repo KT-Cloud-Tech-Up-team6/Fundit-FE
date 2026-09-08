@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx --test src/features/live-console/model/console-demo.test.mjs src/features/live-cue-sheet/model/cue-sheet-demo.test.mjs src/features/funding-ai-story/model/story-demo.test.mjs src/features/project-basic-info/model/basic-info-demo.test.mjs src/features/fulfillment-tracking/model/fulfillment-demo.test.mjs src/features/shipping-info/model/shipping-demo.test.mjs",
+    "test": "tsx --test",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
