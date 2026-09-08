@@ -43,6 +43,10 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
   const [bulkCourier, setBulkCourier] = useState<Courier | "">("");
   const [notice, setNotice] = useState("");
 
+  /* 선택이 비면 일괄 택배사 값도 버린다 — 다시 선택했을 때 적용 안 된 이전 값이 남지 않도록.
+     직접 해제·전체 해제·저장·발송 등 선택을 비우는 모든 경로를 여기 한곳에서 덮는다. */
+  if (selected.size === 0 && bulkCourier !== "") setBulkCourier("");
+
   const searched = useMemo(() => searchShipments(shipments, query), [shipments, query]);
   const counts = countByFilter(searched);
   const visible = filterByStatus(searched, filter);
@@ -66,14 +70,13 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
   function ship(ids: ReadonlySet<string>) {
     const result = markShipped(shipments, ids);
     setShipments(result.shipments);
-
-    const next = new Set(selected);
-    for (const shipment of result.shipments) {
-      if (shipment.status === "shipped") next.delete(shipment.id);
-    }
-    setSelected(next);
-    /* 선택이 모두 비면 일괄 택배사 값도 지운다 — 다시 선택했을 때 이전 값이 남지 않도록. */
-    if (next.size === 0) setBulkCourier("");
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const shipment of result.shipments) {
+        if (shipment.status === "shipped") next.delete(shipment.id);
+      }
+      return next;
+    });
     setNotice(
       result.skipped > 0
         ? `${result.shipped}건을 발송 처리했어요. 택배사·운송장 번호가 비어 ${result.skipped}건은 처리하지 못했어요.`
@@ -172,7 +175,6 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
                   /* ponytail: 저장 API가 없어 안내만 띄운다. 계약이 생기면 여기서 보낸다. */
                   setNotice(`${selected.size}건의 발송 정보를 저장했어요.`);
                   setSelected(new Set());
-                  setBulkCourier("");
                 }}
                 type="button"
               >
