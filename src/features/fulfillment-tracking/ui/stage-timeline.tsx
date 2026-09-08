@@ -42,15 +42,15 @@ export function StageTimeline({ records, onSelectMedia }: StageTimelineProps) {
                       onClick={() => onSelectMedia(media)}
                       className="bg-layer-surface-disabled relative flex size-16 cursor-pointer items-center justify-center overflow-hidden rounded-xs"
                     >
-                      {/* ponytail: 업로드 서버가 없어 url이 없는 목업 기록은 회색 플레이스홀더로 둔다. */}
-                      {media.url ? (
+                      {/* 동영상은 objectURL이 있어도 img로 렌더하면 썸네일이 깨진다.
+                          MediaDropzone처럼 이미지만 img로 두고 동영상은 재생 아이콘으로 표시한다.
+                          ponytail: url이 없는 목업 기록은 회색 플레이스홀더로 둔다. */}
+                      {media.url && media.kind === "image" ? (
                         // eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다.
                         <img src={media.url} alt="" className="size-full object-cover" />
-                      ) : (
-                        media.kind === "video" && (
-                          <Icon name="play" className="text-text-secondary size-6" />
-                        )
-                      )}
+                      ) : media.kind === "video" ? (
+                        <Icon name="play" className="text-text-secondary size-6" />
+                      ) : null}
                     </button>
                   </li>
                 ))}
