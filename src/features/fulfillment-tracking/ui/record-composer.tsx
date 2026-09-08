@@ -80,9 +80,10 @@ export function RecordComposer({ onSubmit, onOpenDelay, onPreviewMedia }: Record
             <Icon className="size-5" name="insertImage" />
           </button>
           <input
+            aria-label="진행 내용"
             className="text-body-m placeholder:text-body-s text-text-default placeholder:text-text-disabled min-w-0 flex-1 bg-transparent outline-none"
             onChange={(event) => setText(event.target.value)}
-            placeholder="단계에 추가될 내용을 적어주시와요"
+            placeholder="단계에 추가될 내용을 적어주세요"
             ref={textRef}
             value={text}
           />

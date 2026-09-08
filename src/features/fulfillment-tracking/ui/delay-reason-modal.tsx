@@ -41,7 +41,8 @@ export function DelayReasonModal({ open, onClose, onBack, onSkip, onSave }: Dela
       >
         <div className="text-body-s text-text-secondary">
           <p>일정이 변경 되었거나 지연이 예상되는 경우 사유를 등록해주세요</p>
-          <p>구매자에게 알림이 발송됩니다</p>
+          {/* ponytail: 알림 발송 API가 없어(docs/OPEN_DECISIONS.md P1) 문구도 목업이다. 계약이 생기면 되돌린다. */}
+          <p>구매자 알림 발송은 현재 목업으로 동작해요</p>
         </div>
 
         <div className="flex items-center gap-4">
