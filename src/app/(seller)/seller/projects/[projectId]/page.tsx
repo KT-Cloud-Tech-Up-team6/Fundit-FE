@@ -3,6 +3,7 @@ import {
   projectEditTabs,
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
+import { FulfillmentBoard } from "@/features/fulfillment-tracking/ui/fulfillment-board";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
@@ -69,14 +70,18 @@ export default async function SellerProjectPage({
           projectName={projectName}
           tabs={projectManageTabs}
         />
-        <PagePlaceholder
-          eyebrow="Seller · Project"
-          title={`프로젝트 관리 · ${projectId}`}
-          description="펀딩·커뮤니티·제작배송·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
-          screenIds="FL_S_FD_STATUS, FL_S_FD_COMM, FL_S_DL_MNG, FL_S_PR_CAL"
-          access="owner"
-          sections={[`${activeTab} 탭`]}
-        />
+        {activeTab === "fulfillment" ? (
+          <FulfillmentBoard projectId={projectId} />
+        ) : (
+          <PagePlaceholder
+            eyebrow="Seller · Project"
+            title={`프로젝트 관리 · ${projectId}`}
+            description="펀딩·커뮤니티·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
+            screenIds="FL_S_FD_STATUS, FL_S_FD_COMM, FL_S_PR_CAL"
+            access="owner"
+            sections={[`${activeTab} 탭`]}
+          />
+        )}
       </div>
     );
   }
