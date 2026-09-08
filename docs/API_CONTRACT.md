@@ -59,7 +59,7 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 
 도메인 DTO를 HTTP 상태 코드와 함께 별도 공통 래퍼 없이 반환한다. `data` 래퍼를 FE가 임의로 기대하지 않는다. 특정 DTO의 `message` 필드는 허용되며 공통 성공 래퍼와 구분한다. 204는 본문을 파싱하지 않는다. 개별 API의 성공 상태는 Swagger에서 확인하며 POST라는 이유만으로 201을 가정하지 않는다.
 
-로그인 성공 본문은 구현 답변 기준 다음과 같다.
+일반 로그인 `POST /api/v1/auth/login`의 성공 본문은 구현 답변 기준 다음과 같다. 소셜 로그인 응답은 4.2·4.3에서 별도로 설명한다.
 
 ```json
 {
@@ -154,6 +154,8 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 
 Java Long 전체 범위는 JavaScript 안전 정수 범위를 넘을 수 있다. 숫자 ID·금액의 허용 범위와 문자열 직렬화 필요성은 연동 전 확인·협의하며 임의 변환으로 정밀도를 잃지 않는다.
 
+null 키 생략은 오류 detail에서 추론한 규칙이 아니라 최신 BE의 공통 응답 답변을 반영한 것이다. 다만 모든 서비스·DTO의 실제 직렬화를 직접 검증한 것은 아니므로 연동 대상 응답과 대조한다. 생략/null을 모두 수용한다는 것이 모든 필드의 비즈니스 의미가 같다는 뜻은 아니다. 명세상 quantity는 isLimited=false일 때 무제한을 표현하며, remainingStock의 null은 재고 조회 실패 상황으로 설명된다. 둘을 0이나 품절로 자동 치환하지 않는다. remainingStock의 실제 실패 응답(null을 포함한 성공 응답 또는 503)은 8.1의 확인 대상으로 유지한다. 요청 quantity의 null과 PATCH 생략 의미는 응답 직렬화 규칙으로 결정하지 않는다.
+
 ## 4. 인증·회원
 
 ### 4.1. 인증 경계와 쿠키
@@ -167,6 +169,12 @@ Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v
 ```
 
 최신 답변도 HttpOnly·Secure·SameSite=Strict 예시를 제공했다. Domain·환경별 CORS·Credential은 미확정이며 이전 답변에서 CORS는 미구현이었다. FE의 직접 호출/BFF, Origin 및 Gateway 경로를 정한 후 쿠키 Path·전달·재발급을 함께 검증한다. BFF를 쓰면 Set-Cookie 릴레이 방식도 협의한다.
+
+호출 방식은 이번 문서에서 확정하지 않는다. 다음은 방식 선택 후 충족해야 할 전달 조건이며 현재 구현 완료를 뜻하지 않는다.
+
+- 브라우저가 다른 Origin의 Gateway 또는 auth-service를 직접 호출해 쿠키를 발급·갱신·전송한다면 Fetch의 `credentials: "include"`가 필요하다. 서버는 허용 목록으로 검증한 요청 Origin을 `Access-Control-Allow-Origin`에 명시하고 `Access-Control-Allow-Credentials: true`를 반환해야 한다. 자격 증명 요청에 Origin 와일드카드 `*`를 사용하지 않는다. 필요한 preflight의 메소드·헤더도 허용해야 한다.
+- `credentials: "include"`는 SameSite 제한을 해제하지 않는다. 제시된 `SameSite=Strict` 쿠키와 실제 FE/API의 사이트 관계가 맞는지 별도로 확인한다. 관련 브라우저 조건은 [MDN Fetch 자격 증명 설명](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#including_credentials)을 참고한다.
+- BFF를 경유해 Refresh 쿠키를 브라우저에 보관하는 구조를 선택한다면 BFF의 Set-Cookie 릴레이와 갱신 요청의 쿠키 전달을 함께 정의해야 한다. 브라우저 기준 Domain·Path를 검토하며 위 Auth 예시의 Path가 BFF 경로에서도 그대로 유효하다고 가정하지 않는다. 브라우저와 BFF가 다른 Origin이면 위 CORS 조건도 적용한다. Refresh Token을 BFF 서버에만 보관하는 별도 세션 구조는 아직 합의된 계약이 아니다.
 
 ### 4.2. 주요 엔드포인트
 
@@ -194,7 +202,8 @@ Auth 명세에는 소셜 로그인 `POST /api/v1/auth/login/social`과 소셜 �
 
 ### 4.3. 로그인·로그아웃·비밀번호
 
-- 로그인은 최신 답변의 두 필드만 사용한다. 이전 Auth 명세의 `member` 객체를 필수로 기대하지 않는다.
+- 일반 로그인 `POST /api/v1/auth/login`에만 최신 답변의 accessToken·mustChangePassword 두 필드 규칙을 적용한다. 이전 Auth 명세의 `member` 객체를 필수로 기대하지 않는다.
+- `POST /api/v1/auth/login/social`에는 이 두 필드 규칙을 적용하지 않는다. 명세의 `needsSignup` 분기를 유지하고, 미가입자의 `signupToken`은 소셜 회원가입 요청에 사용한다. 소셜 응답의 member 포함 여부와 실제 지원 범위는 4.2의 확인 사항을 유지한다.
 - `mustChangePassword`는 항상 포함되지만 현재 true로 만드는 코드 경로가 없다. 필드 자체를 삭제하거나 영구적으로 false라고 가정하지 않는다.
 - **로그아웃은 스펙·코드에 없다.** FE가 Access Token을 버려도 Refresh Token 즉시 무효화나 서버 세션 종료가 된 것은 아니다. 실제 로그아웃 동작·쿠키 만료 처리 계약은 협의 대상이다.
 - Access 30분, Refresh 14일은 적용된 개발 가정값이며 PM 확정치는 아니다.
@@ -206,9 +215,13 @@ Auth 명세에는 소셜 로그인 `POST /api/v1/auth/login/social`과 소셜 �
 
 `POST /api/v1/auth/identity-verifications`는 Authorization 불필요, 성공은 **200 OK**다.
 
+요청 본문. FE가 PortOne SDK의 인증 완료 결과에서 받은 identityVerificationId를 이 서버 검증 API에 전달한다.
+
 ```json
 { "identityVerificationId": "PortOne SDK 인증 완료 결과의 식별자" }
 ```
+
+200 OK 응답 본문. BE 검증 후 발급된 verificationToken을 일반 회원가입 `POST /api/v1/auth/signup` 요청의 같은 이름 필드로 전달한다. identityVerificationId는 이 BE 응답의 필드가 아니다.
 
 ```json
 {
