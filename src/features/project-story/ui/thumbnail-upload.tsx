@@ -23,7 +23,7 @@ export function ThumbnailUpload() {
         type="button"
         aria-label="썸네일 이미지 파일 선택"
         onClick={() => inputRef.current?.click()}
-        className={`${secondaryButtonClasses} h-10 w-20 shrink-0`}
+        className={`${secondaryButtonClasses} text-body-strong! h-10 w-20 shrink-0`}
       >
         찾아 보기
       </button>
