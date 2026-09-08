@@ -1,6 +1,13 @@
 /* SVG를 mask로 깔고 색은 bg-current로 상속받는다. SearchField와 같은 방식이라
    파일에 박힌 stroke 색과 무관하게 토큰 색을 따른다. */
 const iconFiles = {
+  arrowDown: "arrow_down",
+  resetAmount: "reset_amount",
+  plusCircle: "plus_circle",
+  plusSquare: "plus_square",
+  gift: "gift",
+  checkboxEmpty: "checkbox_empty",
+  closeSmall: "close_small",
   alignCenter: "align_center",
   alignLeft: "align_left",
   alignRight: "align_right",
