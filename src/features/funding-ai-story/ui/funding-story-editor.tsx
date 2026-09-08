@@ -108,7 +108,7 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
               <button
                 type="button"
                 disabled
-                className="bg-layer-surface-disabled text-body-s shrink-0 rounded-xs px-2"
+                className="bg-layer-surface-disabled text-body-strong shrink-0 rounded-xs px-2"
               >
                 찾아 보기
               </button>
@@ -122,7 +122,7 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
             </label>
             <button
               type="button"
-              className="bg-layer-surface-disabled text-body-s h-9 rounded-xs px-2"
+              className="bg-layer-surface-disabled text-body-strong h-9 rounded-xs px-2"
               onClick={(event) => openModal("ai", event.currentTarget)}
             >
               AI로 펀딩 스토리 작성
@@ -161,14 +161,14 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
         <div className="mt-6 flex flex-wrap gap-3 sm:gap-6">
           <button
             type="button"
-            className="bg-layer-surface-disabled text-body-s h-11.5 flex-1 rounded-xs sm:max-w-45"
+            className="bg-layer-surface-disabled text-body-strong h-11.5 flex-1 rounded-xs sm:max-w-45"
             onClick={(event) => openModal("preview", event.currentTarget)}
           >
             미리보기
           </button>
           <button
             type="button"
-            className="bg-layer-surface-disabled text-body-s ml-auto h-11.5 flex-1 rounded-xs sm:max-w-45"
+            className="bg-layer-surface-disabled text-body-strong ml-auto h-11.5 flex-1 rounded-xs sm:max-w-45"
             onClick={() =>
               setNotice("목업 임시저장입니다. 현재 화면에서만 유지되며 서버에는 저장되지 않습니다.")
             }
@@ -176,6 +176,7 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
             임시저장
           </button>
           <Button
+            appearance="cta"
             className="flex-1 sm:max-w-45"
             onClick={() =>
               setNotice("목업 저장입니다. 실제 프로젝트에 저장하거나 게시하지 않습니다.")
