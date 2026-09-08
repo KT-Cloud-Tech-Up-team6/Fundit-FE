@@ -83,7 +83,12 @@ export function FundingStatusBoard({
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <ProgressBar value={rate} aria-label="목표 대비 달성률" />
+                  {/* 막대는 100으로 클램프되므로 초과 달성률은 aria-valuetext로 따로 전달한다. */}
+                  <ProgressBar
+                    value={rate}
+                    aria-label="목표 대비 달성률"
+                    aria-valuetext={`목표 대비 ${rate}% 달성`}
+                  />
                 </div>
                 <p aria-hidden className="flex shrink-0 items-baseline gap-1">
                   <span className="text-title-m">{rate}</span>

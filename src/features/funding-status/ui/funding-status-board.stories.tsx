@@ -25,8 +25,10 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "펀딩 관리", level: 1 })).toBeVisible();
-    // 128%여도 막대는 100으로 클램프되고 수치 라벨만 초과분을 보여준다.
-    await expect(canvas.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+    // 128%여도 막대는 100으로 클램프되지만, 실제 달성률은 aria-valuetext로 전달된다.
+    const bar = canvas.getByRole("progressbar");
+    await expect(bar).toHaveAttribute("aria-valuenow", "100");
+    await expect(bar).toHaveAttribute("aria-valuetext", "목표 대비 128% 달성");
     await expect(canvas.getByText("128")).toBeVisible();
     await expect(canvas.getAllByRole("row")).toHaveLength(demoRewardRows().length + 1);
   },
@@ -39,7 +41,9 @@ export const InProgress: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "64");
+    const bar = canvas.getByRole("progressbar");
+    await expect(bar).toHaveAttribute("aria-valuenow", "64");
+    await expect(bar).toHaveAttribute("aria-valuetext", "목표 대비 64% 달성");
     await expect(canvas.getByText("D-12")).toBeVisible();
   },
 };
