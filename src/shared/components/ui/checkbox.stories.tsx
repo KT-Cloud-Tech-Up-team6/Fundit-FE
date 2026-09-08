@@ -19,6 +19,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+export const Square: Story = { args: { shape: "square" } };
+export const SquareChecked: Story = { args: { shape: "square", defaultChecked: true } };
 
 export const Checked: Story = {
   args: { defaultChecked: true },

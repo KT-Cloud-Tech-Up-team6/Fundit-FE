@@ -1,10 +1,12 @@
 "use client";
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { Icon } from "./icon";
 
 type CheckboxProps = Omit<ComponentPropsWithoutRef<"input">, "children" | "type"> & {
   children?: ReactNode;
   indeterminate?: boolean;
+  shape?: "circle" | "square";
 };
 
 /* 체크와 부분 선택 표시는 아이콘 asset 없이 pseudo element로 그린다.
@@ -23,6 +25,7 @@ export function Checkbox({
   className,
   disabled,
   indeterminate = false,
+  shape = "circle",
   ...props
 }: CheckboxProps) {
   /* checked와 indeterminate가 동시에 켜지면 두 표시가 겹친다. Tailwind 변형끼리는
@@ -59,14 +62,18 @@ export function Checkbox({
       <span
         aria-hidden
         className={[
-          "border-border-default relative size-5 shrink-0 rounded-full border",
+          shape === "square"
+            ? "relative size-4 shrink-0 rounded-xs"
+            : "border-border-default relative size-5 shrink-0 rounded-full border",
           "peer-focus-visible:outline-border-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
           markShapeClasses,
           markColorClasses,
           markClasses,
           fillClasses,
         ].join(" ")}
-      />
+      >
+        {shape === "square" && <Icon name="checkboxEmpty" className="absolute inset-0 size-full" />}
+      </span>
       {children ? (
         <span
           className={["text-body-m", disabled ? "text-text-disabled" : "text-text-default"].join(
