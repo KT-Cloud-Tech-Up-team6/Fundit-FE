@@ -84,19 +84,20 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 ## 판매자
 
-| URL                                                  | 화면                    | 접근 조건               | 상태                                           |
-| ---------------------------------------------------- | ----------------------- | ----------------------- | ---------------------------------------------- |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                    |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                    |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                    |
-| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`만 구현, 나머지 placeholder) |
-| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                    |
-| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                    |
-| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                    |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                    |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                    |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                    |
-| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                    |
+| URL                                                  | 화면                    | 접근 조건               | 상태                                   |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | -------------------------------------- |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                            |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                            |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                            |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                            |
+| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                            |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                            |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                            |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                            |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                            |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                            |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                            |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.
 
@@ -129,7 +130,6 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/seller/projects/[projectId]/community`         | `/seller/projects/[projectId]?tab=community`   |
 | `/seller/projects/[projectId]/fulfillment`       | `/seller/projects/[projectId]?tab=fulfillment` |
 | `/seller/projects/[projectId]/fulfillment/delay` | `/seller/projects/[projectId]?tab=fulfillment` |
-| `/seller/projects/[projectId]/shipping`          | `/seller/projects/[projectId]?tab=fulfillment` |
 | `/seller/projects/[projectId]/live-proof`        | `/seller/projects/[projectId]?tab=live`        |
 | `/seller/live/[liveId]/setup`                    | `/seller/live/[liveId]/cue-sheet`              |
 

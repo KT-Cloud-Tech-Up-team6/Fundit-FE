@@ -49,6 +49,20 @@ export const Disabled: Story = {
   args: { defaultValue: "@gmail.com", disabled: true },
 };
 
+/** sm은 36px 컨트롤 줄(발송정보 일괄 조작 바·표)에 서는 크기다. */
+export const Small: Story = {
+  args: { size: "sm" },
+};
+
+export const Sizes: Story = {
+  render: (args) => (
+    <div className="flex w-[350px] flex-col gap-3">
+      <Select {...args} size="sm" />
+      <Select {...args} size="md" />
+    </div>
+  ),
+};
+
 export const Gallery: Story = {
   render: (args) => (
     <div className="flex w-[350px] flex-col gap-3">
