@@ -21,6 +21,26 @@ export const Adding: Story = { args: { initialView: "adding" } };
 export const RewardList: Story = { args: { initialView: "list" } };
 export const AddToList: Story = { args: { initialView: "list-adding" } };
 
+export const FooterButtons: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const name of ["임시저장", "저장"]) {
+      const button = canvas.getByRole("button", { name });
+      const label = within(button).getByText(name, { exact: true });
+      const style = getComputedStyle(label);
+      expect(style.fontSize).toBe("16px");
+      expect(style.fontWeight).toBe("600");
+      expect(style.lineHeight).toBe("24px");
+      expect(button.getBoundingClientRect().width).toBe(180);
+      expect(button.getBoundingClientRect().height).toBe(46);
+    }
+    await userEvent.click(canvas.getByRole("button", { name: "임시저장" }));
+    expect(canvas.getByRole("status")).toHaveTextContent("목업 임시저장");
+    await userEvent.click(canvas.getByRole("button", { name: "저장" }));
+    expect(canvas.getByRole("alert")).toHaveTextContent("사업자 유형");
+  },
+};
+
 export const RewardLifecycle: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
