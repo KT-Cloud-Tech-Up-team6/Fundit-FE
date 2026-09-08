@@ -106,7 +106,7 @@ export const ComposeRecord: Story = {
   args: { today },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const input = canvas.getByPlaceholderText("단계에 추가될 내용을 적어주시와요");
+    const input = canvas.getByRole("textbox", { name: "진행 내용" });
     const submit = canvas.getByRole("button", { name: "등록" });
 
     await expect(submit).toBeDisabled();
