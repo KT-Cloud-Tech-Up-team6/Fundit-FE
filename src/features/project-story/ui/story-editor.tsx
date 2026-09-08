@@ -219,7 +219,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
         <button
           type="button"
           onClick={() => setAiModalOpen(true)}
-          className={`${secondaryButtonClasses} h-9 px-4`}
+          className={`${secondaryButtonClasses} text-body-strong! h-9 px-4`}
         >
           AI로 펀딩 스토리 작성
         </button>

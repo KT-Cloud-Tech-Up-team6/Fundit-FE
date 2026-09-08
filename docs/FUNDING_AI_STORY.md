@@ -25,6 +25,10 @@
 
 ## 디자인 적용과 미확정 항목
 
+2026-09-07 15:09 변경 이력(`532:16494`)은 `cta_button` 텍스트를 Body 16 Semibold로 지정합니다. 사용자 승인에 따라 개별 노드에 남아 있는 이전 값보다 변경 이력을 우선하여 텍스트 CTA에 `text-body-strong`(16px / 600 / 24px)을 적용합니다. 아이콘 전용 버튼·내비게이션·공통 Button 기본값은 변경하지 않습니다. 관련 수정은 [#45](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/45)입니다.
+
+현재 프레임 이름은 `FL_S_PR_AI_1`부터 `FL_S_PR_AI_9`(추가 상태 `FL_S_PR_AI_3.1`), `FL_S_PR_AI_loading_1`, `FL_S_PR_AI_loading_2`, `FL_S_PR_AI_AIEDIT`입니다. 채팅 시작 프레임은 `532:13342`, 결과는 `532:14668`입니다. 이미 반영된 말풍선 반경 12px·처음부터 채팅으로 시작하는 흐름·입력창 확장 동작은 유지합니다.
+
 사용자 승인에 따라 원본의 `1/5`와 `3가지만` 불일치는 3문항으로 통일하고, 결과의 AI 큐시트 표기는 AI 스토리로 수정합니다. 이는 UI 목업 기준이며 BE 계약이나 최종 질문 수 확정이 아닙니다.
 
 공통 Modal·Button·Input·Textarea 및 semantic 토큰을 재사용합니다. 원본의 회색 AI 말풍선은 텍스트 대비를 위해 기존 `layer-surface-primary-hover`와 `text-inverse` 조합으로 매핑합니다. 결과 본문은 원본 레이아웃에 맞춘 신뢰 가능한 로컬 React 미리보기이며 원본의 외부 HTML 이미지나 미확인 제품 성능을 실제 생성 결과로 사용하지 않습니다.

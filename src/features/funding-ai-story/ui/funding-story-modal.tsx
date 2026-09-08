@@ -123,19 +123,23 @@ export function FundingStoryModal({
           <div className="flex shrink-0 flex-wrap items-center gap-3">
             <button
               type="button"
-              className="bg-layer-surface-disabled text-body-s h-10 rounded-xs px-6"
+              className="bg-layer-surface-disabled text-body-strong h-10 rounded-xs px-6"
               onClick={() => dispatch({ type: "back" })}
             >
               이전으로
             </button>
             <button
               type="button"
-              className="text-body-s ml-auto h-10 px-2 underline"
+              className="text-body-strong ml-auto h-10 px-2 underline"
               onClick={() => dispatch({ type: "generate" })}
             >
               재생성
             </button>
-            <Button size="md" className="h-10! w-36" onClick={() => onImport(storyBody(state))}>
+            <Button
+              size="md"
+              className="text-body-strong! h-10! w-36 font-semibold!"
+              onClick={() => onImport(storyBody(state))}
+            >
               불러오기
             </Button>
           </div>
@@ -180,7 +184,7 @@ export function FundingStoryModal({
                     {state.stage === "questions" && index === state.messages.length - 1 && (
                       <button
                         type="button"
-                        className="bg-layer-surface-default border-border-default text-caption-s mt-2 rounded-full border px-4 py-2"
+                        className="bg-layer-surface-default border-border-default text-body-strong mt-2 rounded-full border px-4 py-2"
                         onClick={() => send("해당 사항 없음")}
                       >
                         해당 사항 없음
@@ -189,7 +193,7 @@ export function FundingStoryModal({
                     {state.stage === "summary" && index === state.messages.length - 1 && (
                       <Button
                         size="sm"
-                        className="mt-2 h-9! rounded-full! px-4"
+                        className="text-body-strong! mt-2 h-9! rounded-full! px-4 font-semibold!"
                         onClick={() => dispatch({ type: "generate" })}
                       >
                         그대로 생성하기

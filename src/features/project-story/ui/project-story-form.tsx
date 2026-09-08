@@ -64,7 +64,7 @@ export function ProjectStoryForm() {
         <button
           type="button"
           aria-disabled="true"
-          className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 cursor-not-allowed`}
+          className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 cursor-not-allowed font-semibold!`}
         >
           미리보기
         </button>
@@ -75,11 +75,11 @@ export function ProjectStoryForm() {
           <button
             type="button"
             disabled
-            className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45`}
+            className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 font-semibold!`}
           >
             임시저장
           </button>
-          <Button disabled size="lg" className="text-body-strong! w-45">
+          <Button disabled size="lg" className="text-body-strong! w-45 font-semibold!">
             저장
           </Button>
         </div>

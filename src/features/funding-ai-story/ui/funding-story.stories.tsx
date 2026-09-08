@@ -6,6 +6,7 @@ import { demoProjectTitle, storyFixture } from "../model/story-demo";
 import type { StoryStage } from "../model/story-demo";
 import { FundingStoryEditor } from "./funding-story-editor";
 import { FundingStoryModal } from "./funding-story-modal";
+import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 
 function StoryDemo({
   stage = "description",
@@ -48,6 +49,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function expectCta(element: HTMLElement) {
+  const style = getComputedStyle(element);
+  expect(style.fontSize).toBe("16px");
+  expect(style.fontWeight).toBe("600");
+  expect(style.lineHeight).toBe("24px");
+}
+
 export const Initial: Story = {};
 export const InputHeightLimit: Story = {
   play: async ({ canvasElement }) => {
@@ -67,18 +75,64 @@ export const InputHeightLimit: Story = {
     });
   },
 };
-export const Questions: Story = { args: { stage: "questions" } };
+export const Questions: Story = {
+  args: { stage: "questions" },
+  play: async ({ canvasElement }) => {
+    expectCta(await within(canvasElement).findByRole("button", { name: "해당 사항 없음" }));
+  },
+};
 export const Summarizing: Story = { args: { stage: "summarizing", pauseDemo: true } };
-export const Summary: Story = { args: { stage: "summary" } };
+export const Summary: Story = {
+  args: { stage: "summary" },
+  play: async ({ canvasElement }) => {
+    expectCta(await within(canvasElement).findByRole("button", { name: "그대로 생성하기" }));
+  },
+};
 export const Generating: Story = { args: { stage: "generating", pauseDemo: true } };
 export const Ready: Story = { args: { stage: "ready", pauseDemo: true } };
-export const Result: Story = { args: { stage: "result" } };
+export const Result: Story = {
+  args: { stage: "result" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const name of ["이전으로", "재생성", "불러오기"]) {
+      expectCta(await canvas.findByRole("button", { name }));
+    }
+  },
+};
 export const Editor: Story = {
   render: () => (
     <div className="mx-auto max-w-300 px-5">
       <FundingStoryEditor projectId="demo-story" />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const name of ["찾아 보기", "AI로 펀딩 스토리 작성", "미리보기", "임시저장", "저장"]) {
+      expectCta(canvas.getByRole("button", { name }));
+    }
+  },
+};
+
+export const IntegratedEditor: Story = {
+  render: () => (
+    <div className="mx-auto max-w-198 p-5">
+      <ProjectStoryForm />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const name of [
+      "썸네일 이미지 파일 선택",
+      "AI로 펀딩 스토리 작성",
+      "미리보기",
+      "임시저장",
+      "저장",
+    ]) {
+      expectCta(canvas.getByRole("button", { name }));
+    }
+    await userEvent.click(canvas.getByRole("button", { name: "AI로 펀딩 스토리 작성" }));
+    expect(await canvas.findByRole("log", { name: "스토리 작성 대화" })).toBeVisible();
+  },
 };
 
 function StageChangeDemo() {
