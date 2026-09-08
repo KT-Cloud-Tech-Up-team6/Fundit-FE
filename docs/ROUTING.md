@@ -6,6 +6,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
 - `/seller/live/demo-live/console`에서 시작 전 → 목업 방송 시작 → 질문·답변·채팅 → 종료 → LIVE 체크 선택 흐름을 확인할 수 있습니다. 상태별 화면은 Storybook `Features/LiveConsole/Console`에서 확인합니다.
 - 콘솔은 전용 헤더를 위해 `(live-console)` 그룹에 두며 일반 `SellerShell`을 사용하지 않습니다. URL은 바뀌지 않습니다. 인증·소유권 가드는 아직 구현하지 않았습니다.
@@ -87,7 +88,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | ---------------------------------------------------- | ----------------------- | ----------------------- | ---------------------------------------------- |
 | `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                    |
 | `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                    |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | placeholder                                    |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                    |
 | `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`만 구현, 나머지 placeholder) |
 | `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                    |
 | `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                    |
