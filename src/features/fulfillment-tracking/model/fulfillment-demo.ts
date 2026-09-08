@@ -75,6 +75,25 @@ export function todayValue(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/**
+ * 단계 완료 전이. 진행 중(active)인 단계만 완료할 수 있고, 다음 단계가 이미 완료됐으면
+ * 그 상태를 덮어쓰지 않는다 — 뒤 단계를 먼저 완료해도 앞 단계가 되돌아가지 않는다.
+ * 완료할 수 없는 호출은 상태를 그대로(같은 참조로) 돌려준다.
+ */
+export function completeStage(state: FulfillmentState, stage: FulfillmentStage): FulfillmentState {
+  if (state[stage].status !== "active") return state;
+  const stages = fulfillmentStages.map((item) => item.value);
+  const next = stages[stages.indexOf(stage) + 1];
+
+  return {
+    ...state,
+    [stage]: { ...state[stage], status: "done" },
+    ...(next && state[next].status !== "done"
+      ? { [next]: { ...state[next], status: "active" as const } }
+      : null),
+  };
+}
+
 /** 진입 시 선택할 단계 — 진행 중 → 없으면 첫 미완료 → 전부 완료면 마지막(interaction_spec 528:11275). */
 export function initialStage(state: FulfillmentState): FulfillmentStage {
   const stages = fulfillmentStages.map((item) => item.value);

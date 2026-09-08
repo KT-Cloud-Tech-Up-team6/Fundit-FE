@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   addMedia,
   canSubmit,
+  completeStage,
   daysSinceLastRecord,
   demoFulfillmentState,
   formatRecordDate,
@@ -35,6 +36,43 @@ test("진입 단계는 진행중 → 첫 미완료 → 마지막 순으로 정�
 
   for (const stage of Object.keys(state)) state[stage].status = "done";
   assert.equal(initialStage(state), "delivery");
+});
+
+test("완료 처리는 진행 중 단계만, 그리고 앞 단계를 되돌리지 않는다", () => {
+  const base = demoFulfillmentState("2026-08-30"); // prep=active, 나머지 todo
+
+  // 진행 전 단계는 완료할 수 없다 — 상태를 그대로(같은 참조로) 돌려준다.
+  assert.equal(completeStage(base, "production"), base);
+
+  // 진행 중 단계를 완료하면 다음 단계만 진행 중이 된다.
+  const afterPrep = completeStage(base, "prep");
+  assert.equal(afterPrep.prep.status, "done");
+  assert.equal(afterPrep.production.status, "active");
+  assert.equal(afterPrep.inspection.status, "todo");
+
+  // 이어서 production을 완료해도 앞 단계(prep)의 완료 상태는 유지된다.
+  const afterProduction = completeStage(afterPrep, "production");
+  assert.equal(afterProduction.prep.status, "done");
+  assert.equal(afterProduction.production.status, "done");
+  assert.equal(afterProduction.inspection.status, "active");
+
+  // 다음 단계가 이미 완료면 그 상태를 덮어쓰지 않는다.
+  const inspectionDone = {
+    ...afterPrep,
+    inspection: { ...afterPrep.inspection, status: "done" },
+  };
+  assert.equal(completeStage(inspectionDone, "production").inspection.status, "done");
+
+  // 마지막 단계 완료는 뒤 단계 없이 자기 상태만 바꾼다.
+  const allButLast = {
+    ...base,
+    prep: { ...base.prep, status: "done" },
+    production: { ...base.production, status: "done" },
+    inspection: { ...base.inspection, status: "done" },
+    release: { ...base.release, status: "done" },
+    delivery: { ...base.delivery, status: "active" },
+  };
+  assert.equal(completeStage(allButLast, "delivery").delivery.status, "done");
 });
 
 test("날짜는 00월 00일로 표시하고 형식이 다르면 원문을 유지한다", () => {

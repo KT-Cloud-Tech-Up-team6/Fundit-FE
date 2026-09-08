@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
+  completeStage,
   daysSinceLastRecord,
   demoFulfillmentState,
   fulfillmentStages,
@@ -50,16 +51,15 @@ export function FulfillmentBoard({
   const stage = state[selected];
   const staleDays = isStale(stage, today) ? daysSinceLastRecord(stage.records, today) : null;
 
-  function completeStage() {
+  function handleComplete() {
+    const nextState = completeStage(state, selected);
+    if (nextState === state) return;
+
     const stages = fulfillmentStages.map((item) => item.value);
     const next = stages[stages.indexOf(selected) + 1];
 
-    setState((current) => ({
-      ...current,
-      [selected]: { ...current[selected], status: "done" },
-      ...(next ? { [next]: { ...current[next], status: "active" as const } } : null),
-    }));
-    if (next) setSelected(next);
+    setState(nextState);
+    if (next && nextState[next].status === "active") setSelected(next);
     setNotice(`${stageLabel(selected)} 단계를 완료했어요.`);
   }
 
@@ -106,8 +106,8 @@ export function FulfillmentBoard({
                 Figma처럼 흰 면 + 테두리로 띄운다. */}
             <button
               className="border-w-xs border-border-default bg-layer-surface-default text-body-s text-text-default enabled:hover:bg-layer-surface-disabled-hover focus-visible:outline-border-primary disabled:text-text-disabled flex h-9 shrink-0 items-center justify-center rounded-xs px-4 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
-              disabled={stage.status === "done"}
-              onClick={completeStage}
+              disabled={stage.status !== "active"}
+              onClick={handleComplete}
               type="button"
             >
               {stage.status === "done" ? "완료된 단계" : "이 단계 완료"}
