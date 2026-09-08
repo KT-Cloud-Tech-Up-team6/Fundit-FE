@@ -468,9 +468,9 @@ export function ProjectBasicInfoForm({
               );
             }}
           >
-            임시저장
+            <span className="text-body-strong">임시저장</span>
           </button>
-          <Button type="submit" className="w-45">
+          <Button type="submit" appearance="cta" className="w-45">
             저장
           </Button>
         </div>

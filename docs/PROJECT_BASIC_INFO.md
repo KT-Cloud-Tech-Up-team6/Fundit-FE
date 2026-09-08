@@ -20,6 +20,7 @@
 ## 공통 요소 재사용
 
 - 기존 Button, Input, Textarea, Chip, Checkbox, Icon을 사용합니다.
+- 하단 임시저장·저장은 Figma `532:12232` 기준 180×46px, Body 16px·Semibold 600·줄 높이 24px입니다. 저장은 Button의 CTA 옵션, 임시저장 글자는 text-body-strong 토큰을 재사용합니다. 관련 수정은 [Issue #50](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/50)이며 FooterButtons 스토리에서 타이포·크기·기존 클릭 동작을 검증합니다.
 - 카테고리는 화면 전용 CategoryDropdown을 사용합니다. 원본의 입력 높이 46px, 목록 간격 8px, 항목 높이 40px·간격 4px, 최대 목록 높이 218px를 반영합니다. 색상은 프로젝트 시맨틱 토큰을 사용하고, 목록이 넘칠 때 실제 스크롤을 제공합니다.
 - 방향키·Home·End로 탐색하고 Enter·Space로 선택합니다. Escape는 선택을 변경하지 않고 닫으며, Tab·바깥 클릭도 목록을 닫습니다. 기존 공통 Select는 변경하지 않습니다.
 - Checkbox에는 원본 사각 외곽선을 사용하는 square 모양을 추가했습니다. 기존 기본 모양은 유지합니다.
