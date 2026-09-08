@@ -137,7 +137,8 @@ export function FundingStoryModal({
             </button>
             <Button
               size="md"
-              className="text-body-strong! h-10! w-36 font-semibold!"
+              appearance="cta"
+              className="w-36"
               onClick={() => onImport(storyBody(state))}
             >
               불러오기
@@ -193,7 +194,9 @@ export function FundingStoryModal({
                     {state.stage === "summary" && index === state.messages.length - 1 && (
                       <Button
                         size="sm"
-                        className="text-body-strong! mt-2 h-9! rounded-full! px-4 font-semibold!"
+                        appearance="cta"
+                        shape="pill"
+                        className="mt-2"
                         onClick={() => dispatch({ type: "generate" })}
                       >
                         그대로 생성하기

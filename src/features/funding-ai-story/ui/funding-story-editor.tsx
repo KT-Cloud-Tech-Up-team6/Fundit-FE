@@ -176,7 +176,8 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
             임시저장
           </button>
           <Button
-            className="text-body-strong! flex-1 font-semibold! sm:max-w-45"
+            appearance="cta"
+            className="flex-1 sm:max-w-45"
             onClick={() =>
               setNotice("목업 저장입니다. 실제 프로젝트에 저장하거나 게시하지 않습니다.")
             }

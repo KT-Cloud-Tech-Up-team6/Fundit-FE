@@ -79,7 +79,7 @@ export function ProjectStoryForm() {
           >
             임시저장
           </button>
-          <Button disabled size="lg" className="text-body-strong! w-45 font-semibold!">
+          <Button disabled size="lg" appearance="cta" className="w-45">
             저장
           </Button>
         </div>
