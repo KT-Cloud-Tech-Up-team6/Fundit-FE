@@ -52,6 +52,20 @@ export const Disabled: Story = {
   args: { disabled: true },
 };
 
+/** sm은 36px 컨트롤 줄(발송정보 표의 운송장 입력)에 서는 크기다. */
+export const Small: Story = {
+  args: { size: "sm" },
+};
+
+export const Sizes: Story = {
+  render: (args) => (
+    <div className="flex w-[350px] flex-col gap-3">
+      <Input {...args} size="sm" />
+      <Input {...args} size="md" />
+    </div>
+  ),
+};
+
 export const WithEndAdornment: Story = {
   args: {
     endAdornment: <span className="text-label-m text-text-secondary">원</span>,
