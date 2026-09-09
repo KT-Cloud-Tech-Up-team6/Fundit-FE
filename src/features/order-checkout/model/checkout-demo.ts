@@ -57,6 +57,22 @@ export type PaymentSummary = {
 
 export type TermsItem = { id: string; label: string; required: boolean };
 
+/** 주문 완료 화면(FL_B_PY_CMPL) 영수증. 결제 API 전까지 목업. */
+export type OrderReceipt = {
+  orderId: string;
+  /** "리워드 외 0건" */
+  itemSummary: string;
+  paidAmount: number;
+  /** 축약된 배송지 문자열. */
+  shippingAddress: string;
+  ordererName: string;
+  ordererPhone: string;
+  /** "리워드 참여가 확정됐습니다" 같은 안내 문구. */
+  completeMessage: string;
+  /** "2026.11.02" */
+  expectedShippingDate: string;
+};
+
 /** 5000000 → "5,000,000원"
    ponytail: reward-selection·entities/project에도 같은 한 줄이 있다. 세 번째 사본이라
    shared로 뺄 만하지만 이 PR 범위 밖이다. */
@@ -228,3 +244,20 @@ export function demoTerms(): TermsItem[] {
 
 /** 적립금 섹션 "보유 N원" 표시용 목업. */
 export const DEMO_POINT_BALANCE = 5_000;
+
+/* FL_B_PY_CMPL 목업. 결제/주문 API가 없어 이 화면만의 독립 값(체크아웃 금액과 별개). */
+export function demoOrderReceipt(): OrderReceipt {
+  return {
+    orderId: "FD20261108-000123",
+    itemSummary: "리워드 외 0건",
+    paidAmount: 39_000,
+    shippingAddress: "서울특별시 강남구 학동로 343",
+    ordererName: "홍길동",
+    ordererPhone: "010-1111-2222",
+    completeMessage: "리워드 참여가 확정됐습니다",
+    expectedShippingDate: "2026.11.02",
+  };
+}
+
+/** 주문 완료 후 펀딩내역 화면으로 자동 이동하기까지의 초. Figma는 10초(IA는 3초 — 확인 필요). */
+export const ORDER_COMPLETE_REDIRECT_SECONDS = 10;

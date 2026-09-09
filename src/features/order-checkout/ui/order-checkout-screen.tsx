@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -33,6 +32,7 @@ import type {
   ShippingSectionState,
   TermsItem,
 } from "../model/checkout-demo";
+import { CheckoutTopBar } from "./checkout-top-bar";
 import { CouponSheet } from "./coupon-sheet";
 import { ShippingAddressSection } from "./shipping-address-section";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
@@ -64,7 +64,6 @@ export function OrderCheckoutScreen({
   terms = DEMO_TERMS,
   coupons = DEMO_COUPONS,
 }: OrderCheckoutScreenProps) {
-  const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [agreedIds, setAgreedIds] = useState<string[]>([]);
   /* interaction_spec: 배송지 미입력 상태로 결제하기를 누르면 Warning. 배송지 입력 완료 시 해제. */
@@ -149,22 +148,7 @@ export function OrderCheckoutScreen({
     <div className="bg-layer-bg min-h-dvh w-full">
       {/* 다른 전용 흐름 화면(AuthShell·BuyerLiveMain)과 같은 390px 모바일 컬럼 */}
       <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
-        <header className="bg-layer-surface-default flex h-13 shrink-0 items-center justify-between px-3 py-1">
-          <button
-            type="button"
-            aria-label="뒤로가기"
-            onClick={() => router.back()}
-            className="focus-visible:outline-border-primary flex size-10 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            {/* Figma: frequently/arrow_up_line 을 -90° 돌린 좌향 화살표(꼬리 있음). 쉐브론(‹) 아님 */}
-            <Icon name="arrowUp" className="size-6 -rotate-90" />
-          </button>
-          <h1 className="text-title-s text-text-default min-w-0 flex-1 truncate text-center">
-            프로젝트 제목
-          </h1>
-          {/* 제목을 가운데 두기 위한 좌우 대칭 여백(Figma의 opacity-0 btn_back) */}
-          <span aria-hidden className="size-10 shrink-0" />
-        </header>
+        <CheckoutTopBar />
 
         <div className="flex flex-1 flex-col gap-3 pb-8">
           <ShippingAddressSection

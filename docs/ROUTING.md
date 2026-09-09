@@ -59,9 +59,9 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | URL                             | 화면                         | 접근 조건          | 상태        |
 | ------------------------------- | ---------------------------- | ------------------ | ----------- |
 | `/funding/[projectId]/checkout` | 주문서·배송지·쿠폰·결제 약관 | member + selection | implemented |
-| `/payment/result`               | 결제 결과                    | member             | placeholder |
+| `/payment/result`               | 결제 결과 (주문 완료)        | member             | implemented |
 
-주문서(`FL_B_PY_ORD`)는 전용 헤더만 두는 결제 흐름이라 `(checkout)` 그룹에 두고 `BuyerShell`(전역 헤더·하단 탭)을 사용하지 않습니다. `(buyer-live)`·`(live-console)`과 같은 방식이며 URL은 바뀌지 않습니다. 현재 구현은 정적 화면 + 목업 데이터이고, 배송지 입력 모달(`FL_B_PY_ADDR`)·쿠폰 모달(`FL_B_PY_CPN`)·결제 연동은 후속 작업입니다.
+주문서(`FL_B_PY_ORD`)와 결제 결과(`/payment/result` = 주문 완료 `FL_B_PY_CMPL`)는 전용 헤더만 두는 결제 흐름이라 `(checkout)` 그룹에 두고 `BuyerShell`(전역 헤더·하단 탭)을 사용하지 않습니다. `(buyer-live)`·`(live-console)`과 같은 방식이며 URL은 바뀌지 않습니다. 현재 구현은 정적 화면 + 목업 데이터입니다. 배송지 입력(`FL_B_PY_ADDR`)·쿠폰(`FL_B_PY_CPN`)은 주문서의 바텀시트로 구현했고, 결제 약관 바텀시트(`FL_B_PY_ORDAUTH`)·PG 연동·서버 주문 재조회는 후속 작업입니다. 주문 완료 화면은 카운트다운 후 `/my/fundings`로 이동합니다(Figma 10초 / IA 3초 — 확인 필요).
 
 리워드 선택(`FL_B_PY_RWRD`)은 IA에서 프로젝트 상세의 바텀시트이므로 독립 URL을 두지 않습니다. `/funding/[projectId]/rewards`로 들어오면 `/projects/[projectId]`로 redirect하고, 시트는 상세 화면의 `펀딩하기` 상태로 엽니다.
 
