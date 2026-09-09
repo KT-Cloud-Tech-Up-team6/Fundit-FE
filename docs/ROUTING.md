@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`만 전용 `(buyer-live)` 그룹에 두고 다른 구매자 화면은 기존 BuyerShell을 유지한다. 카테고리 메뉴는 목적지가 미정이므로 비활성 상태다.
+
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
 - `/seller/live/demo-live/console`에서 시작 전 → 목업 방송 시작 → 질문·답변·채팅 → 종료 → LIVE 체크 선택 흐름을 확인할 수 있습니다. 상태별 화면은 Storybook `Features/LiveConsole/Console`에서 확인합니다.
@@ -40,7 +42,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/`                     | 홈                      | public                    | placeholder |
 | `/categories/[slug]`    | 카테고리                | public                    | placeholder |
 | `/search`               | 통합 검색               | public                    | placeholder |
-| `/live`                 | LIVE 메인               | public                    | placeholder |
+| `/live`                 | LIVE 메인               | public                    | implemented |
 | `/live/new`             | 신규 LIVE               | public                    | placeholder |
 | `/live/rank`            | 실시간 순위             | public                    | placeholder |
 | `/live/recommended`     | 추천 LIVE               | public                    | placeholder |
