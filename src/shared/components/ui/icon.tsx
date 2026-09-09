@@ -3,6 +3,8 @@
 const iconFiles = {
   arrowDown: "arrow_down",
   resetAmount: "reset_amount",
+  arrowUp: "arrow-up",
+  plus: "plus",
   plusCircle: "plus_circle",
   plusSquare: "plus_square",
   gift: "gift",
