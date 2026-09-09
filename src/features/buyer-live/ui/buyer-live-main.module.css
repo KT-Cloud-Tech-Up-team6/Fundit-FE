@@ -37,8 +37,14 @@
   border-color: #959595;
 }
 
-.statusBadge {
-  background: #bababa;
+.notificationButton {
+  background: #fff;
+}
+
+.notificationButton[aria-pressed="true"] {
+  background: #000;
+  color: #fff;
+  border-color: #000;
 }
 
 .cardTitle {
@@ -52,15 +58,46 @@
   height: 40px;
 }
 
-.rankingSeller {
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
 .more {
+  color: #959595;
   padding: 4px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.42;
+}
+
+.carousel {
+  --scrollbar-thumb: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.carousel[data-scrolling="true"] {
+  --scrollbar-thumb: #959595;
+}
+
+@supports selector(::-webkit-scrollbar) {
+  .carousel {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  .carousel::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .carousel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .carousel::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  .carousel::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { BuyerLiveMain } from "./buyer-live-main";
 
 const meta = {
@@ -11,10 +11,65 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const SubscriptionKeyboard: Story = {
+  args: { view: "upcoming" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
+    subscriptions.getByRole("button", { name: "subscribed-2 시작 알림" }).focus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(subscriptions.getByRole("button", { name: "subscribed-3 시작 알림" })).toHaveFocus(),
+    );
+    while (subscriptions.queryAllByRole("button").length) {
+      await userEvent.click(subscriptions.getAllByRole("button")[0]);
+    }
+    await waitFor(() =>
+      expect(subscriptions.getByText("알림 신청한 라이브가 없습니다.")).toHaveFocus(),
+    );
+    expect(
+      canvas.getByRole("button", { name: "예정된 라이브 전체보기 · 화면 미정" }),
+    ).toBeDisabled();
+  },
+};
+
+export const RecommendationKeyboard: Story = {
+  args: { view: "upcoming" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const recommendations = within(canvas.getByRole("region", { name: "추천 라이브" }));
+    for (const count of [20, 30]) {
+      recommendations.getByRole("button", { name: "추천 라이브 더 불러오기" }).focus();
+      await userEvent.keyboard("{Enter}");
+      await waitFor(() => expect(recommendations.getAllByRole("article")).toHaveLength(count));
+      expect(
+        within(recommendations.getAllByRole("article")[count - 10]).getByRole("link"),
+      ).toHaveFocus();
+    }
+    expect(
+      recommendations.queryByRole("button", { name: "추천 라이브 더 불러오기" }),
+    ).not.toBeInTheDocument();
+    expect(canvas.getByRole("status")).toHaveTextContent("마지막 목록입니다.");
+  },
+};
+
+export const UpcomingNoFollowing: Story = {
+  args: { view: "upcoming", hasFollowing: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.queryByRole("region", { name: "팔로우한 판매자" })).not.toBeInTheDocument();
+    expect(canvas.getByRole("region", { name: "알림 신청한 라이브" })).toBeInTheDocument();
+    expect(canvas.getByRole("link", { name: "예정 라이브" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  },
+};
+
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.getByRole("region", { name: "팔로우 브랜드" })).toBeInTheDocument();
+    expect(canvas.getByRole("region", { name: "팔로우한 판매자" })).toBeInTheDocument();
     const cards = within(canvas.getByRole("region", { name: "신규 오픈 라이브 목록" }));
     const badge = cards.getAllByText("101")[0];
     badge.scrollIntoView({ block: "center" });
@@ -31,23 +86,34 @@ export const NoFollowing: Story = {
   args: { hasFollowing: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.queryByRole("region", { name: "팔로우 브랜드" })).not.toBeInTheDocument();
+    expect(canvas.queryByRole("region", { name: "팔로우한 판매자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "추천 라이브" })).toBeInTheDocument();
   },
 };
 
 export const NotificationToggle: Story = {
+  args: { view: "upcoming" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = canvas.getByRole("button", { name: "팔로우 라이브 2 시작 알림" });
+    const button = within(
+      canvas.getByRole("region", { name: "팔로우한 판매자 예정 라이브 목록" }),
+    ).getByRole("button", { name: "follow-2 시작 알림" });
     expect(button).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(canvas.getByRole("status")).toHaveTextContent("목업 시작 알림을 설정했습니다");
+    const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
+    expect(subscriptions.getByRole("button", { name: "follow-2 시작 알림" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(canvas.getByRole("status")).toHaveTextContent("시작 알림을 설정했습니다");
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "false");
-    expect(canvas.getByRole("status")).toHaveTextContent("목업 시작 알림을 해제했습니다");
-    expect(canvas.getByRole("button", { name: "팔로우 라이브 3 시작 알림" })).toHaveAttribute(
+    expect(
+      subscriptions.queryByRole("button", { name: "follow-2 시작 알림" }),
+    ).not.toBeInTheDocument();
+    expect(canvas.getByRole("status")).toHaveTextContent("시작 알림을 해제했습니다");
+    expect(canvas.getByRole("button", { name: "subscribed-3 시작 알림" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -71,7 +137,7 @@ export const SearchAndNavigation: Story = {
     expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
     expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
     expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
-    expect(canvas.getByRole("link", { name: "실시간 순위 더보기" })).toHaveAttribute(
+    expect(canvas.getByRole("link", { name: "실시간 순위 전체보기" })).toHaveAttribute(
       "href",
       "/live/rank",
     );
