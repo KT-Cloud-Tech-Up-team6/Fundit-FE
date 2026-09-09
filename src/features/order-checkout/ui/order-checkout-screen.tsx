@@ -67,6 +67,12 @@ export function OrderCheckoutScreen({
     setAgreedIds(isAllAgreed ? [] : allTermIds);
   }
 
+  /* 배송지 추가/변경 진입점. PR1은 자리만 잡아둔다.
+     후속 이슈에서 배송지 입력 모달(FL_B_PY_ADDR)을 여는 상태로 연결한다. */
+  function handleEditShippingAddress() {
+    // TODO(Issue: 배송지 입력 모달): FL_B_PY_ADDR 열기 + 카카오 우편번호 연동
+  }
+
   return (
     <div className="bg-layer-bg min-h-dvh w-full">
       <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
@@ -88,7 +94,12 @@ export function OrderCheckoutScreen({
         </header>
 
         <div className="flex flex-1 flex-col gap-3 pb-8">
-          <ShippingAddressSection state={shippingState} address={address} />
+          <ShippingAddressSection
+            state={shippingState}
+            address={address}
+            onChangeAddress={handleEditShippingAddress}
+            onAddAddress={handleEditShippingAddress}
+          />
 
           {/* 주문 상품 + 적립금: Figma에서 구분선 없이 이어진 한 흰 블록 */}
           <section className="bg-layer-surface-default flex flex-col">
