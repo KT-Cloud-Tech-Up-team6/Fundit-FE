@@ -35,7 +35,7 @@ export function RewardSheet({
 }: RewardSheetProps) {
   const router = useRouter();
   /* 멀티 선택: 담은 리워드마다 옵션 조합을 여러 줄로 들고, 키 존재 여부가 선택 상태다.
-     Figma는 라디오(단일)로 그려졌지만 요구사항은 멀티(docs/REWARD_SELECTION.md). */
+     Figma는 라디오(단일)로 그려졌지만 요구사항은 멀티(Issue #56). */
   const [cart, setCart] = useState<RewardCart>({});
 
   function toggleReward(reward: Reward) {
@@ -69,7 +69,7 @@ export function RewardSheet({
 
   function submit() {
     /* 선택값(리워드·옵션·수량)을 주문서로 넘기는 방식은 checkout 이슈에서 확정한다.
-       이번엔 이동만 한다(docs/REWARD_SELECTION.md). */
+       이번엔 이동만 한다(Issue #56). */
     router.push(`/funding/${projectId}/checkout`);
   }
 

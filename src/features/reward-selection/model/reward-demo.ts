@@ -10,7 +10,7 @@ export type Reward = {
   id: string;
   name: string;
   price: number;
-  /** 정가 취소선용. 스키마에 비교가 필드가 없어 목업 고정값이다(docs/REWARD_SELECTION.md 미확정 항목). */
+  /** 정가 취소선용. 스키마에 비교가 필드가 없어 목업 고정값이다(Issue #56 미확정 항목). */
   originalPrice?: number;
   /** "얼리 버드 N%" 배지 문구용. 위와 같은 이유로 목업 고정값. */
   earlyBirdRate?: number;

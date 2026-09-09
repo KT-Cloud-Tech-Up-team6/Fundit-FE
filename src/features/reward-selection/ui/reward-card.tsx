@@ -24,7 +24,9 @@ export function RewardCard({
   onLineQuantityChange,
   onRemoveLine,
 }: RewardCardProps) {
-  /* 단일 그룹만 지원한다(docs/REWARD_SELECTION.md). 여러 그룹(색상 × 사이즈)은 별도 이슈. */
+  /* 이 화면은 옵션 그룹 1개(색상)만 처리한다(Issue #56 범위). API 계약상 options는 배열이라
+     그룹이 2개 이상이면 options[1..]는 무시되고 첫 그룹만으로 줄이 완성돼 펀딩하기가
+     조기에 활성화된다. 현재 목업·기획 모두 그룹 1개이며, 다중 그룹 지원은 후속 이슈. */
   const optionGroup = reward.options[0];
   const badges = [
     ...(reward.isEarlyBird && reward.earlyBirdRate !== undefined
