@@ -36,6 +36,7 @@ src/
 ## Route Group
 
 - `(buyer)`는 공개·구매자 화면을 묶고 BuyerShell을 적용한다.
+- `(buyer-live)`는 `/live` 메인에만 지정 와이어프레임의 검색 헤더와 하단 메뉴를 적용한다. 다른 구매자 화면과 BuyerShell은 유지하며 RootLayout은 공유한다. 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md)를 참고한다.
 - `(auth)`는 로그인과 3단계 회원가입에 AuthShell을 적용한다.
 - `(seller)`는 `/seller` 하위 운영 화면에 SellerShell을 적용한다.
 - `(live-console)`는 `/seller/live/[liveId]/console`에 전용 방송 헤더를 적용하기 위해 SellerShell과 분리한다. RootLayout과 AppProviders는 그대로 공유하고 URL·목표 접근 조건은 유지한다.
@@ -45,6 +46,7 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 ## 공통 레이아웃
 
 - `BuyerShell`은 mobile-first 하단 내비게이션과 데스크톱 상단 내비게이션을 제공한다.
+- `BuyerBottomNavigation`은 선택 항목을 props로 받는 공용 하단 메뉴이며 현재 `/live`에서 사용한다. 위치·폭은 호출자가 정하고 카테고리는 목적지 확정 전까지 비활성이다. 기존 BuyerShell과의 통합은 공통 구매자 레이아웃 확정 후 진행한다.
 - `AuthShell`은 인증 와이어프레임을 위한 전체 화면 반응형 영역을 제공한다.
 - `SellerShell`은 PC-first 사이드바와 판매자 프로젝트 컨텍스트 영역을 제공한다.
 - RootLayout은 메타데이터와 AppProviders만 소유하며 클라이언트 컴포넌트가 아니다.
