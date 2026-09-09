@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fireEvent, userEvent, within } from "storybook/test";
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { BuyerLiveRoom } from "./buyer-live-room";
 
 const meta = {
@@ -11,6 +11,17 @@ const meta = {
 } satisfies Meta<typeof BuyerLiveRoom>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+export const NoticeDismiss: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
+    expect(canvas.getByRole("status")).toHaveTextContent("연결된 프로젝트 정보가 없는 목업");
+    await waitFor(() => expect(canvas.getByRole("status")).toBeEmptyDOMElement(), {
+      timeout: 5000,
+    });
+  },
+};
 
 export const Default: Story = {
   play: async ({ canvasElement }) => {
@@ -34,12 +45,17 @@ export const ExpandedChat: Story = {
   args: { initialChatExpanded: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const chat = canvas.getByRole("button", { name: "채팅 축소" });
+    const chat = canvas.getByRole("log", { name: "라이브 채팅 메시지" });
     expect(chat.getBoundingClientRect().height).toBe(280);
     await userEvent.click(chat);
     expect(chat.getBoundingClientRect().height).toBe(120);
-    await userEvent.click(chat);
-    expect(chat).toHaveAttribute("aria-expanded", "true");
+    const toggle = canvas.getByRole("button", { name: "채팅 확대" });
+    toggle.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-controls", chat.id);
+    expect(chat.closest("button")).toBeNull();
+    expect(chat).toHaveAttribute("aria-live", "polite");
   },
 };
 
@@ -95,7 +111,7 @@ export const MessageInput: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "메시지 전송" }));
     expect(input).toHaveValue("");
     expect(input).toHaveFocus();
-    expect(canvas.getByRole("button", { name: "채팅 확대" })).toHaveTextContent("로보락 너는");
+    expect(canvas.getByRole("log")).toHaveTextContent("로보락 너는");
   },
 };
 
@@ -112,7 +128,7 @@ export const BlockedMessage: Story = {
     await userEvent.type(input, "좋아요{Enter}");
     expect(input).toHaveValue("");
     expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
-    expect(canvas.getByRole("button", { name: "채팅 확대" })).toHaveTextContent("좋아요");
+    expect(canvas.getByRole("log")).toHaveTextContent("좋아요");
     await userEvent.type(input, "바보{Enter}");
     expect(canvas.getByRole("alert")).toBeVisible();
     expect(canvas.getByRole("status")).toBeEmptyDOMElement();

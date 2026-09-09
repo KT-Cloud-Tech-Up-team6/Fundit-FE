@@ -62,12 +62,15 @@ export function BuyerLiveRoom({
       text: sampleMessages[index % sampleMessages.length],
     })),
   );
-  const [notice, setNotice] = useState("");
+  const [notice, setNoticeValue] = useState("");
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [blocked, setBlocked] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const mirror = useRef<HTMLDivElement>(null);
-  const chat = useRef<HTMLButtonElement>(null);
+  const chat = useRef<HTMLDivElement>(null);
+  const chatPointerStart = useRef<{ x: number; y: number } | null>(null);
+  const chatId = useId();
   const questionDragY = useRef<number | null>(null);
   const questionStartHeight = useRef(0);
   const [questionHeight, setQuestionHeight] = useState<number>();
@@ -76,6 +79,19 @@ export function BuyerLiveRoom({
   const questionsId = useId();
   // Figma의 차단 예시만 재현한다. 실제 금칙어 정책이나 서버 검증이 아니다.
   const invalid = draft.includes("바보");
+
+  function setNotice(message: string) {
+    if (noticeTimer.current !== null) clearTimeout(noticeTimer.current);
+    setNoticeValue(message);
+    noticeTimer.current = message ? setTimeout(() => setNoticeValue(""), 4000) : null;
+  }
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current !== null) clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     const field = input.current;
@@ -182,22 +198,54 @@ export function BuyerLiveRoom({
         >
           <div className={styles.contentRow}>
             <div className={styles.contentColumn}>
-              <button
-                ref={chat}
-                type="button"
-                className={styles.chat}
-                data-expanded={chatExpanded}
-                aria-label={chatExpanded ? "채팅 축소" : "채팅 확대"}
-                aria-expanded={chatExpanded}
-                onClick={() => setChatExpanded(!chatExpanded)}
-              >
-                {messages.map((message) => (
-                  <span key={message.id} className={styles.message}>
-                    <strong>{message.author}</strong>
-                    <span>{message.text}</span>
-                  </span>
-                ))}
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="sr-only absolute top-0 right-0 focus:not-sr-only"
+                  aria-controls={chatId}
+                  aria-expanded={chatExpanded}
+                  onClick={() => setChatExpanded(!chatExpanded)}
+                >
+                  {chatExpanded ? "채팅 축소" : "채팅 확대"}
+                </button>
+                <div
+                  ref={chat}
+                  id={chatId}
+                  role="log"
+                  aria-label="라이브 채팅 메시지"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                  tabIndex={0}
+                  className={styles.chat}
+                  data-expanded={chatExpanded}
+                  onPointerDown={(event) => {
+                    chatPointerStart.current =
+                      event.isPrimary && event.button === 0
+                        ? { x: event.clientX, y: event.clientY }
+                        : null;
+                  }}
+                  onPointerUp={(event) => {
+                    const start = chatPointerStart.current;
+                    chatPointerStart.current = null;
+                    if (
+                      start &&
+                      Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5 &&
+                      !window.getSelection()?.toString()
+                    )
+                      setChatExpanded((previous) => !previous);
+                  }}
+                  onPointerCancel={() => {
+                    chatPointerStart.current = null;
+                  }}
+                >
+                  {messages.map((message) => (
+                    <span key={message.id} className={styles.message}>
+                      <strong>{message.author}</strong>
+                      <span>{message.text}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
               <article className={styles.product}>
                 <span aria-hidden className={styles.productImage} />
                 <div>
