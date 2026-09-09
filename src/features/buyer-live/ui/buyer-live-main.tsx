@@ -14,6 +14,10 @@ const rankingTitle =
 const reasons = ["많이 본 카테고리", "좋아요한 브랜드", "시청 기반"];
 const subscribedIds = Array.from({ length: 5 }, (_, i) => `subscribed-${i + 1}`);
 
+function scheduledTitle(id: string) {
+  return id.startsWith("follow-") || id.startsWith("recommended-") ? projectTitle : rankingTitle;
+}
+
 function LiveAsset({
   name,
   className = "size-4",
@@ -218,7 +222,7 @@ export function BuyerLiveMain({
     return (
       <button
         type="button"
-        aria-label={`${id} 시작 알림`}
+        aria-label={`${scheduledTitle(id)} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림 받기") : "시작 알림"}`}
         aria-pressed={enabled}
         onClick={() => {
           if (variant === "subscription")
@@ -420,7 +424,7 @@ export function BuyerLiveMain({
                 <article key={id} className="flex gap-3">
                   <Link
                     href={`/live/${id}`}
-                    aria-label={`${id} 라이브 보기`}
+                    aria-label={`${scheduledTitle(id)} 라이브 보기`}
                     className="w-[104px] shrink-0"
                   >
                     <ScheduleMedia className="h-full min-h-[104px]" />
@@ -428,11 +432,7 @@ export function BuyerLiveMain({
                   <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
                     <Link href={`/live/${id}`} className="flex flex-col gap-1">
                       <Seller />
-                      <h3 className={styles.cardTitle}>
-                        {id.startsWith("follow-") || id.startsWith("recommended-")
-                          ? projectTitle
-                          : rankingTitle}
-                      </h3>
+                      <h3 className={styles.cardTitle}>{scheduledTitle(id)}</h3>
                     </Link>
                     <div className="flex items-center gap-1">
                       <p className="min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">

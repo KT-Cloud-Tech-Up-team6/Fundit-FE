@@ -16,11 +16,16 @@ export const SubscriptionKeyboard: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
-    subscriptions.getByRole("button", { name: "subscribed-2 시작 알림" }).focus();
+    const nextButton = subscriptions.getAllByRole("button")[2];
+    for (const article of subscriptions.getAllByRole("article")) {
+      const card = within(article);
+      const title = card.getByRole("heading").textContent;
+      expect(card.getAllByRole("link")[0]).toHaveAccessibleName(`${title} 라이브 보기`);
+      expect(card.getByRole("button")).toHaveAccessibleName(`${title} 시작 알림`);
+    }
+    subscriptions.getAllByRole("button")[1].focus();
     await userEvent.keyboard("{Enter}");
-    await waitFor(() =>
-      expect(subscriptions.getByRole("button", { name: "subscribed-3 시작 알림" })).toHaveFocus(),
-    );
+    await waitFor(() => expect(nextButton).toHaveFocus());
     while (subscriptions.queryAllByRole("button").length) {
       await userEvent.click(subscriptions.getAllByRole("button")[0]);
     }
@@ -95,14 +100,18 @@ export const NotificationToggle: Story = {
   args: { view: "upcoming" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = within(
+    const followCards = within(
       canvas.getByRole("region", { name: "팔로우한 판매자 예정 라이브 목록" }),
-    ).getByRole("button", { name: "follow-2 시작 알림" });
+    ).getAllByRole("article");
+    const button = within(followCards[1]).getByRole("button", { name: /알림 받기$/ });
+    const title = within(followCards[1]).getByRole("heading").textContent;
+    expect(button).toHaveAccessibleName(`${title} 알림 받기`);
     expect(button).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
     const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
-    expect(subscriptions.getByRole("button", { name: "follow-2 시작 알림" })).toHaveAttribute(
+    expect(button).toHaveAccessibleName(`${title} 알림 설정됨`);
+    expect(subscriptions.getByRole("button", { name: `${title} 시작 알림` })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -110,13 +119,10 @@ export const NotificationToggle: Story = {
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "false");
     expect(
-      subscriptions.queryByRole("button", { name: "follow-2 시작 알림" }),
+      subscriptions.queryByRole("button", { name: `${title} 시작 알림` }),
     ).not.toBeInTheDocument();
     expect(canvas.getByRole("status")).toHaveTextContent("시작 알림을 해제했습니다");
-    expect(canvas.getByRole("button", { name: "subscribed-3 시작 알림" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(subscriptions.getAllByRole("button")[2]).toHaveAttribute("aria-pressed", "true");
   },
 };
 
