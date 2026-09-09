@@ -91,9 +91,25 @@ export function RewardSheet({
         </div>
       }
     >
-      <h2 id="reward-sheet-title" className="text-title-s text-text-default py-2 text-center">
-        리워드 선택
-      </h2>
+      {/* 제목은 가운데, 닫기 버튼은 오른쪽 절대 배치라 버튼 유무와 무관하게 제목이 중앙에 온다.
+         닫기 경로는 ESC·backdrop과 동일하게 onClose 하나로 모은다(SignupTermsSheet와 같은 패턴).
+         네이티브 <dialog>가 close() 시 트리거(펀딩하기)로 포커스를 되돌린다(DialogBase). */}
+      <div className="relative flex items-center justify-center py-2">
+        <h2 id="reward-sheet-title" className="text-title-s text-text-default">
+          리워드 선택
+        </h2>
+        <button
+          type="button"
+          aria-label="리워드 선택 닫기"
+          onClick={onClose}
+          className="focus-visible:outline-border-primary absolute right-0 flex size-9 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          <span aria-hidden className="relative size-4">
+            <span className="bg-text-default absolute top-1/2 left-0 h-[1.3px] w-4 rotate-45" />
+            <span className="bg-text-default absolute top-1/2 left-0 h-[1.3px] w-4 -rotate-45" />
+          </span>
+        </button>
+      </div>
 
       <div role="group" aria-labelledby="reward-sheet-title" className="mt-2 flex flex-col gap-3">
         {rewards.map((reward) => {

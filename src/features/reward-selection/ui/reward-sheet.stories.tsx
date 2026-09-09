@@ -19,13 +19,17 @@ type Story = StoryObj<typeof meta>;
 
 /** 진입 기본값 — 담은 리워드 없음. `펀딩하기`가 비활성이고 총 금액은 0원. */
 export const Default: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
 
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
     await expect(within(totalRow).getByText("0원")).toBeVisible();
     await expect(canvas.getAllByRole("checkbox")).toHaveLength(4);
+
+    // 키보드로 접근 가능한 닫기 버튼이 onClose를 호출한다.
+    await userEvent.click(canvas.getByRole("button", { name: "리워드 선택 닫기" }));
+    await expect(args.onClose).toHaveBeenCalled();
   },
 };
 
