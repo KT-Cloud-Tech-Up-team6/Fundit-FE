@@ -155,7 +155,7 @@ function OrderItemSection({ item }: { item: OrderItem }) {
       {/* PR1: no-op. 쿠폰 모달(FL_B_PY_CPN)은 후속 이슈. */}
       <button
         type="button"
-        className="border-w-xs border-border-default text-body-m text-text-default focus-visible:outline-border-primary flex h-10 items-center justify-center rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="border-w-xs border-border-default text-body-m text-text-default focus-visible:outline-border-primary flex h-10 items-center justify-center rounded-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         쿠폰 적용
       </button>

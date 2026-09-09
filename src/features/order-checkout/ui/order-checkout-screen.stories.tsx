@@ -48,7 +48,7 @@ export const EmptyAddress: Story = {
   args: { shippingState: "empty" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: "+ 신규 배송지 추가" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "신규 배송지 추가" })).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "배송지 변경" })).toBeNull();
   },
 };

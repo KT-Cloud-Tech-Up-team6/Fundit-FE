@@ -1,3 +1,4 @@
+import { Icon } from "@/shared/components/ui/icon";
 import type { ShippingAddress, ShippingSectionState } from "../model/checkout-demo";
 
 type ShippingAddressSectionProps = {
@@ -33,35 +34,39 @@ export function ShippingAddressSection({
     <section
       aria-labelledby="checkout-shipping-title"
       className={[
-        "bg-layer-surface-default flex flex-col gap-1 px-5 py-4",
+        "bg-layer-surface-default flex flex-col gap-3 px-5 py-4",
         isWarning ? "border-w-xs border-border-accent-warning" : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="flex items-center gap-1">
-        <h2 id="checkout-shipping-title" className="text-title-s text-text-default flex-1">
-          {address.recipientName}
-        </h2>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <h2 id="checkout-shipping-title" className="text-title-s text-text-default flex-1">
+            {address.recipientName}
+          </h2>
+          {state === "saved" && (
+            <button
+              type="button"
+              onClick={onChangeAddress}
+              className={`${outlineButtonClasses} border-border-default text-label-m h-7 px-3`}
+            >
+              배송지 변경
+            </button>
+          )}
+        </div>
+
+        <p className="text-body-m text-text-default">{address.phone}</p>
+
         {state === "saved" && (
-          <button
-            type="button"
-            onClick={onChangeAddress}
-            className={`${outlineButtonClasses} border-border-default text-body-s h-7 px-3`}
-          >
-            배송지 변경
-          </button>
+          <p className="text-body-m text-text-default">
+            {[address.baseAddress, address.detailAddress].filter(Boolean).join(" ")}
+          </p>
         )}
       </div>
 
-      <p className="text-body-m text-text-default">{address.phone}</p>
-
-      {state === "saved" ? (
-        <p className="text-body-m text-text-default">
-          {[address.baseAddress, address.detailAddress].filter(Boolean).join(" ")}
-        </p>
-      ) : (
-        <div className="mt-2 flex flex-col gap-1">
+      {state !== "saved" && (
+        <div className="flex flex-col gap-1">
           {isWarning && (
             <p role="alert" className="text-caption-s text-text-warning">
               * 배송지를 입력해주세요
@@ -70,11 +75,12 @@ export function ShippingAddressSection({
           <button
             type="button"
             onClick={onAddAddress}
-            className={`${outlineButtonClasses} text-body-m h-10 w-full ${
+            className={`${outlineButtonClasses} h-10 w-full gap-2 px-4 ${
               isWarning ? "border-border-accent-warning" : "border-border-default"
             }`}
           >
-            + 신규 배송지 추가
+            <Icon name="plus" className="size-3.5" />
+            <span className="text-body-m font-medium">신규 배송지 추가</span>
           </button>
         </div>
       )}
