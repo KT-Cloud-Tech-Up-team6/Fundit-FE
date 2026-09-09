@@ -70,16 +70,21 @@ export function OrderCheckoutScreen({
   return (
     <div className="bg-layer-bg min-h-dvh w-full">
       <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
-        <header className="bg-layer-surface-default relative flex h-13 shrink-0 items-center justify-center px-3">
+        <header className="bg-layer-surface-default flex h-13 shrink-0 items-center justify-between px-3 py-1">
           <button
             type="button"
             aria-label="뒤로가기"
             onClick={() => router.back()}
-            className="focus-visible:outline-border-primary absolute left-3 flex size-10 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="focus-visible:outline-border-primary flex size-10 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            <Icon name="arrowLeft" className="size-6" />
+            {/* Figma: frequently/arrow_up_line 을 -90° 돌린 좌향 화살표(꼬리 있음). 쉐브론(‹) 아님 */}
+            <Icon name="arrowUp" className="size-6 -rotate-90" />
           </button>
-          <h1 className="text-body-l text-text-default font-medium">프로젝트 제목</h1>
+          <h1 className="text-title-s text-text-default min-w-0 flex-1 truncate text-center">
+            프로젝트 제목
+          </h1>
+          {/* 제목을 가운데 두기 위한 좌우 대칭 여백(Figma의 opacity-0 btn_back) */}
+          <span aria-hidden className="size-10 shrink-0" />
         </header>
 
         <div className="flex flex-1 flex-col gap-3 pb-8">
