@@ -1,15 +1,7 @@
-import { PagePlaceholder } from "@/shared/components/page-placeholder";
+import { OrderCheckoutScreen } from "@/features/order-checkout/ui/order-checkout-screen";
 
-export default async function CheckoutPage({ params }: PageProps<"/funding/[projectId]/checkout">) {
-  const { projectId } = await params;
-  return (
-    <PagePlaceholder
-      eyebrow="Buyer · Funding 2/3"
-      title={`주문서 · ${projectId}`}
-      description="배송지·쿠폰·최종 금액을 검토하고 가격과 재고를 재검증합니다."
-      screenIds="B-18"
-      access="member + selection"
-      sections={["배송지", "쿠폰", "주문 요약"]}
-    />
-  );
+/* 주문서 화면(FL_B_PY_ORD, 화면 ID B-18).
+   PR1은 정적 UI + 목업 데이터. projectId 기반 주문 데이터 조회·결제 연동은 후속 이슈(#58 제외 범위). */
+export default function CheckoutPage() {
+  return <OrderCheckoutScreen />;
 }
