@@ -56,9 +56,10 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 | URL                             | 화면                         | 접근 조건          | 상태        |
 | ------------------------------- | ---------------------------- | ------------------ | ----------- |
-| `/funding/[projectId]/rewards`  | 리워드 선택                  | member             | placeholder |
 | `/funding/[projectId]/checkout` | 주문서·배송지·쿠폰·결제 약관 | member + selection | placeholder |
 | `/payment/result`               | 결제 결과                    | member             | placeholder |
+
+리워드 선택(`FL_B_PY_RWRD`)은 IA에서 프로젝트 상세의 바텀시트이므로 독립 URL을 두지 않습니다. `/funding/[projectId]/rewards`로 들어오면 `/projects/[projectId]`로 redirect하고, 시트는 상세 화면의 `펀딩하기` 상태로 엽니다.
 
 PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/result`에서 서버 재조회로 복구합니다.
 
@@ -127,6 +128,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/auth/recovery?view=email`                      | `/auth/recovery/email`                         |
 | `/auth/recovery?view=password`                   | `/auth/recovery/password`                      |
 | `/funding/[projectId]/payment`                   | `/funding/[projectId]/checkout`                |
+| `/funding/[projectId]/rewards`                   | `/projects/[projectId]`                        |
 | `/seller/projects/[projectId]/edit?section=...`  | `/seller/projects/[projectId]?tab=...`         |
 | `/seller/projects/[projectId]/funding`           | `/seller/projects/[projectId]?tab=funding`     |
 | `/seller/projects/[projectId]/community`         | `/seller/projects/[projectId]?tab=community`   |
