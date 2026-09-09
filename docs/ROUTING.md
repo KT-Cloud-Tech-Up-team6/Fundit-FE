@@ -6,7 +6,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
-- 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`와 `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지하며 카테고리 메뉴는 목적지가 미정이므로 비활성 상태다.
+- 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지하며 카테고리 메뉴는 목적지가 미정이므로 비활성 상태다.
 
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
@@ -47,7 +47,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/live/rank`            | 실시간 순위             | public                    | placeholder                           |
 | `/live/recommended`     | 추천 LIVE               | public                    | placeholder                           |
 | `/live/following`       | 팔로우 LIVE             | member                    | placeholder                           |
-| `/live/upcoming`        | 예정 LIVE               | public                    | placeholder                           |
+| `/live/upcoming`        | 예정 LIVE               | public                    | implemented (목업)                    |
 | `/live/search`          | LIVE 검색·결과          | public                    | placeholder                           |
 | `/live/[liveId]`        | LIVE 방송·채팅·다시보기 | read public, write member | live implemented / replay placeholder |
 | `/projects/[projectId]` | 프로젝트 상세 탭        | public 또는 조건부        | placeholder                           |
