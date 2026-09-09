@@ -68,47 +68,48 @@ export function OrderCheckoutScreen({
   }
 
   return (
-    <div className="bg-layer-bg mx-auto flex min-h-screen w-full max-w-[480px] flex-col">
-      <header className="bg-layer-surface-default relative flex h-13 items-center justify-center px-3">
-        <button
-          type="button"
-          aria-label="뒤로가기"
-          onClick={() => router.back()}
-          className="focus-visible:outline-border-primary absolute left-3 flex size-10 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          <Icon name="arrowLeft" className="size-6" />
-        </button>
-        <h1 className="text-body-l text-text-default font-medium">프로젝트 제목</h1>
-      </header>
+    <div className="bg-layer-bg min-h-dvh w-full">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+        <header className="bg-layer-surface-default relative flex h-13 shrink-0 items-center justify-center px-3">
+          <button
+            type="button"
+            aria-label="뒤로가기"
+            onClick={() => router.back()}
+            className="focus-visible:outline-border-primary absolute left-3 flex size-10 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            <Icon name="arrowLeft" className="size-6" />
+          </button>
+          <h1 className="text-body-l text-text-default font-medium">프로젝트 제목</h1>
+        </header>
 
-      <div className="flex flex-1 flex-col gap-3 pb-8">
-        <ShippingAddressSection state={shippingState} address={address} />
+        <div className="flex flex-1 flex-col gap-3 pb-8">
+          <ShippingAddressSection state={shippingState} address={address} />
 
-        {/* 주문 상품 + 쿠폰 + 적립금: Figma에서 한 카드 안에 얇은 구분선으로 나뉜 그룹 */}
-        <section className="bg-layer-surface-default flex flex-col">
-          <OrderItemSection item={orderItem} />
-          <div className="border-border-default border-t" />
-          <PointUsageSection balance={DEMO_POINT_BALANCE} />
-        </section>
+          {/* 주문 상품 + 적립금: Figma에서 구분선 없이 이어진 한 흰 블록 */}
+          <section className="bg-layer-surface-default flex flex-col">
+            <OrderItemSection item={orderItem} />
+            <PointUsageSection balance={DEMO_POINT_BALANCE} />
+          </section>
 
-        <PaymentMethodSection method={method} onSelect={setMethod} />
+          <PaymentMethodSection method={method} onSelect={setMethod} />
 
-        <PaymentSummarySection summary={summary} />
+          <PaymentSummarySection summary={summary} />
 
-        <TermsAgreementSection
-          terms={terms}
-          agreedIds={agreedIds}
-          isAllAgreed={isAllAgreed}
-          onToggleTerm={toggleTerm}
-          onToggleAll={toggleAllTerms}
-        />
-      </div>
+          <TermsAgreementSection
+            terms={terms}
+            agreedIds={agreedIds}
+            isAllAgreed={isAllAgreed}
+            onToggleTerm={toggleTerm}
+            onToggleAll={toggleAllTerms}
+          />
+        </div>
 
-      <div className="bg-layer-surface-default border-border-default border-t px-5 py-2">
-        {/* PR1은 정적 화면 — 결제하기는 비활성 상태만. 활성 조건·결제 연동은 후속 이슈. */}
-        <Button className="w-full" appearance="cta" disabled>
-          {formatWon(finalPaymentAmount(summary))} 결제하기
-        </Button>
+        <div className="bg-layer-surface-default border-border-default sticky bottom-0 border-t px-5 py-2">
+          {/* PR1은 정적 화면 — 결제하기는 비활성 상태만. 활성 조건·결제 연동은 후속 이슈. */}
+          <Button className="w-full" appearance="cta" disabled>
+            {formatWon(finalPaymentAmount(summary))} 결제하기
+          </Button>
+        </div>
       </div>
     </div>
   );
