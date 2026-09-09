@@ -46,6 +46,48 @@ const terms = [
   "AI 개인화 서비스 활용 동의 (선택)",
 ];
 
+/* footer는 스크롤에서 빠져 하단에 고정된다. 본문(리스트)만 스크롤하는지 확인한다. */
+export const FixedFooter: Story = {
+  args: { "aria-label": "리워드 선택", children: null, onClose: () => {}, open: false },
+  render: function FixedFooterStory() {
+    const [open, setOpen] = useState(true);
+
+    return (
+      <div className="min-h-dvh p-5">
+        <Button onClick={() => setOpen(true)}>시트 열기</Button>
+        <BottomSheet
+          aria-label="리워드 선택"
+          onClose={() => setOpen(false)}
+          open={open}
+          footer={
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-body-m text-text-default">총 금액</span>
+                <span className="text-title-s text-text-default">599,000원</span>
+              </div>
+              <Button className="w-full" onClick={() => setOpen(false)}>
+                펀딩하기
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-body-emphasis text-text-default">리워드 선택</p>
+          <div className="mt-3 flex flex-col gap-3">
+            {Array.from({ length: 12 }, (_, index) => (
+              <div
+                key={index}
+                className="border-border-default text-body-s text-text-default border-w-xs rounded-sm p-4"
+              >
+                리워드 항목 {index + 1}
+              </div>
+            ))}
+          </div>
+        </BottomSheet>
+      </div>
+    );
+  },
+};
+
 /* 회원가입 약관 시트의 실제 배치 예다. 시트 안에서 Tab이 순환하는지 확인한다. */
 export const TermsSheet: Story = {
   args: { "aria-labelledby": "terms-sheet-title", children: null, onClose: () => {}, open: false },
