@@ -2,6 +2,8 @@ import { Icon } from "@/shared/components/ui/icon";
 import type { ShippingAddress, ShippingSectionState } from "../model/checkout-demo";
 
 type ShippingAddressSectionProps = {
+  /** 결제 시도 시 이 섹션으로 스크롤하기 위한 앵커. */
+  id?: string;
   state: ShippingSectionState;
   address: ShippingAddress;
   /** "배송지 변경" — 저장된 배송지가 있을 때. PR1에서는 no-op. */
@@ -23,6 +25,7 @@ const outlineButtonClasses = [
    - empty   : 이름·연락처 + "신규 배송지 추가" 버튼
    - warning : empty + 미입력 경고 강조(결제 시도 후). interaction_spec의 스크롤·토글 동작은 후속 이슈. */
 export function ShippingAddressSection({
+  id,
   state,
   address,
   onChangeAddress,
@@ -32,6 +35,7 @@ export function ShippingAddressSection({
 
   return (
     <section
+      id={id}
       aria-labelledby="checkout-shipping-title"
       className={[
         "bg-layer-surface-default flex flex-col gap-3 px-5 py-4",

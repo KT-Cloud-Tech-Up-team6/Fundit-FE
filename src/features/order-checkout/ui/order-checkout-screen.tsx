@@ -9,12 +9,14 @@ import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
 import {
   DEMO_POINT_BALANCE,
+  clampPointUsage,
   demoOrderItem,
   demoPaymentSummary,
   demoShippingAddress,
   demoTerms,
   finalPaymentAmount,
   formatWon,
+  maxPointUsage,
   totalDiscount,
   totalOrderAmount,
 } from "../model/checkout-demo";
@@ -29,8 +31,8 @@ import type {
 import { ShippingAddressSection } from "./shipping-address-section";
 
 type OrderCheckoutScreenProps = {
-  /** 배송지 섹션 표시 상태. 화면 기본은 저장된 배송지(saved). */
-  shippingState?: ShippingSectionState;
+  /** 저장된 배송지 유무. 없으면 "신규 배송지 추가" 노출 + 결제 시도 시 Warning. */
+  hasSavedAddress?: boolean;
   /** Storybook에서 목업을 갈아끼우는 자리. 화면에서는 기본 목업을 쓴다. */
   orderItem?: OrderItem;
   address?: ShippingAddress;
@@ -38,13 +40,15 @@ type OrderCheckoutScreenProps = {
   terms?: TermsItem[];
 };
 
+const SHIPPING_SECTION_ID = "checkout-shipping-address";
+
 const DEMO_ORDER_ITEM = demoOrderItem();
 const DEMO_ADDRESS = demoShippingAddress();
 const DEMO_SUMMARY = demoPaymentSummary();
 const DEMO_TERMS = demoTerms();
 
 export function OrderCheckoutScreen({
-  shippingState = "saved",
+  hasSavedAddress = true,
   orderItem = DEMO_ORDER_ITEM,
   address = DEMO_ADDRESS,
   summary = DEMO_SUMMARY,
@@ -53,9 +57,27 @@ export function OrderCheckoutScreen({
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [agreedIds, setAgreedIds] = useState<string[]>([]);
+  /* interaction_spec: 배송지 미입력 상태로 결제하기를 누르면 Warning. 배송지 입력 완료 시 해제. */
+  const [addressWarning, setAddressWarning] = useState(false);
+  /* 적립금 입력값(숫자 문자열). 보유 잔액·상쇄 가능액을 넘기면 입력 시점에 잘라서 담는다. */
+  const [pointInput, setPointInput] = useState("");
 
   const allTermIds = terms.map((term) => term.id);
   const isAllAgreed = allTermIds.every((id) => agreedIds.includes(id));
+
+  const usedPoints = clampPointUsage(
+    Number(pointInput),
+    DEMO_POINT_BALANCE,
+    maxPointUsage(summary),
+  );
+  /* 적립금은 화면에서 실시간 반영, 쿠폰은 모달(FL_B_PY_CPN, 후속 이슈)이라 목업값 고정. */
+  const effectiveSummary: PaymentSummary = { ...summary, pointDiscount: usedPoints };
+
+  const shippingState: ShippingSectionState = hasSavedAddress
+    ? "saved"
+    : addressWarning
+      ? "warning"
+      : "empty";
 
   function toggleTerm(id: string) {
     setAgreedIds((prev) =>
@@ -67,10 +89,33 @@ export function OrderCheckoutScreen({
     setAgreedIds(isAllAgreed ? [] : allTermIds);
   }
 
+  function handlePointInput(next: string) {
+    const digits = next.replace(/\D/g, "");
+    if (digits === "") {
+      setPointInput("");
+      return;
+    }
+    setPointInput(
+      String(clampPointUsage(Number(digits), DEMO_POINT_BALANCE, maxPointUsage(summary))),
+    );
+  }
+
   /* 배송지 추가/변경 진입점. PR1은 자리만 잡아둔다.
      후속 이슈에서 배송지 입력 모달(FL_B_PY_ADDR)을 여는 상태로 연결한다. */
   function handleEditShippingAddress() {
     // TODO(Issue: 배송지 입력 모달): FL_B_PY_ADDR 열기 + 카카오 우편번호 연동
+  }
+
+  function handlePay() {
+    if (!hasSavedAddress) {
+      // interaction_spec: 배송지 설정 영역으로 스크롤 + Warning 강조
+      setAddressWarning(true);
+      document
+        .getElementById(SHIPPING_SECTION_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    // TODO(Issue: 결제 약관 바텀시트·PG): FL_B_PY_ORDAUTH → PG 결제 이동
   }
 
   return (
@@ -95,6 +140,7 @@ export function OrderCheckoutScreen({
 
         <div className="flex flex-1 flex-col gap-3 pb-8">
           <ShippingAddressSection
+            id={SHIPPING_SECTION_ID}
             state={shippingState}
             address={address}
             onChangeAddress={handleEditShippingAddress}
@@ -104,12 +150,16 @@ export function OrderCheckoutScreen({
           {/* 주문 상품 + 적립금: Figma에서 구분선 없이 이어진 한 흰 블록 */}
           <section className="bg-layer-surface-default flex flex-col">
             <OrderItemSection item={orderItem} />
-            <PointUsageSection balance={DEMO_POINT_BALANCE} />
+            <PointUsageSection
+              value={pointInput}
+              onChange={handlePointInput}
+              balance={DEMO_POINT_BALANCE}
+            />
           </section>
 
           <PaymentMethodSection method={method} onSelect={setMethod} />
 
-          <PaymentSummarySection summary={summary} />
+          <PaymentSummarySection summary={effectiveSummary} />
 
           <TermsAgreementSection
             terms={terms}
@@ -121,9 +171,10 @@ export function OrderCheckoutScreen({
         </div>
 
         <div className="bg-layer-surface-default border-border-default sticky bottom-0 border-t px-5 py-2">
-          {/* PR1은 정적 화면 — 결제하기는 비활성 상태만. 활성 조건·결제 연동은 후속 이슈. */}
-          <Button className="w-full" appearance="cta" disabled>
-            {formatWon(finalPaymentAmount(summary))} 결제하기
+          {/* interaction_spec: 배송지 미입력 상태로 눌러도 동작해야(스크롤+Warning) 하므로 disabled 아님.
+             결제 약관 동의·PG 이동은 후속 이슈. */}
+          <Button className="w-full" appearance="cta" onClick={handlePay}>
+            {formatWon(finalPaymentAmount(effectiveSummary))} 결제하기
           </Button>
         </div>
       </div>
@@ -179,12 +230,27 @@ function OrderItemSection({ item }: { item: OrderItem }) {
   );
 }
 
-function PointUsageSection({ balance }: { balance: number }) {
+function PointUsageSection({
+  value,
+  onChange,
+  balance,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  balance: number;
+}) {
   return (
     <div className="flex flex-col gap-3 px-5 py-4">
       <h2 className="text-title-s text-text-default">적립금 사용</h2>
-      {/* Figma placeholder는 "리워드 가격을 입력해주세요"이나 적립금 필드라 오기로 보고 문구를 맞춘다. */}
-      <Input inputMode="numeric" placeholder="적립금을 입력해주세요" aria-label="사용할 적립금" />
+      {/* Figma placeholder는 "리워드 가격을 입력해주세요"이나 적립금 필드라 오기로 보고 문구를 맞춘다.
+         보유 잔액·상쇄 가능액을 넘기면 입력 시점에 잘린다(clampPointUsage). */}
+      <Input
+        inputMode="numeric"
+        placeholder="적립금을 입력해주세요"
+        aria-label="사용할 적립금"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
       <p className="text-body-s text-text-secondary">보유 {formatWon(balance)}</p>
     </div>
   );
