@@ -124,8 +124,8 @@ export function ShippingAddressSheet({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
-      {/* Figma: Title/Medium_18 */}
-      <span className="text-title-s text-text-default font-medium">{label}</span>
+      {/* Figma 수정: Title/Medium_18 → Title/Semibold_18 (= text-title-s 기본 굵기) */}
+      <span className="text-title-s text-text-default">{label}</span>
       {children}
     </div>
   );
