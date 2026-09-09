@@ -17,6 +17,7 @@ import {
   finalPaymentAmount,
   formatWon,
   maxPointUsage,
+  parsePointInput,
   totalDiscount,
   totalOrderAmount,
 } from "../model/checkout-demo";
@@ -90,14 +91,10 @@ export function OrderCheckoutScreen({
   }
 
   function handlePointInput(next: string) {
-    const digits = next.replace(/\D/g, "");
-    if (digits === "") {
-      setPointInput("");
-      return;
-    }
-    setPointInput(
-      String(clampPointUsage(Number(digits), DEMO_POINT_BALANCE, maxPointUsage(summary))),
-    );
+    const parsed = parsePointInput(next);
+    if (parsed === null) return; // 부호·소수점 등 무효 입력(붙여넣기 포함)은 무시
+    const clamped = clampPointUsage(parsed, DEMO_POINT_BALANCE, maxPointUsage(summary));
+    setPointInput(clamped === 0 ? "" : String(clamped));
   }
 
   /* 배송지 추가/변경 진입점. PR1은 자리만 잡아둔다.

@@ -66,11 +66,18 @@ export function maxPointUsage(summary: PaymentSummary): number {
   return Math.max(0, totalOrderAmount(summary) - summary.couponDiscount);
 }
 
-/** 입력한 적립금 사용액을 유효 범위로 자른다: 0 이상, 보유 잔액 이하, 상쇄 가능액 이하.
-   raw 는 사용자가 친 값이라 소수·음수·NaN 이 들어올 수 있어 정수화 후 계산한다. */
+/** 입력한 적립금 사용액을 유효 범위로 자른다: 0 이상, 보유 잔액 이하, 상쇄 가능액 이하. */
 export function clampPointUsage(raw: number, balance: number, maxUsable: number): number {
   if (!Number.isFinite(raw)) return 0;
   return Math.max(0, Math.min(Math.trunc(raw), balance, Math.max(0, maxUsable)));
+}
+
+/** 적립금 입력 문자열 → 정수. 빈 값은 0, 천 단위 콤마는 허용,
+   부호·소수점·문자가 섞이면 null(무효 입력이므로 값 변경 없이 무시). */
+export function parsePointInput(raw: string): number | null {
+  const cleaned = raw.replace(/,/g, "").trim();
+  if (cleaned === "") return 0;
+  return /^\d+$/.test(cleaned) ? Number(cleaned) : null;
 }
 
 /** 필수 약관이 모두 동의됐는지. "전체 동의합니다" 체크 여부와 같은 조건이다. */
@@ -100,14 +107,15 @@ export function demoShippingAddress(): ShippingAddress {
   };
 }
 
-/* 와이어프레임의 요약 숫자(총 699,000 − 할인 5,000 = 최종 48,000)는 자체 내역과 맞지 않는다.
-   목업은 내역이 맞아떨어지는 값으로 둔다. pointDiscount 는 화면의 적립금 입력이 실시간으로
-   덮어쓰므로 기본 0, couponDiscount 는 쿠폰 모달(FL_B_PY_CPN, 후속 이슈) 전까지 고정값. */
+/* 목업은 한 주문 안에서 숫자가 맞아떨어지게 둔다: 상품 카드의 쿠폰 적용가(599,000)
+   = 정가(699,000) − 쿠폰 할인(100,000). Figma 쿠폰 목록의 "100,000원 할인 쿠폰" 시나리오.
+   pointDiscount 는 화면의 적립금 입력이 실시간으로 덮어쓰므로 기본 0,
+   couponDiscount 는 쿠폰 모달(FL_B_PY_CPN, 후속 이슈) 전까지 고정값. */
 export function demoPaymentSummary(): PaymentSummary {
   return {
     fundingAmount: 699_000,
     shippingFee: 0,
-    couponDiscount: 4_000,
+    couponDiscount: 100_000,
     pointDiscount: 0,
   };
 }

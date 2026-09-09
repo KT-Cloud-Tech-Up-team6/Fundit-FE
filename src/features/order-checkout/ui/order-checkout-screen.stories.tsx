@@ -24,21 +24,27 @@ export const Default: Story = {
     await expect(canvas.getByRole("heading", { name: "홍길동", level: 2 })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "배송지 변경" })).toBeVisible();
 
-    // 적립금 0원일 때 최종 결제 금액 = 699,000 − 쿠폰 4,000 = 695,000원, CTA 금액도 일치.
+    // 적립금 0원일 때 최종 결제 금액 = 699,000 − 쿠폰 100,000 = 599,000원(상품 카드 쿠폰 적용가와 동일), CTA도 일치.
     const finalAmount = () => canvas.getByText("최종 결제 금액").nextElementSibling;
-    await expect(finalAmount()).toHaveTextContent("695,000원");
-    await expect(canvas.getByRole("button", { name: "695,000원 결제하기" })).toBeEnabled();
+    await expect(finalAmount()).toHaveTextContent("599,000원");
+    await expect(canvas.getByRole("button", { name: "599,000원 결제하기" })).toBeEnabled();
 
     // 적립금 입력 → 최종 결제 금액과 CTA가 실시간으로 줄어든다.
     await userEvent.type(canvas.getByLabelText("사용할 적립금"), "3000");
-    await expect(finalAmount()).toHaveTextContent("692,000원");
-    await expect(canvas.getByRole("button", { name: "692,000원 결제하기" })).toBeVisible();
+    await expect(finalAmount()).toHaveTextContent("596,000원");
+    await expect(canvas.getByRole("button", { name: "596,000원 결제하기" })).toBeVisible();
 
     // 보유 잔액(5,000)을 넘겨 입력하면 잔액까지만 반영된다.
     await userEvent.clear(canvas.getByLabelText("사용할 적립금"));
     await userEvent.type(canvas.getByLabelText("사용할 적립금"), "6000");
     await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("5000");
-    await expect(finalAmount()).toHaveTextContent("690,000원");
+    await expect(finalAmount()).toHaveTextContent("594,000원");
+
+    // 부호·소수점이 섞인 값을 붙여넣어도 무시된다(값·금액 그대로).
+    await userEvent.clear(canvas.getByLabelText("사용할 적립금"));
+    await userEvent.paste("3,000.00");
+    await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("");
+    await expect(finalAmount()).toHaveTextContent("599,000원");
 
     // 전체 동의 → 개별 필수/선택 약관이 모두 체크되고, 해제하면 모두 풀린다.
     const agreeAll = canvas.getByRole("checkbox", { name: "전체 동의합니다" });
