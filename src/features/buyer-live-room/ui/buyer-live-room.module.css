@@ -1,5 +1,6 @@
 .room {
   --room-height: 100dvh;
+
   position: fixed;
   top: var(--room-top, 0px);
   left: 50%;
