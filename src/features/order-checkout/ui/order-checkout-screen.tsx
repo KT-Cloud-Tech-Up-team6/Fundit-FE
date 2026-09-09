@@ -120,7 +120,8 @@ export function OrderCheckoutScreen({
 
   return (
     <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+      {/* 다른 전용 흐름 화면(AuthShell·BuyerLiveMain)과 같은 390px 모바일 컬럼 */}
+      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
         <header className="bg-layer-surface-default flex h-13 shrink-0 items-center justify-between px-3 py-1">
           <button
             type="button"
@@ -170,7 +171,7 @@ export function OrderCheckoutScreen({
           />
         </div>
 
-        <div className="bg-layer-surface-default border-border-default sticky bottom-0 border-t px-5 py-2">
+        <div className="bg-layer-surface-default border-border-default sticky bottom-0 border-t px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
           {/* interaction_spec: 배송지 미입력 상태로 눌러도 동작해야(스크롤+Warning) 하므로 disabled 아님.
              결제 약관 동의·PG 이동은 후속 이슈. */}
           <Button className="w-full" appearance="cta" onClick={handlePay}>
