@@ -1,3 +1,4 @@
+import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { ProjectTabs } from "@/features/project-tabs/ui/project-tabs";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
@@ -30,7 +31,10 @@ export default async function ProjectDetailPage({
       access="public"
       sections={["프로젝트 히어로", "펀딩 요약", `${activeTab} 탭 콘텐츠`]}
     >
-      <ProjectTabs projectId={projectId} activeTab={activeTab} />
+      <div className="flex flex-col gap-6">
+        <FundingCta projectId={projectId} />
+        <ProjectTabs projectId={projectId} activeTab={activeTab} />
+      </div>
     </PagePlaceholder>
   );
 }

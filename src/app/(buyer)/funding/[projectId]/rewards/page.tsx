@@ -1,15 +1,10 @@
-import { PagePlaceholder } from "@/shared/components/page-placeholder";
+import { redirect } from "next/navigation";
 
+/* IA(FL_B_PY_RWRD)에서 리워드 선택은 독립 화면이 아니라 프로젝트 상세의 바텀시트다.
+   docs/ROUTING.md L3 원칙("시트는 독립 URL을 만들지 않는다")에 맞춰 상세로 돌려보낸다.
+   기존 /funding/[projectId]/payment → checkout redirect와 같은 패턴. */
 export default async function RewardsPage({ params }: PageProps<"/funding/[projectId]/rewards">) {
   const { projectId } = await params;
-  return (
-    <PagePlaceholder
-      eyebrow="Buyer · Funding 1/3"
-      title={`리워드 선택 · ${projectId}`}
-      description="리워드·옵션·수량을 선택하고 결제 예정 금액을 확인합니다."
-      screenIds="B-17"
-      access="member"
-      sections={["리워드 목록", "옵션·수량", "금액 요약"]}
-    />
-  );
+
+  redirect(`/projects/${projectId}`);
 }
