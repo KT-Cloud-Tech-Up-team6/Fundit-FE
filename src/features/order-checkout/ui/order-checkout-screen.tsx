@@ -30,6 +30,7 @@ import type {
   TermsItem,
 } from "../model/checkout-demo";
 import { ShippingAddressSection } from "./shipping-address-section";
+import { ShippingAddressSheet } from "./shipping-address-sheet";
 
 type OrderCheckoutScreenProps = {
   /** 저장된 배송지 유무. 없으면 "신규 배송지 추가" 노출 + 결제 시도 시 Warning. */
@@ -60,6 +61,10 @@ export function OrderCheckoutScreen({
   const [agreedIds, setAgreedIds] = useState<string[]>([]);
   /* interaction_spec: 배송지 미입력 상태로 결제하기를 누르면 Warning. 배송지 입력 완료 시 해제. */
   const [addressWarning, setAddressWarning] = useState(false);
+  const [addressSheetOpen, setAddressSheetOpen] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(
+    hasSavedAddress ? address : null,
+  );
   /* 적립금 입력값(숫자 문자열). 보유 잔액·상쇄 가능액을 넘기면 입력 시점에 잘라서 담는다. */
   const [pointInput, setPointInput] = useState("");
 
@@ -74,7 +79,7 @@ export function OrderCheckoutScreen({
   /* 적립금은 화면에서 실시간 반영, 쿠폰은 모달(FL_B_PY_CPN, 후속 이슈)이라 목업값 고정. */
   const effectiveSummary: PaymentSummary = { ...summary, pointDiscount: usedPoints };
 
-  const shippingState: ShippingSectionState = hasSavedAddress
+  const shippingState: ShippingSectionState = savedAddress
     ? "saved"
     : addressWarning
       ? "warning"
@@ -97,14 +102,14 @@ export function OrderCheckoutScreen({
     setPointInput(clamped === 0 ? "" : String(clamped));
   }
 
-  /* 배송지 추가/변경 진입점. PR1은 자리만 잡아둔다.
-     후속 이슈에서 배송지 입력 모달(FL_B_PY_ADDR)을 여는 상태로 연결한다. */
-  function handleEditShippingAddress() {
-    // TODO(Issue: 배송지 입력 모달): FL_B_PY_ADDR 열기 + 카카오 우편번호 연동
+  function handleSaveShippingAddress(next: ShippingAddress) {
+    setSavedAddress(next);
+    setAddressWarning(false); // interaction_spec: 배송지 입력 완료 시 Warning 해제
+    setAddressSheetOpen(false);
   }
 
   function handlePay() {
-    if (!hasSavedAddress) {
+    if (!savedAddress) {
       // interaction_spec: 배송지 설정 영역으로 스크롤 + Warning 강조
       setAddressWarning(true);
       document
@@ -140,9 +145,9 @@ export function OrderCheckoutScreen({
           <ShippingAddressSection
             id={SHIPPING_SECTION_ID}
             state={shippingState}
-            address={address}
-            onChangeAddress={handleEditShippingAddress}
-            onAddAddress={handleEditShippingAddress}
+            address={savedAddress ?? address}
+            onChangeAddress={() => setAddressSheetOpen(true)}
+            onAddAddress={() => setAddressSheetOpen(true)}
           />
 
           {/* 주문 상품 + 적립금: Figma에서 구분선 없이 이어진 한 흰 블록 */}
@@ -176,6 +181,13 @@ export function OrderCheckoutScreen({
           </Button>
         </div>
       </div>
+
+      <ShippingAddressSheet
+        open={addressSheetOpen}
+        onClose={() => setAddressSheetOpen(false)}
+        initial={savedAddress}
+        onSave={handleSaveShippingAddress}
+      />
     </div>
   );
 }

@@ -5,8 +5,10 @@ import {
   demoPaymentSummary,
   demoOrderItem,
   demoTerms,
+  emptyShippingAddress,
   finalPaymentAmount,
   formatWon,
+  isShippingAddressComplete,
   maxPointUsage,
   parsePointInput,
   requiredTermsMet,
@@ -78,6 +80,25 @@ test("적립금 입력 파싱: 콤마만 허용하고 부호·소수점·문자�
 test("적립금을 반영하면 최종 결제 금액이 그만큼 줄어든다", () => {
   const base = demoPaymentSummary(); // 최종 599,000 (적립금 0)
   assert.equal(finalPaymentAmount({ ...base, pointDiscount: 5_000 }), 594_000);
+});
+
+test("배송지는 배송 요청 사항 외 필수 항목이 모두 채워져야 저장 가능", () => {
+  assert.equal(isShippingAddressComplete(emptyShippingAddress()), false);
+
+  const filled = {
+    recipientName: "홍길동",
+    phone: "010-1111-2222",
+    zipCode: "06099",
+    baseAddress: "서울 강남구 학동로 343",
+    detailAddress: "3층",
+  };
+  assert.equal(isShippingAddressComplete(filled), true);
+  // 배송 요청 사항은 없어도 저장 가능
+  assert.equal(isShippingAddressComplete({ ...filled, deliveryMemo: "" }), true);
+  // 상세주소가 공백뿐이면 미완성
+  assert.equal(isShippingAddressComplete({ ...filled, detailAddress: "   " }), false);
+  // 우편번호 찾기 전이면 미완성
+  assert.equal(isShippingAddressComplete({ ...filled, zipCode: "", baseAddress: "" }), false);
 });
 
 test("필수 약관이 전부 동의돼야 requiredTermsMet 이 true", () => {

@@ -6,10 +6,13 @@
 export type ShippingAddress = {
   recipientName: string;
   phone: string;
+  /** 우편번호 찾기(다음 우편번호 서비스)로 채워지는 값. */
   zipCode: string;
-  /** 도로명 또는 지번 기본 주소. */
+  /** 도로명 또는 지번 기본 주소. 우편번호 찾기로 채워진다. */
   baseAddress: string;
   detailAddress: string;
+  /** 배송 요청 사항 (선택). */
+  deliveryMemo?: string;
 };
 
 /** 배송지 섹션 표시 상태.
@@ -84,6 +87,29 @@ export function parsePointInput(raw: string): number | null {
 export function requiredTermsMet(terms: TermsItem[], agreedIds: readonly string[]): boolean {
   const agreed = new Set(agreedIds);
   return terms.filter((term) => term.required).every((term) => agreed.has(term.id));
+}
+
+/** 배송지 입력값이 전부 빈 시작 상태. */
+export function emptyShippingAddress(): ShippingAddress {
+  return {
+    recipientName: "",
+    phone: "",
+    zipCode: "",
+    baseAddress: "",
+    detailAddress: "",
+    deliveryMemo: "",
+  };
+}
+
+/** 배송지 저장 가능 여부: 배송 요청 사항(선택) 외 필수 항목이 모두 채워졌는지 (FL_B_PY_ADDR interaction_spec). */
+export function isShippingAddressComplete(address: ShippingAddress): boolean {
+  return [
+    address.recipientName,
+    address.phone,
+    address.zipCode,
+    address.baseAddress,
+    address.detailAddress,
+  ].every((value) => value.trim().length > 0);
 }
 
 export function demoOrderItem(): OrderItem {
