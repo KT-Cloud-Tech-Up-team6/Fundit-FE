@@ -36,7 +36,7 @@ src/
 ## Route Group
 
 - `(buyer)`는 공개·구매자 화면을 묶고 BuyerShell을 적용한다.
-- `(buyer-live)`는 `/live` 메인에만 지정 와이어프레임의 검색 헤더와 하단 메뉴를 적용한다. 다른 구매자 화면과 BuyerShell은 유지하며 RootLayout은 공유한다. 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md)를 참고한다.
+- `(buyer-live)`는 `/live` 메인의 검색 헤더·하단 메뉴와 `/live/[liveId]`의 시청 전용 헤더를 각 화면에서 적용한다. 다시보기는 기존 BuyerShell을 명시적으로 유지한다. 다른 구매자 화면과 BuyerShell은 변경하지 않으며 RootLayout은 공유한다. 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md), [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다.
 - `(auth)`는 로그인과 3단계 회원가입에 AuthShell을 적용한다.
 - `(seller)`는 `/seller` 하위 운영 화면에 SellerShell을 적용한다.
 - `(live-console)`는 `/seller/live/[liveId]/console`에 전용 방송 헤더를 적용하기 위해 SellerShell과 분리한다. RootLayout과 AppProviders는 그대로 공유하고 URL·목표 접근 조건은 유지한다.
