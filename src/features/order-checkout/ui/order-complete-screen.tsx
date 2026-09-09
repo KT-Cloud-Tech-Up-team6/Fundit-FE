@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
 import {
   ORDER_COMPLETE_REDIRECT_SECONDS,
   demoOrderReceipt,
@@ -14,6 +13,14 @@ import { CheckoutTopBar } from "./checkout-top-bar";
 
 const DEMO_RECEIPT = demoOrderReceipt();
 const FUNDING_HISTORY_PATH = "/my/fundings";
+
+/* Figma btn_share_project / btn_view_funding_history: bg #ededed, Medium 16, rounded 4, h≈44. */
+const bottomButtonClasses = [
+  "bg-layer-surface-disabled text-text-default text-body-m font-medium",
+  "flex h-11 flex-1 items-center justify-center rounded-xs whitespace-nowrap",
+  "enabled:hover:bg-layer-surface-disabled-hover",
+  "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
+].join(" ");
 
 type OrderCompleteScreenProps = {
   receipt?: OrderReceipt;
@@ -54,11 +61,12 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    <div className="bg-layer-bg min-h-dvh w-full">
+    /* Figma: 완료 화면은 흰 바탕(주문서는 회색). 그래픽·영수증 카드만 회색(#ededed). */
+    <div className="bg-layer-surface-default min-h-dvh w-full">
       <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
         <CheckoutTopBar />
 
-        <div className="flex flex-1 flex-col items-center gap-16 px-5 pt-16">
+        <div className="flex flex-1 flex-col items-center gap-6 px-5 pt-16">
           <div className="flex w-full flex-col items-center gap-9">
             {/* Figma: 112×112 그래픽 자리 */}
             <div className="bg-layer-surface-disabled size-28 shrink-0" aria-hidden />
@@ -93,13 +101,13 @@ export function OrderCompleteScreen({
         </div>
 
         <div className="bg-layer-surface-default sticky bottom-0 flex gap-2 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
-          {/* TODO(공유): 프로젝트 공유 연동은 후속 */}
-          <button type="button" className={`${secondaryButtonClasses} h-11 flex-1`}>
+          {/* Figma: bg #ededed 그레이 필, Medium 16. TODO(공유): 프로젝트 공유 연동은 후속 */}
+          <button type="button" className={bottomButtonClasses}>
             프로젝트 공유하기
           </button>
           <button
             type="button"
-            className={`${secondaryButtonClasses} h-11 flex-1`}
+            className={bottomButtonClasses}
             onClick={() => router.push(FUNDING_HISTORY_PATH)}
           >
             펀딩내역 보기
