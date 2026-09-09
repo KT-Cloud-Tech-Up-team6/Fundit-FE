@@ -17,6 +17,7 @@
 ## 구현 경계
 
 - `/live` 페이지만 `(buyer-live)` 그룹으로 분리한다. RootLayout은 공유하고 기존 BuyerShell 및 다른 구매자 페이지는 변경하지 않는다.
+- 하단 메뉴는 `shared/components/layout/BuyerBottomNavigation`으로 분리하고 `/live`에서 `activeHref`를 전달한다. 기존 SVG·크기·카테고리 비활성 상태는 유지하며 고정 위치·390px 폭·와이어프레임 배색은 호출 화면이 소유한다. 다른 구매자 화면 적용과 BuyerShell 통합은 공통 레이아웃 확정 후 진행한다.
 - 기존 SearchField, 링크형 Tab/TabList, Icon을 재사용한다. 검색 높이 46px와 폰트는 기능 내부 CSS에서 맞추며 공용 기본값은 유지한다.
 - 기존 검색·눈·알림·프로필 아이콘을 재사용한다. 기존 live_video는 다른 모양이므로 홈·라이브 내비게이션·카테고리·시계·알림 추가/선택은 Figma 원본 SVG를 사용한다.
 - 지정 화면의 wireframe 색상은 CSS Module 내부에 한정한다. 전역 semantic 토큰과 다른 구매자 화면의 브랜드·다크 배색을 재정의하지 않는다. 이 화면 자체는 밝은 와이어프레임만 제공한다.

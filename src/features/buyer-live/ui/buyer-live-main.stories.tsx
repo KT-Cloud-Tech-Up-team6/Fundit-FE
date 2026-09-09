@@ -67,6 +67,10 @@ export const SearchAndNavigation: Story = {
       "/live/upcoming",
     );
     expect(canvas.getByRole("button", { name: "카테고리 · 화면 미정" })).toBeDisabled();
+    const bottomNav = within(canvas.getByRole("navigation", { name: "LIVE 화면 하단 메뉴" }));
+    expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
+    expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
+    expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
     expect(canvas.getByRole("link", { name: "실시간 순위 더보기" })).toHaveAttribute(
       "href",
       "/live/rank",

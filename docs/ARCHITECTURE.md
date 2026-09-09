@@ -46,6 +46,7 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 ## 공통 레이아웃
 
 - `BuyerShell`은 mobile-first 하단 내비게이션과 데스크톱 상단 내비게이션을 제공한다.
+- `BuyerBottomNavigation`은 선택 항목을 props로 받는 공용 하단 메뉴이며 현재 `/live`에서 사용한다. 위치·폭은 호출자가 정하고 카테고리는 목적지 확정 전까지 비활성이다. 기존 BuyerShell과의 통합은 공통 구매자 레이아웃 확정 후 진행한다.
 - `AuthShell`은 인증 와이어프레임을 위한 전체 화면 반응형 영역을 제공한다.
 - `SellerShell`은 PC-first 사이드바와 판매자 프로젝트 컨텍스트 영역을 제공한다.
 - RootLayout은 메타데이터와 AppProviders만 소유하며 클라이언트 컴포넌트가 아니다.

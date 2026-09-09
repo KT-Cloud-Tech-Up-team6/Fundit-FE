@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Tab, TabList } from "@/shared/components/ui/tab";
@@ -16,7 +17,7 @@ function LiveAsset({
   name,
   className = "size-5",
 }: {
-  name: "home" | "categories" | "live-navigation" | "alarm" | "bell-add" | "bell-selected";
+  name: "live-navigation" | "alarm" | "bell-add" | "bell-selected";
   className?: string;
 }) {
   return (
@@ -260,32 +261,11 @@ export function BuyerLiveMain({ hasFollowing = true }: { hasFollowing?: boolean 
           않습니다.
         </p>
       </main>
-      <nav
+      <BuyerBottomNavigation
+        activeHref="/live"
         aria-label="LIVE 화면 하단 메뉴"
-        className="bg-layer-surface-disabled fixed bottom-0 left-1/2 z-20 flex w-full max-w-[390px] -translate-x-1/2 justify-between px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]"
-      >
-        <Link href="/" className={styles.navItem}>
-          <LiveAsset name="home" />홈
-        </Link>
-        <Link href="/live" aria-current="page" className={styles.navItem}>
-          <LiveAsset name="live-navigation" />
-          라이브
-        </Link>
-        <button
-          type="button"
-          disabled
-          title="카테고리 화면 미정"
-          aria-label="카테고리 · 화면 미정"
-          className={styles.navItem}
-        >
-          <LiveAsset name="categories" />
-          카테고리
-        </button>
-        <Link href="/my" className={styles.navItem}>
-          <Icon name="profile" className="size-5" />
-          마이
-        </Link>
-      </nav>
+        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+      />
     </div>
   );
 }
