@@ -99,7 +99,13 @@ export function ShippingAddressSheet({
                 <DaumPostcodeButton
                   className="bg-layer-surface-primary text-text-inverse text-body-s enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary flex h-13 shrink-0 items-center justify-center rounded-sm px-4 font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                   onComplete={({ zipCode, baseAddress }) =>
-                    setForm((prev) => ({ ...prev, zipCode, baseAddress }))
+                    setForm((prev) => ({
+                      ...prev,
+                      zipCode,
+                      baseAddress,
+                      /* 건물(기본 주소)이 바뀌면 이전 상세주소(동·호수)는 무효 → 비운다. */
+                      detailAddress: baseAddress === prev.baseAddress ? prev.detailAddress : "",
+                    }))
                   }
                 />
               )}

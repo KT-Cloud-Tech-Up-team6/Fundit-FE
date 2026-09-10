@@ -1,8 +1,7 @@
 "use client";
 
-import Script from "next/script";
 import type { ReactNode } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /* 다음(카카오) 우편번호 서비스. 키·서버 불필요, FE에서 직접 호출한다(BE 협의 완료).
    FL_B_PY_ADDR interaction_spec의 "카카오 API 이동" 자리. */
@@ -25,6 +24,38 @@ declare global {
   }
 }
 
+/* 스크립트 로더는 앱 전체에서 한 번만. 모든 버튼 인스턴스가 같은 Promise 를 구독하므로
+   시트를 로딩 중에 반복해서 열고 닫아도 완료되면 현재 마운트된 인스턴스가 ready 를 받는다.
+   (next/script 의 onLoad 는 첫 로드 인스턴스에서만 불려 재마운트 시 누락되는 경로가 있었다.) */
+let scriptPromise: Promise<void> | null = null;
+
+function loadDaumPostcode(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  if (window.daum?.Postcode) return Promise.resolve();
+  if (scriptPromise) return scriptPromise;
+
+  scriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
+    const script = existing ?? document.createElement("script");
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener(
+      "error",
+      () => {
+        scriptPromise = null; // 다음 시도에서 다시 로드할 수 있게
+        reject(new Error("daum postcode script load failed"));
+      },
+      { once: true },
+    );
+    if (!existing) {
+      script.src = SCRIPT_SRC;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+
+  return scriptPromise;
+}
+
 type DaumPostcodeButtonProps = {
   /** 검색 완료 시 우편번호와 기본 주소(도로명 우선, 없으면 지번)를 전달한다. */
   onComplete: (result: { zipCode: string; baseAddress: string }) => void;
@@ -37,11 +68,24 @@ export function DaumPostcodeButton({
   className,
   children = "우편번호 찾기",
 }: DaumPostcodeButtonProps) {
-  /* 시트를 닫았다 다시 열면 이 컴포넌트가 재마운트되는데, 스크립트가 이미 로드돼 있으면
-     onLoad 가 다시 안 불릴 수 있어 초기값에서 window.daum 존재 여부를 확인한다. */
   const [ready, setReady] = useState(
     () => typeof window !== "undefined" && Boolean(window.daum?.Postcode),
   );
+
+  useEffect(() => {
+    if (ready) return;
+    let alive = true;
+    loadDaumPostcode()
+      .then(() => {
+        if (alive) setReady(true);
+      })
+      .catch(() => {
+        /* 로드 실패: 버튼은 비활성 유지. 다음 마운트에서 재시도한다. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [ready]);
 
   const open = useCallback(() => {
     const Postcode = window.daum?.Postcode;
@@ -57,11 +101,8 @@ export function DaumPostcodeButton({
   }, [onComplete]);
 
   return (
-    <>
-      <Script src={SCRIPT_SRC} strategy="afterInteractive" onLoad={() => setReady(true)} />
-      <button type="button" onClick={open} disabled={!ready} className={className}>
-        {children}
-      </button>
-    </>
+    <button type="button" onClick={open} disabled={!ready} className={className}>
+      {children}
+    </button>
   );
 }
