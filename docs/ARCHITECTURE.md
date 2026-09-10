@@ -36,6 +36,7 @@ src/
 ## Route Group
 
 - `(buyer)`는 공개·구매자 화면을 묶고 BuyerShell을 적용한다.
+- `(buyer-project)`는 프로젝트의 story·live-proof 탭에 전용 상세 화면을 적용하고 나머지 탭에는 기존 BuyerShell을 유지한다. app에서 상세 화면과 FundingCta를 조합한다. 범위는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다.
 - `(buyer-live)`는 `/live` 메인의 검색 헤더·하단 메뉴와 `/live/[liveId]`의 시청 전용 헤더를 각 화면에서 적용한다. 다시보기는 기존 BuyerShell을 명시적으로 유지한다. 다른 구매자 화면과 BuyerShell은 변경하지 않으며 RootLayout은 공유한다. 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md), [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다.
 - `(auth)`는 로그인과 3단계 회원가입에 AuthShell을 적용한다.
 - `(seller)`는 `/seller` 하위 운영 화면에 SellerShell을 적용한다.
