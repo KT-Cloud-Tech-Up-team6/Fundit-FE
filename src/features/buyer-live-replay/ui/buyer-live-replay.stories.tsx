@@ -65,9 +65,27 @@ export const InitialNextChapter: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "이전 구간" }));
     expect(canvas.getByRole("slider")).toHaveValue("0");
     expect(canvas.getByRole("button", { name: "이전 구간" })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "일시정지" })).toHaveFocus();
     await userEvent.click(canvas.getByRole("button", { name: "구간 4 재생" }));
     expect(canvas.getByRole("slider")).toHaveValue("90");
     expect(canvas.getByRole("button", { name: "다음 구간" })).toBeDisabled();
+  },
+};
+
+export const BoundaryKeyboardFocus: Story = {
+  args: { initialPanel: "chapters" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "구간 3 재생" }));
+    canvas.getByRole("button", { name: "다음 구간" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(canvas.getByRole("button", { name: "다음 구간" })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "일시정지" })).toHaveFocus();
+    await userEvent.click(canvas.getByRole("button", { name: "구간 2 재생" }));
+    canvas.getByRole("button", { name: "이전 구간" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(canvas.getByRole("button", { name: "이전 구간" })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "일시정지" })).toHaveFocus();
   },
 };
 

@@ -73,6 +73,7 @@ export function BuyerLiveReplay({
   const root = useRef<HTMLDivElement>(null);
   const chapters = useRef<HTMLDivElement>(null);
   const chat = useRef<HTMLElement>(null);
+  const playbackButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (chat.current) chat.current.scrollTop = chat.current.scrollHeight;
@@ -87,8 +88,7 @@ export function BuyerLiveReplay({
   useEffect(() => {
     const list = chapters.current;
     const selected = list?.children[currentChapter] as HTMLElement | undefined;
-    if (list && selected)
-      list.scrollTo({ left: selected.offsetLeft - list.offsetLeft, behavior: "smooth" });
+    if (list && selected) list.scrollTo({ left: selected.offsetLeft, behavior: "smooth" });
   }, [currentChapter, panel]);
 
   function announce(message: string) {
@@ -99,6 +99,10 @@ export function BuyerLiveReplay({
   function seek(value: number) {
     setProgress(value);
     setPlaying(true);
+  }
+  function moveChapter(index: number) {
+    if (index === 0 || index === chapterStarts.length - 1) playbackButton.current?.focus();
+    seek(chapterStarts[index]);
   }
   async function share() {
     try {
@@ -284,13 +288,14 @@ export function BuyerLiveReplay({
                     type="button"
                     aria-label="이전 구간"
                     disabled={currentChapter === 0}
-                    onClick={() => seek(chapterStarts[currentChapter - 1])}
+                    onClick={() => moveChapter(currentChapter - 1)}
                   >
                     <ReplayIcon name="previous" small />
                   </button>
                   <button
                     type="button"
                     aria-label={playing ? "일시정지" : "재생"}
+                    ref={playbackButton}
                     onClick={() => setPlaying(!playing)}
                   >
                     {playing ? (
@@ -303,7 +308,7 @@ export function BuyerLiveReplay({
                     type="button"
                     aria-label="다음 구간"
                     disabled={currentChapter === 3}
-                    onClick={() => seek(chapterStarts[currentChapter + 1])}
+                    onClick={() => moveChapter(currentChapter + 1)}
                   >
                     <ReplayIcon name="next" small />
                   </button>
