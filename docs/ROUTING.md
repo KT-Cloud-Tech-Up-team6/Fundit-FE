@@ -51,7 +51,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/live/following`       | 팔로우 LIVE             | member                    | placeholder                                             |
 | `/live/upcoming`        | 예정 LIVE               | public                    | implemented (목업)                                      |
 | `/live/search`          | LIVE 검색·결과          | public                    | placeholder                                             |
-| `/live/[liveId]`        | LIVE 방송·채팅·다시보기 | read public, write member | live implemented / replay placeholder                   |
+| `/live/[liveId]`        | LIVE 방송·채팅·다시보기 | read public, write member | live / replay implemented (목업)                        |
 | `/projects/[projectId]` | 프로젝트 상세 탭        | public 또는 조건부        | story·live-proof implemented (목업), 나머지 placeholder |
 
 ## 펀딩·결제
@@ -114,6 +114,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
+- 다시보기의 `view=clip`은 숏 클립 표시를 선택합니다. 구간 탐색은 화면 내부 상태로 전환합니다. 현재는 서버·영상 미연결 목업이며 [BUYER_LIVE_REPLAY.md](./BUYER_LIVE_REPLAY.md)를 참고합니다.
 - 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
