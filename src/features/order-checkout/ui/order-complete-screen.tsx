@@ -20,6 +20,7 @@ const bottomButtonClasses = [
   "flex h-11 flex-1 items-center justify-center rounded-xs whitespace-nowrap",
   "enabled:hover:bg-layer-surface-disabled-hover",
   "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
+  "disabled:text-text-disabled disabled:cursor-not-allowed",
 ].join(" ");
 
 type OrderCompleteScreenProps = {
@@ -100,8 +101,8 @@ export function OrderCompleteScreen({
         </div>
 
         <div className="bg-layer-surface-default sticky bottom-0 flex gap-2 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
-          {/* Figma: bg #ededed 그레이 필, Medium 16. TODO(공유): 프로젝트 공유 연동은 후속 */}
-          <button type="button" className={bottomButtonClasses}>
+          {/* 공유 연동(프로젝트 URL·제목 필요)은 후속 — 그 전까지 비활성. */}
+          <button type="button" className={bottomButtonClasses} disabled>
             프로젝트 공유하기
           </button>
           <button

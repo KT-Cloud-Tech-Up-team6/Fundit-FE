@@ -35,8 +35,9 @@ export const Default: Story = {
     );
 
     await expect(canvas.getByText(/초 후 펀딩내역 화면으로 자동 이동합니다/)).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "프로젝트 공유하기" })).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "펀딩내역 보기" })).toBeVisible();
+    // 공유 연동 전까지 비활성
+    await expect(canvas.getByRole("button", { name: "프로젝트 공유하기" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "펀딩내역 보기" })).toBeEnabled();
   },
 };
 
