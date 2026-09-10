@@ -23,7 +23,7 @@
 ## 구현 경계
 
 - `/live/[liveId]`를 `(buyer-live)` 그룹에 두고 전용 헤더를 표시한다. 구매자 공통 헤더·하단 메뉴를 중복 표시하지 않는다. 다른 구매자 페이지는 변경하지 않는다.
-- `?mode=replay`는 기존 BuyerShell과 다시보기 placeholder를 유지한다. 실시간 화면을 다시보기 구현으로 간주하지 않는다.
+- `?mode=replay`는 별도 다시보기 와이어프레임을 표시한다. 범위와 숏 클립은 [BUYER_LIVE_REPLAY.md](./BUYER_LIVE_REPLAY.md)를 참고한다. 실시간 구현은 변경하지 않는다.
 - 기존 `DialogBase`, 닫기·전송·펀딩 아이콘을 재사용한다. 시청자 아이콘은 메인 작업과 같은 `buyer-live/viewers.svg`를 사용한다. 일치하는 기존 자산이 없는 아이콘만 Figma SVG로 추가한다.
 - 회색 와이어프레임 스타일은 기능 CSS Module에 한정한다. 금칙어 강조는 공통 `--text-warning`을 사용한다.
 - 실제 송출·채팅 서버·인증 가드·AI 질문 요약·서버 금칙어 검증·영구 저장은 포함하지 않는다.
