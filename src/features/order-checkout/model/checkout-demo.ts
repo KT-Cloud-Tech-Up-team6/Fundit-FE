@@ -217,7 +217,9 @@ export function demoShippingAddress(): ShippingAddress {
     phone: "010-1111-2222",
     zipCode: "06099",
     baseAddress: "서울 강남구 학동로 343",
-    detailAddress: "",
+    /* 저장된 배송지는 isShippingAddressComplete 를 통과하는 완성 상태여야 한다
+       (배송지 변경 시트가 이 값으로 열려 저장 버튼이 바로 활성). */
+    detailAddress: "5층 501호",
   };
 }
 

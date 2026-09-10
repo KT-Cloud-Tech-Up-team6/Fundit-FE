@@ -94,12 +94,15 @@ export function ShippingAddressSheet({
                 value={form.zipCode}
                 className="flex-1"
               />
-              <DaumPostcodeButton
-                className="bg-layer-surface-primary text-text-inverse text-body-s enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary flex h-13 shrink-0 items-center justify-center rounded-sm px-4 font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-                onComplete={({ zipCode, baseAddress }) =>
-                  setForm((prev) => ({ ...prev, zipCode, baseAddress }))
-                }
-              />
+              {/* 시트가 열릴 때만 렌더 → 다음 우편번호 스크립트를 체크아웃 진입 시점에 선로딩하지 않는다. */}
+              {open && (
+                <DaumPostcodeButton
+                  className="bg-layer-surface-primary text-text-inverse text-body-s enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary flex h-13 shrink-0 items-center justify-center rounded-sm px-4 font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+                  onComplete={({ zipCode, baseAddress }) =>
+                    setForm((prev) => ({ ...prev, zipCode, baseAddress }))
+                  }
+                />
+              )}
             </div>
             <Input aria-label="주소" placeholder="주소" readOnly value={form.baseAddress} />
             <Input

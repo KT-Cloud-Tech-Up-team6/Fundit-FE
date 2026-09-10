@@ -37,20 +37,19 @@ export function OrderCompleteScreen({
   const router = useRouter();
   const [remaining, setRemaining] = useState(redirectSeconds);
 
+  /* 카운트다운만 담당한다. 상태 업데이터는 순수하게 두고 이동은 아래 effect가 한다. */
   useEffect(() => {
     if (redirectSeconds <= 0) return;
     const timer = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          router.push(FUNDING_HISTORY_PATH);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [redirectSeconds, router]);
+  }, [redirectSeconds]);
+
+  /* 0초가 되면 펀딩내역으로 이동. */
+  useEffect(() => {
+    if (redirectSeconds > 0 && remaining === 0) router.push(FUNDING_HISTORY_PATH);
+  }, [remaining, redirectSeconds, router]);
 
   const rows: [string, string][] = [
     ["주문번호", receipt.orderId],
