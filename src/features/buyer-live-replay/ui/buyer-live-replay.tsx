@@ -15,6 +15,8 @@ const messages = [
   "로보락이 뭐예요?",
 ];
 const title = "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기";
+// 원본의 37.5% 진행률이 첫 구간에 속하도록 설정한 목업 시작점이다.
+const chapterStarts = [0, 50, 75, 90];
 const projectTitle =
   "프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등";
 
@@ -65,7 +67,7 @@ export function BuyerLiveReplay({
   const [liked, setLiked] = useState(false);
   const [playing, setPlaying] = useState(true);
   const [progress, setProgress] = useState(37.5);
-  const [currentChapter, setCurrentChapter] = useState(0);
+  const currentChapter = chapterStarts.filter((start) => start <= progress).length - 1;
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -96,7 +98,6 @@ export function BuyerLiveReplay({
   }
   function seek(value: number) {
     setProgress(value);
-    setCurrentChapter(Math.min(3, Math.floor(value / 25)));
     setPlaying(true);
   }
   async function share() {
@@ -251,7 +252,7 @@ export function BuyerLiveReplay({
                     key={n}
                     aria-label={`구간 ${n + 1} 재생`}
                     aria-pressed={currentChapter === n}
-                    onClick={() => seek(n * 25)}
+                    onClick={() => seek(chapterStarts[n])}
                   >
                     <span className={styles.chapterImage} />
                     <span>
@@ -283,7 +284,7 @@ export function BuyerLiveReplay({
                     type="button"
                     aria-label="이전 구간"
                     disabled={currentChapter === 0}
-                    onClick={() => seek((currentChapter - 1) * 25)}
+                    onClick={() => seek(chapterStarts[currentChapter - 1])}
                   >
                     <ReplayIcon name="previous" small />
                   </button>
@@ -302,7 +303,7 @@ export function BuyerLiveReplay({
                     type="button"
                     aria-label="다음 구간"
                     disabled={currentChapter === 3}
-                    onClick={() => seek((currentChapter + 1) * 25)}
+                    onClick={() => seek(chapterStarts[currentChapter + 1])}
                   >
                     <ReplayIcon name="next" small />
                   </button>

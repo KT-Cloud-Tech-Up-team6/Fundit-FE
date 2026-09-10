@@ -37,14 +37,40 @@ export const Chapters: Story = {
       "aria-pressed",
       "true",
     );
-    expect(canvas.getByRole("slider")).toHaveValue("25");
+    expect(canvas.getByRole("slider")).toHaveValue("50");
     expect(canvas.getByRole("button", { name: "일시정지" })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "다음 구간" }));
-    expect(canvas.getByRole("slider")).toHaveValue("50");
+    expect(canvas.getByRole("slider")).toHaveValue("75");
     await userEvent.click(canvas.getByRole("button", { name: "채팅" }));
     expect(canvas.queryByRole("region", { name: "영상 구간 목록" })).not.toBeInTheDocument();
   },
 };
+export const InitialNextChapter: Story = {
+  args: { initialPanel: "chapters" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.getByRole("button", { name: "구간 1 재생" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const initialProgress = Number((canvas.getByRole("slider") as HTMLInputElement).value);
+    await userEvent.click(canvas.getByRole("button", { name: "다음 구간" }));
+    expect(Number((canvas.getByRole("slider") as HTMLInputElement).value)).toBeGreaterThan(
+      initialProgress,
+    );
+    expect(canvas.getByRole("button", { name: "구간 2 재생" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "이전 구간" }));
+    expect(canvas.getByRole("slider")).toHaveValue("0");
+    expect(canvas.getByRole("button", { name: "이전 구간" })).toBeDisabled();
+    await userEvent.click(canvas.getByRole("button", { name: "구간 4 재생" }));
+    expect(canvas.getByRole("slider")).toHaveValue("90");
+    expect(canvas.getByRole("button", { name: "다음 구간" })).toBeDisabled();
+  },
+};
+
 export const Clip: Story = {
   args: { clip: true },
   play: async ({ canvasElement }) => {
