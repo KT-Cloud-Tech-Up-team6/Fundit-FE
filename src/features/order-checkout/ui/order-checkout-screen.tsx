@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -9,7 +8,10 @@ import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
 import {
   DEMO_POINT_BALANCE,
+  DEMO_SELECTED_COUPON_ID,
   clampPointUsage,
+  couponDiscountAmount,
+  demoCoupons,
   demoOrderItem,
   demoPaymentSummary,
   demoShippingAddress,
@@ -22,6 +24,7 @@ import {
   totalOrderAmount,
 } from "../model/checkout-demo";
 import type {
+  Coupon,
   OrderItem,
   PaymentMethod,
   PaymentSummary,
@@ -29,7 +32,10 @@ import type {
   ShippingSectionState,
   TermsItem,
 } from "../model/checkout-demo";
+import { CheckoutTopBar } from "./checkout-top-bar";
+import { CouponSheet } from "./coupon-sheet";
 import { ShippingAddressSection } from "./shipping-address-section";
+import { ShippingAddressSheet } from "./shipping-address-sheet";
 
 type OrderCheckoutScreenProps = {
   /** 저장된 배송지 유무. 없으면 "신규 배송지 추가" 노출 + 결제 시도 시 Warning. */
@@ -39,6 +45,7 @@ type OrderCheckoutScreenProps = {
   address?: ShippingAddress;
   summary?: PaymentSummary;
   terms?: TermsItem[];
+  coupons?: Coupon[];
 };
 
 const SHIPPING_SECTION_ID = "checkout-shipping-address";
@@ -47,6 +54,7 @@ const DEMO_ORDER_ITEM = demoOrderItem();
 const DEMO_ADDRESS = demoShippingAddress();
 const DEMO_SUMMARY = demoPaymentSummary();
 const DEMO_TERMS = demoTerms();
+const DEMO_COUPONS = demoCoupons();
 
 export function OrderCheckoutScreen({
   hasSavedAddress = true,
@@ -54,27 +62,39 @@ export function OrderCheckoutScreen({
   address = DEMO_ADDRESS,
   summary = DEMO_SUMMARY,
   terms = DEMO_TERMS,
+  coupons = DEMO_COUPONS,
 }: OrderCheckoutScreenProps) {
-  const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [agreedIds, setAgreedIds] = useState<string[]>([]);
   /* interaction_spec: 배송지 미입력 상태로 결제하기를 누르면 Warning. 배송지 입력 완료 시 해제. */
   const [addressWarning, setAddressWarning] = useState(false);
+  const [addressSheetOpen, setAddressSheetOpen] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(
+    hasSavedAddress ? address : null,
+  );
+  const [couponSheetOpen, setCouponSheetOpen] = useState(false);
+  /* 선택된 쿠폰 id. null = 사용 안 함. */
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(DEMO_SELECTED_COUPON_ID);
   /* 적립금 입력값(숫자 문자열). 보유 잔액·상쇄 가능액을 넘기면 입력 시점에 잘라서 담는다. */
   const [pointInput, setPointInput] = useState("");
 
   const allTermIds = terms.map((term) => term.id);
   const isAllAgreed = allTermIds.every((id) => agreedIds.includes(id));
 
+  const orderAmount = totalOrderAmount(summary);
+  const selectedCoupon = coupons.find((coupon) => coupon.id === selectedCouponId) ?? null;
+  const couponDiscount = selectedCoupon ? couponDiscountAmount(selectedCoupon, orderAmount) : 0;
+  /* 쿠폰 선택·적립금 입력이 요약 금액을 실시간으로 덮어쓴다. */
+  const couponAppliedSummary: PaymentSummary = { ...summary, couponDiscount };
+
   const usedPoints = clampPointUsage(
     Number(pointInput),
     DEMO_POINT_BALANCE,
-    maxPointUsage(summary),
+    maxPointUsage(couponAppliedSummary),
   );
-  /* 적립금은 화면에서 실시간 반영, 쿠폰은 모달(FL_B_PY_CPN, 후속 이슈)이라 목업값 고정. */
-  const effectiveSummary: PaymentSummary = { ...summary, pointDiscount: usedPoints };
+  const effectiveSummary: PaymentSummary = { ...couponAppliedSummary, pointDiscount: usedPoints };
 
-  const shippingState: ShippingSectionState = hasSavedAddress
+  const shippingState: ShippingSectionState = savedAddress
     ? "saved"
     : addressWarning
       ? "warning"
@@ -93,18 +113,27 @@ export function OrderCheckoutScreen({
   function handlePointInput(next: string) {
     const parsed = parsePointInput(next);
     if (parsed === null) return; // 부호·소수점 등 무효 입력(붙여넣기 포함)은 무시
-    const clamped = clampPointUsage(parsed, DEMO_POINT_BALANCE, maxPointUsage(summary));
+    const clamped = clampPointUsage(
+      parsed,
+      DEMO_POINT_BALANCE,
+      maxPointUsage(couponAppliedSummary),
+    );
     setPointInput(clamped === 0 ? "" : String(clamped));
   }
 
-  /* 배송지 추가/변경 진입점. PR1은 자리만 잡아둔다.
-     후속 이슈에서 배송지 입력 모달(FL_B_PY_ADDR)을 여는 상태로 연결한다. */
-  function handleEditShippingAddress() {
-    // TODO(Issue: 배송지 입력 모달): FL_B_PY_ADDR 열기 + 카카오 우편번호 연동
+  function handleApplyCoupon(couponId: string | null) {
+    setSelectedCouponId(couponId);
+    setCouponSheetOpen(false);
+  }
+
+  function handleSaveShippingAddress(next: ShippingAddress) {
+    setSavedAddress(next);
+    setAddressWarning(false); // interaction_spec: 배송지 입력 완료 시 Warning 해제
+    setAddressSheetOpen(false);
   }
 
   function handlePay() {
-    if (!hasSavedAddress) {
+    if (!savedAddress) {
       // interaction_spec: 배송지 설정 영역으로 스크롤 + Warning 강조
       setAddressWarning(true);
       document
@@ -119,35 +148,24 @@ export function OrderCheckoutScreen({
     <div className="bg-layer-bg min-h-dvh w-full">
       {/* 다른 전용 흐름 화면(AuthShell·BuyerLiveMain)과 같은 390px 모바일 컬럼 */}
       <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
-        <header className="bg-layer-surface-default flex h-13 shrink-0 items-center justify-between px-3 py-1">
-          <button
-            type="button"
-            aria-label="뒤로가기"
-            onClick={() => router.back()}
-            className="focus-visible:outline-border-primary flex size-10 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            {/* Figma: frequently/arrow_up_line 을 -90° 돌린 좌향 화살표(꼬리 있음). 쉐브론(‹) 아님 */}
-            <Icon name="arrowUp" className="size-6 -rotate-90" />
-          </button>
-          <h1 className="text-title-s text-text-default min-w-0 flex-1 truncate text-center">
-            프로젝트 제목
-          </h1>
-          {/* 제목을 가운데 두기 위한 좌우 대칭 여백(Figma의 opacity-0 btn_back) */}
-          <span aria-hidden className="size-10 shrink-0" />
-        </header>
+        <CheckoutTopBar />
 
         <div className="flex flex-1 flex-col gap-3 pb-8">
           <ShippingAddressSection
             id={SHIPPING_SECTION_ID}
             state={shippingState}
-            address={address}
-            onChangeAddress={handleEditShippingAddress}
-            onAddAddress={handleEditShippingAddress}
+            address={savedAddress ?? address}
+            onChangeAddress={() => setAddressSheetOpen(true)}
+            onAddAddress={() => setAddressSheetOpen(true)}
           />
 
           {/* 주문 상품 + 적립금: Figma에서 구분선 없이 이어진 한 흰 블록 */}
           <section className="bg-layer-surface-default flex flex-col">
-            <OrderItemSection item={orderItem} />
+            <OrderItemSection
+              item={orderItem}
+              couponDiscount={couponDiscount}
+              onApplyCoupon={() => setCouponSheetOpen(true)}
+            />
             <PointUsageSection
               value={pointInput}
               onChange={handlePointInput}
@@ -176,11 +194,35 @@ export function OrderCheckoutScreen({
           </Button>
         </div>
       </div>
+
+      <ShippingAddressSheet
+        open={addressSheetOpen}
+        onClose={() => setAddressSheetOpen(false)}
+        initial={savedAddress}
+        onSave={handleSaveShippingAddress}
+      />
+
+      <CouponSheet
+        open={couponSheetOpen}
+        onClose={() => setCouponSheetOpen(false)}
+        coupons={coupons}
+        orderAmount={orderAmount}
+        selectedId={selectedCouponId}
+        onApply={handleApplyCoupon}
+      />
     </div>
   );
 }
 
-function OrderItemSection({ item }: { item: OrderItem }) {
+function OrderItemSection({
+  item,
+  couponDiscount,
+  onApplyCoupon,
+}: {
+  item: OrderItem;
+  couponDiscount: number;
+  onApplyCoupon: () => void;
+}) {
   return (
     <div className="flex flex-col gap-3 px-5 py-4">
       <div className="flex gap-2">
@@ -208,18 +250,24 @@ function OrderItemSection({ item }: { item: OrderItem }) {
       </div>
 
       <div className="flex flex-col items-end">
-        <span className="text-body-s text-text-secondary line-through">
-          {formatWon(item.originalPrice)}
-        </span>
+        {couponDiscount > 0 && (
+          <span className="text-body-s text-text-secondary line-through">
+            {formatWon(item.originalPrice)}
+          </span>
+        )}
         <span className="flex items-center gap-2">
-          <span className="text-body-s text-text-default">쿠폰 적용가</span>
-          <span className="text-title-s text-text-default">{formatWon(item.couponPrice)}</span>
+          <span className="text-body-s text-text-default">
+            {couponDiscount > 0 ? "쿠폰 적용가" : "상품 금액"}
+          </span>
+          <span className="text-title-s text-text-default">
+            {formatWon(item.originalPrice - couponDiscount)}
+          </span>
         </span>
       </div>
 
-      {/* PR1: no-op. 쿠폰 모달(FL_B_PY_CPN)은 후속 이슈. */}
       <button
         type="button"
+        onClick={onApplyCoupon}
         className="border-w-xs border-border-default text-body-m text-text-default focus-visible:outline-border-primary flex h-10 items-center justify-center rounded-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         쿠폰 적용

@@ -24,8 +24,8 @@ export function BottomSheet({ children, className, footer, ...props }: BottomShe
   return (
     <DialogBase
       className={[
-        /* 최대 모바일 폭(480px)까지는 100%로 채우고, 그보다 넓은 화면에서만 가운데 정렬한다. */
-        "bg-layer-surface-default mx-auto mt-auto mb-0 max-h-[90dvh] w-full max-w-[480px] p-0",
+        /* 화면 컬럼(390px, AuthShell·주문서 등)과 같은 폭. 그보다 넓은 화면에서만 가운데 정렬한다. */
+        "bg-layer-surface-default mx-auto mt-auto mb-0 max-h-[90dvh] w-full max-w-[390px] p-0",
         "backdrop:bg-layer-overlay rounded-t-md",
         className,
       ]
