@@ -5,14 +5,18 @@ import {
   canSubmit,
   completeStage,
   daysSinceLastRecord,
+  demoBuyerFulfillmentState,
   demoFulfillmentState,
   formatRecordDate,
+  formatShippingDate,
   initialStage,
   isStale,
+  latestRecordId,
   maxImages,
   mediaCounts,
   mediaKindOf,
   removeMedia,
+  sortRecordsByDateDesc,
   staleAfterDays,
   todayValue,
 } from "./fulfillment-demo.ts";
@@ -122,4 +126,53 @@ test("MIME 타입으로 첨부 종류를 가르고 그 외는 거른다", () => 
   assert.equal(mediaKindOf("image/png"), "image");
   assert.equal(mediaKindOf("video/mp4"), "video");
   assert.equal(mediaKindOf("application/pdf"), null);
+});
+
+test("발송일은 yyyy.mm.dd로 표시하고 형식이 다르면 원문을 유지한다", () => {
+  assert.equal(formatShippingDate("2026-09-18"), "2026.09.18");
+  assert.equal(formatShippingDate("2026-9-8"), "2026-9-8");
+  assert.equal(formatShippingDate("미정"), "미정");
+});
+
+test("기록을 최신순으로 정렬하고 원본은 건드리지 않는다", () => {
+  const records = [
+    { id: "a", date: "2026-08-20", text: "", media: [] },
+    { id: "b", date: "2026-08-27", text: "", media: [] },
+    { id: "c", date: "2026-08-27", text: "", media: [] },
+    { id: "d", date: "2026-08-10", text: "", media: [] },
+  ];
+  const sorted = sortRecordsByDateDesc(records);
+
+  assert.deepEqual(
+    sorted.map((record) => record.id),
+    ["b", "c", "a", "d"],
+  );
+  // 같은 날짜(b, c)는 원래 순서를 유지한다.
+  assert.notEqual(sorted, records);
+  assert.equal(records[0].id, "a");
+  assert.deepEqual(sortRecordsByDateDesc([]), []);
+});
+
+test("최신 기록 id는 가장 나중 날짜, 기록이 없으면 null", () => {
+  const records = [
+    { id: "old", date: "2026-08-01", text: "", media: [] },
+    { id: "new", date: "2026-08-09", text: "", media: [] },
+  ];
+  assert.equal(latestRecordId(records), "new");
+  assert.equal(latestRecordId([]), null);
+});
+
+test("구매자 목업 상태는 생산 진행 중이고 지연 기록을 포함한다", () => {
+  const state = demoBuyerFulfillmentState("2026-08-30");
+
+  assert.equal(state.stages.prep.status, "done");
+  assert.equal(state.stages.production.status, "active");
+  assert.equal(initialStage(state.stages), "production");
+  assert.equal(state.stages.production.records.length, 4);
+  assert.equal(state.stages.production.records.filter((record) => record.delayed).length, 1);
+  assert.equal(state.stages.production.startDate, "2026-08-18");
+  assert.match(formatShippingDate(state.expectedShippingDate), /^\d{4}\.\d{2}\.\d{2}$/);
+  // 미래 단계는 기록 없이 예상 시작일만 갖는다.
+  assert.equal(state.stages.inspection.records.length, 0);
+  assert.ok(state.stages.inspection.startDate);
 });

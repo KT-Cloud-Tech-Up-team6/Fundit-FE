@@ -37,14 +37,29 @@ export type FulfillmentRecord = {
   date: string;
   text: string;
   media: MediaItem[];
+  /** 구매자 화면(FL_B_MY_DLVR)의 `지연` 표기용. 판매자 화면은 이 값을 읽지 않는다. */
+  delayed?: boolean;
 };
 
 export type StageState = {
   status: StageStatus;
   records: FulfillmentRecord[];
+  /** 구매자 화면의 단계 기간 표기용(`yyyy-mm-dd`). 판매자 화면은 읽지 않아 optional로 둔다. */
+  startDate?: string;
+  expectedEndDate?: string;
 };
 
 export type FulfillmentState = Record<FulfillmentStage, StageState>;
+
+/**
+ * 구매자 제작·배송 현황(FL_B_MY_DLVR)용 래퍼. 판매자 `FulfillmentState`는 그대로 두고
+ * 전체 예상 발송일만 덧붙인다.
+ */
+export type BuyerFulfillmentState = {
+  stages: FulfillmentState;
+  /** 전체 예상 발송일(`yyyy-mm-dd`). */
+  expectedShippingDate?: string;
+};
 
 export const maxImages = 10;
 export const maxVideos = 1;
@@ -67,6 +82,31 @@ export function stageLabel(stage: FulfillmentStage): string {
 export function formatRecordDate(date: string): string {
   const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(date);
   return match ? `${match[1]}월 ${match[2]}일` : date;
+}
+
+/**
+ * `yyyy-mm-dd` → `yyyy.mm.dd`. 형식이 다르면 원문을 그대로 돌려준다.
+ * Figma 프레임의 날짜 표기(`2026.09.10`)가 혼재해 화면 전체에서 이 하나로 통일한다.
+ */
+export function formatShippingDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return match ? `${match[1]}.${match[2]}.${match[3]}` : date;
+}
+
+/** 기록을 날짜 내림차순(최신순)으로 정렬한 새 배열. 같은 날짜는 원래 순서를 유지하고 원본은 건드리지 않는다. */
+export function sortRecordsByDateDesc(records: FulfillmentRecord[]): FulfillmentRecord[] {
+  return records
+    .map((record, index) => ({ record, index }))
+    .sort((a, b) =>
+      a.record.date === b.record.date ? a.index - b.index : a.record.date < b.record.date ? 1 : -1,
+    )
+    .map((entry) => entry.record);
+}
+
+/** 가장 최신 기록의 id. `업데이트` 뱃지 판별용. 기록이 없으면 null. */
+export function latestRecordId(records: FulfillmentRecord[]): string | null {
+  const [latest] = sortRecordsByDateDesc(records);
+  return latest ? latest.id : null;
 }
 
 /** 로컬 기준 오늘의 `yyyy-mm-dd`. <input type="date">의 기본값으로 쓴다. */
@@ -210,5 +250,73 @@ export function demoFulfillmentState(today: string = todayValue()): FulfillmentS
     inspection: { status: "todo", records: [] },
     release: { status: "todo", records: [] },
     delivery: { status: "todo", records: [] },
+  };
+}
+
+/**
+ * 구매자 목업 상태(FL_B_MY_DLVR). `제작 착수`는 완료, `생산`이 진행 중이고 뒤 단계는 대기다.
+ * `생산` 기록은 최신순 정렬 전 임의 순서로 넣어 `sortRecordsByDateDesc`가 실제로 동작하는지 확인한다.
+ * 날짜는 오늘 기준 상대값이라 시간이 지나도 화면이 굳지 않는다.
+ */
+export function demoBuyerFulfillmentState(today: string = todayValue()): BuyerFulfillmentState {
+  const productionStart = daysBefore(today, 12);
+  return {
+    stages: {
+      prep: {
+        status: "done",
+        startDate: daysBefore(today, 20),
+        expectedEndDate: productionStart,
+        records: [
+          {
+            id: "prep-1",
+            date: daysBefore(today, 18),
+            text: "샘플 검토를 마치고 초도 물량 발주를 넣었어요.",
+            media: [],
+          },
+        ],
+      },
+      production: {
+        status: "active",
+        startDate: productionStart,
+        expectedEndDate: daysBefore(today, -8),
+        records: [
+          {
+            id: "production-2",
+            date: daysBefore(today, 5),
+            text: "생산 라인 가동을 시작했고 초도물량 품질 검사를 예정하고 있어요.",
+            media: [],
+          },
+          {
+            id: "production-1",
+            date: daysBefore(today, 1),
+            text: "도장·건조 라인을 통과한 1차 완성품이 나왔어요. 다음 주 포장 자재가 입고되면 최종 조립에 들어갑니다. 진행 사진을 함께 올려요.",
+            media: [
+              { id: "production-1-a", kind: "image", name: "line-1.jpg", url: null },
+              { id: "production-1-b", kind: "image", name: "line-2.jpg", url: null },
+            ],
+          },
+          {
+            id: "production-4",
+            date: productionStart,
+            text: "생산 준비를 마치고 원자재 검수를 진행하고 있어요.",
+            media: [
+              { id: "production-4-a", kind: "image", name: "material-1.jpg", url: null },
+              { id: "production-4-b", kind: "image", name: "material-2.jpg", url: null },
+            ],
+          },
+          {
+            id: "production-3",
+            date: daysBefore(today, 3),
+            text: "부자재 수급이 지연돼 생산 일정이 이틀 밀렸어요. 예상 완료일을 조정했습니다.",
+            delayed: true,
+            media: [],
+          },
+        ],
+      },
+      inspection: { status: "todo", records: [], startDate: daysBefore(today, -8) },
+      release: { status: "todo", records: [], startDate: daysBefore(today, -14) },
+      delivery: { status: "todo", records: [], startDate: daysBefore(today, -20) },
+    },
+    expectedShippingDate: daysBefore(today, -32),
   };
 }
