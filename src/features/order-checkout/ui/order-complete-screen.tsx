@@ -61,9 +61,9 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    /* Figma: 완료 화면은 흰 바탕(주문서는 회색). 그래픽·영수증 카드만 회색(#ededed). */
-    <div className="bg-layer-surface-default min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
+    /* 다른 소비자 화면처럼 바깥 배경은 회색, 가운데 390 컬럼만 흰색. 그래픽·영수증 카드는 회색(#ededed). */
+    <div className="bg-layer-bg min-h-dvh w-full">
+      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
         <CheckoutTopBar />
 
         <div className="flex flex-1 flex-col items-center gap-6 px-5 pt-16">
