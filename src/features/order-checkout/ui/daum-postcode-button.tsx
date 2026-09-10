@@ -34,23 +34,24 @@ function loadDaumPostcode(): Promise<void> {
   if (window.daum?.Postcode) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
 
+  /* scriptPromise 가 null 인데 여기 왔다는 건 "아직 로드 안 됨" 또는 "직전 시도 실패"뿐이다.
+     (성공했으면 window.daum 체크에서 이미 반환). 매번 새 <script> 를 만들고, 실패하면
+     그 요소를 제거해 다음 시도(시트 재오픈)에서 실제로 재요청되게 한다. */
   scriptPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
-    const script = existing ?? document.createElement("script");
+    const script = document.createElement("script");
+    script.src = SCRIPT_SRC;
+    script.async = true;
     script.addEventListener("load", () => resolve(), { once: true });
     script.addEventListener(
       "error",
       () => {
-        scriptPromise = null; // 다음 시도에서 다시 로드할 수 있게
+        script.remove();
+        scriptPromise = null;
         reject(new Error("daum postcode script load failed"));
       },
       { once: true },
     );
-    if (!existing) {
-      script.src = SCRIPT_SRC;
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    document.head.appendChild(script);
   });
 
   return scriptPromise;
