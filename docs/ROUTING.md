@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 취소·환불·교환 내역은 [BUYER_REFUNDS.md](./BUYER_REFUNDS.md)를 참고한다. `/my/refunds`는 전용 `(buyer-refunds)` 그룹의 조회 목업이며 삭제된 저장 버튼은 포함하지 않는다.
+
 - 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
 
 - 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
@@ -85,7 +87,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 취소·하자·지연 환불 신청 | owner + eligible | placeholder        |
-| `/my/refunds`                                  | 환불내역                 | member           | placeholder        |
+| `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented (목업) |
 | `/my/wishlist`                                 | 관심 목록                | member           | implemented (목업) |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
 | `/my/notifications/settings`                   | 알림 설정                | member           | placeholder        |
