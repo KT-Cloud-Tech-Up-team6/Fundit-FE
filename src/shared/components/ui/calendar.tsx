@@ -14,7 +14,7 @@ const navButtonClasses =
  * 날짜 선택 그리드 (Figma calendar organism). react-day-picker(v10)를 디자인 토큰으로 감싼다.
  * `mode`("single"/"range"/"multiple")는 호출자가 필요에 맞게 넘긴다 — 여기서 가정하지 않는다.
  */
-export function Calendar({ classNames, locale = ko, ...props }: CalendarProps) {
+export function Calendar({ classNames, components, locale = ko, ...props }: CalendarProps) {
   return (
     <DayPicker
       locale={locale}
@@ -49,6 +49,7 @@ export function Calendar({ classNames, locale = ko, ...props }: CalendarProps) {
         Chevron: ({ orientation }) => (
           <Icon name={orientation === "left" ? "previous" : "next"} className="size-4" />
         ),
+        ...components,
       }}
       {...props}
     />
