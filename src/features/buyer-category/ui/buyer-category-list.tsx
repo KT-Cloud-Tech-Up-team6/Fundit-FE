@@ -6,6 +6,7 @@ import {
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";
+import { CategoryBannerCarousel } from "./category-banner-carousel";
 import styles from "./buyer-category-list.module.css";
 
 export function BuyerCategoryList({ slug }: { slug: string }) {
@@ -36,13 +37,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
       <main>
         <h1 className="sr-only">카테고리 탐색</h1>
         <section aria-label="프로모션 배너" className="px-5">
-          <div className={`${styles.banner} relative h-22 w-full rounded-xs`}>
-            <span
-              className={`${styles.counter} absolute right-2 bottom-2 rounded-xs px-2 py-1 text-[11px] leading-[1.3]`}
-            >
-              1/3
-            </span>
-          </div>
+          <CategoryBannerCarousel />
         </section>
 
         <div className="flex gap-0 px-5 pt-4 pb-8">

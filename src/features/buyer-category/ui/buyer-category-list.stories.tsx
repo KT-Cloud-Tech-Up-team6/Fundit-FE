@@ -22,7 +22,10 @@ export const Default: Story = {
       "/categories/home-living",
     );
     expect(canvas.getByRole("button", { name: "테크·가전 더보기 · 화면 미정" })).toBeDisabled();
-    expect(canvas.getByRole("button", { name: "카테고리 · 화면 미정" })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "카테고리" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   },
 };
 
