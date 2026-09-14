@@ -73,11 +73,13 @@ export function RewardSheet({
     router.push(`/funding/${projectId}/checkout`);
   }
 
+  const heading = "리워드 선택";
+
   return (
     <BottomSheet
       onClose={onClose}
       open={open}
-      title="리워드 선택"
+      title={heading}
       footer={
         <div className="flex flex-col gap-2">
           {/* 줄을 담고 빼거나 수량을 바꾸면 합계가 소리로 읽히도록 status로 둔다. */}
@@ -91,7 +93,7 @@ export function RewardSheet({
         </div>
       }
     >
-      <div role="group" aria-label="리워드 선택" className="flex flex-col gap-3">
+      <div role="group" aria-label={heading} className="flex flex-col gap-3">
         {rewards.map((reward) => {
           const lines = cart[reward.id];
           return (

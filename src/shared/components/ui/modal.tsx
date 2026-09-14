@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { DialogBase } from "./dialog-base";
+import { DialogBase, dialogHeaderButtonClasses } from "./dialog-base";
 import { Icon } from "./icon";
 
 type ModalProps = Omit<
@@ -58,8 +58,8 @@ export function Modal({
             {title}
           </h2>
           <button
-            aria-label="닫기"
-            className="text-text-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex size-9 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2"
+            aria-label={typeof title === "string" ? `${title} 닫기` : "닫기"}
+            className={dialogHeaderButtonClasses}
             onClick={onClose}
             type="button"
           >
