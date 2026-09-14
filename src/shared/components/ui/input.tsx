@@ -13,12 +13,12 @@ type InputProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
    md(52px)로는 행이 과하게 높아진다. md는 폼 화면의 기존 사양이라 그대로 둔다. */
 const sizeClasses: Record<InputSize, string> = {
   sm: "h-9 rounded-xs",
-  md: "h-13 rounded-sm",
+  md: "h-13 rounded-xs",
 };
 
 const textClasses: Record<InputSize, string> = {
   sm: "text-body-s placeholder:text-body-s",
-  md: "text-body-m placeholder:text-body-s",
+  md: "text-body-m placeholder:text-body-m disabled:text-body-s disabled:leading-[1.42] disabled:placeholder:text-body-s",
 };
 
 const paddingClasses: Record<InputSize, { bare: string; adorned: string }> = {
@@ -37,12 +37,12 @@ export function Input({
   return (
     <div
       className={[
-        "border-w-xs bg-layer-surface-default flex w-full items-center overflow-hidden py-1",
+        "border-w-xs bg-layer-surface-default has-[:focus-visible]:outline-border-primary flex w-full items-center overflow-hidden py-1 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2",
         sizeClasses[size],
         endAdornment ? paddingClasses[size].adorned : paddingClasses[size].bare,
         error
           ? "border-border-accent-warning text-text-warning focus-within:border-border-accent-warning"
-          : "border-border-default focus-within:border-border-primary",
+          : "border-border-default",
         disabled && "bg-layer-surface-disabled text-text-disabled border-transparent",
         className,
       ]

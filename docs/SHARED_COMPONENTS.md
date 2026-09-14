@@ -114,6 +114,36 @@ src/shared/components/
 
 이 표는 컴포넌트 사용법의 정본이 아닙니다. 공개 props와 상태 예시는 각 Storybook 스토리를 기준으로 확인합니다.
 
+## Molecules 2차 디자인 반영
+
+디자인 기준은 [Fundit 디자인 시스템 유지보수 관리](https://www.figma.com/design/OJkMEDf2sY4Fkh0nSSNRXe?node-id=1-2)의 2026-09-14 내역과 Foundations입니다. 아래 컴포넌트는 디자인 시스템에 명시된 조합이므로 화면 적용에 앞서 공용으로 제공합니다. 기존 `ui` 디렉터리 구조를 유지합니다.
+
+| Figma 페이지      | 공개 컴포넌트      | 사용 계약                                                                            |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| chat              | `ChatDialogue`     | `sender`, 크기, 내용과 진행 표시. avatar·status·actions는 호출자 슬롯                |
+| dropdown          | `Dropdown`         | `lg` 52px, `sm` 32px, `xs` 30px. `value`/`onValueChange`로 제어하는 listbox          |
+| empty_state       | `EmptyState`       | 제목·부제·graphic·메시지·설명. graphic은 실제 화면의 에셋으로 전달                   |
+| footer            | `Footer`           | 선택적인 leading과 버튼 조합. 고정 위치·safe area는 화면 책임                        |
+| form_field        | `FormField`        | label·설명·action·입력 슬롯·오류 설명                                                |
+| input             | `Input`            | 기본 52px·radius 4px, 오류·비활성, endAdornment 슬롯                                 |
+| input_button      | `InputButton`      | 기존 Input과 버튼 슬롯의 조합. 조회·주소 검색은 호출자 책임                          |
+| input_chat        | `InputChat`        | 제어 textarea, 첨부·전송 콜백. Enter 전송, Shift+Enter 줄바꿈, IME 조합 중 전송 방지 |
+| list_item         | `ListItem`         | 텍스트·leading·trailing 조합. 이동은 Link로 감싸고 선택 컨트롤과 중첩하지 않음       |
+| pagination        | `Pagination`       | URL 페이지 이동, 숫자 목록·counter. 경계의 이전·다음은 링크를 만들지 않음            |
+| price_information | `PriceInformation` | 형식이 지정된 가격 문자열·원래 가격·설명. 할인 계산은 호출자 책임                    |
+| search_field      | `SearchField`      | `md` 46px·`lg` 52px, pill 형태, 입력·지우기·비활성                                   |
+
+- `Select`는 네이티브 select 계약을 유지합니다. Figma의 펼쳐진 옵션 메뉴가 필요한 곳에서 `Dropdown`을 사용합니다. 옵션 `value`는 목록 안에서 고유해야 합니다.
+- `Input`과 `SearchField`의 기존 36px `sm`은 판매자 와이어프레임 호환용으로 유지합니다. 기존 SearchField 기본 높이는 52px에서 46px로 변경되므로 52px이 필요한 사용처는 `size="lg"`를 지정합니다.
+- `FormField`의 `htmlFor`와 입력 `id`를 일치시키고, 설명·오류가 있으면 입력의 `aria-describedby`에 `<id>-description`, `<id>-error`를 연결합니다. 오류 입력에는 `error` 또는 `aria-invalid`를 함께 전달합니다.
+- `InputChat`의 전송 후 초기화, 업로드, 요청 중 disabled 상태는 호출자가 결정합니다. Input·SearchField·InputChat에는 label 또는 `aria-label`을 제공합니다.
+- `Footer`의 버튼은 기존 `Button appearance="cta"`를 재사용합니다. InputButton은 버튼 슬롯을 입력 높이에 맞춰 늘립니다.
+- Chat 색상은 Figma와 일치시키기로 확정했습니다. AI 말풍선은 `#959595`/흰색, 사용자 말풍선은 흰색/검정과 `#959595` 테두리를 사용하며 테마에 따라 바꾸지 않습니다. 상태 문구와 액션 예제도 Figma의 검정·흰색을 유지합니다. 해당 색상은 Chat에 한정된 명시적 예외이며 전역 semantic 토큰은 수정하지 않습니다. 좁은 화면에서는 고정 160px/188px 여백 대신 콘텐츠 폭에 맞춥니다.
+- Foundations의 18px Title 및 14px Body 행간 142%는 해당 Molecules의 `leading-[1.42]`로 반영했습니다. 전역 타이포·색상 및 Atoms의 2차 변경은 담당 범위 밖이므로 수정하지 않았습니다. Atoms의 Button 크기·Checkbox/Radio 변형이 갱신되면 슬롯 조합을 다시 확인합니다.
+- 아이콘은 해당 Molecules의 Figma SVG를 `public/icons/molecules`에 저장했습니다. `EmptyState`의 graphic placeholder와 Chat의 avatar는 교체 슬롯이며 서비스용 일러스트를 새로 만들지 않습니다.
+- 입력 focus outline은 키보드 접근성을 위해 제공합니다. Figma Footer의 고정 60px 안에 46px 버튼과 상하 8px 여백이 함께 지정되어 있어, 코드에서는 내용이 잘리지 않도록 최소 높이로 처리합니다.
+- Storybook 접근성 검사에서 기존 `text-secondary`/`text-disabled`의 회색 보조 텍스트와 `text-warning`의 오류 텍스트가 light 배경에서 대비 부족으로 보고됩니다. Dropdown placeholder, 원래 가격 및 입력 오류가 해당하며, Foundations 담당자와 토큰 조정 여부를 확인해야 합니다. 검사 설정에서 제외하지 않습니다.
+
 ## 변경 절차
 
 1. 기존 Storybook과 `shared/components/ui`에서 같은 의미의 컴포넌트가 있는지 확인합니다.
