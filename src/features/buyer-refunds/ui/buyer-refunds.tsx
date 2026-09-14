@@ -25,17 +25,15 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
                     className="text-text-disabled size-[14px] group-open:rotate-180"
                   />
                 </div>
-                <p className="text-body-s leading-5">{entry.fundingNumber}</p>
-                <h2 className="text-body-m max-w-[259px] truncate leading-6 font-medium">
-                  {entry.title}
-                </h2>
-                <p className="text-body-s mt-2 leading-5">
-                  진행상태: <strong className="font-semibold">{entry.status}</strong>
+                <p className="text-caption-m">{entry.fundingNumber}</p>
+                <h2 className="text-body-emphasis max-w-[259px] truncate">{entry.title}</h2>
+                <p className="text-caption-m mt-2">
+                  진행상태: <strong className="text-label-l">{entry.status}</strong>
                   {entry.completedAt && ` ${entry.completedAt}`}
                 </p>
               </summary>
               <div className="pt-5">
-                <dl className="bg-layer-surface-disabled text-body-s space-y-4 rounded-xs p-4 leading-[18px]">
+                <dl className="bg-layer-surface-disabled space-y-4 rounded-xs p-4 text-[0.875rem] leading-[1.125rem]">
                   {[
                     ["신청 일자", entry.requestedAt],
                     ["접수 사유", entry.reason],
