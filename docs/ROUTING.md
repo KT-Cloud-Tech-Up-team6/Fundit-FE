@@ -35,6 +35,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 - AI 생성과 목록은 목업입니다. 저장은 현재 화면의 메모리 상태에만 유지되며 새로고침이나 페이지 이동 시 초기화됩니다. 실제 AI·API·송출·권한 검증은 포함하지 않습니다.
 - 방송 시간은 최대 10분이며, 구간 추가 시 선택 구간의 시간을 둘로 나누어 전체 시간을 유지합니다. 제목·순서·진행 개요·대사를 수정할 수 있습니다. 건너뛴 질문은 목업 생성 시 예시 내용으로 대체합니다.
 - 구매자 제작·배송 현황은 [공유 Figma의 제작·배송 현황 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=824-8077)을 기준으로 하며 관련 작업은 [Issue #70](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/70)입니다. `/my/fundings/[fundingId]/fulfillment`(요약)와 `.../fulfillment/history`(전체 이력)는 판매자와 같은 `fulfillment-tracking` 슬라이스를 확장한 목업입니다. 원본이 자체 상단 앱바를 가진 몰입형 화면이라 BuyerShell을 쓰지 않는 `(buyer-fulfillment)` 그룹에 두며, 다른 `/my` 화면과 달리 전역 네비게이션이 없습니다. 5단계 ↔ 배송·배송완료 enum 매핑은 `docs/OPEN_DECISIONS.md` P1로 남기고, 캐릭터 GIF UI·발송정보·수령확인은 원본 프레임에 없어 제외했습니다.
+- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소) 원본 모두 자체 상단 앱바(뒤로가기·제목·알림)를 가진 몰입형 화면이라 BuyerShell을 쓰지 않는 `(buyer-funding)` 그룹에 두며, `(buyer-fulfillment)`와 같은 이유입니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`은 같은 `funding-history` 슬라이스의 목업이고, 카드별 상태(펀딩 진행 중·완료·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. 취소 사유 목록과 환불 계산(수수료 0·적립금 0 고정)은 배송·환불 정책 미확정(P2)에 따른 placeholder이며, 취소 확인 후에는 제출 API가 없어 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
 
 ## 공통·인증
 
@@ -86,9 +87,9 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | URL                                            | 화면                     | 접근 조건        | 상태               |
 | ---------------------------------------------- | ------------------------ | ---------------- | ------------------ |
 | `/my`                                          | 마이페이지               | member           | implemented (목업) |
-| `/my/fundings`                                 | 펀딩내역                 | member           | placeholder        |
-| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | placeholder        |
-| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | placeholder        |
+| `/my/fundings`                                 | 펀딩내역                 | member           | implemented (목업) |
+| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented (목업) |
+| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 취소·하자·지연 환불 신청 | owner + eligible | placeholder        |
