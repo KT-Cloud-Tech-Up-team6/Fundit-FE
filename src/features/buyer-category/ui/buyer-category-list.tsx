@@ -49,6 +49,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
                   <li key={category.slug}>
                     <Link
                       href={`/categories/${category.slug}`}
+                      replace
                       aria-current={selected ? "page" : undefined}
                       className={`${styles.categoryLink} block min-h-9 px-2 py-2 text-[14px] leading-5 ${selected ? "font-medium" : "font-normal"}`}
                     >
