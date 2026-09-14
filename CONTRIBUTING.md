@@ -111,6 +111,10 @@ chore: configure CI workflow
 - 기본 의존 방향은 `app → features → entities → shared`로 유지한다.
 - 페이지에 복잡한 업무 규칙이나 API 세부 구현을 몰아넣지 않는다.
 
+### 스타일 작성
+
+화면과 컴포넌트의 스타일은 [스타일과 디자인 토큰 규칙](./docs/SHARED_COMPONENTS.md#스타일과-디자인-토큰)을 따른다. Tailwind CSS 기본 사용, CSS Modules 사용 조건, 공용 컴포넌트·토큰 재사용과 검증 기준은 해당 문서에서 관리한다.
+
 ### 형식과 품질
 
 - Prettier 결과를 코드 형식의 기준으로 사용한다.
