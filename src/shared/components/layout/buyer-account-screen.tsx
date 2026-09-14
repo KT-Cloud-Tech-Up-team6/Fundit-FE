@@ -12,7 +12,7 @@ export function BuyerAccountScreen({
   children: ReactNode;
 }) {
   return (
-    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_summary:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] [--border-default:#d9d9d9] [--layer-surface-default:#fff] [--layer-surface-disabled:#ededed] [--text-default:#000] [--text-disabled:#959595] [&_a:focus-visible]:outline-2 [&_button:focus-visible]:outline-2 [&_summary:focus-visible]:outline-2">
+    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_summary:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] [&_a:focus-visible]:outline-2 [&_button:focus-visible]:outline-2 [&_summary:focus-visible]:outline-2">
       <header className="bg-layer-surface-default sticky top-0 z-10 grid h-[52px] grid-cols-[40px_1fr_40px] items-center px-3">
         <Link
           href={backHref}
@@ -21,7 +21,7 @@ export function BuyerAccountScreen({
         >
           <Icon name="arrowLeft" className="size-5" />
         </Link>
-        <h1 className="text-title-s text-center leading-[1.42] font-semibold">{title}</h1>
+        <h1 className="text-title-s text-center">{title}</h1>
         <Link
           href="/my/notifications"
           aria-label="알림함"

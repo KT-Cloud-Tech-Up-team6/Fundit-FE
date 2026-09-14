@@ -50,16 +50,16 @@ export function BuyerMyPage() {
           >
             <span aria-hidden className="bg-border-default size-[46px] shrink-0 rounded-full" />
             <div className="min-w-0">
-              <p className="text-title-m flex items-center gap-1 leading-7 font-bold">
+              <p className="text-heading-s flex items-center gap-1">
                 <span className="truncate">사용자 닉네임</span>
                 <Icon name="next" className="size-4 shrink-0" />
               </p>
-              <p className="text-text-disabled mt-1 truncate text-[13px]">12*****@gmail.com</p>
+              <p className="text-caption-s text-text-disabled mt-1 truncate">12*****@gmail.com</p>
             </div>
           </Link>
           <Link
             href="/seller/projects"
-            className="bg-text-default text-body-s text-text-static-white flex shrink-0 items-center gap-2 rounded-xs px-4 py-2"
+            className="bg-layer-surface-primary text-body-s text-text-inverse flex shrink-0 items-center gap-2 rounded-xs px-4 py-2"
             aria-label="판매자 모드로 이동"
           >
             판매자
@@ -68,19 +68,19 @@ export function BuyerMyPage() {
         </div>
         <section aria-label="회원 등급" className="mt-3 space-y-2">
           <div className="border-border-default rounded-xs border px-4 py-3">
-            <h2 className="text-body-m mb-2 flex items-center gap-2 font-semibold">
+            <h2 className="text-body-strong mb-2 flex items-center gap-2">
               <span
                 aria-hidden
                 className="size-5 bg-current [mask-image:url('/icons/buyer-mypage/wave.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
               />
               Ripple(잔물결)
             </h2>
-            <p className="text-body-s leading-5">
+            <p className="text-caption-m">
               성립 펀딩 2건 이상 또는 누적 15만원 이상일 시<br />
               Current(해류) 달성
             </p>
           </div>
-          <div className="bg-layer-surface-disabled text-label-m rounded-xs px-3 py-2 leading-[1.5]">
+          <div className="bg-layer-surface-disabled rounded-xs px-3 py-2 text-[0.75rem] leading-[1.5]">
             <h3 className="mb-1 flex items-center gap-1 font-medium">
               <span
                 aria-hidden
@@ -94,10 +94,10 @@ export function BuyerMyPage() {
         <div className="divide-layer-surface-disabled mt-8 divide-y">
           {menuGroups.map((group) => (
             <nav key={group.title} aria-label={group.title} className="py-6 first:pt-0 last:pb-0">
-              <h2 className="text-body-s mb-3 font-medium">{group.title}</h2>
+              <h2 className="mb-3 text-[0.875rem] leading-[1.5] font-medium">{group.title}</h2>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                 {group.items.map((item) => (
-                  <Link key={item.label} href={item.href} className="text-body-m py-2 font-medium">
+                  <Link key={item.label} href={item.href} className="text-body-emphasis py-2">
                     {item.label}
                   </Link>
                 ))}
