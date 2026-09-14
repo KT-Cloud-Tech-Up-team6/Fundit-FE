@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+
 - 구매자 프로젝트 상세는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다. `(buyer-project)` 그룹의 story·live-proof 탭은 전용 화면이며 나머지 탭은 기존 BuyerShell을 유지한다.
 
 - 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지하며 카테고리 메뉴는 목적지가 미정이므로 비활성 상태다.
@@ -44,7 +46,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | ----------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
 | `/`                     | 홈                      | public                    | placeholder                                             |
 | `/categories/[slug]`    | 카테고리                | public                    | placeholder                                             |
-| `/search`               | 통합 검색               | public                    | placeholder                                             |
+| `/search`               | 통합 검색               | public                    | implemented (목업)                                      |
 | `/live`                 | LIVE 메인               | public                    | implemented                                             |
 | `/live/new`             | 신규 LIVE               | public                    | placeholder                                             |
 | `/live/rank`            | 실시간 순위             | public                    | placeholder                                             |
