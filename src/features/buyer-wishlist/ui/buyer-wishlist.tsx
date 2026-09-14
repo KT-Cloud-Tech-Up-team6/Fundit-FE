@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
+import { ProjectRow } from "@/entities/project/ui/project-row";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { wishlistProjects, wishlistSellers } from "../model/wishlist-demo";
@@ -65,7 +65,7 @@ export function BuyerWishlist({
         aria-labelledby={`wishlist-${tab}`}
         className="px-5 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))]"
       >
-        <p role="status" className="text-body-s mb-3 font-medium">
+        <p role="status" className="mb-3 text-[0.875rem] leading-[1.5] font-medium">
           총 {count}개
         </p>
         {count === 0 ? (
@@ -76,50 +76,21 @@ export function BuyerWishlist({
           <div className="space-y-3">
             {projects.map((project, index) => (
               <Fragment key={project.id}>
-                <article aria-label={project.title} className="flex gap-3">
-                  <Link
-                    href={`/projects/${project.id}`}
-                    aria-label={`${project.title} 상세 보기`}
-                    className="bg-layer-surface-disabled flex aspect-[4/3] w-[39%] shrink-0 items-center justify-center rounded-xs"
+                <ProjectRow project={project} thumbnailClassName="w-[39%]">
+                  <button
+                    type="button"
+                    aria-label={`${project.id} 찜 해제`}
+                    className="bg-layer-surface-primary text-text-inverse flex size-[30px] shrink-0 items-center justify-center rounded-full"
+                    onClick={() =>
+                      setProjects((items) => items.filter((item) => item.id !== project.id))
+                    }
                   >
-                    {project.closed && (
-                      <span className="bg-border-default text-label-m rounded-xs px-3 py-1">
-                        종료
-                      </span>
-                    )}
-                  </Link>
-                  <div className="min-w-0 flex-1 pt-1">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className={`block ${project.closed ? "text-text-disabled" : ""}`}
-                    >
-                      <p className="text-label-m mb-1">{project.seller}</p>
-                      <h2 className="text-body-s line-clamp-2 leading-5 font-medium">
-                        {project.title}
-                      </h2>
-                    </Link>
-                    <div className="mt-2 flex items-center justify-between gap-1">
-                      <p
-                        className={`text-body-m font-semibold ${project.closed ? "text-text-disabled" : ""}`}
-                      >
-                        {project.progress.toLocaleString("ko-KR")}%달성
-                      </p>
-                      <button
-                        type="button"
-                        aria-label={`${project.id} 찜 해제`}
-                        className="bg-text-default text-text-static-white flex size-[30px] shrink-0 items-center justify-center rounded-full"
-                        onClick={() =>
-                          setProjects((items) => items.filter((item) => item.id !== project.id))
-                        }
-                      >
-                        <span
-                          aria-hidden
-                          className="size-4 bg-current [mask-image:url('/icons/buyer-wishlist/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </article>
+                    <span
+                      aria-hidden
+                      className="size-4 bg-current [mask-image:url('/icons/buyer-wishlist/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
+                    />
+                  </button>
+                </ProjectRow>
                 {index === 3 && <Advertisement />}
               </Fragment>
             ))}
