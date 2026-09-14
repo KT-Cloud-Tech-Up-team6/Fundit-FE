@@ -18,7 +18,8 @@ export function HeaderWeb({ actions, className, logo, nav }: HeaderWebProps) {
     >
       <div className="max-w-content mx-auto flex h-full w-full items-center gap-2 px-5 md:gap-4 xl:px-0">
         {logo}
-        {nav}
+        {/* 로고와 완전히 가운데 정렬하지 않고 메뉴를 살짝 아래로 내린다. */}
+        {nav && <div className="pt-1.5">{nav}</div>}
         {actions && <div className="ml-auto flex items-center gap-2 md:gap-3">{actions}</div>}
       </div>
     </header>

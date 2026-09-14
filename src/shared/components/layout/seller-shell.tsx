@@ -18,10 +18,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
     <div className="bg-layer-surface-default min-h-screen">
       <HeaderWeb
         logo={
-          <Link
-            href="/seller/projects"
-            className="flex h-[54px] w-16 shrink-0 items-center md:w-[102px]"
-          >
+          <Link href="/seller/projects" className="flex shrink-0 items-center">
             <Image alt="Fundit" className="h-9 w-auto" height={36} src="/logo.svg" width={100} />
           </Link>
         }
