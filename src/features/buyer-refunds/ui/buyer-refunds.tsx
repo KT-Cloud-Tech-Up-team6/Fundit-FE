@@ -14,7 +14,7 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
           entries.map((entry) => (
             <details
               key={entry.id}
-              open={entry.id === "cancel-complete"}
+              open={entry.type === "취소" && entry.status === "취소 완료"}
               className="group border-border-default bg-layer-surface-default border-b px-5 py-3"
             >
               <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -54,10 +54,12 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
                       <dt>실 환불 금액</dt>
                       <dd>{entry.cash.toLocaleString("ko-KR")}원</dd>
                     </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>적립금 환불 금액</dt>
-                      <dd>{entry.points?.toLocaleString("ko-KR")}원</dd>
-                    </div>
+                    {entry.points !== null && (
+                      <div className="flex justify-between gap-3">
+                        <dt>적립금 환불 금액</dt>
+                        <dd>{entry.points.toLocaleString("ko-KR")}원</dd>
+                      </div>
+                    )}
                   </dl>
                 )}
               </div>

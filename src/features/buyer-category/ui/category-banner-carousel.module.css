@@ -1,0 +1,18 @@
+.track {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  scroll-snap-align: start;
+  background: #ededed;
+}
+
+.counter {
+  background: #d9d9d9;
+  color: var(--text-default);
+}

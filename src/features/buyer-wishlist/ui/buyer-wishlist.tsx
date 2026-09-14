@@ -79,7 +79,7 @@ export function BuyerWishlist({
                 <ProjectRow project={project} thumbnailClassName="w-[39%]">
                   <button
                     type="button"
-                    aria-label={`${project.id} 찜 해제`}
+                    aria-label={`${project.title} 찜 해제`}
                     className="bg-layer-surface-primary text-text-inverse flex size-[30px] shrink-0 items-center justify-center rounded-full"
                     onClick={() =>
                       setProjects((items) => items.filter((item) => item.id !== project.id))
