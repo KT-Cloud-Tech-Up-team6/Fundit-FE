@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-bottom-navigation.module.css";
@@ -28,6 +31,9 @@ export function BuyerBottomNavigation({
   "aria-label": ariaLabel = "구매자 하단 메뉴",
   ...props
 }: BuyerBottomNavigationProps) {
+  const router = useRouter();
+  const isCategoriesActive = activeHref === "/categories";
+
   return (
     <nav
       {...props}
@@ -45,14 +51,22 @@ export function BuyerBottomNavigation({
         <NavigationAsset name="live-navigation" />
         라이브
       </Link>
-      <Link
-        href="/categories/tech-appliances"
-        aria-current={activeHref === "/categories" ? "page" : undefined}
-        className={styles.item}
-      >
-        <NavigationAsset name="categories" />
-        카테고리
-      </Link>
+      {isCategoriesActive ? (
+        <button
+          type="button"
+          aria-current="page"
+          className={styles.item}
+          onClick={() => router.back()}
+        >
+          <NavigationAsset name="categories" />
+          카테고리
+        </button>
+      ) : (
+        <Link href="/categories/tech-appliances" className={styles.item}>
+          <NavigationAsset name="categories" />
+          카테고리
+        </Link>
+      )}
       <Link
         href="/my"
         aria-current={activeHref === "/my" ? "page" : undefined}
