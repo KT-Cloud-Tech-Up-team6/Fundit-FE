@@ -6,6 +6,12 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
+
+- 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+
+- 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+
 - 구매자 프로젝트 상세는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다. `(buyer-project)` 그룹의 story·live-proof 탭은 전용 화면이며 나머지 탭은 기존 BuyerShell을 유지한다.
 
 - 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지한다.
@@ -50,7 +56,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/`                                    | 홈                      | public                    | placeholder                                             |
 | `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
 | `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | placeholder                                             |
-| `/search`                              | 통합 검색               | public                    | placeholder                                             |
+| `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
 | `/live`                                | LIVE 메인               | public                    | implemented                                             |
 | `/live/new`                            | 신규 LIVE               | public                    | placeholder                                             |
 | `/live/rank`                           | 실시간 순위             | public                    | placeholder                                             |
@@ -78,7 +84,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 | URL                                            | 화면                     | 접근 조건        | 상태               |
 | ---------------------------------------------- | ------------------------ | ---------------- | ------------------ |
-| `/my`                                          | 마이페이지               | member           | placeholder        |
+| `/my`                                          | 마이페이지               | member           | implemented (목업) |
 | `/my/fundings`                                 | 펀딩내역                 | member           | implemented (목업) |
 | `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
@@ -86,7 +92,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 취소·하자·지연 환불 신청 | owner + eligible | placeholder        |
 | `/my/refunds`                                  | 환불내역                 | member           | placeholder        |
-| `/my/wishlist`                                 | 찜                       | member           | placeholder        |
+| `/my/wishlist`                                 | 관심 목록                | member           | implemented (목업) |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
 | `/my/notifications/settings`                   | 알림 설정                | member           | placeholder        |
 | `/my/preferences`                              | 맞춤 정보                | member           | placeholder        |
