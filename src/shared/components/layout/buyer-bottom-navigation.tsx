@@ -10,6 +10,8 @@ type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
   activeHref?: "/" | "/live" | "/categories" | "/my";
 };
 
+const CATEGORY_RETURN_PATH_KEY = "buyer-category-return-path";
+
 function NavigationAsset({ name }: { name: "home" | "live-navigation" | "categories" }) {
   return (
     <span
@@ -34,11 +36,29 @@ export function BuyerBottomNavigation({
   const router = useRouter();
   const isCategoriesActive = activeHref === "/categories";
 
-  // ponytail: 딥링크·새로고침 등 앱 내 이전 화면이 없을 때는 history.length 휴리스틱으로
-  // 판단해 홈으로 대체한다. 정확한 "앱 내 진입 여부" 추적이 필요해지면 그때 보강한다.
+  // history.length는 외부 페이지·이전 세션 항목도 포함해 앱 내 진입 여부를 판별할 수
+  // 없다. 카테고리 탭으로 들어갈 때 현재 경로를 직접 기록해두고, 다시 누르면 그 경로로
+  // 돌아간다. 기록이 없으면(딥링크·새로고침 등 앱 내 이전 화면이 없는 경우) 홈으로 간다.
+  function handleCategoriesTabEnter() {
+    try {
+      sessionStorage.setItem(
+        CATEGORY_RETURN_PATH_KEY,
+        window.location.pathname + window.location.search,
+      );
+    } catch {
+      // sessionStorage 접근 불가(프라이빗 모드 등)여도 홈 폴백으로 정상 동작한다.
+    }
+  }
+
   function handleCategoriesTabClick() {
-    if (window.history.length > 1) router.back();
-    else router.push("/");
+    let returnPath: string | null = null;
+    try {
+      returnPath = sessionStorage.getItem(CATEGORY_RETURN_PATH_KEY);
+      sessionStorage.removeItem(CATEGORY_RETURN_PATH_KEY);
+    } catch {
+      returnPath = null;
+    }
+    router.push(returnPath ?? "/");
   }
 
   return (
@@ -69,7 +89,11 @@ export function BuyerBottomNavigation({
           카테고리
         </button>
       ) : (
-        <Link href="/categories/tech-appliances" className={styles.item}>
+        <Link
+          href="/categories/tech-appliances"
+          onClick={handleCategoriesTabEnter}
+          className={styles.item}
+        >
           <NavigationAsset name="categories" />
           카테고리
         </Link>
