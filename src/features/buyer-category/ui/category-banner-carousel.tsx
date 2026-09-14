@@ -37,7 +37,12 @@ export function CategoryBannerCarousel() {
     const track = trackRef.current;
     if (!track) return;
     setActiveIndex(Math.round(track.scrollLeft / track.clientWidth));
-    // 사용자가 직접 스와이프하면 한 텀 쉬고 자동 재생을 재개한다.
+  }
+
+  // scroll 이벤트만으로는 자동 재생 자신의 smooth scrollTo와 사용자 스와이프를 구분할 수
+  // 없다(자동 스크롤도 scroll 이벤트를 낸다). 스와이프는 항상 포인터 접촉으로 시작하므로
+  // pointerdown에서 감지해 한 텀 쉬었다가 자동 재생을 재개한다.
+  function handlePointerDown() {
     setAutoplayPaused(true);
     if (resumeTimer.current !== null) clearTimeout(resumeTimer.current);
     resumeTimer.current = setTimeout(() => setAutoplayPaused(false), AUTOPLAY_INTERVAL_MS);
@@ -51,6 +56,7 @@ export function CategoryBannerCarousel() {
         aria-label="프로모션 배너"
         tabIndex={0}
         onScroll={handleScroll}
+        onPointerDown={handlePointerDown}
         className={`${styles.track} flex overflow-x-auto`}
       >
         {Array.from({ length: SLIDE_COUNT }, (_, index) => (
