@@ -23,6 +23,7 @@
 
 - Storybook `Features/BuyerSearch`의 7개 상태와 SearchFlow.
 - EmptySubmission에서 기존 검색어를 모두 지우거나 공백만 제출하면 `q`가 비워지고 초기 화면으로 돌아가는지 검증한다.
+- HistoryRestoration에서 미제출 검색어를 입력한 뒤 이전·다음 검색 상태로 이동하면, 이전 draft가 다시 나타나지 않고 URL 검색어와 결과 화면이 복원되는지 검증한다.
 - `pnpm test src/features/buyer-search/model/search-demo.test.mjs`.
 - 실제 `/search`에서 URL 직접 진입·뒤로가기 및 한글 입력, 정렬·필터와 빈 결과를 확인한다.
 - Composition 스토리는 입력·조합 이벤트를 명시적으로 전달해 조합 중 제출 차단과 조합 종료 후 제출을 검증한다. 브라우저 자동화의 Enter 명령이 키 이벤트를 전달하지 않아 실제 OS 한글 키보드 조합은 별도 확인이 필요하다.
