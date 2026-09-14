@@ -201,7 +201,13 @@ export function FundingStoryEditor({ projectId }: { projectId: string }) {
         />
       )}
       {modal === "preview" && (
-        <Modal open title="스토리 미리보기" className="h-168 w-249!" onClose={() => setModal(null)}>
+        <Modal
+          open
+          title="스토리 미리보기"
+          className="h-168"
+          size="l"
+          onClose={() => setModal(null)}
+        >
           <div className="mx-auto max-w-203 pt-6">
             <StoryPreview body={body} />
           </div>
