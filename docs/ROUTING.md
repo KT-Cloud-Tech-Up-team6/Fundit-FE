@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
+
 - 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
 
 - 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
@@ -76,7 +78,7 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 | URL                                            | 화면                     | 접근 조건        | 상태               |
 | ---------------------------------------------- | ------------------------ | ---------------- | ------------------ |
-| `/my`                                          | 마이페이지               | member           | placeholder        |
+| `/my`                                          | 마이페이지               | member           | implemented (목업) |
 | `/my/fundings`                                 | 펀딩내역                 | member           | placeholder        |
 | `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | placeholder        |
 | `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | placeholder        |
