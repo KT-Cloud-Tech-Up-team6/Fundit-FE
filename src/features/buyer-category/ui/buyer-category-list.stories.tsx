@@ -26,6 +26,10 @@ export const Default: Story = {
       "aria-current",
       "page",
     );
+    expect(canvas.getAllByRole("link", { name: "소분류 명" })[0]).toHaveAttribute(
+      "href",
+      "/categories/tech-appliances/sub-1",
+    );
   },
 };
 

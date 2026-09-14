@@ -81,12 +81,14 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
               </button>
             </div>
             <ul className="grid grid-cols-2 gap-x-2">
-              {selectedCategory.subcategories.map((subcategory, index) => (
-                <li
-                  key={`${subcategory}-${index}`}
-                  className={`${styles.subcategory} min-w-0 border-b p-2 text-[14px] leading-5`}
-                >
-                  {subcategory}
+              {selectedCategory.subcategories.map((subcategory) => (
+                <li key={subcategory.slug} className={`${styles.subcategory} min-w-0 border-b`}>
+                  <Link
+                    href={`/categories/${selectedCategory.slug}/${subcategory.slug}`}
+                    className="block min-w-0 truncate p-2 text-[14px] leading-5"
+                  >
+                    {subcategory.name}
+                  </Link>
                 </li>
               ))}
             </ul>

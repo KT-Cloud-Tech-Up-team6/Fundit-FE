@@ -1,11 +1,21 @@
 // 실제 카테고리·slug 정책 확정 전 화면 확인에만 사용하는 목업 데이터다.
+export type BuyerSubcategory = {
+  slug: string;
+  name: string;
+};
+
 export type BuyerCategory = {
   slug: string;
   name: string;
-  subcategories: readonly string[];
+  subcategories: readonly BuyerSubcategory[];
 };
 
-const placeholderSubcategories = ["소분류 명", "소분류 명", "소분류 명", "소분류 명"] as const;
+const placeholderSubcategories: readonly BuyerSubcategory[] = [
+  { slug: "sub-1", name: "소분류 명" },
+  { slug: "sub-2", name: "소분류 명" },
+  { slug: "sub-3", name: "소분류 명" },
+  { slug: "sub-4", name: "소분류 명" },
+];
 
 export const buyerCategories: readonly BuyerCategory[] = [
   { slug: "tech-appliances", name: "테크·가전", subcategories: placeholderSubcategories },

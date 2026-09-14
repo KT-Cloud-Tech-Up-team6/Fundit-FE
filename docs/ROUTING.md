@@ -10,7 +10,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 - 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지한다.
 
-- 구매자 카테고리 리스트 `/categories/[slug]`는 전용 헤더·하단 탭을 사용하는 `(buyer-category)` 그룹에 둔다. 현재 카테고리와 소분류는 화면 확인용 목업이다. `BuyerBottomNavigation`의 카테고리 탭은 `/categories/tech-appliances`(첫 번째 카테고리)로 진입하고, 카테고리 화면이 이미 활성 상태일 때 같은 탭을 다시 누르면 `router.back()`으로 진입 전 화면으로 돌아간다 — 실제 진입 slug·카테고리 체계는 여전히 목업이다.
+- 구매자 카테고리 리스트 `/categories/[slug]`는 전용 헤더·하단 탭을 사용하는 `(buyer-category)` 그룹에 둔다. 현재 카테고리와 소분류는 화면 확인용 목업이다. `BuyerBottomNavigation`의 카테고리 탭은 `/categories/tech-appliances`(첫 번째 카테고리)로 진입하고, 카테고리 화면이 이미 활성 상태일 때 같은 탭을 다시 누르면 `router.back()`으로 진입 전 화면으로 돌아간다 — 실제 진입 slug·카테고리 체계는 여전히 목업이다. 소분류명을 누르면 `/categories/[slug]/[subcategorySlug]`(소분류 결과 목록)로 이동하며, 이 화면은 아직 `PagePlaceholder`다.
 
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
@@ -46,6 +46,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | ----------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
 | `/`                     | 홈                      | public                    | placeholder                                             |
 | `/categories/[slug]`    | 카테고리                | public                    | implemented (목업)                                      |
+| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | placeholder                                             |
 | `/search`               | 통합 검색               | public                    | placeholder                                             |
 | `/live`                 | LIVE 메인               | public                    | implemented                                             |
 | `/live/new`             | 신규 LIVE               | public                    | placeholder                                             |
