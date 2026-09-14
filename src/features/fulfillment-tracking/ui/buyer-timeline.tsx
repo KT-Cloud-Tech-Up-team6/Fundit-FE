@@ -39,7 +39,6 @@ export function BuyerTimeline({
     <ol className="w-full">
       {sorted.map((record, index) => {
         const isLatest = record.id === latestId;
-        const images = record.media.filter((media) => media.kind === "image");
         const collapsible = collapsibleItems && !isLatest;
         const open = !collapsible || expanded[record.id] === true;
         const isLastRow = index === sorted.length - 1;
@@ -82,9 +81,9 @@ export function BuyerTimeline({
                 {record.text}
               </p>
 
-              {open && images.length > 0 && (
+              {open && record.media.length > 0 && (
                 <ul className="mt-2 flex flex-wrap gap-3">
-                  {images.map((media) => (
+                  {record.media.map((media) => (
                     <li key={media.id}>
                       <button
                         type="button"
@@ -92,11 +91,13 @@ export function BuyerTimeline({
                         onClick={() => onSelectMedia(media)}
                         className="bg-layer-surface-disabled relative flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-xs"
                       >
-                        {/* ponytail: 목업 기록의 첨부는 objectURL이 없어 회색 플레이스홀더로 둔다.
-                            업로드 API가 생기면 url이 채워져 아래 분기로 들어간다. */}
-                        {media.url ? (
+                        {/* 이미지는 objectURL이 있을 때 썸네일로, 동영상은 재생 아이콘으로
+                            표시한다. 목업 이미지처럼 url이 없으면 회색 자리만 남긴다. */}
+                        {media.url && media.kind === "image" ? (
                           // eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다.
                           <img src={media.url} alt="" className="size-full object-cover" />
+                        ) : media.kind === "video" ? (
+                          <Icon name="play" className="text-text-secondary size-6" />
                         ) : null}
                       </button>
                     </li>

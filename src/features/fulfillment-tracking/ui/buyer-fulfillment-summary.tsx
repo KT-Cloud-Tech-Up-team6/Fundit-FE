@@ -15,9 +15,9 @@ import {
   type MediaItem,
 } from "../model/fulfillment-demo";
 import { BuyerStageStepper } from "./buyer-stage-stepper";
+import { BuyerStaleBanner } from "./buyer-stale-banner";
 import { BuyerTimeline } from "./buyer-timeline";
 import { MediaLightbox } from "./media-lightbox";
-import { StaleBanner } from "./stale-banner";
 
 /* ponytail: 서버 계약 전이라(docs/OPEN_DECISIONS.md P1 — 5단계 ↔ 배송/배송완료 enum 미확정)
    상태는 목업 + useState로만 들고 있다. 라이트박스·타임라인 펼침 외 상호작용은 없고
@@ -50,6 +50,7 @@ export function BuyerFulfillmentSummary({
 
   const current = initialStage(state.stages);
   const currentStage = state.stages[current];
+  const isComplete = currentStage.status === "done";
   const staleDays = isStale(currentStage, today)
     ? daysSinceLastRecord(currentStage.records, today)
     : null;
@@ -83,19 +84,32 @@ export function BuyerFulfillmentSummary({
           </div>
         </div>
 
-        <p className="text-body-l text-text-default">
-          현재 <span className="text-title-s">{stageLabel(current)}</span> 중 이에요
-        </p>
+        {currentStage.status === "active" ? (
+          <p className="text-body-l text-text-default">
+            현재 <span className="text-title-s">{stageLabel(current)}</span> 중이에요
+          </p>
+        ) : currentStage.status === "todo" ? (
+          <p className="text-body-l text-text-default">
+            <span className="text-title-s">{stageLabel(current)}</span> 시작 전이에요
+          </p>
+        ) : (
+          <p className="text-title-s text-text-default">제작·배송이 완료됐어요</p>
+        )}
 
         <BuyerStageStepper state={state.stages} />
 
         <div className="flex flex-col gap-1">
-          {currentStage.startDate && (
+          {currentStage.startDate && currentStage.status === "active" && (
             <p className="text-caption-m text-text-secondary">
               {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
             </p>
           )}
-          {currentStage.expectedEndDate && (
+          {currentStage.startDate && currentStage.status === "todo" && (
+            <p className="text-body-strong text-text-default">
+              {stageLabel(current)} 시작 예정일 {formatShippingDate(currentStage.startDate)}
+            </p>
+          )}
+          {currentStage.expectedEndDate && currentStage.status === "active" && (
             <p className="text-body-strong text-text-default">
               {stageLabel(current)} 완료 예정일 {formatShippingDate(currentStage.expectedEndDate)}
             </p>
@@ -117,7 +131,7 @@ export function BuyerFulfillmentSummary({
 
         <div className="mt-4 flex flex-col gap-3">
           <p className="text-body-strong text-text-default">{stageLabel(current)}</p>
-          {(currentStage.startDate || currentStage.expectedEndDate) && (
+          {!isComplete && (currentStage.startDate || currentStage.expectedEndDate) && (
             <p className="text-caption-m text-text-secondary">
               {currentStage.startDate ? formatShippingDate(currentStage.startDate) : "미정"} - 예정{" "}
               {currentStage.expectedEndDate
@@ -125,9 +139,9 @@ export function BuyerFulfillmentSummary({
                 : "미정"}
             </p>
           )}
-          {/* Figma 프레임에는 없지만 이슈 #70 P2(미갱신 안내) 요구로 판매자 화면의
-              정체 경고 패턴(StaleBanner)을 재사용한다. 현재 단계가 7일+ 미갱신이면 노출. */}
-          {staleDays !== null && <StaleBanner days={staleDays} />}
+          {/* Figma 프레임에는 없지만 이슈 #70 P2(미갱신 안내) 요구로 현재 단계가
+              7일 이상 갱신되지 않으면 구매자용 읽기 전용 안내를 노출한다. */}
+          {staleDays !== null && <BuyerStaleBanner days={staleDays} />}
           <BuyerTimeline
             records={currentStage.records}
             onSelectMedia={setPreview}

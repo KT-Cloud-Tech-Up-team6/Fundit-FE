@@ -63,7 +63,9 @@ export const Stale: Story = {
   args: { today: "2026-09-20", initialState: demoBuyerFulfillmentState("2026-08-20") },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText(/마지막 업데이트 후 \d+일이 지났어요\./)).toBeVisible();
+    await expect(canvas.getByText("업데이트 예정")).toBeVisible();
+    await expect(canvas.getByText(/마지막 업데이트 \d+일 전/)).toBeVisible();
+    await expect(canvas.queryByText("제작 진행 상황을 업데이트해주세요")).not.toBeInTheDocument();
   },
 };
 
@@ -93,5 +95,56 @@ export const ExpandFoldedRecord: Story = {
       "aria-expanded",
       "true",
     );
+  },
+};
+
+/** 동영상 첨부를 타임라인에 표시하고 라이트박스로 연결한다. */
+export const VideoAttachment: Story = {
+  args: {
+    today,
+    initialState: stateWith((state) => {
+      state.stages.production.records[1].media.push({
+        id: "production-video",
+        kind: "video",
+        name: "line-check.mp4",
+        url: null,
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "line-check.mp4 동영상 크게 보기" }));
+    await expect(canvas.getByRole("dialog", { name: "line-check.mp4" })).toBeVisible();
+  },
+};
+
+/** 아직 시작하지 않은 첫 단계는 진행 중으로 표현하지 않는다. */
+export const NotStarted: Story = {
+  args: {
+    today,
+    initialState: stateWith((state) => {
+      for (const stage of Object.values(state.stages)) stage.status = "todo";
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("제작 착수 시작 전이에요")).toBeVisible();
+    await expect(canvas.queryByText(/제작 착수 중이에요/)).not.toBeInTheDocument();
+  },
+};
+
+/** 모든 단계 완료 시 완료 문구를 표시하고 지난 예정일 안내를 숨긴다. */
+export const Completed: Story = {
+  args: {
+    today,
+    initialState: stateWith((state) => {
+      for (const stage of Object.values(state.stages)) stage.status = "done";
+      state.stages.delivery.expectedEndDate = "2026-08-27";
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("제작·배송이 완료됐어요")).toBeVisible();
+    await expect(canvas.queryByText(/완료 예정일/)).not.toBeInTheDocument();
   },
 };
