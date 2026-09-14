@@ -88,6 +88,36 @@ export const FixedFooter: Story = {
   },
 };
 
+/* 내장 타이틀 바: title만 주면 헤더(제목+닫기)가 자동으로 생기고, onBack까지 주면
+   다단계 시트의 뒤로가기 버튼도 같이 뜬다. */
+export const WithTitleBar: Story = {
+  args: { children: null, onClose: () => {}, open: false, title: "리워드 선택" },
+  render: function WithTitleBarStory() {
+    const [open, setOpen] = useState(true);
+    const [detail, setDetail] = useState(false);
+
+    return (
+      <div className="min-h-dvh p-5">
+        <Button onClick={() => setOpen(true)}>시트 열기</Button>
+        <BottomSheet
+          onBack={detail ? () => setDetail(false) : undefined}
+          onClose={() => setOpen(false)}
+          open={open}
+          title={detail ? "리워드 상세" : "리워드 선택"}
+        >
+          {detail ? (
+            <p className="text-body-s text-text-default">뒤로가기를 누르면 목록으로 돌아갑니다.</p>
+          ) : (
+            <Button className="w-full" onClick={() => setDetail(true)}>
+              상세 보기
+            </Button>
+          )}
+        </BottomSheet>
+      </div>
+    );
+  },
+};
+
 /* 회원가입 약관 시트의 실제 배치 예다. 시트 안에서 Tab이 순환하는지 확인한다. */
 export const TermsSheet: Story = {
   args: { "aria-labelledby": "terms-sheet-title", children: null, onClose: () => {}, open: false },
