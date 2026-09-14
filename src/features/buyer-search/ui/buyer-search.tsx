@@ -54,6 +54,9 @@ export function BuyerSearch({
   const [notifications, setNotifications] = useState<string[]>([]);
   const composing = useRef(false);
   const input = useRef<HTMLInputElement>(null);
+  if (draft.base !== query.q) {
+    setDraft({ base: query.q, value: query.q, editing: false });
+  }
   const value = draft.base === query.q ? draft.value : query.q;
   const editing = draft.base === query.q && draft.editing;
   const results = searchResults(query);

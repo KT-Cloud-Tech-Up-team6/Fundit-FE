@@ -1,22 +1,30 @@
 # API 계약 초안
 
-작성일은 2026-09-07, 갱신일은 2026-09-08이며 FE·BE 연동 준비용 초안이다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
+작성일은 2026-09-07, 갱신일은 2026-09-14다. 상태는 **최신 전달 명세 반영, 서버 대조 전**이며 전체 계약 확정을 뜻하지 않는다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
 
 ## 1. 목적·근거·우선순위
 
-이 문서는 백엔드 코드·실제 서버 응답을 직접 검증한 결과가 아니라 전달받은 자료를 정리한 문서다.
+이 문서는 전달받은 자료를 정리한 문서다. 인증·회원의 일부 코드를 읽어 명세와 비교했지만 BE 서버 실행·테스트 실행·실제 응답 대조는 하지 않았다.
 
 - API 버저닝·표준 에러 형식 정의서.
-- 2026-09-08 FE에 전달된 최신 BE 추가 답변과 서비스별 로컬 포트 이미지.
+- 2026-09-14 FE에 전달된 OpenAPI 3.1.0 `auth-api.yaml`, `member-api.yaml`(각 info.version은 v1). BE 설명은 “지금 작업중인 내용 제외하고 develop 브랜치 최신버전으로 작성된 auth, member”다. 기준 커밋·추출 시점·제외된 API 목록은 전달되지 않았다.
+- 2026-09-08 FE에 전달된 이전 BE 추가 답변과 서비스별 로컬 포트 이미지.
 - [Auth 명세](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/develop/services/auth-service/docs/AuthDomainApiSpec.md).
 - [Member 명세](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/develop/services/member-service/docs/MemberDomainApiSpec.md).
 - BE가 전달한 `project-service_API_명세서.md`의 35개 엔드포인트. Notion 첨부 블록 ID는 `3d49e3e3-35cc-8064-b924-d74d56ddd7b7`이다. 만료되는 서명 다운로드 URL은 계약 링크로 저장하지 않는다.
 
-최종 계약과 계약 변경의 기준은 **Swagger**다. 이번 초안 갱신에서는 사용자 지시에 따라 기존 Markdown 명세와 충돌하는 **최신 BE 답변을 우선**하고, 답변에 없는 경로·필드를 명세로 보완한다. Swagger 주소와 실제 응답을 확보하면 연동 대상부터 대조한다. 답변이 있는 항목을 재질문하거나 모든 협의가 끝날 때까지 초안 갱신을 미루지 않는다.
+최종 계약과 계약 변경의 기준은 **Swagger/OpenAPI**다. 인증·회원은 이번에 직접 전달받은 YAML을 최신 전달 명세로 우선한다. 이전 답변·Markdown의 보완 내용은 출처를 구분해 유지하며, YAML에 없는 API를 최신 연동 범위나 미구현으로 단정하지 않는다. 저장소 코드가 YAML보다 최신이라고 판단하거나 코드로 명세를 덮어쓰지 않는다. 불일치는 4.6에서 별도로 기록하고 BE에 연동 기준을 확인한다. 프로젝트 등 다른 서비스는 기존 근거를 유지한다.
+
+원본 파일 식별용 SHA-256은 다음과 같다. 저장소에 YAML 원본을 복사하지 않았으며 공유 위치와 기준 버전 고정은 후속 확인 대상이다.
+
+- `auth-api.yaml`: `127fc4d515650fb2c63249dfb130714e4f67e4157bd175a7788246db0ad891c0`.
+- `member-api.yaml`: `a714da3da5281213dcd5a5c05eb21851ab08705f90605ddfb073e64c34797f20`.
 
 | 구분           | 의미                                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------- |
 | 정의서 기준    | 공통 정의서의 규칙.                                                                      |
+| 최신 전달 명세 | 2026-09-14 YAML에 명시된 계약. 실제 배포·호출 가능 여부는 별도 확인한다.                 |
+| 코드 대조      | 특정 커밋의 소스·기존 테스트를 읽어 확인한 내용. 최신 전달 명세를 대체하지 않는다.       |
 | 구현 답변 기준 | 최신 BE가 설명한 현재 구현이며 PM 정책 확정·배포 완료를 뜻하지 않는다.                   |
 | 명세 보완      | 최신 답변에 없는 정보를 BE Markdown 명세로 보완했다. 실제 구현 여부까지 확정하지 않는다. |
 | 미구현         | BE가 미구현이라고 답변했다.                                                              |
@@ -28,6 +36,8 @@
 ### 2.1. 로컬 서비스
 
 BE는 로컬 MSA 환경을 사용하며 운영 주소는 배포 전으로 미정이다. 아래는 전달된 앱 포트를 HTTP 로컬 주소로 표현한 것이며 실제 접속 검증 결과가 아니다.
+
+이번 Auth·Member YAML의 servers는 `/`(명세를 받아온 곳과 같은 origin)뿐이다. 이 값으로 FE에서 접근할 개발 Gateway 주소나 현재 배포 환경을 확정할 수 없으며 아래 주소는 2026-09-08 자료 기준이다.
 
 | 서비스                   | 로컬 주소               |
 | ------------------------ | ----------------------- |
@@ -109,6 +119,8 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 
 일반화된 detail 규격은 아직 없다. FE는 알 수 없는 값을 특정 배열·객체로 단정하지 않고 구조를 검사한 뒤 사용한다. 모든 400이 필드 오류 배열을 반환하는 것은 아니다. `fieldErrors`, `timestamp`, `traceId`는 전달된 표준 필드가 아니다.
 
+이번 두 YAML은 ErrorResponse 설명에 검증 오류 배열·그 외 대부분 null을 적었지만 detail 스키마는 `type: object`만 선언한다. 배열·null 설명과 스키마가 불일치하므로 생성 타입으로 확정하지 않는다. 위 계정 잠금 detail과 null 키 생략 규칙은 2026-09-08 답변을 보존한 내용이다. YAML의 공통 코드 목록만으로 API별 발생 가능한 오류를 모두 확정하지 않으며, 실제 오류 예시와 스키마 보완이 필요하다.
+
 ### 3.3. HTTP 상태·오류 코드
 
 | HTTP | 공통 코드 또는 의미                               |
@@ -160,15 +172,15 @@ null 키 생략은 오류 detail에서 추론한 규칙이 아니라 최신 BE�
 
 ### 4.1. 인증 경계와 쿠키
 
-Auth의 Access Token 전달은 `Authorization: Bearer <token>`이다. 프로젝트 명세도 같은 헤더를 지정한다. Member 명세는 아직 `X-Account-Id`를 서명 검증 없이 신뢰하는 내부망 전제의 임시 방식이라고 명시한다. 이를 운영용 FE 인증 계약으로 채택하지 않고 Gateway 인증 연결 상태를 먼저 확인한다. 내부 전용 키는 FE에 포함하지 않는다.
+최신 전달 명세의 보호 API는 `Authorization: Bearer <token>`을 사용한다. bearerAuth 설명은 Gateway가 토큰을 검증해 `X-User-Id`로 변환하고 클라이언트가 직접 보낸 해당 헤더는 제거한다고 명시한다. 이전 Member Markdown의 임시 `X-Account-Id` 설명을 FE 인증 계약으로 사용하지 않는다. 실제 Gateway 배포·연결은 별도 확인하며 내부 전용 헤더·키는 FE에 포함하지 않는다.
 
-Auth 명세 보완상 로그인·회원가입·갱신 시 Refresh Token은 다음 쿠키로 전달하며 응답 본문에 포함하지 않는다.
+최신 YAML의 로그인 200 응답은 다음 Refresh 쿠키 속성을 명시한다. Domain·Max-Age는 이 YAML에 명시되지 않았다.
 
 ```http
-Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/token/refresh; Max-Age=1209600
+Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/token/refresh
 ```
 
-최신 답변도 HttpOnly·Secure·SameSite=Strict 예시를 제공했다. Domain·환경별 CORS·Credential은 미확정이며 이전 답변에서 CORS는 미구현이었다. FE의 직접 호출/BFF, Origin 및 Gateway 경로를 정한 후 쿠키 Path·전달·재발급을 함께 검증한다. BFF를 쓰면 Set-Cookie 릴레이 방식도 협의한다.
+이전 답변·Markdown에는 가입·갱신 시 쿠키 발급과 Refresh 14일(Max-Age=1209600)이 설명돼 있으나, 이번 YAML에는 가입·갱신 응답의 Set-Cookie 정의가 없다. 갱신 요청은 본문 없이 refreshToken 쿠키를 받으며 required는 false다. 쿠키 누락 시 성공한다는 의미로 해석하지 않고 오류 응답을 확인한다. Domain·환경별 CORS·Credential은 미확정이며 이전 답변에서 CORS는 미구현이었다. FE의 직접 호출/BFF, Origin 및 Gateway 경로를 정한 후 쿠키 전달·재발급을 함께 검증한다. BFF를 쓰면 Set-Cookie 릴레이 방식도 협의한다.
 
 호출 방식은 이번 문서에서 확정하지 않는다. 다음은 방식 선택 후 충족해야 할 전달 조건이며 현재 구현 완료를 뜻하지 않는다.
 
@@ -178,38 +190,49 @@ Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v
 
 ### 4.2. 주요 엔드포인트
 
-아래 경로와 본문은 명세 보완이며 최신 답변과 충돌하는 로그인 응답 등은 정정했다. 표의 본문은 핵심 필드 요약이며 전체 Swagger 스키마를 대신하지 않는다.
+아래는 이번 YAML에 포함된 전체 경로·메서드이며 모두 성공 상태가 200으로 기재돼 있다. 표는 핵심 필드 요약이며 전체 스키마를 대신하지 않는다. 찜 삭제는 코드와의 차이를 4.6에서 확인해야 한다.
 
-| Method·Path                                | 요청                                                                             | 응답·설명                                                 |
-| ------------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| POST `/api/v1/auth/login`                  | email, password                                                                  | accessToken, mustChangePassword. 회원정보는 제외.         |
-| GET `/api/v1/auth/check-email`             | query email                                                                      | available.                                                |
-| POST `/api/v1/auth/signup`                 | password, email, verificationToken, name, phoneNumber, agreedTerms, 선택 address | accountId, memberId, accessToken 및 Refresh 쿠키.         |
-| POST `/api/v1/auth/token/refresh`          | 본문 없음, Refresh 쿠키                                                          | accessToken 및 새 Refresh 쿠키.                           |
-| POST `/api/v1/auth/find-email`             | phoneNumber, verificationToken                                                   | 안내 message. 이메일은 응답이 아니라 SMS로 전달하는 명세. |
-| POST `/api/v1/auth/reset-password`         | email                                                                            | 안내 message, 재설정 링크 이메일 발송.                    |
-| POST `/api/v1/auth/reset-password/confirm` | resetToken, newPassword                                                          | message. 단기·일회성 재설정 토큰 사용.                    |
-| PATCH `/api/v1/auth/password`              | currentPassword, newPassword, Access 인증                                        | message. 로그인 상태 비밀번호 변경.                       |
-| GET `/api/v1/members/me`                   | 인증, 본문 없음                                                                  | memberId, name, nickname, phoneNumber, isSeller, isBuyer. |
-| GET `/api/v1/terms`                        | 인증 불필요                                                                      | code, title, content, required, version의 배열.           |
-| GET/POST `/api/v1/addresses`               | 인증                                                                             | 배송지 목록/등록.                                         |
-| PUT/DELETE `/api/v1/wishes/{projectId}`    | 인증, 본문 없음                                                                  | 찜 등록/해제. 삭제는 204.                                 |
-| GET `/api/v1/wishes`                       | 인증, page/size                                                                  | 공통 6개 필드 페이지 응답.                                |
+| Method·Path                                | 요청                                                                             | 응답·설명                                                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/login`                  | email, password                                                                  | accessToken, mustChangePassword. 회원정보는 제외.                                                                               |
+| GET `/api/v1/auth/check-email`             | query email                                                                      | available.                                                                                                                      |
+| POST `/api/v1/auth/identity-verifications` | 필수 identityVerificationId, minLength 1                                         | verificationToken, expiresAt(date-time).                                                                                        |
+| POST `/api/v1/auth/signup`                 | password, email, verificationToken, name, phoneNumber, agreedTerms, 선택 address | accountId, memberId, accessToken. 쿠키는 이전 근거로 분리.                                                                      |
+| POST `/api/v1/auth/token/refresh`          | 본문 없음, Refresh 쿠키                                                          | accessToken. 새 쿠키는 이전 근거로 분리.                                                                                        |
+| GET `/api/v1/auth/jwks`                    | 인증 불필요                                                                      | 자유 객체로 정의된 공개키 응답.                                                                                                 |
+| PATCH `/api/v1/auth/password`              | currentPassword, newPassword, Access 인증                                        | message. 로그인 상태 비밀번호 변경.                                                                                             |
+| GET `/api/v1/members/me`                   | 인증, 본문 없음                                                                  | memberId, name, nickname, phoneNumber, isSeller, isBuyer.                                                                       |
+| GET `/api/v1/terms`                        | 인증 불필요                                                                      | code, title, content, required, version의 배열.                                                                                 |
+| GET `/api/v1/addresses`                    | 인증                                                                             | id, recipientName, phoneNumber, zipcode, addressLine1, addressLine2, isDefault의 배열.                                          |
+| POST `/api/v1/addresses`                   | 인증, 주소 입력                                                                  | id, recipientName, isDefault.                                                                                                   |
+| PUT `/api/v1/wishes/{projectId}`           | 인증, int64 projectId, 본문 없음                                                 | projectId, wished.                                                                                                              |
+| DELETE `/api/v1/wishes/{projectId}`        | 인증, int64 projectId, 본문 없음                                                 | 200, 응답 content 정의 없음.                                                                                                    |
+| GET `/api/v1/wishes`                       | 인증, page 기본 0, size 기본 20                                                  | content, page, size, totalElements, totalPages, hasNext. 항목은 projectId(int64), projectTitle, projectThumbnailUrl, createdAt. |
 
-회원 프로필 생성 `POST /api/v1/members`는 auth-service 전용이며 FE가 직접 호출하지 않는다.
+로그인·이메일 중복 확인·일반 가입·본인인증·갱신·JWKS·약관 조회는 YAML에 인증 요구가 없다. 비밀번호 변경과 Member의 회원 조회·주소·찜 API는 bearerAuth를 명시한다.
 
-Auth 명세에는 소셜 로그인 `POST /api/v1/auth/login/social`과 소셜 가입 `POST /api/v1/auth/signup/social`도 있다. provider는 KAKAO/GOOGLE, 미가입 로그인은 200의 `needsSignup: true`와 `signupToken`으로 가입을 이어가는 명세다. 소셜 로그인 예시의 member 포함 여부 및 Member 소셜 생성의 MVP 제외 표기는 최신 실제 구현과 대조해야 한다. signupToken의 “예: 10분”은 확정 TTL로 취급하지 않는다.
+SignupRequest의 required는 password, email, verificationToken, name, phoneNumber, agreedTerms다. 문자열은 minLength 1, email은 email 형식, agreedTerms는 문자열 배열·minItems 1이며 address는 선택 자유 객체다. nickname은 이번 YAML에 없다. PasswordChangeRequest의 두 비밀번호는 required·minLength 1이다. 로그인은 본문 자체가 필수지만 email/password의 required 목록이 없고, 응답 DTO들도 required 목록이 없어 필드의 존재 보장·null 허용을 이 파일만으로 확정하지 않는다.
+
+다음은 **이전 Markdown 근거를 보존한 항목이며 이번 YAML에는 없는 경로**다. 진행 중 작업·연동 제외·미구현 중 어느 상태인지 추정하지 않는다.
+
+| 경로                                                           | 이전 근거와 남은 확인                                                                                                         |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/find-email`                                 | phoneNumber, verificationToken → 안내 message, 이메일은 SMS 전달 설명.                                                        |
+| POST `/api/v1/auth/reset-password`                             | email → 안내 message, 재설정 링크 이메일 발송 설명.                                                                           |
+| POST `/api/v1/auth/reset-password/confirm`                     | resetToken, newPassword → message, 단기·일회성 토큰 설명.                                                                     |
+| POST `/api/v1/auth/login/social`, `/api/v1/auth/signup/social` | KAKAO/GOOGLE, needsSignup·signupToken 분기는 이전 명세 설명. 이번 연동 범위·최종 DTO·TTL 확인 필요.                           |
+| POST `/api/v1/members`                                         | 이전 명세의 auth-service 전용 프로필 생성. YAML에 MemberCreateRequest/Response 스키마만 있다고 FE 공개 API로 취급하지 않는다. |
 
 ### 4.3. 로그인·로그아웃·비밀번호
 
 - 일반 로그인 `POST /api/v1/auth/login`에만 최신 답변의 accessToken·mustChangePassword 두 필드 규칙을 적용한다. 이전 Auth 명세의 `member` 객체를 필수로 기대하지 않는다.
-- `POST /api/v1/auth/login/social`에는 이 두 필드 규칙을 적용하지 않는다. 명세의 `needsSignup` 분기를 유지하고, 미가입자의 `signupToken`은 소셜 회원가입 요청에 사용한다. 소셜 응답의 member 포함 여부와 실제 지원 범위는 4.2의 확인 사항을 유지한다.
-- `mustChangePassword`는 항상 포함되지만 현재 true로 만드는 코드 경로가 없다. 필드 자체를 삭제하거나 영구적으로 false라고 가정하지 않는다.
-- **로그아웃은 스펙·코드에 없다.** FE가 Access Token을 버려도 Refresh Token 즉시 무효화나 서버 세션 종료가 된 것은 아니다. 실제 로그아웃 동작·쿠키 만료 처리 계약은 협의 대상이다.
-- Access 30분, Refresh 14일은 적용된 개발 가정값이며 PM 확정치는 아니다.
-- 비밀번호는 최소 8자이며 대문자·소문자·숫자·특수문자 중 3종류 이상이다. 이 역시 개발 가정값이며 최종 정책은 협의한다.
+- 소셜 응답에는 일반 로그인 두 필드 규칙을 확대하지 않는다. 이전 명세의 needsSignup 분기는 참고로 유지하며 최신 연동 범위와 needsLink를 포함한 코드 차이는 4.6에서 확인한다.
+- 이전 답변은 mustChangePassword가 항상 포함되지만 당시 true로 만드는 코드 경로가 없다고 설명했다. 이번 YAML의 required 누락은 보완 대상이며, 필드를 삭제하거나 영구적으로 false라고 가정하지 않는다.
+- **로그아웃은 이번 YAML에 없다.** 이전 답변도 당시 미구현이라고 설명했다. FE가 Access Token을 버려도 Refresh Token 즉시 무효화나 서버 세션 종료가 된 것은 아니다. 현재 제공 여부·쿠키 만료 처리 계약은 확인 대상이다.
+- 이전 답변의 Access 30분, Refresh 14일은 개발 가정값이며 PM 확정치는 아니다. 이번 YAML은 TTL을 명시하지 않는다.
+- 이전 답변의 비밀번호 최소 8자·대문자/소문자/숫자/특수문자 중 3종류 이상은 개발 가정값이다. 이번 YAML의 minLength 1과 구분하고 실제 검증 규칙·최종 정책을 확인한다.
 - 재설정 이메일 링크 방식은 명세 보완이다. 즉시 변경 관련 회의의 최종 사용자 흐름과 재설정 링크 FE 경로는 협의한다.
-- 명세상 Refresh Token은 회전하며 재사용 탐지 시 계정의 Refresh 세션들을 폐기한다. FE 갱신 요청 중복 방지와 여러 탭의 경합·실패 복구는 구현 시 검증해야 한다. 이미 발급된 Access Token까지 즉시 폐기된다고 단정하지 않는다.
+- 이전 Markdown은 Refresh Token 회전과 재사용 탐지 시 계정의 Refresh 세션 폐기를 설명했다. 이번 YAML에는 이 동작 설명이 없다. FE 갱신 요청 중복 방지와 여러 탭의 경합·실패 복구는 구현 시 검증해야 한다. 이미 발급된 Access Token까지 즉시 폐기된다고 단정하지 않는다.
 
 ### 4.4. 본인인증과 회원가입 실패
 
@@ -230,7 +253,7 @@ Auth 명세에는 소셜 로그인 `POST /api/v1/auth/login/social`과 소셜 �
 }
 ```
 
-인증 실패는 401 TOKEN_INVALID, PortOne 연동 실패는 503 DEPENDENCY_FAILURE다. 회원가입에 넘기는 verificationToken은 30분·1회성이며 Redis get-and-delete로 소비된다. 이름·휴대폰번호 일치도 검증한다.
+이하 오류·TTL·소비·재시도 규칙은 2026-09-08 답변을 보존한 내용이며 이번 YAML이 새로 명시한 계약은 아니다. 당시 답변은 인증 실패 401 TOKEN_INVALID, PortOne 연동 실패 503 DEPENDENCY_FAILURE, verificationToken 30분·1회성과 Redis get-and-delete 소비, 이름·휴대폰번호 일치 검증을 설명했다.
 
 | 회원가입 결과                        | 최신 구현 답변 기준 FE 처리                                                                                |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
@@ -243,9 +266,23 @@ Auth 명세에는 소셜 로그인 `POST /api/v1/auth/login/social`과 소셜 �
 
 ### 4.5. 주소·약관
 
-Member 명세상 배송지 등록 필수값은 recipientName, phoneNumber, zipcode, addressLine1이며 addressLine2·isDefault는 선택, isDefault 기본값은 false다. 목록은 id와 주소 필드를 반환한다. 가입 요청의 선택 address 내부 필수값이 배송지 등록과 완전히 같은지는 Swagger의 해당 DTO로 확인한다.
+이번 Member YAML의 배송지 등록 필수값은 recipientName, phoneNumber, zipcode, addressLine1이며 모두 minLength 1이다. addressLine2·isDefault는 선택이다. isDefault 기본 false는 이전 Markdown 설명이고 YAML에 default는 없다. 주소 목록·등록 응답은 4.2를 따른다. Auth 가입 address는 자유 객체이며 Member AddressPayload에도 required가 없어 배송지 등록 규칙을 그대로 확대하지 않는다. 빈 객체·부분 입력·기본값 계약은 보완 대상이다.
 
 회원가입 agreedTerms는 동의한 약관 코드 문자열 배열이다. Member 약관 조회의 SERVICE_USE·PRIVACY는 예시이며 전체 확정 코드 목록으로 하드코딩하지 않는다. Member 명세는 회원가입 시 구매자·판매자 권한 모두 부여한다고 명시한다. 이는 프로젝트 개인정보 동의·판매자 별도 절차와 다른 범위다. 프로젝트 약관은 최신 BE 답변상 미구현이며 별도 협의한다. 두 종류의 약관을 같은 계약으로 합치지 않는다.
+
+### 4.6. 코드 대조와 화면 연동의 빈칸
+
+비교 대상은 BE develop의 [931d6f80f85b84bb669e064556b7a716374365ab](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/tree/931d6f80f85b84bb669e064556b7a716374365ab)다. 코드·기존 테스트를 읽은 결과이며 테스트 실행·배포 확인 결과가 아니다. YAML의 추출 커밋이 없어 어느 쪽이 더 최신인지 단정하지 않는다. 아래 차이는 YAML을 임의로 수정하거나 코드 값을 FE 계약으로 채택할 근거가 아니다.
+
+| 항목                | 최신 YAML                                        | 코드 대조·확인할 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 회원가입 nickname   | SignupRequest에 없음.                            | [SignupRequest](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SignupRequest.java)는 필수·최대 50자. 연동 대상 필드 확인.                                                                                                                                                                                                                                                                                                           |
+| 소셜 인증           | 경로 없음.                                       | [AuthController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/controller/AuthController.java)에 login/social, signup/social, social/link가 있음. [SocialLoginResponse](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SocialLoginResponse.java)는 needsSignup·needsLink로 분기. 포함 여부·최종 DTO 확인. |
+| 찜 삭제·페이지 범위 | DELETE 200, page 기본 0·size 기본 20, 범위 없음. | [WishController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/presentation/controller/WishController.java)는 DELETE 204, page ≥ 0·size 1~100. 성공 상태와 검증 제약 확인.                                                                                                                                                                                                                                                                      |
+| 반복 찜 등록·해제   | 반복 호출 결과 설명 없음.                        | [WishJpaRepository](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/infrastructure/persistence/wish/WishJpaRepository.java)는 중복 등록을 무시하고 없는 항목 삭제도 정상 처리. 공식 계약 반영 여부 확인.                                                                                                                                                                                                                                          |
+| 가입·갱신 쿠키      | 응답 Set-Cookie 정의 없음.                       | AuthController는 가입·갱신 성공 시 쿠키를 설정. 명세 보완과 실제 환경 대조 필요.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+마이페이지의 이메일·프로필 이미지·등급·혜택은 MemberMeResponse에 없다. 찜 목록에는 판매자명·달성률·종료 상태가 없으며 판매자 팔로우 API도 이번 파일에 없다. 다른 API에서 조합할지 DTO를 확장할지 확인한다. 프로젝트 공개 UUID와 찜 int64 projectId 연결도 미정이다. 통합 검색·LIVE 알림·취소/환불/교환 내역은 담당 서비스의 별도 명세가 필요하며 Auth·Member 파일에 없다는 이유로 미구현으로 분류하지 않는다.
 
 ## 5. 프로젝트
 
@@ -322,6 +359,8 @@ apply는 mode(OVERWRITE/COPY), edits를 받고 스토리에 임시저장하는 �
 
 ## 6. 최신 답변으로 정리한 차이
 
+아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.
+
 | 기존 자료                               | 이번 초안 기준                                                                                                       |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | 로그인 member 객체 포함 예시            | 최신 답변의 accessToken·mustChangePassword만 사용.                                                                   |
@@ -340,19 +379,22 @@ apply는 mode(OVERWRITE/COPY), edits를 받고 스토리에 임시저장하는 �
 
 ## 8. 남은 항목
 
-이미 답변된 로그인 본문·detail·본인인증 상태·만료시간·프로젝트 오류 등을 다시 묻지 않는다. 먼저 Swagger에서 확인하고 없는 내용만 해당 기능 연동 전에 질문한다.
+이미 답변된 로그인 본문·본인인증 상태·이전 만료시간 가정값·프로젝트 오류 등을 처음부터 다시 묻지 않는다. 최신 YAML에 반영된 항목은 완료로 구분하되, 아래 명세 불일치·누락·정책 최종 확정만 해당 기능 연동 전에 확인한다.
 
 ### 8.1. 기술 확인
 
-| 항목           | 확인할 내용                                                                                                      |
-| -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 접근·구현 상태 | Swagger 접근 주소, 현재 호출 가능한 API, Gateway 라우팅·Member 인증 연결 상태. 운영 URL은 배포 전 미정으로 유지. |
-| DTO 보완       | businessType 전체 enum·카테고리 조회 방식, 가입 address 스키마, API별 성공 상태와 PATCH null 의미.               |
-| 교차 서비스 ID | 프로젝트 UUID와 Member 찜의 숫자 projectId 예시 연결, Long JSON 범위.                                            |
-| AI 세부 계약   | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                          |
-| 결과 불명 복구 | 가입·생성 등 요청 타임아웃 시 성공 여부 확인·중복 방지 방법.                                                     |
-| 재고 조회 실패 | 프로젝트 명세의 remainingStock null 정상 응답과 503 오류 중 실제 응답.                                           |
-| 소셜 가입      | Auth 명세와 Member MVP 제외 설명의 연결·실제 지원 범위 및 signupToken TTL.                                       |
+| 항목                | 확인할 내용                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 기준·접근·구현 상태 | YAML 기준 커밋·추출 시점, 제외된 API와 일정, 개발 Gateway 주소·배포 버전·테스트 계정/데이터. 인증 방식은 YAML의 Bearer 기준이며 실제 연결은 확인 필요.         |
+| 인증·회원 DTO       | 4.6의 nickname·소셜·찜 삭제/페이지 범위 불일치, 가입 address 내부 구조, 요청·응답 required/null·기본값, 가입·갱신 Set-Cookie 정의.                             |
+| 오류 계약           | detail 설명과 object 스키마 불일치, API별 HTTP 상태·도메인 코드·대표 오류 응답 보완.                                                                           |
+| 화면 데이터         | 회원 이메일·이미지·등급·혜택, 찜 목록 판매자·달성률·종료 상태의 제공 API, 팔로우 목록·등록·해제와 목록 정렬 기준. 검색·LIVE 알림·환불 내역의 별도 서비스 명세. |
+| 프로젝트 DTO 보완   | businessType 전체 enum·카테고리 조회 방식, 성공 상태와 PATCH null 의미.                                                                                        |
+| 교차 서비스 ID      | 프로젝트 UUID와 Member 찜의 숫자 projectId 예시 연결, Long JSON 범위.                                                                                          |
+| AI 세부 계약        | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                                                                        |
+| 결과 불명 복구      | 가입·생성 등 요청 타임아웃 시 성공 여부 확인·중복 방지 방법.                                                                                                   |
+| 재고 조회 실패      | 프로젝트 명세의 remainingStock null 정상 응답과 503 오류 중 실제 응답.                                                                                         |
+| 계정 복구·소셜      | 이번 YAML에 없는 이메일 찾기·비밀번호 재설정·소셜 인증의 제공 여부와 일정. 포함 시 요청·응답·오류·콜백·토큰 TTL.                                               |
 
 ### 8.2. 정책·환경 협의
 
