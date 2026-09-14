@@ -1,12 +1,29 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fireEvent, userEvent, within } from "storybook/test";
+import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 import { defaultSearch, type SearchQuery } from "../model/search-demo";
 import { BuyerSearch } from "./buyer-search";
 
-function SearchPreview({ query, initialInput }: { query: SearchQuery; initialInput?: string }) {
+function SearchPreview({
+  query,
+  initialInput,
+  onQueryChange,
+}: {
+  query: SearchQuery;
+  initialInput?: string;
+  onQueryChange: (query: SearchQuery) => void;
+}) {
   const [state, setState] = useState(query);
-  return <BuyerSearch query={state} onQueryChange={setState} initialInput={initialInput} />;
+  return (
+    <BuyerSearch
+      query={state}
+      onQueryChange={(next) => {
+        setState(next);
+        onQueryChange(next);
+      }}
+      initialInput={initialInput}
+    />
+  );
 }
 
 const meta = {
@@ -32,6 +49,25 @@ export const Sellers: Story = {
   args: { query: { ...defaultSearch, q: "판매자", tab: "sellers" } },
 };
 export const Empty: Story = { args: { query: { ...defaultSearch, q: "존재하지않는검색어" } } };
+
+export const EmptySubmission: Story = {
+  args: { query: { ...defaultSearch, q: "청소기" }, onQueryChange: fn() },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await fireEvent.change(canvas.getByRole("textbox", { name: "통합 검색어" }), {
+      target: { value: "" },
+    });
+    await fireEvent.submit(canvas.getByRole("search"));
+    await expect(args.onQueryChange).toHaveBeenLastCalledWith({ ...defaultSearch, q: "" });
+    await expect(canvas.getByRole("region", { name: "최근 검색어" })).toBeVisible();
+    await fireEvent.change(canvas.getByRole("textbox", { name: "통합 검색어" }), {
+      target: { value: "   " },
+    });
+    await fireEvent.submit(canvas.getByRole("search"));
+    await expect(args.onQueryChange).toHaveBeenCalledTimes(2);
+    await expect(canvas.getByRole("textbox", { name: "통합 검색어" })).toHaveValue("");
+  },
+};
 
 export const Composition: Story = {
   play: async ({ canvasElement }) => {

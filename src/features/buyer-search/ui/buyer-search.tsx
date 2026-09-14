@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
+import { ProjectRow } from "@/entities/project/ui/project-row";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Icon } from "@/shared/components/ui/icon";
 import { Tab, TabList } from "@/shared/components/ui/tab";
@@ -65,7 +66,7 @@ export function BuyerSearch({
         : results.sellers.length;
 
   function submit(word = value, tab = query.tab) {
-    if (composing.current || !word.trim()) return;
+    if (composing.current) return;
     const q = word.trim();
     setRecent((current) => addRecentSearch(current, q));
     setDraft({ base: q, value: q, editing: false });
@@ -74,7 +75,7 @@ export function BuyerSearch({
   }
 
   return (
-    <main className="bg-layer-surface-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] pb-[env(safe-area-inset-bottom)] [--border-default:#d9d9d9] [--layer-surface-default:#fff] [--layer-surface-disabled:#ededed] [--text-default:#000] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
+    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] pb-[env(safe-area-inset-bottom)] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
       <h1 className="sr-only">통합 검색</h1>
       <form
         role="search"
@@ -242,7 +243,7 @@ export function BuyerSearch({
                   {query.tab === "projects" && (
                     <Checkbox
                       checked={query.closed}
-                      className="text-[12px]"
+                      className="text-[0.75rem]"
                       onChange={(event) =>
                         onQueryChange({ ...query, closed: event.target.checked })
                       }
@@ -288,28 +289,7 @@ export function BuyerSearch({
             ) : query.tab === "projects" ? (
               <div className="space-y-3">
                 {results.projects.map((project) => (
-                  <article key={project.id}>
-                    <Link href={`/projects/${project.id}`} className="flex items-start gap-3">
-                      <div className="bg-layer-surface-disabled flex aspect-[4/3] w-[36.57%] shrink-0 items-center justify-center rounded-xs">
-                        {project.closed && (
-                          <span className="text-caption-m bg-border-default rounded-xs px-3 py-1">
-                            종료
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className={`min-w-0 flex-1 pt-1 ${project.closed ? "text-text-disabled" : ""}`}
-                      >
-                        <p className="text-label-m mb-1">{project.seller}</p>
-                        <h2 className="text-body-s line-clamp-2 min-h-10 leading-5 font-medium">
-                          {project.title}
-                        </h2>
-                        <p className="text-body-strong mt-2">
-                          {project.progress.toLocaleString("ko-KR")}%달성
-                        </p>
-                      </div>
-                    </Link>
-                  </article>
+                  <ProjectRow key={project.id} project={project} thumbnailClassName="w-[36.57%]" />
                 ))}
               </div>
             ) : query.tab === "live" ? (
@@ -324,7 +304,7 @@ export function BuyerSearch({
                             LIVE
                           </span>
                         </div>
-                        <h2 className="text-body-s line-clamp-2 min-h-10 leading-5 font-medium">
+                        <h2 className="line-clamp-2 min-h-10 text-[0.875rem] leading-5 font-medium">
                           {live.title}
                         </h2>
                         <p className="text-label-m mt-1">{live.seller}</p>
@@ -335,7 +315,7 @@ export function BuyerSearch({
                           <p className="text-title-m">{live.date}</p>
                           <p className="text-body-emphasis">{live.time}</p>
                         </div>
-                        <h2 className="text-body-s line-clamp-2 min-h-10 leading-5 font-medium">
+                        <h2 className="line-clamp-2 min-h-10 text-[0.875rem] leading-5 font-medium">
                           {live.title}
                         </h2>
                         <p className="text-caption-m my-1">
