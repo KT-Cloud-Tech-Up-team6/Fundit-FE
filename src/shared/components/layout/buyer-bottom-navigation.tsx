@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRef } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 import { Icon } from "@/shared/components/ui/icon";
 import {
@@ -38,6 +39,7 @@ export function BuyerBottomNavigation({
 }: BuyerBottomNavigationProps) {
   const router = useRouter();
   const isCategoriesActive = activeHref === "/categories";
+  const hasReturnedRef = useRef(false);
 
   // 카테고리 탭으로 들어갈 때 현재 경로를 기록해두고, 다시 누르면 그 경로로 돌아간다.
   // 기록이 없으면(예: 앱 내에서 카테고리 탭을 거치지 않고 처음 들어온 딥링크) 홈으로 간다.
@@ -49,6 +51,11 @@ export function BuyerBottomNavigation({
   }
 
   function handleCategoriesTabClick() {
+    // router.push는 비동기라 전환이 끝나기 전까지 이 버튼이 그대로 남아있다. 빠르게
+    // 두 번 누르면 두 번째 호출은 첫 호출이 이미 지운 값을 읽어 홈으로 잘못 이동하므로,
+    // 전환을 예약한 뒤에는 같은 인스턴스의 후속 클릭을 무시한다.
+    if (hasReturnedRef.current) return;
+    hasReturnedRef.current = true;
     const returnPath = getCategoryReturnPath();
     clearCategoryReturnPath();
     router.push(returnPath ?? "/");
