@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ModeSwitchLink } from "@/features/mode-switch/ui/mode-switch-link";
@@ -19,9 +20,9 @@ export function SellerShell({ children }: { children: ReactNode }) {
         logo={
           <Link
             href="/seller/projects"
-            className="bg-border-default text-label-l flex h-[54px] w-16 shrink-0 items-center justify-center md:w-[102px]"
+            className="flex h-[54px] w-16 shrink-0 items-center md:w-[102px]"
           >
-            로고
+            <Image alt="Fundit" className="h-9 w-auto" height={36} src="/logo.svg" width={100} />
           </Link>
         }
         nav={

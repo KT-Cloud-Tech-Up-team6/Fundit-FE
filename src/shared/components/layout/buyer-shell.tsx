@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ModeSwitchLink } from "@/features/mode-switch/ui/mode-switch-link";
@@ -7,8 +8,8 @@ import { SearchField } from "@/shared/components/ui/search-field";
 import { buyerNavigation } from "@/shared/config/navigation";
 
 const logo = (
-  <Link href="/" className="text-heading-s text-text-default tracking-tight">
-    Fundit
+  <Link href="/" className="flex shrink-0 items-center">
+    <Image alt="Fundit" className="h-9 w-auto" height={36} src="/logo.svg" width={100} />
   </Link>
 );
 
