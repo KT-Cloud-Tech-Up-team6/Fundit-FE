@@ -4,7 +4,7 @@ import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-bottom-navigation.module.css";
 
 type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
-  activeHref?: "/" | "/live" | "/my";
+  activeHref?: "/" | "/live" | "/categories" | "/my";
 };
 
 function NavigationAsset({ name }: { name: "home" | "live-navigation" | "categories" }) {
@@ -45,16 +45,14 @@ export function BuyerBottomNavigation({
         <NavigationAsset name="live-navigation" />
         라이브
       </Link>
-      <button
-        type="button"
-        disabled
-        title="카테고리 화면 미정"
-        aria-label="카테고리 · 화면 미정"
+      <Link
+        href="/categories/tech-appliances"
+        aria-current={activeHref === "/categories" ? "page" : undefined}
         className={styles.item}
       >
         <NavigationAsset name="categories" />
         카테고리
-      </button>
+      </Link>
       <Link
         href="/my"
         aria-current={activeHref === "/my" ? "page" : undefined}
