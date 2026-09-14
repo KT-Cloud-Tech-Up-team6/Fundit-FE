@@ -34,6 +34,13 @@ export function BuyerBottomNavigation({
   const router = useRouter();
   const isCategoriesActive = activeHref === "/categories";
 
+  // ponytail: 딥링크·새로고침 등 앱 내 이전 화면이 없을 때는 history.length 휴리스틱으로
+  // 판단해 홈으로 대체한다. 정확한 "앱 내 진입 여부" 추적이 필요해지면 그때 보강한다.
+  function handleCategoriesTabClick() {
+    if (window.history.length > 1) router.back();
+    else router.push("/");
+  }
+
   return (
     <nav
       {...props}
@@ -56,7 +63,7 @@ export function BuyerBottomNavigation({
           type="button"
           aria-current="page"
           className={styles.item}
-          onClick={() => router.back()}
+          onClick={handleCategoriesTabClick}
         >
           <NavigationAsset name="categories" />
           카테고리
