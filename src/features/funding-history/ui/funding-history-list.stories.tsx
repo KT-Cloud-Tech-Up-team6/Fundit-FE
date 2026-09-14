@@ -5,7 +5,7 @@ import { FundingHistoryList } from "./funding-history-list";
 const meta = {
   title: "Features/Funding History/List",
   component: FundingHistoryList,
-  parameters: { layout: "fullscreen" },
+  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">

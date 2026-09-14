@@ -53,6 +53,7 @@ export const DismissConfirm: Story = {
     await userEvent.selectOptions(canvas.getByRole("combobox"), "단순 변심");
     await userEvent.click(canvas.getByRole("button", { name: "저장" }));
     await userEvent.click(canvas.getByRole("button", { name: "아니요" }));
-    await expect(canvas.queryByText("정말 취소하시겠습니까?")).not.toBeInTheDocument();
+    // 네이티브 <dialog>는 close() 해도 DOM에는 남고 display:none으로만 숨는다.
+    await expect(canvas.getByText("정말 취소하시겠습니까?")).not.toBeVisible();
   },
 };

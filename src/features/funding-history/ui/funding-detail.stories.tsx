@@ -6,7 +6,7 @@ const meta = {
   title: "Features/Funding History/Detail",
   component: FundingDetail,
   args: { fundingId: "in_progress" },
-  parameters: { layout: "fullscreen" },
+  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">
