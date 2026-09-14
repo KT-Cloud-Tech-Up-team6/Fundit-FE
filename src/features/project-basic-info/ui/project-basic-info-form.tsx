@@ -248,8 +248,16 @@ export function ProjectBasicInfoForm({
           </p>
           {rewards.length > 0 && (
             <div className="border-border-default mt-6 overflow-x-auto rounded-xs border">
-              <table className="text-caption-m w-full min-w-[600px] text-left">
+              <table className="text-body-m w-full min-w-[790px] table-fixed text-left [&_td]:pr-7 [&_td]:pl-4 [&_td:last-child]:pr-4 [&_th]:pr-7 [&_th]:pl-4 [&_th:last-child]:pr-4">
                 <caption className="sr-only">등록된 리워드</caption>
+                <colgroup>
+                  <col className="w-[70px]" />
+                  <col className="w-[268px]" />
+                  <col className="w-[136px]" />
+                  <col className="w-[116px]" />
+                  <col className="w-[100px]" />
+                  <col className="w-[100px]" />
+                </colgroup>
                 <thead className="bg-border-default">
                   <tr>
                     {["No.", "리워드명", "가격", "수량", "얼리버드", "관리"].map((label) => (
@@ -263,8 +271,10 @@ export function ProjectBasicInfoForm({
                   {rewards.map((reward, index) => (
                     <tr key={reward.id}>
                       <td className="px-4 py-3">{index + 1}</td>
-                      <td className="max-w-60 px-4 py-3 break-words">{reward.name}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="truncate py-3" title={reward.name}>
+                        {reward.name}
+                      </td>
+                      <td className="py-3 text-right whitespace-nowrap">
                         {Number(reward.price).toLocaleString("ko-KR")}원
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">

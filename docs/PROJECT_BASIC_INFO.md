@@ -5,6 +5,7 @@
 - [Figma 지정 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=281-5059), [Issue #42](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/42).
 - 기준 프레임은 `532:12231`, `532:12333`, `532:12478`, `532:12622`입니다. 카테고리 예시는 `418:5765`를 참고합니다.
 - 경로는 `/seller/projects/new`이며 기존 SellerShell을 사용합니다.
+- 9월 11일 9:54 작업 히스토리의 리워드 표 변경을 반영했습니다. 목록과 추가 중 목록 모두 리워드명 콘텐츠 너비 224px, 가격 콘텐츠 너비 92px와 금액 오른쪽 정렬을 사용합니다. 열 간격은 44px이며 좁은 화면에서는 표 내부를 가로 스크롤합니다.
 
 ## 구현 범위
 
