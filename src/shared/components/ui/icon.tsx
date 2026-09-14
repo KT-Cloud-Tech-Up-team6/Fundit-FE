@@ -38,6 +38,11 @@ const iconFiles = {
   swap: "refresh",
   viewers: "viewers",
   warning: "warning",
+  stagePrep: "fulfillment/stage-prep",
+  stageProduction: "fulfillment/stage-production",
+  stageInspection: "fulfillment/stage-inspection",
+  stageRelease: "fulfillment/stage-release",
+  stageDelivery: "fulfillment/stage-delivery",
 } as const;
 
 export type IconName = keyof typeof iconFiles;
