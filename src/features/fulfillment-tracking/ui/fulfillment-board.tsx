@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import {
   completeStage,
   daysSinceLastRecord,
@@ -65,21 +66,7 @@ export function FulfillmentBoard({
 
   return (
     <div className="min-w-0 flex-1">
-      <nav aria-label="이동 경로" className="text-label-m text-text-secondary">
-        <ol className="flex items-center gap-2">
-          {breadcrumb.map((crumb, index) => (
-            <li key={crumb} className="flex items-center gap-2">
-              {index > 0 && <span aria-hidden>{">"}</span>}
-              <span
-                aria-current={index === breadcrumb.length - 1 ? "page" : undefined}
-                className={index === breadcrumb.length - 1 ? "text-text-default" : undefined}
-              >
-                {crumb}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      <Breadcrumb items={breadcrumb} />
 
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-heading-l">제작 · 배송</h1>

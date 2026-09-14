@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { StoryEditor } from "./story-editor";
 import { ThumbnailUpload } from "./thumbnail-upload";
@@ -12,24 +13,7 @@ export function ProjectStoryForm() {
 
   return (
     <div className="min-w-0 flex-1">
-      <nav aria-label="이동 경로" className="text-label-m text-text-secondary">
-        <ol className="flex items-center gap-2">
-          {breadcrumb.map((crumb, index) => {
-            const isCurrent = index === breadcrumb.length - 1;
-            return (
-              <li key={crumb} className="flex items-center gap-2">
-                {index > 0 && <span aria-hidden>{">"}</span>}
-                <span
-                  aria-current={isCurrent ? "page" : undefined}
-                  className={isCurrent ? "text-text-default" : undefined}
-                >
-                  {crumb}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
+      <Breadcrumb items={breadcrumb} />
 
       <h1 className="text-heading-l mt-3">스토리 작성</h1>
 
