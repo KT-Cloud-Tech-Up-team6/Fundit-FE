@@ -61,17 +61,34 @@ export function BuyerBottomNavigation({
     router.push(returnPath ?? "/");
   }
 
+  // 홈·라이브·마이는 카테고리 재클릭이 아닌 다른 경로로 카테고리 화면을 떠나는 경우다.
+  // 기록을 지워두지 않으면 이번 방문과 무관한 다음 카테고리 진입에서 이 값을 잘못
+  // 재사용하게 된다.
+  function clearCategoriesReturnPath() {
+    try {
+      sessionStorage.removeItem(CATEGORY_RETURN_PATH_KEY);
+    } catch {
+      // 접근 불가 환경에서는 애초에 값도 없으므로 무시한다.
+    }
+  }
+
   return (
     <nav
       {...props}
       aria-label={ariaLabel}
       className={`bg-layer-surface-disabled text-text-default flex justify-between px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] ${className}`}
     >
-      <Link href="/" aria-current={activeHref === "/" ? "page" : undefined} className={styles.item}>
+      <Link
+        href="/"
+        onClick={clearCategoriesReturnPath}
+        aria-current={activeHref === "/" ? "page" : undefined}
+        className={styles.item}
+      >
         <NavigationAsset name="home" />홈
       </Link>
       <Link
         href="/live"
+        onClick={clearCategoriesReturnPath}
         aria-current={activeHref === "/live" ? "page" : undefined}
         className={styles.item}
       >
@@ -100,6 +117,7 @@ export function BuyerBottomNavigation({
       )}
       <Link
         href="/my"
+        onClick={clearCategoriesReturnPath}
         aria-current={activeHref === "/my" ? "page" : undefined}
         className={styles.item}
       >
