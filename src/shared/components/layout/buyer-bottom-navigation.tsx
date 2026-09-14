@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-bottom-navigation.module.css";
@@ -11,6 +12,14 @@ type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
 };
 
 const CATEGORY_RETURN_PATH_KEY = "buyer-category-return-path";
+
+function clearCategoryReturnPath() {
+  try {
+    sessionStorage.removeItem(CATEGORY_RETURN_PATH_KEY);
+  } catch {
+    // 접근 불가 환경에서는 애초에 값도 없으므로 무시한다.
+  }
+}
 
 function NavigationAsset({ name }: { name: "home" | "live-navigation" | "categories" }) {
   return (
@@ -54,23 +63,22 @@ export function BuyerBottomNavigation({
     let returnPath: string | null = null;
     try {
       returnPath = sessionStorage.getItem(CATEGORY_RETURN_PATH_KEY);
-      sessionStorage.removeItem(CATEGORY_RETURN_PATH_KEY);
     } catch {
       returnPath = null;
     }
+    clearCategoryReturnPath();
     router.push(returnPath ?? "/");
   }
 
-  // 홈·라이브·마이는 카테고리 재클릭이 아닌 다른 경로로 카테고리 화면을 떠나는 경우다.
-  // 기록을 지워두지 않으면 이번 방문과 무관한 다음 카테고리 진입에서 이 값을 잘못
-  // 재사용하게 된다.
-  function clearCategoriesReturnPath() {
-    try {
-      sessionStorage.removeItem(CATEGORY_RETURN_PATH_KEY);
-    } catch {
-      // 접근 불가 환경에서는 애초에 값도 없으므로 무시한다.
-    }
-  }
+  // 카테고리 화면을 떠나는 방법(탭 클릭, 다른 탭, 브라우저 뒤로가기·앞으로가기 등)과
+  // 무관하게, 이 컴포넌트가 "카테고리 활성" 상태로 마운트돼 있다가 언마운트되는
+  // 시점에 복귀 기록을 정리한다. onClick으로는 브라우저 뒤로가기를 잡을 수 없지만
+  // 언마운트는 (buyer-live)·(buyer-category) 그룹 간 이동에서 어떤 방식으로 떠나든
+  // 항상 일어난다.
+  useEffect(() => {
+    if (!isCategoriesActive) return;
+    return () => clearCategoryReturnPath();
+  }, [isCategoriesActive]);
 
   return (
     <nav
@@ -78,17 +86,11 @@ export function BuyerBottomNavigation({
       aria-label={ariaLabel}
       className={`bg-layer-surface-disabled text-text-default flex justify-between px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] ${className}`}
     >
-      <Link
-        href="/"
-        onClick={clearCategoriesReturnPath}
-        aria-current={activeHref === "/" ? "page" : undefined}
-        className={styles.item}
-      >
+      <Link href="/" aria-current={activeHref === "/" ? "page" : undefined} className={styles.item}>
         <NavigationAsset name="home" />홈
       </Link>
       <Link
         href="/live"
-        onClick={clearCategoriesReturnPath}
         aria-current={activeHref === "/live" ? "page" : undefined}
         className={styles.item}
       >
@@ -117,7 +119,6 @@ export function BuyerBottomNavigation({
       )}
       <Link
         href="/my"
-        onClick={clearCategoriesReturnPath}
         aria-current={activeHref === "/my" ? "page" : undefined}
         className={styles.item}
       >
