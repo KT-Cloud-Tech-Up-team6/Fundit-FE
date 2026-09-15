@@ -6,7 +6,7 @@ export default async function RefundRequestPage({
 }: PageProps<"/my/fundings/[fundingId]/refund/new">) {
   const { fundingId } = await params;
   const query = await searchParams;
-  const type = query.type === "delay" ? "delay" : "defect";
+  const type = query.type === "cancel" || query.type === "delay" ? query.type : "defect";
   return (
     <PagePlaceholder
       eyebrow="Buyer · Refund"
