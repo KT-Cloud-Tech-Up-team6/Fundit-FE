@@ -8,6 +8,12 @@ const meta = {
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
+    viewport: {
+      defaultViewport: "figma390",
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+      },
+    },
   },
 } satisfies Meta<typeof SignupVerifyFlow>;
 

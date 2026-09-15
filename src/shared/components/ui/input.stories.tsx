@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Image from "next/image";
+import { expect, within } from "storybook/test";
 
 import { Input } from "./input";
 
@@ -64,6 +65,20 @@ export const Sizes: Story = {
       <Input {...args} size="md" />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const inputs = within(canvasElement).getAllByRole("textbox");
+    expect(getComputedStyle(inputs[0].parentElement as HTMLElement).height).toBe("36px");
+    expect(getComputedStyle(inputs[1].parentElement as HTMLElement).height).toBe("52px");
+    expect(getComputedStyle(inputs[1].parentElement as HTMLElement).borderRadius).toBe("8px");
+  },
+};
+
+export const Compact: Story = {
+  args: { shape: "compact" },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("textbox");
+    expect(getComputedStyle(input.parentElement as HTMLElement).borderRadius).toBe("4px");
+  },
 };
 
 export const WithEndAdornment: Story = {
@@ -71,6 +86,13 @@ export const WithEndAdornment: Story = {
     endAdornment: <span className="text-label-m text-text-secondary">원</span>,
     inputMode: "numeric",
     placeholder: "금액을 입력해 주세요",
+  },
+};
+
+export const WithStartAdornment: Story = {
+  args: {
+    placeholder: "도로명, 지번, 건물명 검색",
+    startAdornment: <Image alt="" height={20} src="/icons/search.svg" width={20} />,
   },
 };
 

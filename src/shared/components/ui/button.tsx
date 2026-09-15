@@ -1,7 +1,7 @@
 import type { ComponentPropsWithRef } from "react";
 
 type ButtonVariant = "primary" | "primaryLive";
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = "sm" | "md" | "lg" | "xl";
 type ButtonAppearance = "default" | "cta";
 
 type ButtonProps = ComponentPropsWithRef<"button"> & {
@@ -22,12 +22,21 @@ const sizeClasses: Record<ButtonSize, string> = {
   sm: "h-7 text-body-m",
   md: "h-9 text-title-s font-medium",
   lg: "h-[46px] text-title-s font-medium",
+  xl: "h-13 text-body-emphasis",
 };
 
 const ctaSizeClasses: Record<ButtonSize, string> = {
   sm: "h-9 text-body-strong",
   md: "h-10 text-body-strong",
   lg: "h-[46px] text-body-strong",
+  xl: "h-13 text-body-strong",
+};
+
+/* Figma의 Button/primary_disabled는 CTA(appearance="cta")용 색이다. 다른 화면의
+   기본 Button까지 이 색으로 바뀌면 안 되니 appearance별로 나눠 쓴다. */
+const disabledBgByAppearance: Record<ButtonAppearance, string> = {
+  cta: "disabled:bg-layer-surface-primary-disabled",
+  default: "disabled:bg-layer-surface-disabled",
 };
 
 /* ponytail: Foundations의 Button은 primary / primary_live 둘뿐이라 보조 CTA variant가 없다.
@@ -57,7 +66,8 @@ export function Button({
         "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
         shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
         "focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:bg-layer-surface-disabled disabled:text-text-disabled disabled:cursor-not-allowed",
+        "disabled:text-text-disabled disabled:cursor-not-allowed",
+        disabledBgByAppearance[appearance],
         variantClasses[variant],
         appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
         className,

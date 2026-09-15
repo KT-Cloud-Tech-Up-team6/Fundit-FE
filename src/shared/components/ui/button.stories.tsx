@@ -14,7 +14,7 @@ const meta = {
     variant: "primary",
   },
   argTypes: {
-    size: { control: "radio", options: ["sm", "md", "lg"] },
+    size: { control: "radio", options: ["sm", "md", "lg", "xl"] },
     variant: { control: "radio", options: ["primary", "primaryLive"] },
     appearance: { control: "radio", options: ["default", "cta"] },
     shape: { control: "radio", options: ["default", "pill"] },
@@ -35,14 +35,14 @@ export const Disabled: Story = {
 };
 
 export const Cta: Story = {
-  args: { appearance: "cta", onClick: fn() },
+  args: { appearance: "cta", size: "xl", onClick: fn() },
   play: async ({ canvasElement, args }) => {
     const button = within(canvasElement).getByRole("button");
     const style = getComputedStyle(button);
     expect(style.fontSize).toBe("16px");
     expect(style.fontWeight).toBe("600");
     expect(style.lineHeight).toBe("24px");
-    expect(style.height).toBe("46px");
+    expect(style.height).toBe("52px");
     button.focus();
     expect(button).toHaveFocus();
     await userEvent.keyboard("{Enter}");
@@ -79,7 +79,7 @@ export const Gallery: Story = {
         <div className="flex flex-col gap-2" key={variant}>
           {[false, true].map((disabled) => (
             <div className="flex items-center gap-3" key={String(disabled)}>
-              {(["sm", "md", "lg"] as const).map((size) => (
+              {(["sm", "md", "lg", "xl"] as const).map((size) => (
                 <Button {...args} disabled={disabled} key={size} size={size} variant={variant}>
                   {disabled ? "disabled" : variant} {size}
                 </Button>
@@ -97,6 +97,7 @@ export const Gallery: Story = {
         ["sm", "28px", "16px", "400"],
         ["md", "36px", "18px", "500"],
         ["lg", "46px", "18px", "500"],
+        ["xl", "52px", "16px", "500"],
       ]) {
         const style = getComputedStyle(canvas.getByRole("button", { name: `${variant} ${size}` }));
         expect(style.height).toBe(height);

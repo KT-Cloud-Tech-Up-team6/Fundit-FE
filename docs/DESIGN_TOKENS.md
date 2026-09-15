@@ -149,6 +149,15 @@ Figma 레이어명(`green` / `bright_green` / `dark_green`)을 그대로 따라 
 | `--color-alpha-30` | `#0000004d` |
 | `--color-alpha-60` | `#00000099` |
 
+### 6.5a Primitive — External brand
+
+| 토큰             | 값        | 용도                 |
+| ---------------- | --------- | -------------------- |
+| `--kakao-yellow` | `#fee500` | 카카오 인증 CTA 배경 |
+
+외부 브랜드의 고정 색은 일반 제품 CTA 색과 섞지 않는다. 화면에서는 Primitive를 직접 쓰지
+않고 `Layer/surface_kakao`로 승격한 Semantic을 사용한다.
+
 ### 6.6 Semantic / Component
 
 Figma 컴포넌트 페이지(button, input, card, badge, tap, progress bar, search field)에 **실제 바인딩된 변수**를 추출한 결과다. 디자인 문서 05장의 목록보다 실제 구현이 앞서 있으므로 이쪽을 기준으로 삼는다.
@@ -336,7 +345,7 @@ Tailwind에 border-width 네임스페이스가 없어 `@utility`로 직접 정�
 
 `Numeric/Border` 컬렉션에는 2px가 없는데 판매자 프로젝트 목록(`FL_S_PR_LIST`)의 탭 인디케이터 트랙이 2px다. 스케일 밖 값을 `border-b-2` 리터럴로 두는 대신 `border-w-xl`을 추가했다. **Figma 변수 쪽에도 `Numeric/Border/xl` 추가를 요청해야 한다** — 현재는 코드에만 있는 값이다.
 
-`@utility border-w-*`는 네 방향을 한꺼번에 지정한다. 한 방향만 필요하면 `border-b-w-xl`처럼 방향별 변형이 필요한데, **실제 소비자가 생긴 단계에만 만든다.** 지금은 `border-b-w-xl` 하나뿐이다. `tab.tsx`가 `border-b-[1.5px]` / `border-b-[1.8px]`를 arbitrary로 쓰고 있는 것도 같은 이유이며, 이 컴포넌트를 손볼 때 `border-b-w-m` / `border-b-w-l`을 함께 만든다.
+`@utility border-w-*`는 네 방향을 한꺼번에 지정한다. 한 방향만 필요하면 `border-b-w-xl`처럼 방향별 변형이 필요한데, **실제 소비자가 생긴 단계에만 만든다.** 현재 탭 인디케이터의 `border-b-w-xl`과 회원가입 비밀번호 규칙 체크 표시의 `border-r-w-s` / `border-b-w-s`가 있다. `tab.tsx`가 `border-b-[1.5px]` / `border-b-[1.8px]`를 arbitrary로 쓰고 있는 것도 같은 이유이며, 이 컴포넌트를 손볼 때 `border-b-w-m` / `border-b-w-l`을 함께 만든다.
 
 ### 6.10 Shadow
 
@@ -386,6 +395,8 @@ Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모�
 | `layer-surface-disabled`           | `charcoal-100`     | `charcoal-700`        |
 | `layer-surface-primary`            | `charcoal-900`     | `charcoal-200`        |
 | `layer-surface-primary-live`       | `blue-500`         | 동일                  |
+| `layer-surface-kakao`              | `kakao-yellow`     | 동일                  |
+| `layer-surface-primary-disabled`   | `charcoal-200`     | `charcoal-700`        |
 | `layer-surface-primary-hover`      | `charcoal-800`     | 동일                  |
 | `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |
 | `text-title`                       | `grey-black`       | `grey-white`          |
