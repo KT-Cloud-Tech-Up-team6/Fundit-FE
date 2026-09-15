@@ -421,6 +421,7 @@ export function LiveConsole({
                     <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
                       <Checkbox
                         aria-label={`${q.title} 게시 선택`}
+                        shape="circle"
                         checked={selectedIds.includes(q.id)}
                         onChange={(event) =>
                           setSelectedIds(
@@ -451,6 +452,7 @@ export function LiveConsole({
               </ul>
               <Checkbox
                 className="mt-auto pt-4"
+                shape="circle"
                 disabled={!answered.length}
                 checked={answered.length > 0 && selectedIds.length === answered.length}
                 indeterminate={selectedIds.length > 0 && selectedIds.length < answered.length}

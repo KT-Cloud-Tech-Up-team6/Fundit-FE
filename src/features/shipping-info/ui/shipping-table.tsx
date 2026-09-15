@@ -51,6 +51,7 @@ export function ShippingTable({
             <th scope="col" className={`${headerClasses} ${columnWidths[0]}`}>
               <Checkbox
                 aria-label="발송 대기 주문 전체 선택"
+                shape="circle"
                 checked={allSelected}
                 disabled={selectable.length === 0}
                 indeterminate={selectedCount > 0 && !allSelected}
@@ -94,6 +95,7 @@ export function ShippingTable({
                 <td className={cellClasses}>
                   <Checkbox
                     aria-label={`주문 ${shipment.orderNo} 선택`}
+                    shape="circle"
                     checked={selected.has(shipment.id)}
                     disabled={shipped}
                     onChange={() => onToggle(shipment.id)}
