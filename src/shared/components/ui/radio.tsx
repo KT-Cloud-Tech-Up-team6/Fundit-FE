@@ -24,7 +24,7 @@ export function Radio({ children, className, disabled, ...props }: RadioProps) {
         <span
           aria-hidden
           className={[
-            "border-border-default relative size-5 rounded-full border",
+            "border-border-default relative size-5 shrink-0 rounded-full border",
             "peer-focus-visible:outline-border-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
             "after:absolute after:top-1/2 after:left-1/2 after:h-2.5 after:w-1.5",
             "after:-translate-x-1/2 after:-translate-y-[60%] after:rotate-45",
