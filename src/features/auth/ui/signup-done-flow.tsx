@@ -47,7 +47,7 @@ export function SignupDoneFlow({
   return (
     <AuthScreen withHeader={false}>
       {toastVisible ? (
-        <Toast className="mt-4 flex max-w-none items-center justify-between gap-3">
+        <Toast className="mx-auto mt-4 flex items-center justify-between gap-3">
           회원가입이 완료되었습니다
           <button
             className="text-text-inverse shrink-0"
