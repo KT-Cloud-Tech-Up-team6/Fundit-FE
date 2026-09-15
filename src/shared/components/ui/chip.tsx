@@ -48,6 +48,7 @@ export function Chip({
           ? "focus-visible:outline-border-primary"
           : "focus-visible:outline-border-primary-live",
         appearanceClasses[variant][appearance],
+        "disabled:bg-layer-surface-disabled disabled:text-text-disabled disabled:border-transparent disabled:cursor-not-allowed",
         sizeClasses[size],
         className,
       ]
