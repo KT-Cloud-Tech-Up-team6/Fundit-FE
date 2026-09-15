@@ -14,8 +14,8 @@ const meta = {
     variant: "primary",
   },
   argTypes: {
-    size: { control: "radio", options: ["sm", "md", "lg"] },
-    variant: { control: "radio", options: ["primary", "primaryLive"] },
+    size: { control: "radio", options: ["xs", "sm", "md", "lg", "xl"] },
+    variant: { control: "radio", options: ["primary", "primaryLive", "secondary"] },
     appearance: { control: "radio", options: ["default", "cta"] },
     shape: { control: "radio", options: ["default", "pill"] },
   },
@@ -75,11 +75,11 @@ export const CtaDisabled: Story = {
 export const Gallery: Story = {
   render: (args) => (
     <div className="flex flex-col gap-4">
-      {(["primary", "primaryLive"] as const).map((variant) => (
+      {(["primary", "primaryLive", "secondary"] as const).map((variant) => (
         <div className="flex flex-col gap-2" key={variant}>
           {[false, true].map((disabled) => (
             <div className="flex items-center gap-3" key={String(disabled)}>
-              {(["sm", "md", "lg"] as const).map((size) => (
+              {(["xs", "sm", "md", "lg", "xl"] as const).map((size) => (
                 <Button {...args} disabled={disabled} key={size} size={size} variant={variant}>
                   {disabled ? "disabled" : variant} {size}
                 </Button>
@@ -92,11 +92,13 @@ export const Gallery: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    for (const variant of ["primary", "primaryLive"]) {
+    for (const variant of ["primary", "primaryLive", "secondary"]) {
       for (const [size, height, fontSize, fontWeight] of [
+        ["xs", "24px", "14px", "400"],
         ["sm", "28px", "16px", "400"],
         ["md", "36px", "18px", "500"],
         ["lg", "46px", "18px", "500"],
+        ["xl", "52px", "18px", "500"],
       ]) {
         const style = getComputedStyle(canvas.getByRole("button", { name: `${variant} ${size}` }));
         expect(style.height).toBe(height);
