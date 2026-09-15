@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ProgressBar } from "./progress-bar";
+import { ProgressBar, ProgressStepper } from "./progress-bar";
 
 const meta = {
   title: "Shared/UI/ProgressBar",
@@ -49,4 +49,8 @@ export const Gallery: Story = {
       <ProgressBar {...args} knob={false} variant="primaryLive" />
     </div>
   ),
+};
+
+export const Stepper: Story = {
+  render: () => <ProgressStepper steps={["complete", "current", "upcoming"]} />,
 };
