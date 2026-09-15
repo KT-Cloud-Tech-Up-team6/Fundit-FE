@@ -69,6 +69,7 @@ export function ProgressStepper({ className, steps, ...props }: ProgressStepperP
       {steps.map((step, index) => (
         <li className="flex min-w-0 flex-1 items-center last:flex-none" key={index}>
           <span
+            role="img"
             aria-label={step === "complete" ? "완료" : step === "current" ? "진행 중" : "예정"}
             className={[
               "relative flex size-8 shrink-0 items-center justify-center rounded-full",

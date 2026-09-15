@@ -29,10 +29,10 @@ export const Disabled: Story = {
 export const Gallery: Story = {
   render: (args) => (
     <div className="flex items-center gap-6">
-      <Radio {...args} defaultChecked={false} />
-      <Radio {...args} defaultChecked />
-      <Radio {...args} disabled />
-      <Radio {...args} defaultChecked disabled />
+      <Radio {...args} name="radio-unchecked" defaultChecked={false} />
+      <Radio {...args} name="radio-checked" defaultChecked />
+      <Radio {...args} name="radio-disabled" disabled />
+      <Radio {...args} name="radio-checked-disabled" defaultChecked disabled />
     </div>
   ),
 };
