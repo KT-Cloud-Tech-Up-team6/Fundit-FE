@@ -11,16 +11,15 @@ type AvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 export function Avatar({ children, className, size = 40, ...props }: AvatarProps) {
   return (
     <div
-      className={[
-        "bg-layer-bg relative shrink-0 overflow-hidden rounded-full",
-        className,
-      ]
+      className={["bg-layer-bg relative shrink-0 overflow-hidden rounded-full", className]
         .filter(Boolean)
         .join(" ")}
       style={{ width: size, height: size }}
       {...props}
     >
-      {children ?? <Icon className="text-text-secondary absolute inset-0 size-full" name="avatar" />}
+      {children ?? (
+        <Icon className="text-text-secondary absolute inset-0 size-full" name="avatar" />
+      )}
     </div>
   );
 }

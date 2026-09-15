@@ -75,7 +75,7 @@ export function ProgressStepper({ className, steps, ...props }: ProgressStepperP
               step === "complete"
                 ? "bg-layer-surface-primary text-text-inverse after:block after:h-2 after:w-1 after:-translate-y-px after:rotate-45 after:border-r-2 after:border-b-2"
                 : step === "current"
-                  ? "border-4 border-layer-surface-primary bg-layer-surface-default"
+                  ? "border-layer-surface-primary bg-layer-surface-default border-4"
                   : "bg-layer-surface-disabled",
             ].join(" ")}
           />
