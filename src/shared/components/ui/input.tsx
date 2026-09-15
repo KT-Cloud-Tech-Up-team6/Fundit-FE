@@ -1,19 +1,22 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 
 type InputSize = "sm" | "md";
+type InputShape = "compact" | "default";
 
 /* 네이티브 `size`(문자 수)는 쓰지 않는다. SearchField와 같이 디자인 사양의 크기 이름으로 덮는다. */
 type InputProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
   endAdornment?: ReactNode;
   error?: boolean;
+  shape?: InputShape;
   size?: InputSize;
+  startAdornment?: ReactNode;
 };
 
 /* sm은 발송정보 표의 `td_tracking_number`(180×30) 사양이다. 표 행에 들어가야 해서
    md(52px)로는 행이 과하게 높아진다. md는 폼 화면의 기존 사양이라 그대로 둔다. */
 const sizeClasses: Record<InputSize, string> = {
-  sm: "h-9 rounded-xs",
-  md: "h-13 rounded-sm",
+  sm: "h-9",
+  md: "h-13",
 };
 
 const textClasses: Record<InputSize, string> = {
@@ -31,7 +34,9 @@ export function Input({
   disabled,
   endAdornment,
   error = false,
+  shape = "default",
   size = "md",
+  startAdornment,
   ...props
 }: InputProps) {
   return (
@@ -39,7 +44,8 @@ export function Input({
       className={[
         "border-w-xs bg-layer-surface-default flex w-full items-center overflow-hidden py-1",
         sizeClasses[size],
-        endAdornment ? paddingClasses[size].adorned : paddingClasses[size].bare,
+        shape === "compact" || size === "sm" ? "rounded-xs" : "rounded-sm",
+        endAdornment || startAdornment ? paddingClasses[size].adorned : paddingClasses[size].bare,
         error
           ? "border-border-accent-warning text-text-warning focus-within:border-border-accent-warning"
           : "border-border-default focus-within:border-border-primary",
@@ -49,6 +55,13 @@ export function Input({
         .filter(Boolean)
         .join(" ")}
     >
+      {startAdornment ? (
+        <span
+          className={`flex ${size === "sm" ? "size-6" : "size-7"} shrink-0 items-center justify-center`}
+        >
+          {startAdornment}
+        </span>
+      ) : null}
       <input
         className={[
           "disabled:text-text-disabled min-w-0 flex-1 bg-transparent outline-none",
