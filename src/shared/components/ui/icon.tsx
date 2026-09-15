@@ -43,6 +43,7 @@ const iconFiles = {
   stageInspection: "fulfillment/stage-inspection",
   stageRelease: "fulfillment/stage-release",
   stageDelivery: "fulfillment/stage-delivery",
+  tooltipTail: "tooltip-tail",
 } as const;
 
 export type IconName = keyof typeof iconFiles;

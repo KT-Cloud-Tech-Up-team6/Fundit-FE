@@ -200,27 +200,7 @@
   z-index: 2;
   top: 1.5px;
   left: 100%;
-  display: flex;
-  align-items: flex-start;
   width: 213.925px;
-}
-.tooltip > img {
-  flex-shrink: 0;
-  width: 8.925px;
-  height: 21px;
-}
-.tooltipBody {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 205px;
-  min-width: 0;
-  background: #ededed;
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 11px;
-  line-height: 1.3;
-  font-weight: 500;
 }
 .tabs {
   height: 46px;
