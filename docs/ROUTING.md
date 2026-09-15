@@ -39,17 +39,18 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 공통·인증
 
-| URL                       | 화면                           | 접근 조건      | 상태        |
-| ------------------------- | ------------------------------ | -------------- | ----------- |
-| `/auth/signup`            | 가입 방식·약관                 | guest          | implemented |
-| `/auth/signup/verify`     | 포트원 본인인증 진행·결과 확인 | terms complete | implemented |
-| `/auth/signup/profile`    | 회원정보 입력                  | verified guest | implemented |
-| `/auth/signup/complete`   | 가입 완료                      | verified guest | implemented |
-| `/auth/login`             | 로그인                         | guest          | implemented |
-| `/auth/recovery/email`    | 이메일 찾기                    | guest          | implemented |
-| `/auth/recovery/password` | 비밀번호 재설정                | guest          | implemented |
+| URL                                    | 화면                                | 접근 조건      | 상태        |
+| -------------------------------------- | ----------------------------------- | -------------- | ----------- |
+| `/auth/signup`                         | 가입 방식·약관                      | guest          | implemented |
+| `/auth/signup/verify`                  | 포트원 본인인증 진행·결과 확인      | terms complete | implemented |
+| `/auth/identity-verification/callback` | 모바일 PortOne 리다이렉트 결과 수신 | terms complete | implemented |
+| `/auth/signup/profile`                 | 회원정보 입력                       | verified guest | implemented |
+| `/auth/signup/complete`                | 가입 완료                           | verified guest | implemented |
+| `/auth/login`                          | 로그인                              | guest          | implemented |
+| `/auth/recovery/email`                 | 이메일 찾기                         | guest          | implemented |
+| `/auth/recovery/password`              | 비밀번호 재설정                     | guest          | implemented |
 
-약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 포트원 SDK 호출과 서버 검증 결과를 연결하는 프론트엔드 진행 경로이며, 본인인증 입력 화면을 직접 구현하지 않습니다.
+약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 이름·생년월일·전화번호를 받아 포트원 SDK 요청에 prefill로 실어 보내고, 그 이후(통신사 선택·SMS 인증번호 입력 등)는 포트원 팝업이 자체적으로 처리합니다. `/auth/identity-verification/callback`은 모바일처럼 포트원이 팝업 대신 전체 페이지 리다이렉트를 쓰는 경우의 결과 수신 전용 라우트이며, `sessionStorage`(`fundit-auth-identity-recovery`, 10분 만료, `src/features/auth/model/auth-flow-session.ts`)로 리다이렉트 전 입력값을 복구한 뒤 원래 가입 흐름(`/auth/signup/verify`)으로 되돌립니다.
 
 ## 구매자 탐색·LIVE
 

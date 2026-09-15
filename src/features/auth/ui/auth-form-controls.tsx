@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { useId } from "react";
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ComponentPropsWithRef, ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 
 /* Input이 네이티브 `size` 자리를 디자인 사양 크기로 쓰므로 여기서도 넘기지 않는다. */
-type AuthInputProps = Omit<ComponentPropsWithoutRef<"input">, "className" | "size"> & {
+type AuthInputProps = Omit<ComponentPropsWithRef<"input">, "className" | "size"> & {
   errorMessage?: string;
   onClear?: () => void;
   startAdornment?: ReactNode;
