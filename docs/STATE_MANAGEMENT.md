@@ -77,7 +77,7 @@ Provider는 필요한 Client Component 경계만 감쌉니다. 루트 `AppProvid
 
 ## Query 규칙
 
-Query 정의는 데이터를 사용하는 `features/<feature>`가 소유하고 HTTP client와 공통 오류 변환만 `shared/lib`에 둡니다.
+Query 정의는 데이터를 사용하는 `features/<feature>`가 소유하고 HTTP client와 공통 오류 변환만 `shared/api`에 둡니다.
 
 ```ts
 const projectKeys = {
@@ -150,15 +150,17 @@ MSW는 상태 저장소가 아니라 실제 API와 동일한 HTTP 경계를 제�
 - 실제 API 전환은 base URL과 실행 환경만 바꾸고 query와 컴포넌트는 유지합니다.
 - production bundle에서는 MSW를 실행하지 않습니다.
 
-첫 검증 대상은 판매자 프로젝트 목록입니다. 다음 조건이 갖춰지면 TanStack Query와 MSW를 함께 도입합니다.
+첫 검증 대상은 인증(약관 조회·로그인·회원가입)입니다. 다음 조건이 갖춰지면 TanStack Query와 MSW를 함께 도입합니다.
 
-1. 목록 Request·Response와 페이지네이션 기준이 확정됩니다.
-2. 카드에 필요한 카테고리, 참여자 수, 모금액, 목표액과 진행 상태 필드가 확정됩니다.
+1. 약관 조회, 로그인, 회원가입, 본인인증의 Request·Response가 확정됩니다.
+2. 로그인 응답의 accessToken·mustChangePassword, 약관의 code·title·content·required·version 등 화면에 필요한 필드가 확정됩니다.
 3. 공통 오류 형식과 인증 전달 방식이 확정됩니다.
 4. MSW 조회 결과로 loading, success, empty와 error 상태를 확인합니다.
-5. 필터·페이지는 URL이 소유하고 Query Key는 해당 값을 입력으로 사용합니다.
+5. 회원가입 단계 전환은 URL이 아니라 `AuthFlowProvider`가 소유하고, Query Key에 인증 토큰·이메일·전화번호 같은 비밀값을 넣지 않습니다.
 6. 사용자 A의 캐시를 채운 뒤 로그아웃 또는 계정 전환을 수행해 캐시가 비워지고 사용자 A의 데이터가 다시 표시되지 않는 회귀 테스트를 추가합니다.
 7. 사용자 A에서 시작한 mutation 응답을 지연시킨 뒤 사용자 B로 전환해, 늦게 끝난 콜백이 사용자 B의 캐시를 쓰거나 무효화하지 않는 회귀 테스트를 추가합니다.
+
+이후 판매자 프로젝트 목록 등 다른 기능이 TanStack Query·MSW를 도입할 때도 위 조건과 같은 수준(요청·응답 확정, 오류 형식 확정, 상태별 확인, 캐시 격리 회귀 테스트)을 각 기능에 맞게 충족해야 합니다.
 
 ## 재검토 조건
 

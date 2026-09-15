@@ -15,6 +15,9 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@portone/browser-sdk": "^0.1.10",
+    "@tanstack/react-query": "^5.102.8",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-image": "^3.31.3",
     "@tiptap/extension-text-align": "^3.31.3",
@@ -26,7 +29,9 @@
     "@tiptap/starter-kit": "^3.31.3",
     "next": "16.3.2",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7.88.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.5.10",
@@ -39,6 +44,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "eslint-plugin-storybook": "^10.5.10",
+    "msw": "^2.15.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "storybook": "^10.5.10",
@@ -47,5 +53,10 @@
     "typescript": "^5",
     "vite": "^8"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@10.33.2",
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
 }
