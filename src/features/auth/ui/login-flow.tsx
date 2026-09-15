@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
-import { AuthButton, AuthInput } from "./auth-form-controls";
-import { AuthScreen, AuthTitle } from "./auth-screen";
+import { AuthButton, AuthInput, AuthSocialButton } from "./auth-form-controls";
+import { AuthScreen } from "./auth-screen";
 
 export type LoginView = "method" | "form";
 export type LoginError = "none" | "password-required" | "credentials";
@@ -53,20 +54,24 @@ export function LoginFlow({
   if (view === "method") {
     return (
       <AuthScreen withHeader={false}>
-        <AuthTitle>{"로그인을 위한 단계\n더미 텍스트 입니다"}</AuthTitle>
-        <div className="mt-16 flex flex-col gap-3">
-          <AuthButton aria-label="카카오로 로그인" disabled>
-            카카오 로그인
-          </AuthButton>
-          <AuthButton aria-label="Google로 로그인" disabled>
-            Google 로그인
-          </AuthButton>
-          <AuthButton onClick={() => setView("form")}>일반 로그인</AuthButton>
+        <Image
+          alt="Fundit"
+          className="mx-auto h-12 w-[132px]"
+          height={48}
+          priority
+          src="/images/auth/fundit-logo.svg"
+          width={132}
+        />
+        <div className="mt-24 flex flex-col gap-3">
+          {/* 소셜 로그인도 OAuth 연동 전까지는 진입할 수 없다(회원가입과 동일). */}
+          <AuthSocialButton icon="/images/auth/kakao-logo.svg" label="카카오 로그인" tone="kakao" />
+          <AuthSocialButton icon="/images/auth/google-logo.svg" label="구글 로그인" tone="google" />
+          <AuthButton onClick={() => setView("form")}>이메일로 로그인</AuthButton>
         </div>
-        <div className="mt-6 text-center">
-          <p className="text-body-s text-text-default">계정이 없을 때 더미텍스트</p>
+        <div className="mt-12 text-center">
+          <p className="text-body-s text-text-default">펀딧 계정이 없으신가요?</p>
           <Link
-            className="text-body-s text-text-secondary mt-2 inline-block underline underline-offset-2"
+            className="text-caption-s text-text-secondary mt-1 inline-block underline underline-offset-2"
             href="/auth/signup"
           >
             회원가입하기
@@ -96,7 +101,14 @@ export function LoginFlow({
 
   return (
     <AuthScreen onBack={showMethodSelection}>
-      <AuthTitle>{"로그인을 위한 단계\n더미 텍스트 입니다"}</AuthTitle>
+      <Image
+        alt="Fundit"
+        className="mx-auto h-12 w-[132px]"
+        height={48}
+        priority
+        src="/images/auth/fundit-logo.svg"
+        width={132}
+      />
       <form className="mt-16" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-3">
           <AuthInput
@@ -135,21 +147,23 @@ export function LoginFlow({
             type="password"
             value={password}
           />
-          <AuthButton disabled={submitting || !demoMode} type="submit">
+          {/* 이 화면만 46px(size="lg")다 — 실제 로그인 Figma(FL_C_ME_LOGIN_2)가 그렇게 그려져 있고,
+              다른 회원가입 CTA(52px)와는 의도적으로 다르다. */}
+          <AuthButton disabled={submitting || !demoMode} size="lg" type="submit">
             {submitting ? "로그인 중" : "로그인"}
           </AuthButton>
         </div>
       </form>
       <nav aria-label="계정 복구" className="mt-6 flex items-center justify-center gap-1">
         <Link
-          className="text-body-s flex h-9 w-28 items-center justify-center"
+          className="text-body-s text-text-secondary flex h-9 w-28 items-center justify-center"
           href="/auth/recovery/email"
         >
           아이디 찾기
         </Link>
         <span aria-hidden="true" className="bg-border-default h-3 w-px" />
         <Link
-          className="text-body-s flex h-9 w-28 items-center justify-center"
+          className="text-body-s text-text-secondary flex h-9 w-28 items-center justify-center"
           href="/auth/recovery/password"
         >
           비밀번호 찾기
