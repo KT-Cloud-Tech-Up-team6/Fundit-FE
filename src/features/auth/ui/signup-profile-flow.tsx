@@ -1,14 +1,21 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { FormEvent } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 
+import { checkEmail, signup } from "@/features/auth/api/auth-api";
+import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
+import { useAuth } from "@/providers/auth-provider";
+import { isApiError } from "@/shared/api/api-error";
 import { Select } from "@/shared/components/ui/select";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
-import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
+import { AuthScreen, AuthTitle } from "./auth-screen";
 
 export type SignupProfileView = "email" | "password" | "address";
 
@@ -19,14 +26,44 @@ function passwordCategoryCount(value: string) {
   return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
 }
 
-/* 비밀번호 규칙. 화면 문구와 판정을 한곳에 둔다(백엔드 정책: 8자 이상 + 4종 중 3종). */
-export const passwordRules = [
-  { label: "8자 이상", test: (value: string) => value.length >= 8 },
-  {
-    label: "대문자/소문자/숫자/특수문자 중 3종 이상",
-    test: (value: string) => passwordCategoryCount(value) >= 3,
-  },
-];
+export const passwordSchema = z
+  .string()
+  .min(8, "비밀번호는 8자 이상이어야 합니다.")
+  .refine((value) => passwordCategoryCount(value) >= 3, {
+    message: "대문자, 소문자, 숫자, 특수문자 중 3종 이상을 포함해 주세요.",
+  });
+
+const profileSchema = z
+  .object({
+    customDomain: z.string(),
+    domain: z.string().min(1, "이메일 도메인을 선택해 주세요."),
+    emailLocal: z.string().min(1, "이메일을 입력해 주세요."),
+    nickname: z
+      .string()
+      .trim()
+      .min(1, "닉네임을 입력해 주세요.")
+      .max(50, "50자 이하로 입력해 주세요."),
+    password: passwordSchema,
+    passwordConfirm: z.string(),
+  })
+  .superRefine((value, context) => {
+    if (value.domain === CUSTOM_DOMAIN && !/^@?[^\s@]+\.[^\s@]+$/.test(value.customDomain)) {
+      context.addIssue({
+        code: "custom",
+        message: "이메일 도메인을 확인해 주세요.",
+        path: ["customDomain"],
+      });
+    }
+    if (value.password !== value.passwordConfirm) {
+      context.addIssue({
+        code: "custom",
+        message: "비밀번호가 일치하지 않습니다.",
+        path: ["passwordConfirm"],
+      });
+    }
+  });
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 type SignupProfileFlowProps = {
   initialEmailTaken?: boolean;
@@ -38,45 +75,155 @@ export function SignupProfileFlow({
   initialView = "email",
 }: SignupProfileFlowProps) {
   const router = useRouter();
+  const { authenticate } = useAuth();
+  const {
+    identityDraft,
+    profileDraft,
+    resetFlow,
+    selectedTermCodes,
+    setProfileDraft,
+    setVerificationToken,
+    verificationToken,
+  } = useAuthFlow();
   const [view, setView] = useState<SignupProfileView>(initialView);
-  const [emailLocal, setEmailLocal] = useState(initialEmailTaken ? "fundit" : "");
-  const [domain, setDomain] = useState(initialEmailTaken ? emailDomains[0] : "");
-  const [customDomain, setCustomDomain] = useState("");
-  const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [address, setAddress] = useState("");
-
+  const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
+  const [submitError, setSubmitError] = useState<string>();
+  const initialEmailParts = profileDraft?.email.split("@");
+  const form = useForm<ProfileFormValues>({
+    defaultValues: {
+      customDomain: "",
+      domain: initialEmailParts?.[1]
+        ? `@${initialEmailParts[1]}`
+        : initialEmailTaken
+          ? emailDomains[0]
+          : "",
+      emailLocal: initialEmailParts?.[0] ?? (initialEmailTaken ? "taken" : ""),
+      nickname: profileDraft?.nickname ?? "",
+      password: profileDraft?.password ?? "",
+      passwordConfirm: profileDraft?.password ?? "",
+    },
+    mode: "onChange",
+    resolver: zodResolver(profileSchema),
+  });
+  const [domain, password, passwordConfirm] = useWatch({
+    control: form.control,
+    name: ["domain", "password", "passwordConfirm"],
+  });
   const usesCustomDomain = domain === CUSTOM_DOMAIN;
-  /* 직접 입력 값을 domain에 그대로 담으면 첫 글자에서 usesCustomDomain이 꺼져
-     입력칸이 사라진다. 선택 값과 직접 입력 값을 분리해서 들고 있는다. */
-  const resolvedDomain = usesCustomDomain ? customDomain : domain;
-  const emailFilled = emailLocal.length > 0 && resolvedDomain.length > 0;
-  const passwordValid = passwordRules.every((rule) => rule.test(password));
+  /* onChange을 감싸 쓰는 자리라 register()를 한 번만 호출해 재사용한다
+     (매 입력마다 새 registration을 만들지 않는다). */
+  const emailLocalField = form.register("emailLocal");
+  const passwordLongEnough = password.length >= 8;
+  const passwordCategoriesMet = passwordCategoryCount(password) >= 3;
   const passwordMatched = password.length > 0 && password === passwordConfirm;
+  const emailMutation = useMutation({ mutationFn: (email: string) => checkEmail(email) });
+  const signupMutation = useMutation({
+    mutationFn: (request: Parameters<typeof signup>[0]) => signup(request),
+  });
 
-  if (view === "password") {
-    function submitPassword(event: FormEvent<HTMLFormElement>) {
-      event.preventDefault();
-      if (passwordValid && passwordMatched) setView("address");
+  function resolveEmail(values: ProfileFormValues) {
+    const selectedDomain = values.domain === CUSTOM_DOMAIN ? values.customDomain : values.domain;
+    return `${values.emailLocal}${selectedDomain.startsWith("@") ? selectedDomain : `@${selectedDomain}`}`;
+  }
+
+  async function submitEmail() {
+    setEmailTaken(false);
+    form.clearErrors("emailLocal");
+    const valid = await form.trigger(["emailLocal", "domain", "customDomain", "nickname"]);
+    if (!valid) return;
+
+    try {
+      const result = await emailMutation.mutateAsync(resolveEmail(form.getValues()));
+      if (!result.available) {
+        setEmailTaken(true);
+        return;
+      }
+      setView("password");
+    } catch (error) {
+      form.setError("emailLocal", {
+        message: isApiError(error) ? error.message : "이메일을 확인하지 못했습니다.",
+      });
+    }
+  }
+
+  async function submitPassword() {
+    const valid = await form.trigger(["password", "passwordConfirm"]);
+    if (valid) setView("address");
+  }
+
+  async function submitSignup(values: ProfileFormValues) {
+    setSubmitError(undefined);
+    if (!identityDraft || !verificationToken) {
+      setVerificationToken(null);
+      router.replace("/auth/signup/verify");
+      return;
+    }
+    if (selectedTermCodes.length === 0) {
+      router.replace("/auth/signup");
+      return;
     }
 
+    const profile = {
+      email: resolveEmail(values),
+      nickname: values.nickname.trim(),
+      password: values.password,
+    };
+    setProfileDraft(profile);
+
+    try {
+      const result = await signupMutation.mutateAsync({
+        ...profile,
+        agreedTerms: selectedTermCodes,
+        name: identityDraft.name,
+        phoneNumber: identityDraft.phoneNumber,
+        verificationToken,
+      });
+      const authentication = authenticate(result.accessToken);
+      resetFlow();
+      await authentication;
+      router.push("/auth/signup/complete");
+    } catch (error) {
+      if (isApiError(error) && error.code === "EMAIL_ALREADY_EXISTS") {
+        setEmailTaken(true);
+        setView("email");
+        return;
+      }
+      if (isApiError(error) && error.code === "TOKEN_INVALID") {
+        setVerificationToken(null);
+        router.replace("/auth/signup/verify");
+        return;
+      }
+      setSubmitError(
+        isApiError(error) && error.code === "DEPENDENCY_FAILURE"
+          ? "가입 처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          : "회원가입을 완료하지 못했습니다. 입력 내용을 확인해 주세요.",
+      );
+    }
+  }
+
+  if (view === "password") {
     return (
       <AuthScreen onBack={() => setView("email")}>
         <AuthTitle>비밀번호를 설정해주세요</AuthTitle>
-        <form className="mt-16" onSubmit={submitPassword}>
+        <form
+          className="mt-16"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitPassword();
+          }}
+        >
           <AuthInput
             aria-label="비밀번호"
             autoComplete="new-password"
-            onChange={(event) => setPassword(event.target.value)}
+            errorMessage={form.formState.errors.password?.message}
             placeholder="비밀번호를 입력해주세요"
             type="password"
-            value={password}
+            {...form.register("password")}
           />
           <ul className="mt-2 flex flex-wrap gap-x-2 gap-y-1">
-            {passwordRules.map((rule) => (
-              <RuleItem key={rule.label} label={rule.label} met={rule.test(password)} />
-            ))}
+            <RuleItem label="8자 이상" met={passwordLongEnough} />
+            <RuleItem label="대문자/소문자/숫자/특수문자 중 3종 이상" met={passwordCategoriesMet} />
           </ul>
 
           <h2 className="text-title-s text-text-default mt-6">다시 한번 입력해주세요</h2>
@@ -84,17 +231,21 @@ export function SignupProfileFlow({
             <AuthInput
               aria-label="비밀번호 확인"
               autoComplete="new-password"
-              onChange={(event) => setPasswordConfirm(event.target.value)}
+              errorMessage={form.formState.errors.passwordConfirm?.message}
               placeholder="다시 한번 입력해주세요"
               type="password"
-              value={passwordConfirm}
+              {...form.register("passwordConfirm")}
             />
           </div>
           <ul className="mt-2">
             <RuleItem label="비밀번호 일치" met={passwordMatched} />
           </ul>
 
-          <AuthButton className="mt-6" disabled={!passwordValid || !passwordMatched} type="submit">
+          <AuthButton
+            className="mt-6"
+            disabled={!passwordLongEnough || !passwordCategoriesMet || !passwordMatched}
+            type="submit"
+          >
             다음
           </AuthButton>
         </form>
@@ -103,6 +254,7 @@ export function SignupProfileFlow({
   }
 
   if (view === "address") {
+    const submit = form.handleSubmit(submitSignup);
     return (
       <AuthScreen onBack={() => setView("password")}>
         <AuthTitle>{"배송지를 입력해두면\n이용이 편리해져요"}</AuthTitle>
@@ -117,71 +269,68 @@ export function SignupProfileFlow({
             value={address}
           />
         </div>
+        {submitError ? (
+          <p className="text-caption-s text-text-warning mt-3" role="alert">
+            {submitError}
+          </p>
+        ) : null}
+        <AuthButton
+          className="mt-3"
+          disabled={address.length === 0 || signupMutation.isPending}
+          onClick={() => void submit()}
+        >
+          {signupMutation.isPending ? "가입 처리 중" : "다음"}
+        </AuthButton>
         <button
-          className="text-body-s text-text-secondary mx-auto mt-6 block underline underline-offset-2"
-          onClick={() => router.push("/auth/signup/complete")}
+          className="text-caption-s text-text-secondary mx-auto mt-16 block h-10 px-2 underline underline-offset-2 disabled:cursor-not-allowed"
+          disabled={signupMutation.isPending}
+          onClick={() => void submit()}
           type="button"
         >
           다음에 설정할게요
         </button>
-        <AuthBottomAction>
-          <AuthButton
-            disabled={address.length === 0}
-            onClick={() => router.push("/auth/signup/complete")}
-          >
-            다음
-          </AuthButton>
-        </AuthBottomAction>
       </AuthScreen>
     );
-  }
-
-  /* 중복 확인은 API가 담당한다. 여기서는 오류를 지어내지 않고 다음 단계로 넘긴다.
-     중복 오류 화면은 initialEmailTaken으로만 표현한다. */
-  function submitEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setEmailTaken(false);
-    setView("password");
   }
 
   return (
     <AuthScreen onBack={() => router.back()}>
       <AuthTitle>{"회원 가입을\n시작해볼까요?"}</AuthTitle>
-      <form className="mt-16" onSubmit={submitEmail}>
+      <form
+        className="mt-16"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submitEmail();
+        }}
+      >
         <h2 className="text-title-s text-text-default mb-3">이메일 주소를 입력해주세요</h2>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <AuthInput
+              {...emailLocalField}
               aria-label="이메일 아이디"
               autoComplete="username"
-              errorMessage={emailTaken ? "이미 가입된 주소입니다" : undefined}
+              errorMessage={
+                emailTaken ? "이미 가입된 주소입니다." : form.formState.errors.emailLocal?.message
+              }
               id="signup-email-local"
               onChange={(event) => {
-                setEmailLocal(event.target.value);
                 setEmailTaken(false);
+                void emailLocalField.onChange(event);
               }}
-              onClear={() => setEmailLocal("")}
               placeholder="이메일"
-              value={emailLocal}
             />
           </div>
           <div className="w-[148px] shrink-0">
             {usesCustomDomain ? (
               <AuthInput
                 aria-label="이메일 도메인 직접 입력"
-                onChange={(event) => setCustomDomain(event.target.value)}
-                onClear={() => setCustomDomain("")}
+                errorMessage={form.formState.errors.customDomain?.message}
                 placeholder="@직접 입력"
-                value={customDomain}
+                {...form.register("customDomain")}
               />
             ) : (
-              <Select
-                aria-label="이메일 도메인"
-                onChange={(event) => setDomain(event.target.value)}
-                shape="compact"
-                value={domain}
-              >
+              <Select aria-label="이메일 도메인" shape="compact" {...form.register("domain")}>
                 <option value="">@ 선택</option>
                 <option value={CUSTOM_DOMAIN}>직접 입력</option>
                 {emailDomains.map((value) => (
@@ -194,8 +343,18 @@ export function SignupProfileFlow({
           </div>
         </div>
 
-        <AuthButton className="mt-6" disabled={!emailFilled} type="submit">
-          다음
+        <h2 className="text-title-s text-text-default mt-6 mb-3">닉네임을 입력해주세요</h2>
+        <AuthInput
+          aria-label="닉네임"
+          autoComplete="nickname"
+          errorMessage={form.formState.errors.nickname?.message}
+          maxLength={50}
+          placeholder="닉네임 (최대 50자)"
+          {...form.register("nickname")}
+        />
+
+        <AuthButton className="mt-6" disabled={emailMutation.isPending} type="submit">
+          {emailMutation.isPending ? "중복 확인 중" : "다음"}
         </AuthButton>
       </form>
     </AuthScreen>
