@@ -396,7 +396,7 @@ Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모�
 | `layer-surface-primary`            | `charcoal-900`     | `charcoal-200`        |
 | `layer-surface-primary-live`       | `blue-500`         | 동일                  |
 | `layer-surface-kakao`              | `kakao-yellow`     | 동일                  |
-| `layer-surface-primary-disabled`   | `charcoal-300`     | `charcoal-700`        |
+| `layer-surface-primary-disabled`   | `charcoal-200`     | `charcoal-700`        |
 | `layer-surface-primary-hover`      | `charcoal-800`     | 동일                  |
 | `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |
 | `text-title`                       | `grey-black`       | `grey-white`          |
