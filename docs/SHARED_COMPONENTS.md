@@ -103,14 +103,14 @@ src/shared/components/
 
 ## 현재 공용 UI 인벤토리
 
-| 범주       | 컴포넌트                                     | 책임                                              |
-| ---------- | -------------------------------------------- | ------------------------------------------------- |
-| Action     | `Button`                                     | 기본·LIVE CTA의 크기, 상태와 네이티브 button 계약 |
-| Form       | `Input`, `SearchField`, `Select`, `Checkbox` | 입력 시맨틱, 오류·disabled 상태와 focus 표현      |
-| Navigation | `Tab`, `TabList`, `Pagination`               | 탭 위젯, URL 내비게이션과 페이지 이동             |
-| Feedback   | `Badge`, `Chip`, `ProgressBar`               | 상태·선택·진행률의 도메인 비의존 표현             |
-| Surface    | `Card`, `BottomSheet`                        | 콘텐츠 표면과 modal dialog 동작                   |
-| Media      | `Icon`                                       | 허용된 아이콘 이름과 색상 상속                    |
+| 범주       | 컴포넌트                                              | 책임                                                                 |
+| ---------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Action     | `Button`, `TextButton`                                | 기본·LIVE CTA와 보조 텍스트 액션의 크기, 상태와 네이티브 button 계약 |
+| Form       | `Input`, `SearchField`, `Select`, `Checkbox`, `Radio` | 입력 시맨틱, 오류·disabled 상태와 focus 표현                         |
+| Navigation | `Tab`, `TabList`, `Pagination`                        | 탭 위젯, URL 내비게이션과 페이지 이동                                |
+| Feedback   | `Badge`, `Chip`, `ProgressBar`, `Toast`               | 상태·선택·진행률·알림의 도메인 비의존 표현                           |
+| Surface    | `Card`, `BottomSheet`, `Tooltip`                      | 콘텐츠 표면, modal dialog와 컨텍스트 팝업 동작                       |
+| Media      | `Icon`, `Avatar`, `AspectRatio`                       | 허용된 아이콘 이름, 프로필 이미지와 비율 컨테이너                    |
 
 이 표는 컴포넌트 사용법의 정본이 아닙니다. 공개 props와 상태 예시는 각 Storybook 스토리를 기준으로 확인합니다.
 
