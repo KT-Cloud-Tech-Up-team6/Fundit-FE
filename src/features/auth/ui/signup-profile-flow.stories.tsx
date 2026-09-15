@@ -9,13 +9,19 @@ const meta = {
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
+    viewport: {
+      defaultViewport: "figma390",
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+      },
+    },
   },
 } satisfies Meta<typeof SignupProfileFlow>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const VALID_PASSWORD = "fundit1234";
+const VALID_PASSWORD = "Fundit123!";
 
 export const EmailForm: Story = {
   args: {},

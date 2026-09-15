@@ -47,7 +47,7 @@ export function SignupDoneFlow({
     <AuthScreen withHeader={false}>
       {toastVisible ? (
         <div
-          className="bg-layer-surface-primary text-text-inverse text-body-s mt-4 flex items-center justify-between gap-3 rounded-sm px-4 py-3"
+          className="bg-layer-overlay text-text-static-white text-caption-m fixed top-16 left-1/2 z-20 flex w-[min(300px,calc(100vw-40px))] -translate-x-1/2 items-center justify-between gap-3 rounded-sm px-4 py-3"
           role="status"
         >
           회원가입이 완료되었습니다
@@ -63,7 +63,7 @@ export function SignupDoneFlow({
 
       <AuthTitle>{"가입이 완료되었어요\n관심 카테고리를 골라주세요"}</AuthTitle>
 
-      <ul className="mt-10 grid grid-cols-3 gap-3 pb-24">
+      <ul className="mt-6 flex flex-wrap gap-x-3 gap-y-4 p-2">
         {categories.map((category) => {
           const isSelected = selected.includes(category);
 
@@ -72,11 +72,11 @@ export function SignupDoneFlow({
               <button
                 aria-pressed={isSelected}
                 className={[
-                  "text-caption-s flex aspect-square w-full flex-col items-center justify-end gap-2 rounded-sm p-2",
+                  "text-label-l flex min-h-9 items-center justify-center rounded-full px-4 py-2",
                   "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
                   isSelected
                     ? "bg-layer-surface-primary text-text-inverse"
-                    : "bg-layer-surface-disabled text-text-default",
+                    : "border-w-xs border-border-default bg-layer-surface-default text-text-disabled",
                 ].join(" ")}
                 onClick={() => toggle(category)}
                 type="button"

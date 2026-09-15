@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -14,11 +15,17 @@ export type SignupProfileView = "email" | "password" | "address";
 const emailDomains = ["@gmail.com", "@naver.com", "@daum.com"];
 const CUSTOM_DOMAIN = "custom";
 
-/* 비밀번호 규칙. 화면 문구와 판정을 한곳에 둔다. */
+function passwordCategoryCount(value: string) {
+  return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
+}
+
+/* 비밀번호 규칙. 화면 문구와 판정을 한곳에 둔다(백엔드 정책: 8자 이상 + 4종 중 3종). */
 export const passwordRules = [
-  { label: "영문 포함", test: (value: string) => /[a-zA-Z]/.test(value) },
-  { label: "숫자 포함", test: (value: string) => /\d/.test(value) },
-  { label: "8-20자 이내", test: (value: string) => value.length >= 8 && value.length <= 20 },
+  { label: "8자 이상", test: (value: string) => value.length >= 8 },
+  {
+    label: "대문자/소문자/숫자/특수문자 중 3종 이상",
+    test: (value: string) => passwordCategoryCount(value) >= 3,
+  },
 ];
 
 type SignupProfileFlowProps = {
@@ -62,18 +69,18 @@ export function SignupProfileFlow({
             aria-label="비밀번호"
             autoComplete="new-password"
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="8-20자리로 입력해주세요"
+            placeholder="비밀번호를 입력해주세요"
             type="password"
             value={password}
           />
-          <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          <ul className="mt-2 flex flex-wrap gap-x-2 gap-y-1">
             {passwordRules.map((rule) => (
               <RuleItem key={rule.label} label={rule.label} met={rule.test(password)} />
             ))}
           </ul>
 
           <h2 className="text-title-s text-text-default mt-6">다시 한번 입력해주세요</h2>
-          <div className="mt-3">
+          <div className="mt-2">
             <AuthInput
               aria-label="비밀번호 확인"
               autoComplete="new-password"
@@ -98,14 +105,15 @@ export function SignupProfileFlow({
   if (view === "address") {
     return (
       <AuthScreen onBack={() => setView("password")}>
-        <AuthTitle>주소를 입력해주세요</AuthTitle>
+        <AuthTitle>{"배송지를 입력해두면\n이용이 편리해져요"}</AuthTitle>
         <div className="mt-16">
           <AuthInput
             aria-label="주소"
             autoComplete="street-address"
             onChange={(event) => setAddress(event.target.value)}
             onClear={() => setAddress("")}
-            placeholder="주소 검색"
+            placeholder="도로명, 지번, 건물명 검색"
+            startAdornment={<Image alt="" height={20} src="/icons/search.svg" width={20} />}
             value={address}
           />
         </div>
@@ -139,8 +147,9 @@ export function SignupProfileFlow({
 
   return (
     <AuthScreen onBack={() => router.back()}>
-      <AuthTitle>이메일을 입력해주세요</AuthTitle>
+      <AuthTitle>{"회원 가입을\n시작해볼까요?"}</AuthTitle>
       <form className="mt-16" onSubmit={submitEmail}>
+        <h2 className="text-title-s text-text-default mb-3">이메일 주소를 입력해주세요</h2>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <AuthInput
@@ -170,6 +179,7 @@ export function SignupProfileFlow({
               <Select
                 aria-label="이메일 도메인"
                 onChange={(event) => setDomain(event.target.value)}
+                shape="compact"
                 value={domain}
               >
                 <option value="">@ 선택</option>
@@ -204,7 +214,7 @@ function RuleItem({ label, met }: { label: string; met: boolean }) {
       <span
         aria-hidden
         className={[
-          "h-2 w-1.5 rotate-45 border-r-[1.3px] border-b-[1.3px]",
+          "border-r-w-s border-b-w-s h-2 w-1.5 rotate-45",
           met ? "border-text-success" : "border-text-disabled",
         ].join(" ")}
       />
