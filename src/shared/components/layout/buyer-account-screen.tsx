@@ -6,13 +6,17 @@ export function BuyerAccountScreen({
   title,
   backHref = "/my",
   children,
+  className = "",
 }: {
   title: string;
   backHref?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_summary:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] [&_a:focus-visible]:outline-2 [&_button:focus-visible]:outline-2 [&_summary:focus-visible]:outline-2">
+    <main
+      className={`bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_summary:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] [&_a:focus-visible]:outline-2 [&_button:focus-visible]:outline-2 [&_summary:focus-visible]:outline-2 ${className}`}
+    >
       <header className="bg-layer-surface-default sticky top-0 z-10 grid h-[52px] grid-cols-[40px_1fr_40px] items-center px-3">
         <Link
           href={backHref}
