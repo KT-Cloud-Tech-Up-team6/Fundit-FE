@@ -1,13 +1,3 @@
-.screen {
-  width: 100%;
-  min-width: 0;
-  max-width: 390px;
-  margin: 0 auto;
-  min-height: 100dvh;
-  background: #fff;
-  color: #000;
-  padding-bottom: calc(60px + env(safe-area-inset-bottom));
-}
 .screen button,
 .screen a {
   -webkit-tap-highlight-color: transparent;
@@ -23,13 +13,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
-  border-bottom: 1px solid #ededed;
+  padding: 6px 12px;
 }
 .header > span {
   flex: 1;
   text-align: center;
-  color: #0800ff;
+  color: var(--text-title);
   font-size: 18px;
   line-height: 26px;
   font-weight: 600;
@@ -39,72 +28,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-}
-.hero {
-  position: relative;
-  height: 270px;
-  background: #ededed;
-  padding: 16px 20px;
-}
-.liveThumbnail {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 90px;
-  height: 120px;
-  padding: 8px;
-  background: #d9d9d9;
-  border-radius: 4px;
-  color: blue;
-  font-size: 14px;
-  line-height: 20px;
-}
-.liveBadge {
-  position: absolute;
-  top: 16px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 999px;
-  background: #d9d9d9;
-  padding: 4px 8px;
-  font-size: 14px;
-  line-height: 18px;
-  font-weight: 600;
-}
-.imageLabel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: blue;
-  font-size: 14px;
-}
-.pagination {
-  position: absolute;
-  right: 20px;
-  bottom: 16px;
-  border-radius: 4px;
-  background: #d9d9d9;
-  padding: 4px 8px;
-  font-size: 13px;
-  line-height: 18px;
-}
-.summary {
-  padding: 16px 20px;
-}
-.seller {
-  font-size: 14px;
-  line-height: 20px;
-  margin-bottom: 4px;
-}
-.summary h1 {
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 600;
+  width: 40px;
+  height: 40px;
 }
 .fundingNumbers {
   margin-top: 8px;
@@ -124,9 +49,9 @@
   font-weight: 600;
 }
 .fundingNumbers b {
-  font-size: 18px;
-  line-height: 26px;
-  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
 }
 .fundingNumbers p {
   display: flex;
@@ -135,54 +60,6 @@
 }
 .fundingNumbers p:has(b) {
   gap: 8px;
-}
-.goal {
-  font-size: 14px;
-}
-.participants,
-.deadline {
-  flex-shrink: 0;
-  font-size: 13px;
-  line-height: 18px;
-}
-.deadline {
-  background: #ededed;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-.aiSummary {
-  margin-top: 12px;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.aiHeading,
-.questionHeading {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.aiHeading h2 {
-  font-size: 14px;
-  line-height: 18px;
-  font-weight: 600;
-}
-.summaryItem {
-  font-size: 13px;
-  line-height: 18px;
-}
-.summaryItem h3 {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 500;
-}
-.summaryItem p {
-  padding-left: 16px;
 }
 .information {
   position: relative;
@@ -200,44 +77,25 @@
   z-index: 2;
   top: 1.5px;
   left: 100%;
-  width: 213.925px;
+  width: 190px;
+  --layer-bg: var(--layer-surface-primary);
+  --text-default: var(--text-inverse);
 }
 .tabs {
   height: 46px;
   display: flex;
-  gap: 16px;
+  gap: 8px;
   padding: 0 20px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid #d9d9d9;
+  border-bottom: 1px solid var(--border-default);
 }
 .tabs::-webkit-scrollbar,
 .carousel::-webkit-scrollbar {
   display: none;
 }
-.tabs a {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 4px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-  white-space: nowrap;
-  border-bottom: 2px solid transparent;
-}
-.tabs a[aria-current="page"] {
-  border-color: #000;
-}
-.tabs a[href$="tab=live-proof"] {
-  gap: 8px;
-}
 .tabs small {
   font-size: 12px;
-}
-.story {
-  position: relative;
-  margin: 10px 20px 20px;
 }
 .storyImage {
   position: relative;
@@ -258,13 +116,7 @@
   font-size: 20px;
   line-height: 28px;
   font-weight: 600;
-  color: #0800ff;
-}
-.liveContent {
-  padding: 24px 20px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  color: var(--text-primary-live);
 }
 .liveContent h2 {
   display: flex;
@@ -275,19 +127,13 @@
   line-height: 26px;
 }
 .liveContent small {
-  color: #959595;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
 }
 .liveContent h2 small {
   margin-left: -4px;
-}
-.replays {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
 }
 .videoSection h3 {
   display: flex;
@@ -316,64 +162,17 @@
   text-align: left;
 }
 .videoPoster {
-  height: 220px;
+  height: 217px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  background: #ededed;
+  background: var(--layer-bg);
   border-radius: 4px;
   padding: 8px;
 }
-.videoPoster > span {
-  background: #d9d9d9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 14px;
-  font-weight: 500;
-}
-.videoTitle {
-  margin-top: 4px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-}
-.date {
-  display: block;
-  font-size: 13px;
-  line-height: 18px;
-  color: #959595;
-}
-.questions {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-.questionHeading {
-  margin-bottom: -12px;
-}
-.questions h3 {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
-}
-.answer {
-  margin-top: 8px;
-  border: 1px solid #bababa;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-}
-.answer .date {
-  margin-top: 4px;
-  font-weight: 400;
-}
+
 .footer {
   position: fixed;
   z-index: 5;
@@ -386,7 +185,7 @@
   align-items: center;
   gap: 9px;
   padding: 8px 20px calc(8px + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--layer-surface-default);
 }
 .footer > button:first-child {
   width: 44px;
@@ -402,15 +201,6 @@
 }
 .funding {
   flex: 1;
-  height: 44px;
-  background: #ededed;
-  color: #000;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-}
-.funding:hover {
-  background: #d9d9d9;
 }
 .notice {
   position: fixed;
@@ -421,9 +211,36 @@
   width: calc(100% - 40px);
   max-width: 350px;
   padding: 10px;
-  background: #959595;
-  color: #fff;
+  background: var(--text-secondary);
+  color: var(--layer-surface-default);
   border-radius: 4px;
   font-size: 14px;
   text-align: center;
+}
+
+.liveBadge {
+  --status-info: var(--blue-500);
+  --text-secondary: var(--text-static-white);
+  width: fit-content;
+}
+.fundingNumbers > div:first-child p {
+  color: var(--text-primary-live);
+}
+.participants {
+  color: var(--text-secondary);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.liveContent h3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.heroImage {
+  width: 145% !important;
+  height: 133.84% !important;
+  max-width: none;
+  left: -22.5% !important;
+  top: -16.92% !important;
 }

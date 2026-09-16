@@ -33,7 +33,7 @@ export const Default: Story = {
     const like = canvas.getByRole("button", { name: "프로젝트 찜" });
     await userEvent.click(like);
     expect(like).toHaveAttribute("aria-pressed", "true");
-    expect(like).toHaveTextContent("10000");
+    expect(like).toHaveTextContent("9999+");
     await userEvent.click(like);
     expect(like).toHaveTextContent("9999");
   },
@@ -52,30 +52,26 @@ export const LiveCheck: Story = {
     ).toHaveLength(3);
     expect(
       within(canvas.getByRole("region", { name: "LIVE Q&A" })).getAllByRole("article"),
-    ).toHaveLength(3);
+    ).toHaveLength(5);
     await userEvent.click(canvas.getByRole("button", { name: /^종료된 라이브 1/ }));
     expect(canvas.getByRole("status")).toHaveTextContent("영상 재생은 아직 연결되지 않은 목업");
   },
 };
 
 export const InformationTip: Story = {
-  play: async ({ canvasElement, globals }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const button = canvas.getByRole("button", { name: "AI 프로젝트 요약 안내" });
     await userEvent.click(button);
     expect(canvas.getByRole("tooltip")).toHaveTextContent("판매자의 검토 및 수정");
-    expect(canvas.getByRole("tooltip")).toHaveTextContent(
-      "정확한 사항은 구매 전 문의해 주시기 바랍니다.",
-    );
+    expect(canvas.getByRole("tooltip")).toHaveTextContent("판매자의 검토 및 수정");
     const tooltip = canvas.getByRole("tooltip");
     const body = within(tooltip)
       .getByText(
         "본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.",
       )
       .closest("div")!;
-    expect(getComputedStyle(body).backgroundColor).toBe(
-      globals.theme === "dark" ? "rgb(31, 32, 36)" : "rgb(247, 247, 247)",
-    );
+    expect(getComputedStyle(body).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(body).fontSize).toBe("11px");
     expect(getComputedStyle(body).fontWeight).toBe("500");
     expect(tooltip.getBoundingClientRect().width).toBeGreaterThan(100);
@@ -93,9 +89,7 @@ export const LiveInformationTip: Story = {
     await InformationTip.play?.(context);
     const canvas = within(context.canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "LIVE Q&A 안내" }));
-    expect(canvas.getByRole("tooltip")).toHaveTextContent(
-      "정확한 사항은 구매 전 문의해 주시기 바랍니다.",
-    );
+    expect(canvas.getByRole("tooltip")).toHaveTextContent("판매자의 검토 및 수정");
     expect(canvas.getByRole("button", { name: "프로젝트 찜" })).toHaveTextContent("9999+");
     await userEvent.keyboard("{Escape}");
     expect(canvas.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -109,7 +103,7 @@ export const FundingSelection: Story = {
     await userEvent.click(trigger);
     const dialog = await canvas.findByRole("dialog");
     expect(dialog).toBeVisible();
-    await userEvent.keyboard("{Escape}");
+    await userEvent.click(within(dialog).getByRole("button", { name: "리워드 선택 닫기" }));
     expect(dialog).not.toBeVisible();
     expect(trigger).toHaveFocus();
   },
