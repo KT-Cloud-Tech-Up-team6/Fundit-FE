@@ -41,9 +41,10 @@ export function BottomSheet({
     ComponentPropsWithoutRef<"dialog">,
     "onClose" | "open"
   > & { onBack?: () => void; title?: ReactNode };
-  /* title="" 처럼 빈 문자열이면 보이는 헤더도, 이름도 없는 쪽이 낫다 — 빈 제목 바를
-     그리고 aria-labelledby가 빈 접근 이름을 가리키게 두지 않는다. */
-  const hasTitle = title !== undefined && title !== "";
+  const hasTitle =
+    title != null &&
+    typeof title !== "boolean" &&
+    (typeof title !== "string" || title.trim() !== "");
   const closeLabel = typeof title === "string" ? `${title} 닫기` : "닫기";
   const backLabel = typeof title === "string" ? `${title} 뒤로가기` : "뒤로가기";
 
@@ -61,6 +62,10 @@ export function BottomSheet({
       onClose={onClose}
       open={open}
       {...dialogProps}
+      aria-label={
+        dialogProps["aria-label"] ??
+        (!hasTitle && !dialogProps["aria-labelledby"] ? "바텀 시트" : undefined)
+      }
     >
       <div className="flex max-h-[90dvh] flex-col">
         {hasTitle && (

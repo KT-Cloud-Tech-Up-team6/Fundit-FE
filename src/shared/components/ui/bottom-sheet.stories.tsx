@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { BottomSheet } from "./bottom-sheet";
 import { Button } from "./button";
@@ -15,6 +15,48 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+const nameCases = [
+  { title: undefined },
+  { title: null },
+  { title: false },
+  { title: true },
+  { title: "" },
+  { title: "   " },
+  { title: null, "aria-label": "직접 지정한 이름" },
+  { title: null, "aria-labelledby": "sheet-content-title" },
+  { title: "시트 제목" },
+];
+
+export const AccessibleName: Story = {
+  args: { title: undefined, children: null, onClose: () => {}, open: true },
+  render: function AccessibleNameStory() {
+    const [index, setIndex] = useState(0);
+    return (
+      <BottomSheet {...nameCases[index]} open onClose={() => {}}>
+        <p id="sheet-content-title">본문 제목</p>
+        <Button onClick={() => setIndex((value) => (value + 1) % nameCases.length)}>
+          다음 사례
+        </Button>
+      </BottomSheet>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const scenario of nameCases) {
+      const hasTitle = typeof scenario.title === "string" && scenario.title.trim() !== "";
+      const name =
+        scenario["aria-label"] ??
+        (scenario["aria-labelledby"] ? "본문 제목" : hasTitle ? scenario.title : "바텀 시트");
+      const dialog = await canvas.findByRole("dialog", { name });
+      await expect(dialog).toHaveAccessibleName(name);
+      if (!hasTitle) {
+        await expect(within(dialog).queryByRole("heading")).toBeNull();
+      }
+      await userEvent.click(within(dialog).getByRole("button", { name: "다음 사례" }));
+    }
+  },
+};
 
 export const Default: Story = {
   args: { "aria-label": "약관 동의", children: null, onClose: () => {}, open: false },
