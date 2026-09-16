@@ -47,3 +47,50 @@ export function ProgressBar({
     </div>
   );
 }
+
+type ProgressStep = "complete" | "current" | "upcoming";
+
+type ProgressStepperProps = Omit<ComponentPropsWithRef<"ol">, "children"> & {
+  /** 왼쪽부터 완료·현재·예정 상태를 Figma 단계형 진행 표시와 같이 렌더링한다. */
+  steps: ProgressStep[];
+};
+
+/**
+ * Figma Progress Bar의 단계형 표현. 막대형 ProgressBar와 목적이 다르므로
+ * value를 억지로 해석하지 않고 상태 배열을 명시적으로 받는다.
+ */
+export function ProgressStepper({ className, steps, ...props }: ProgressStepperProps) {
+  return (
+    <ol
+      className={["flex items-center", className].filter(Boolean).join(" ")}
+      aria-label="진행 단계"
+      {...props}
+    >
+      {steps.map((step, index) => (
+        <li className="flex min-w-0 flex-1 items-center last:flex-none" key={index}>
+          <span
+            role="img"
+            aria-label={step === "complete" ? "완료" : step === "current" ? "진행 중" : "예정"}
+            className={[
+              "relative flex size-8 shrink-0 items-center justify-center rounded-full",
+              step === "complete"
+                ? "bg-layer-surface-primary text-text-inverse after:block after:h-2 after:w-1 after:-translate-y-px after:rotate-45 after:border-r-2 after:border-b-2"
+                : step === "current"
+                  ? "border-layer-surface-primary bg-layer-surface-default border-4"
+                  : "bg-layer-surface-disabled",
+            ].join(" ")}
+          />
+          {index < steps.length - 1 ? (
+            <span
+              aria-hidden
+              className={[
+                "h-1 min-w-2 flex-1",
+                step === "complete" ? "bg-layer-surface-primary" : "bg-border-default",
+              ].join(" ")}
+            />
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+}

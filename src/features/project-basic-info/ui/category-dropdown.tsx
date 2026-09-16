@@ -116,7 +116,7 @@ export function CategoryDropdown({
           id={`${id}-list`}
           role="listbox"
           aria-label={label}
-          className="border-border-default bg-layer-surface-default absolute top-full z-20 mt-2 flex max-h-54.5 w-full [scrollbar-width:thin] [scrollbar-color:var(--color-text-disabled)_var(--color-layer-surface-disabled)] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xs border"
+          className="border-border-default bg-layer-surface-default absolute top-full z-20 mt-2 flex max-h-54.5 w-full flex-col gap-1 overflow-y-auto overscroll-contain rounded-xs border"
         >
           {options.map((option, index) => (
             <li

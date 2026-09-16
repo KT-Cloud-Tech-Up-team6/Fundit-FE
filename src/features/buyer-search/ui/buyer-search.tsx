@@ -89,6 +89,7 @@ export function BuyerSearch({
         }}
       >
         <SearchField
+          size="lg"
           ref={input}
           aria-label="통합 검색어"
           placeholder="검색어를 입력해주세요"
@@ -246,6 +247,7 @@ export function BuyerSearch({
                   {query.tab === "projects" && (
                     <Checkbox
                       checked={query.closed}
+                      shape="circle"
                       className="text-[0.75rem]"
                       onChange={(event) =>
                         onQueryChange({ ...query, closed: event.target.checked })

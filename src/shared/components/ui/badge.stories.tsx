@@ -13,6 +13,7 @@ const meta = {
   },
   argTypes: {
     shape: { control: "radio", options: ["square", "rounded"] },
+    variant: { control: "radio", options: ["warning", "success", "caution", "neutral", "live"] },
   },
 } satisfies Meta<typeof Badge>;
 
@@ -27,9 +28,12 @@ export const Rounded: Story = {
 
 export const Gallery: Story = {
   render: (args) => (
-    <div className="flex items-center gap-7">
-      <Badge {...args} shape="square" />
-      <Badge {...args} shape="rounded" />
+    <div className="flex flex-wrap items-center gap-3">
+      {(["warning", "success", "caution", "neutral", "live"] as const).map((variant) => (
+        <Badge {...args} key={variant} variant={variant}>
+          {variant}
+        </Badge>
+      ))}
     </div>
   ),
 };
