@@ -1,7 +1,20 @@
 import type { ComponentPropsWithRef } from "react";
+import Link from "next/link";
 import { Icon } from "./icon";
 
 type TextButtonVariant = "underline" | "plain";
+
+export const textButtonNavigationClasses =
+  "text-body-s text-text-secondary inline-flex h-10 shrink-0 items-center justify-center gap-1 px-2 py-1 text-center whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary";
+
+export function TextLink({ className, ...props }: ComponentPropsWithRef<typeof Link>) {
+  return (
+    <Link
+      className={[textButtonNavigationClasses, className].filter(Boolean).join(" ")}
+      {...props}
+    />
+  );
+}
 
 type TextButtonProps = ComponentPropsWithRef<"button"> & {
   showIcon?: boolean;

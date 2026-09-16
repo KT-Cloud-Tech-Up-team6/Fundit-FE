@@ -5,6 +5,8 @@
 - [실제 Figma 디자인](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1055-14135)을 기존 와이어프레임에 적용한다.
 - 프로젝트 상세 `FL_B_PJ_DTL`(1055:15446), LIVE 체크 `FL_B_PJ_LIVE`(1055:15520)가 대상이다. 관련 작업은 #99이며 기존 #65의 경로와 동작을 유지한다.
 
+- 2026-09-16 댓글 수정 프레임 1087:17806의 PIP에는 `border-default` 1px 테두리를 적용한다. 하단 푸터의 동일한 테두리는 기존 구현을 유지한다.
+
 ## 확인 경로
 
 - `/projects/demo-project`에서 리워드 정보를 확인한다. 기존 canonical 쿼리 `?tab=story`를 유지한다.
