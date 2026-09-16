@@ -72,6 +72,7 @@ export function SignupTermsSheet({
       <div className="flex items-center justify-between">
         <Checkbox
           checked={allChecked}
+          shape="circle"
           className="[&>span:last-child]:text-body-emphasis"
           indeterminate={checkedIds.length > 0 && !allChecked}
           onChange={(event) => toggleAll(event.target.checked)}
@@ -88,6 +89,7 @@ export function SignupTermsSheet({
           <li className="flex items-center justify-between" key={term.id}>
             <Checkbox
               checked={checkedIds.includes(term.id)}
+              shape="circle"
               className="[&>span:last-child]:text-body-s"
               onChange={(event) => toggleOne(term.id, event.target.checked)}
             >

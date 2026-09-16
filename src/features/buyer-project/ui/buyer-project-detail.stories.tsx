@@ -59,7 +59,7 @@ export const LiveCheck: Story = {
 };
 
 export const InformationTip: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
     const canvas = within(canvasElement);
     const button = canvas.getByRole("button", { name: "AI 프로젝트 요약 안내" });
     await userEvent.click(button);
@@ -67,10 +67,19 @@ export const InformationTip: Story = {
     expect(canvas.getByRole("tooltip")).toHaveTextContent(
       "정확한 사항은 구매 전 문의해 주시기 바랍니다.",
     );
-    const body = canvas.getByRole("tooltip").lastElementChild as HTMLElement;
-    expect(getComputedStyle(body).backgroundColor).toBe("rgb(237, 237, 237)");
+    const tooltip = canvas.getByRole("tooltip");
+    const body = within(tooltip)
+      .getByText(
+        "본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.",
+      )
+      .closest("div")!;
+    expect(getComputedStyle(body).backgroundColor).toBe(
+      globals.theme === "dark" ? "rgb(31, 32, 36)" : "rgb(247, 247, 247)",
+    );
     expect(getComputedStyle(body).fontSize).toBe("11px");
     expect(getComputedStyle(body).fontWeight).toBe("500");
+    expect(tooltip.getBoundingClientRect().width).toBeGreaterThan(100);
+    expect(tooltip.getBoundingClientRect().height).toBeLessThan(200);
     await userEvent.keyboard("{Escape}");
     expect(canvas.queryByRole("tooltip")).not.toBeInTheDocument();
     expect(button).toHaveFocus();

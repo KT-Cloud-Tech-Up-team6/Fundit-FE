@@ -246,6 +246,7 @@ export function BuyerSearch({
                   {query.tab === "projects" && (
                     <Checkbox
                       checked={query.closed}
+                      shape="circle"
                       className="text-[0.75rem]"
                       onChange={(event) =>
                         onQueryChange({ ...query, closed: event.target.checked })

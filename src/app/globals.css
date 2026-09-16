@@ -127,6 +127,10 @@ http://scripts.sil.org/OFL
   --text-static-black: var(--grey-black);
   --text-static-primary-live: var(--blue-200);
   --layer-overlay: var(--alpha-60);
+
+  /* Figma: Foundations/scroll_bar */
+  --scroll-track: var(--charcoal-100);
+  --scroll-thumb: var(--charcoal-400);
 }
 
 /* Figma Variables export 기준. 바뀌는 토큰만 재정의한다 —
@@ -151,6 +155,9 @@ http://scripts.sil.org/OFL
   --border-default: var(--charcoal-700);
   --border-primary: var(--charcoal-200);
   --border-primary-live: var(--blue-300);
+
+  --scroll-track: var(--charcoal-800);
+  --scroll-thumb: var(--charcoal-500);
 
   --status-warning: var(--dark-red);
   --status-success: var(--dark-green);
@@ -356,6 +363,36 @@ button {
   button:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/* Scrollbar — Figma: Foundations/scroll_bar. 기본값은 size=S(4px), 트랙이
+   넓어야 하는 곳(긴 리스트 등)엔 .scrollbar-l(size=L, 6px)을 opt-in으로 붙인다.
+   WebKit 전용 스타일을 지원하지 않는 브라우저에서만 표준 속성으로 근사한다.
+   두 방식을 함께 쓰면 표준 속성이 4px/6px 크기 지정을 덮어쓴다. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  }
+  .scrollbar-l {
+    scrollbar-width: auto;
+  }
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+  border-radius: var(--radius-full);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: var(--radius-full);
+}
+.scrollbar-l::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
 /* Tiptap Placeholder 확장은 빈 노드에 이 클래스·data attribute만 붙이고 스타일은 안 준다.
