@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { roomDemo, sampleMessages } from "../model/room-demo";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-room.module.css";
@@ -34,6 +34,7 @@ function RoomIcon({
 type BuyerLiveRoomProps = {
   liveId: string;
   projectId?: string;
+  rewardAction?: ReactNode;
   product?: typeof roomDemo;
   initialChatExpanded?: boolean;
   initialQuestions?: "closed" | "compact" | "expanded";
@@ -43,6 +44,7 @@ type BuyerLiveRoomProps = {
 export function BuyerLiveRoom({
   liveId,
   projectId,
+  rewardAction,
   product = roomDemo,
   initialChatExpanded = false,
   initialQuestions = "closed",
@@ -255,51 +257,53 @@ export function BuyerLiveRoom({
                   ))}
                 </div>
               </div>
-              <article className={styles.product + " relative"}>
-                <div className="relative size-20 shrink-0">
-                  <Image
-                    src={product.productImage}
-                    alt=""
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
+              <article className={styles.product}>
+                <div className="relative flex min-w-0 flex-1 gap-2 p-2">
+                  <div className="relative size-[74px] shrink-0">
+                    <Image
+                      src={product.productImage}
+                      alt=""
+                      fill
+                      sizes="74px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2>
+                      {projectId ? (
+                        <Link
+                          href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                          className="after:absolute after:inset-0"
+                          aria-label={`${product.title} 프로젝트 상세 보기`}
+                        >
+                          {product.title}
+                        </Link>
+                      ) : (
+                        product.title
+                      )}
+                    </h2>
+                    <p className="text-text-secondary mt-1 text-[12px] leading-[1.3] line-through">
+                      219,000원
+                    </p>
+                    <p className="text-[14px] leading-[1.3] font-semibold">199,000원</p>
+                  </div>
                 </div>
-                <div>
-                  <h2>
-                    {projectId ? (
-                      <Link
-                        href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
-                        className="after:absolute after:inset-0"
-                        aria-label={`${product.title} 프로젝트 상세 보기`}
-                      >
-                        {product.title}
-                      </Link>
-                    ) : (
-                      product.title
-                    )}
-                  </h2>
-                  {projectId ? (
-                    <Link
-                      href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
-                      className="bg-layer-surface-primary text-text-inverse text-body-s relative z-10 mt-3 flex h-7 w-full items-center justify-center rounded-xs px-2 py-1"
-                    >
-                      펀딩하기
-                    </Link>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="text-body-s! mt-3 w-full"
-                      onClick={() =>
-                        setNotice(
-                          "연결된 프로젝트 정보가 없는 목업입니다. 펀딩 연결은 API 연동 후 제공됩니다.",
-                        )
-                      }
-                    >
-                      펀딩하기
-                    </Button>
-                  )}
-                </div>
+                {rewardAction ?? (
+                  <button
+                    type="button"
+                    className="bg-layer-surface-primary text-text-static-white self-stretch px-3 text-[12px] leading-[1.3] font-semibold"
+                    aria-label="리워드 5개 이상 더보기"
+                    onClick={() =>
+                      setNotice(
+                        "연결된 프로젝트 정보가 없는 목업입니다. 리워드 연결은 API 연동 후 제공됩니다.",
+                      )
+                    }
+                  >
+                    5+
+                    <br />
+                    더보기
+                  </button>
+                )}
               </article>
             </div>
             <div className={styles.actions}>

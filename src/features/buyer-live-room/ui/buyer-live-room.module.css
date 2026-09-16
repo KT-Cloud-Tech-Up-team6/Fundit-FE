@@ -141,6 +141,7 @@
   margin-top: 0;
 }
 .message strong {
+  color: #dedede;
   flex-shrink: 0;
   width: 32px;
   font-size: 12px;
@@ -153,25 +154,20 @@
 }
 .product {
   display: flex;
-  gap: 8px;
-  padding: 8px;
+  overflow: hidden;
   background: var(--layer-surface-default);
   color: var(--text-default);
   border-radius: 4px;
-}
-.product > div:last-child {
-  flex: 1;
-  min-width: 0;
 }
 .product h2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  height: 40px;
-  font-size: 14px;
+  height: 36px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 18px;
 }
 .actions {
   flex-shrink: 0;

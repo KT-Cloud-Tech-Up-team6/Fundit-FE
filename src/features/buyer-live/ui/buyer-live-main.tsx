@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
+import { TextLink, textButtonNavigationClasses } from "@/shared/components/ui/text-button";
 import { Button } from "@/shared/components/ui/button";
 import {
   getLiveDemo,
@@ -86,16 +87,12 @@ function StatusBadge({
 function Section({ title, href, children }: { title: string; href?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="flex min-w-0 flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex h-7 items-center justify-between gap-2">
         <h2 className="text-title-m text-text-title">{title}</h2>
         {href && (
-          <Link
-            href={href}
-            className="text-body-s text-text-secondary p-1"
-            aria-label={title + " 전체보기"}
-          >
+          <TextLink href={href} aria-label={title + " 전체보기"}>
             전체보기
-          </Link>
+          </TextLink>
         )}
       </div>
       {children}
@@ -336,205 +333,206 @@ export function BuyerLiveMain({
           예정 LIVE
         </Tab>
       </TabList>
-      <main className="flex flex-col gap-10 px-5 pt-4 pb-10">
-        <h1 className="sr-only">{upcoming ? "예정 라이브" : "라이브 메인"}</h1>
-        {(!upcoming || hasFollowing) && (
-          <Section
-            title={upcoming ? "팔로우한 판매자" : "신규 오픈"}
-            href={upcoming ? "/live/following" : "/live/new"}
-          >
-            <div
-              role="region"
-              aria-label={upcoming ? "팔로우한 판매자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
-              tabIndex={0}
-              className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
-              data-scrolling={carouselScrolling}
-              onScroll={() => {
-                setCarouselScrolling(true);
-                if (carouselScrollTimer.current !== null) clearTimeout(carouselScrollTimer.current);
-                carouselScrollTimer.current = setTimeout(() => setCarouselScrolling(false), 700);
-              }}
+      <main className="bg-layer-bg flex flex-col gap-3 pb-10">
+        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4">
+          <h1 className="sr-only">{upcoming ? "예정 라이브" : "라이브 메인"}</h1>
+          {(!upcoming || hasFollowing) && (
+            <Section
+              title={upcoming ? "팔로우한 판매자" : "신규 오픈"}
+              href={upcoming ? "/live/following" : "/live/new"}
             >
-              {[1, 2, 3, 4].map((n) =>
-                upcoming ? (
-                  scheduledCard(`follow-${n}`, true)
-                ) : (
-                  <LiveCard key={n} id={`new-${n}`} compact />
-                ),
-              )}
-            </div>
-          </Section>
-        )}
-        <Section title={upcoming ? "9/8일 (화) 예정된 라이브" : "실시간 순위"}>
-          <ol className="flex flex-col gap-4">
-            {[1, 2, 3, 4, 5].map((rank) => (
-              <li key={rank}>
-                {upcoming ? (
-                  <article className="flex gap-3">
-                    <Link
-                      href={getUpcomingProjectHref(`scheduled-${rank}`)}
-                      aria-label={`${rank}번째 예정 라이브 보기`}
-                      className="w-[150px] max-w-[44%] shrink-0"
-                    >
-                      <ScheduleMedia id={`scheduled-${rank}`} className="aspect-[3/4]" large />
-                    </Link>
-                    <div className="flex min-w-0 flex-1 flex-col justify-between">
+              <div
+                role="region"
+                aria-label={upcoming ? "팔로우한 판매자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
+                tabIndex={0}
+                className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
+                data-scrolling={carouselScrolling}
+                onScroll={() => {
+                  setCarouselScrolling(true);
+                  if (carouselScrollTimer.current !== null)
+                    clearTimeout(carouselScrollTimer.current);
+                  carouselScrollTimer.current = setTimeout(() => setCarouselScrolling(false), 700);
+                }}
+              >
+                {[1, 2, 3, 4].map((n) =>
+                  upcoming ? (
+                    scheduledCard(`follow-${n}`, true)
+                  ) : (
+                    <LiveCard key={n} id={`new-${n}`} compact />
+                  ),
+                )}
+              </div>
+            </Section>
+          )}
+          <Section title={upcoming ? "9/8일 (화) 예정된 라이브" : "실시간 순위"}>
+            <ol className="flex flex-col gap-4">
+              {[1, 2, 3, 4, 5].map((rank) => (
+                <li key={rank}>
+                  {upcoming ? (
+                    <article className="flex gap-3">
                       <Link
                         href={getUpcomingProjectHref(`scheduled-${rank}`)}
-                        className="flex flex-col gap-1"
+                        aria-label={`${rank}번째 예정 라이브 보기`}
+                        className="w-[150px] max-w-[44%] shrink-0"
                       >
-                        <span className="text-label-m text-text-secondary">
-                          {getLiveDemo(`scheduled-${rank}`).category}
-                        </span>
-                        <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
-                          {getLiveDemo(`scheduled-${rank}`).title}
-                        </h3>
-                        <span className="text-label-m text-text-secondary mt-1">
-                          {getLiveDemo(`scheduled-${rank}`).seller}
-                        </span>
+                        <ScheduleMedia id={`scheduled-${rank}`} className="aspect-[3/4]" large />
                       </Link>
-                      <div className="flex items-center gap-2">
-                        <p className="text-body-s text-text-primary-live min-w-0 flex-1 truncate font-semibold">
-                          {(100000 + Number(notifications.has(`scheduled-${rank}`))).toLocaleString(
-                            "ko-KR",
-                          )}
-                          명 알림 신청
+                      <div className="flex min-w-0 flex-1 flex-col justify-between">
+                        <Link
+                          href={getUpcomingProjectHref(`scheduled-${rank}`)}
+                          className="flex flex-col gap-1"
+                        >
+                          <span className="text-label-m text-text-secondary">
+                            {getLiveDemo(`scheduled-${rank}`).category}
+                          </span>
+                          <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
+                            {getLiveDemo(`scheduled-${rank}`).title}
+                          </h3>
+                          <span className="text-label-m text-text-secondary mt-1">
+                            {getLiveDemo(`scheduled-${rank}`).seller}
+                          </span>
+                        </Link>
+                        <div className="flex items-center gap-2">
+                          <p className="text-body-s text-text-primary-live min-w-0 flex-1 truncate font-semibold">
+                            {(
+                              100000 + Number(notifications.has(`scheduled-${rank}`))
+                            ).toLocaleString("ko-KR")}
+                            명 알림 신청
+                          </p>
+                          {notificationButton(`scheduled-${rank}`, "round")}
+                        </div>
+                      </div>
+                    </article>
+                  ) : (
+                    <Link href={`/live/rank-${rank}`} className="flex gap-3">
+                      <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1">
+                        <Image
+                          src={getLiveDemo(`rank-${rank}`).image}
+                          alt=""
+                          fill
+                          sizes="150px"
+                          className="object-cover"
+                        />
+                        <div className="relative flex items-start justify-between gap-1">
+                          <span
+                            aria-label={`${rank}위`}
+                            className="text-text-static-white text-[28px] leading-[1.3] font-bold [text-shadow:1px_2px_8px_rgba(0,0,0,0.3)]"
+                          >
+                            {rank}
+                          </span>
+                          <StatusBadge ranking />
+                        </div>
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col justify-between py-2">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-label-m text-text-secondary">
+                              {getLiveDemo(`rank-${rank}`).category}
+                            </span>
+                            <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
+                              {getLiveDemo(`rank-${rank}`).title}
+                            </h3>
+                          </div>
+                          <span className="text-title-s text-text-primary-live">10,000% 달성</span>
+                        </div>
+                        <Seller ranking data={getLiveDemo(`rank-${rank}`)} />
+                      </div>
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ol>
+            {upcoming ? (
+              <button
+                type="button"
+                disabled
+                aria-label="예정된 라이브 전체보기 · 화면 미정"
+                className={textButtonNavigationClasses + " mx-auto cursor-not-allowed"}
+              >
+                더 보러 가기
+              </button>
+            ) : (
+              <TextLink href="/live/rank" aria-label="실시간 순위 전체보기" className="mx-auto">
+                더 보러 가기
+              </TextLink>
+            )}
+          </Section>
+        </div>
+        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4">
+          {!upcoming && hasFollowing && (
+            <Section title="팔로우한 판매자" href="/live/following">
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((n) => (
+                  <LiveCard key={n} id={`follow-${n}`} />
+                ))}
+              </div>
+            </Section>
+          )}
+          {upcoming && (
+            <Section title="알림 신청한 라이브" href="/my/notifications">
+              <div ref={subscriptionList} className="flex flex-col gap-3">
+                {Array.from(notifications).map((id) => (
+                  <article key={id} className="flex gap-3">
+                    <Link
+                      href={getUpcomingProjectHref(id)}
+                      aria-label={`${scheduledTitle(id)} 라이브 보기`}
+                      className="w-[104px] shrink-0"
+                    >
+                      <ScheduleMedia id={id} className="h-full min-h-[104px]" />
+                    </Link>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+                      <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-1">
+                        <Seller data={getLiveDemo(id, true)} />
+                        <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">
+                          {scheduledTitle(id)}
+                        </h3>
+                      </Link>
+                      <div className="flex items-center gap-1">
+                        <p className="text-text-primary-live min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
+                          {notificationCount(id)}명 알림 신청
                         </p>
-                        {notificationButton(`scheduled-${rank}`, "round")}
+                        {notificationButton(id, "subscription")}
                       </div>
                     </div>
                   </article>
+                ))}
+              </div>
+              {notifications.size === 0 && (
+                <p ref={emptySubscriptions} tabIndex={-1} className="text-body-s">
+                  알림 신청한 라이브가 없습니다.
+                </p>
+              )}
+            </Section>
+          )}
+          <Section title="추천 라이브">
+            <div ref={recommendationList} className="grid grid-cols-2 gap-x-3 gap-y-4">
+              {Array.from({ length: visibleCount }, (_, i) =>
+                upcoming ? (
+                  scheduledCard(`recommended-${i + 1}`)
                 ) : (
-                  <Link href={`/live/rank-${rank}`} className="flex gap-3">
-                    <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1">
-                      <Image
-                        src={getLiveDemo(`rank-${rank}`).image}
-                        alt=""
-                        fill
-                        sizes="150px"
-                        className="object-cover"
-                      />
-                      <div className="relative flex items-start justify-between gap-1">
-                        <span
-                          aria-label={`${rank}위`}
-                          className="text-text-static-white text-[28px] leading-[1.3] font-bold [text-shadow:1px_2px_8px_rgba(0,0,0,0.3)]"
-                        >
-                          {rank}
-                        </span>
-                        <StatusBadge ranking />
-                      </div>
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col justify-between py-2">
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-label-m text-text-secondary">
-                            {getLiveDemo(`rank-${rank}`).category}
-                          </span>
-                          <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
-                            {getLiveDemo(`rank-${rank}`).title}
-                          </h3>
-                        </div>
-                        <span className="text-title-s text-text-primary-live">10,000% 달성</span>
-                      </div>
-                      <Seller ranking data={getLiveDemo(`rank-${rank}`)} />
-                    </div>
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ol>
-          {upcoming ? (
-            <button
-              type="button"
-              disabled
-              aria-label="예정된 라이브 전체보기 · 화면 미정"
-              className="text-body-s text-text-secondary mx-auto cursor-not-allowed px-3 py-2"
-            >
-              더 보러 가기
-            </button>
-          ) : (
-            <Link
-              href="/live/rank"
-              aria-label="실시간 순위 전체보기"
-              className="text-body-s text-text-secondary mx-auto px-3 py-2"
-            >
-              더 보러 가기
-            </Link>
-          )}
-        </Section>
-        {!upcoming && hasFollowing && (
-          <Section title="팔로우한 판매자" href="/live/following">
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((n) => (
-                <LiveCard key={n} id={`follow-${n}`} />
-              ))}
+                  <LiveCard key={i} id={`recommended-${i + 1}`} />
+                ),
+              )}
             </div>
-          </Section>
-        )}
-        {upcoming && (
-          <Section title="알림 신청한 라이브" href="/my/notifications">
-            <div ref={subscriptionList} className="flex flex-col gap-3">
-              {Array.from(notifications).map((id) => (
-                <article key={id} className="flex gap-3">
-                  <Link
-                    href={getUpcomingProjectHref(id)}
-                    aria-label={`${scheduledTitle(id)} 라이브 보기`}
-                    className="w-[104px] shrink-0"
-                  >
-                    <ScheduleMedia id={id} className="h-full min-h-[104px]" />
-                  </Link>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-                    <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-1">
-                      <Seller data={getLiveDemo(id, true)} />
-                      <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">
-                        {scheduledTitle(id)}
-                      </h3>
-                    </Link>
-                    <div className="flex items-center gap-1">
-                      <p className="text-text-primary-live min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
-                        {notificationCount(id)}명 알림 신청
-                      </p>
-                      {notificationButton(id, "subscription")}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {notifications.size === 0 && (
-              <p ref={emptySubscriptions} tabIndex={-1} className="text-body-s">
-                알림 신청한 라이브가 없습니다.
-              </p>
+            {hasMore && (
+              <div ref={sentinel} className="-mt-3">
+                <button
+                  type="button"
+                  className="sr-only focus:not-sr-only"
+                  onClick={() => {
+                    recommendationFocusIndex.current = visibleCount;
+                    setVisibleCount((count) => Math.min(count + 10, 30));
+                    setAnnouncement(
+                      `추천 라이브 ${Math.min(visibleCount + 10, 30)}개를 표시합니다.${visibleCount >= 20 ? " 마지막 목록입니다." : ""}`,
+                    );
+                  }}
+                >
+                  추천 라이브 더 불러오기
+                </button>
+              </div>
             )}
           </Section>
-        )}
-        <Section title="추천 라이브">
-          <div ref={recommendationList} className="grid grid-cols-2 gap-x-3 gap-y-4">
-            {Array.from({ length: visibleCount }, (_, i) =>
-              upcoming ? (
-                scheduledCard(`recommended-${i + 1}`)
-              ) : (
-                <LiveCard key={i} id={`recommended-${i + 1}`} />
-              ),
-            )}
-          </div>
-          {hasMore && (
-            <div ref={sentinel} className="-mt-3">
-              <button
-                type="button"
-                className="sr-only focus:not-sr-only"
-                onClick={() => {
-                  recommendationFocusIndex.current = visibleCount;
-                  setVisibleCount((count) => Math.min(count + 10, 30));
-                  setAnnouncement(
-                    `추천 라이브 ${Math.min(visibleCount + 10, 30)}개를 표시합니다.${visibleCount >= 20 ? " 마지막 목록입니다." : ""}`,
-                  );
-                }}
-              >
-                추천 라이브 더 불러오기
-              </button>
-            </div>
-          )}
-        </Section>
+        </div>
       </main>
       <p role="status" className="sr-only">
         {announcement}

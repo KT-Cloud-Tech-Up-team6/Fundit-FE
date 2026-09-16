@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const NoticeDismiss: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
+    await userEvent.click(canvas.getByRole("button", { name: "리워드 5개 이상 더보기" }));
     expect(canvas.getByRole("status")).toHaveTextContent("연결된 프로젝트 정보가 없는 목업");
     await waitFor(() => expect(canvas.getByRole("status")).toBeEmptyDOMElement(), {
       timeout: 5000,

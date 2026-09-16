@@ -210,7 +210,7 @@ export function BuyerProjectDetail({
                 <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
                 LIVE
               </Badge>
-              <div className="relative h-30 w-[90px] overflow-hidden rounded-xs shadow-md">
+              <div className="border-border-default relative h-30 w-[90px] overflow-hidden rounded-xs border shadow-md">
                 <Image src={project.poster} alt="" fill sizes="90px" className="object-cover" />
               </div>
             </Link>
