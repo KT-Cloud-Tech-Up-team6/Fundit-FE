@@ -395,3 +395,11 @@
   background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.5));
   pointer-events: none;
 }
+
+.chapters {
+  cursor: grab;
+  user-select: none;
+}
+.chapters[data-dragging="true"] {
+  cursor: grabbing;
+}

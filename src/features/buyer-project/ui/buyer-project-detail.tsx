@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/shared/components/ui/badge";
@@ -88,13 +89,20 @@ function Information({ label }: { label: string }) {
 }
 
 function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
+  const carouselDrag = useHorizontalDrag();
   const title = clips ? "숏 클립" : "종료된 라이브";
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
         {title} <small>3건</small>
       </h3>
-      <div className={styles.carousel} tabIndex={0} role="region" aria-label={`${title} 목록`}>
+      <div
+        {...carouselDrag}
+        className={styles.carousel}
+        tabIndex={0}
+        role="region"
+        aria-label={`${title} 목록`}
+      >
         {replayDemos.map((video, index) => (
           <article key={index}>
             <Link
@@ -144,6 +152,7 @@ export function BuyerProjectDetail({
   liveId?: string;
   hasLive?: boolean;
 }) {
+  const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,7 +272,7 @@ export function BuyerProjectDetail({
             )}
           </section>
         </section>
-        <nav className={styles.tabs} aria-label="프로젝트 상세 탭">
+        <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
           {tabs.map(([value, label]) => (
             <Link
               scroll={false}

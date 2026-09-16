@@ -233,3 +233,13 @@
   left: -22.5% !important;
   top: -16.92% !important;
 }
+
+.tabs,
+.carousel {
+  cursor: grab;
+  user-select: none;
+}
+.tabs[data-dragging="true"],
+.carousel[data-dragging="true"] {
+  cursor: grabbing;
+}
