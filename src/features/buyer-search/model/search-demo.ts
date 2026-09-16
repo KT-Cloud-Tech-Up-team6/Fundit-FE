@@ -1,4 +1,6 @@
-import type { SellerSummary } from "@/entities/seller/ui/seller-row";
+import { projectSearchDemo } from "@/entities/project/model/project-search-demo";
+import { getLiveDemoConnection } from "@/features/buyer-live/model/live-demo";
+import { sellerDemo } from "@/entities/seller/model/seller-demo";
 
 export type SearchTab = "projects" | "live" | "sellers";
 export type SearchQuery = {
@@ -46,52 +48,56 @@ export function searchUrl(query: SearchQuery) {
   return `/search${params.size ? `?${params}` : ""}`;
 }
 
-export const searchProjects = Array.from({ length: 7 }, (_, index) => ({
-  id: `search-project-${index + 1}`,
-  title:
-    index === 6
-      ? "여름을 시원하게, 달콤한 수박 정기 배송"
-      : "로보락F25 정말 좋고 깔끔하고 착한 무선 청소기! 이것은 역작이라고 말할 수 있다",
-  seller: "판매자 이름",
-  progress: 10000 - index * 250,
-  closed: index === 3,
-  created: 7 - index,
-  popularity: [80, 120, 60, 90, 20, 45, 30][index],
-  deadline: [3, 5, 1, 0, 2, 4, 6][index],
-}));
+export const searchProjects = projectSearchDemo;
 
-export const searchSellers: SellerSummary[] = Array.from({ length: 7 }, (_, index) => ({
-  id: `search-seller-${index + 1}`,
-  name: index % 2 ? "청소기 판매자" : "판매자 이름",
-  followers: 151 + index,
-  likes: 2000 + index * 10,
-  live: index % 3 === 0,
-}));
+export const searchSellers = sellerDemo;
 
-export const searchLives = Array.from({ length: 12 }, (_, index) => ({
-  id: `search-live-${index + 1}`,
-  title: "무선 청소기 프로젝트, 라이브에서 직접 만나보세요",
-  seller: "판매자 이름",
-  status: index < 6 ? "live" : "upcoming",
-  date: `09.${18 + (index % 6)}`,
-  time: "오후 3:40",
-  subscribers: 1000000 - index * 10,
-  created: 12 - index,
-  popularity: (index * 7) % 13,
-  deadline: index % 6,
-}));
+export const searchLives = (["live", "upcoming"] as const).flatMap((status) =>
+  Array.from({ length: 8 }, (_, index) => {
+    const connection = getLiveDemoConnection(
+      `${status === "live" ? "recommended" : "upcomingRecommended"}-${index + 1}`,
+    )!;
+    return {
+      id: connection.liveId,
+      projectId: connection.projectId,
+      ...connection.data,
+      status,
+      date: "09.18",
+      time: "오후 3:40",
+      viewers: 101,
+      created: 8 - index,
+      likes: [80, 120, 60, 90, 20, 45, 30, 10][index],
+      deadline: index + 1,
+      projectClosed: index === 7,
+    };
+  }),
+);
+
+export const searchSuggestions = ["search-1", "search-2", "search-3", "rank-4"].map((id) =>
+  getLiveDemoConnection(id)!,
+);
 
 export function matchesSearch(text: string, query: string) {
-  return text.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR"));
+  const normalize = (value: string) => value.replace(/\s/g, "").toLocaleLowerCase("ko-KR");
+  return normalize(text).includes(normalize(query));
 }
 
 export function searchResults(query: SearchQuery) {
-  const sort = (a: { created: number; popularity: number; deadline: number }, b: typeof a) =>
+  const sort = (a: { created: number; likes: number; deadline: number }, b: typeof a) =>
     query.sort === "popular"
-      ? b.popularity - a.popularity
+      ? b.likes - a.likes
       : query.sort === "closing"
         ? a.deadline - b.deadline
         : b.created - a.created;
+  // Figma의 검색어와 상품 예시는 서로 다르므로 디자인 확인용 연관 키워드를 둔다.
+  // 실제 검색 응답·추천 결과가 아니며 API에 이 매핑을 전달하지 않는다.
+  const lives = searchLives
+    .filter(
+      (item) =>
+        matchesSearch(`${item.title} ${item.seller} 무선 청소기`, query.q) &&
+        (item.status === "upcoming" || query.closed || !item.projectClosed),
+    )
+    .sort(sort);
   return {
     projects: searchProjects
       .filter(
@@ -99,13 +105,11 @@ export function searchResults(query: SearchQuery) {
           matchesSearch(`${item.title} ${item.seller}`, query.q) && (query.closed || !item.closed),
       )
       .sort(sort),
-    lives: searchLives
-      .filter(
-        (item) =>
-          item.status === query.status && matchesSearch(`${item.title} ${item.seller}`, query.q),
-      )
-      .sort(sort),
-    sellers: searchSellers.filter((item) => matchesSearch(item.name, query.q)),
+    lives: lives.filter((item) => item.status === query.status),
+    liveTotal: lives.length,
+    sellers: searchSellers.filter((item) =>
+      matchesSearch(`${item.name} 판매자 무선 청소기`, query.q),
+    ),
   };
 }
 
