@@ -14,15 +14,33 @@ import styles from "./buyer-bottom-navigation.module.css";
 
 type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
   activeHref?: "/" | "/live" | "/categories" | "/my";
+  compact?: boolean;
 };
 
-function NavigationAsset({ name }: { name: "home" | "live-navigation" | "categories" }) {
+function NavigationAsset({
+  name,
+  compact,
+  selected,
+}: {
+  name: "home" | "live-navigation" | "categories" | "profile";
+  compact?: boolean;
+  selected?: boolean;
+}) {
+  if (name === "profile" && !compact) return <Icon name="profile" className="size-5" />;
+  const compactAssets = {
+    home: "d2d1b",
+    "live-navigation": "7e176",
+    categories: selected ? "a80a9" : "b7b53",
+    profile: selected ? "165c4" : "4d935",
+  };
   return (
     <span
       aria-hidden
       className="inline-block size-5 shrink-0 bg-current"
       style={{
-        maskImage: `url(/icons/buyer-live/${name}.svg)`,
+        maskImage: compact
+          ? `url(/icons/buyer-account/${compactAssets[name]}.svg)`
+          : `url(/icons/buyer-live/${name}.svg)`,
         maskSize: "contain",
         maskPosition: "center",
         maskRepeat: "no-repeat",
@@ -42,6 +60,7 @@ function deriveActiveHref(pathname: string): BuyerBottomNavigationProps["activeH
 
 export function BuyerBottomNavigation({
   activeHref,
+  compact = false,
   className = "",
   "aria-label": ariaLabel = "구매자 하단 메뉴",
   ...props
@@ -78,21 +97,21 @@ export function BuyerBottomNavigation({
     <nav
       {...props}
       aria-label={ariaLabel}
-      className={`bg-layer-surface-disabled text-text-default flex justify-between px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] ${className}`}
+      className={`${compact ? styles.compact : "bg-layer-surface-disabled pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]"} text-text-default flex justify-between px-5 ${className}`}
     >
       <Link
         href="/"
         aria-current={resolvedActiveHref === "/" ? "page" : undefined}
         className={styles.item}
       >
-        <NavigationAsset name="home" />홈
+        <NavigationAsset name="home" compact={compact} />홈
       </Link>
       <Link
         href="/live"
         aria-current={resolvedActiveHref === "/live" ? "page" : undefined}
         className={styles.item}
       >
-        <NavigationAsset name="live-navigation" />
+        <NavigationAsset name="live-navigation" compact={compact} />
         라이브
       </Link>
       {isCategoriesActive ? (
@@ -102,7 +121,7 @@ export function BuyerBottomNavigation({
           className={styles.item}
           onClick={handleCategoriesTabClick}
         >
-          <NavigationAsset name="categories" />
+          <NavigationAsset name="categories" compact={compact} selected />
           카테고리
         </button>
       ) : (
@@ -111,7 +130,7 @@ export function BuyerBottomNavigation({
           onClick={handleCategoriesTabEnter}
           className={styles.item}
         >
-          <NavigationAsset name="categories" />
+          <NavigationAsset name="categories" compact={compact} />
           카테고리
         </Link>
       )}
@@ -120,7 +139,7 @@ export function BuyerBottomNavigation({
         aria-current={resolvedActiveHref === "/my" ? "page" : undefined}
         className={styles.item}
       >
-        <Icon name="profile" className="size-5" />
+        <NavigationAsset name="profile" compact={compact} selected={resolvedActiveHref === "/my"} />
         마이
       </Link>
     </nav>
