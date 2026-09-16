@@ -1,19 +1,9 @@
-/* FL_B_CT_LIST_1의 실데이터 미정 placeholder와 회색 와이어프레임 표현이다. */
-.screen {
-  --wireframe-placeholder: #ededed;
-  --wireframe-muted: #959595;
-}
-
-.search {
-  height: 46px;
-}
-
 .categoryIcon {
-  background: var(--wireframe-placeholder);
+  background: var(--border-default);
 }
 
 .categoryLink {
-  color: var(--wireframe-muted);
+  color: var(--text-disabled);
 }
 
 .categoryLink[aria-current="page"] {
@@ -23,7 +13,7 @@
 }
 
 .subcategory {
-  border-color: var(--wireframe-placeholder);
+  border-color: var(--border-default);
 }
 
 .screen a:focus-visible,
