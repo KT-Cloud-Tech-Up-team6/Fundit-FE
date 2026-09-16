@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
@@ -195,14 +196,7 @@ export function BuyerLiveMain({
   );
   const [announcement, setAnnouncement] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
-  const [carouselScrolling, setCarouselScrolling] = useState(false);
-  const carouselScrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (carouselScrollTimer.current !== null) clearTimeout(carouselScrollTimer.current);
-    },
-    [],
-  );
+  const carouselDrag = useHorizontalDrag();
   const sentinel = useRef<HTMLDivElement>(null);
   const recommendationList = useRef<HTMLDivElement>(null);
   const subscriptionList = useRef<HTMLDivElement>(null);
@@ -346,13 +340,7 @@ export function BuyerLiveMain({
                 aria-label={upcoming ? "팔로우한 판매자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
                 tabIndex={0}
                 className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
-                data-scrolling={carouselScrolling}
-                onScroll={() => {
-                  setCarouselScrolling(true);
-                  if (carouselScrollTimer.current !== null)
-                    clearTimeout(carouselScrollTimer.current);
-                  carouselScrollTimer.current = setTimeout(() => setCarouselScrolling(false), 700);
-                }}
+                {...carouselDrag}
               >
                 {[1, 2, 3, 4].map((n) =>
                   upcoming ? (

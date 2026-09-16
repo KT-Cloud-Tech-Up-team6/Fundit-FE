@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
@@ -61,6 +62,7 @@ export function BuyerLiveReplay({
   clip?: boolean;
   initialPanel?: "chat" | "chapters";
 }) {
+  const chapterDrag = useHorizontalDrag();
   const [panel, setPanel] = useState(initialPanel);
   const [following, setFollowing] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -301,6 +303,7 @@ export function BuyerLiveReplay({
             </div>
             {panel === "chapters" && (
               <div
+                {...chapterDrag}
                 ref={chapters}
                 className={styles.chapters}
                 role="region"
