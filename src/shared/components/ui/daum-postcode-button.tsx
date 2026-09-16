@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
 /* 다음(카카오) 우편번호 서비스. 키·서버 불필요, FE에서 직접 호출한다(BE 협의 완료).
-   FL_B_PY_ADDR interaction_spec의 "카카오 API 이동" 자리. */
+   결제 배송지 입력(FL_B_PY_ADDR)과 회원가입 배송지 입력이 공유한다. */
 const SCRIPT_SRC = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
 
 /** oncomplete 결과 중 이 화면에서 쓰는 필드만. (전체 스펙: 다음 우편번호 서비스 문서) */

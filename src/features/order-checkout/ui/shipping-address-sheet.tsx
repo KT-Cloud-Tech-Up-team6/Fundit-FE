@@ -6,9 +6,9 @@ import { useState } from "react";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { DaumPostcodeButton } from "@/shared/components/ui/daum-postcode-button";
 import { emptyShippingAddress, isShippingAddressComplete } from "../model/checkout-demo";
 import type { ShippingAddress } from "../model/checkout-demo";
-import { DaumPostcodeButton } from "./daum-postcode-button";
 
 type ShippingAddressSheetProps = {
   open: boolean;

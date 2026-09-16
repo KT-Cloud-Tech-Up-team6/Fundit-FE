@@ -2,16 +2,17 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { checkEmail, signup } from "@/features/auth/api/auth-api";
+import type { SignupAddress } from "@/features/auth/api/auth-types";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
+import { DaumPostcodeButton } from "@/shared/components/ui/daum-postcode-button";
 import { Select } from "@/shared/components/ui/select";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
@@ -86,7 +87,9 @@ export function SignupProfileFlow({
     verificationToken,
   } = useAuthFlow();
   const [view, setView] = useState<SignupProfileView>(initialView);
-  const [address, setAddress] = useState("");
+  const [zipcode, setZipcode] = useState("");
+  const [baseAddress, setBaseAddress] = useState("");
+  const [detailAddress, setDetailAddress] = useState("");
   const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
   const [submitError, setSubmitError] = useState<string>();
   const initialEmailParts = profileDraft?.email.split("@");
@@ -171,9 +174,23 @@ export function SignupProfileFlow({
     };
     setProfileDraft(profile);
 
+    /* 배송지는 전부 선택이라 우편번호·기본주소가 없으면 아예 보내지 않는다(스킵과 동일 취급).
+       받는사람·연락처는 본인인증 정보로 채운다. 대리 수령인 입력이 필요해지면 별도 필드로 확장한다. */
+    const address: SignupAddress | undefined =
+      zipcode && baseAddress
+        ? {
+            addressLine1: baseAddress,
+            addressLine2: detailAddress || undefined,
+            phoneNumber: identityDraft.phoneNumber,
+            recipientName: identityDraft.name,
+            zipcode,
+          }
+        : undefined;
+
     try {
       const result = await signupMutation.mutateAsync({
         ...profile,
+        address,
         agreedTerms: selectedTermCodes,
         name: identityDraft.name,
         phoneNumber: identityDraft.phoneNumber,
@@ -258,15 +275,32 @@ export function SignupProfileFlow({
     return (
       <AuthScreen onBack={() => setView("password")}>
         <AuthTitle>{"배송지를 입력해두면\n이용이 편리해져요"}</AuthTitle>
-        <div className="mt-16">
+        <div className="mt-16 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="min-w-0 flex-1">
+              <AuthInput aria-label="우편번호" placeholder="우편번호" readOnly value={zipcode} />
+            </div>
+            <DaumPostcodeButton
+              className="bg-layer-surface-primary text-text-inverse text-body-s enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary flex h-13 shrink-0 items-center justify-center rounded-sm px-4 font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+              onComplete={(result) => {
+                setZipcode(result.zipCode);
+                setBaseAddress(result.baseAddress);
+                setDetailAddress("");
+              }}
+            />
+          </div>
           <AuthInput
             aria-label="주소"
-            autoComplete="street-address"
-            onChange={(event) => setAddress(event.target.value)}
-            onClear={() => setAddress("")}
             placeholder="도로명, 지번, 건물명 검색"
-            startAdornment={<Image alt="" height={20} src="/icons/search.svg" width={20} />}
-            value={address}
+            readOnly
+            value={baseAddress}
+          />
+          <AuthInput
+            aria-label="상세주소"
+            onChange={(event) => setDetailAddress(event.target.value)}
+            onClear={() => setDetailAddress("")}
+            placeholder="상세주소를 입력해주세요"
+            value={detailAddress}
           />
         </div>
         {submitError ? (
@@ -276,7 +310,7 @@ export function SignupProfileFlow({
         ) : null}
         <AuthButton
           className="mt-3"
-          disabled={address.length === 0 || signupMutation.isPending}
+          disabled={!zipcode || signupMutation.isPending}
           onClick={() => void submit()}
         >
           {signupMutation.isPending ? "가입 처리 중" : "다음"}

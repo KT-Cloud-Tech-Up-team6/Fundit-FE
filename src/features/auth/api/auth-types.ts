@@ -20,7 +20,20 @@ export type SignupProfileInput = {
   password: string;
 };
 
+/* API 계약상 자유 객체이며 계약이 아직 보완 대상이다(docs/API_CONTRACT.md 4.5). Member
+   AddressPayload와 같은 필드명을 임시로 맞춘다. 채우려면 필수 4개(recipientName·phoneNumber·
+   zipcode·addressLine1)를 모두 채워야 한다(all-or-nothing, src/mocks/auth-handlers.ts). */
+export type SignupAddress = {
+  addressLine1: string;
+  addressLine2?: string;
+  isDefault?: boolean;
+  phoneNumber: string;
+  recipientName: string;
+  zipcode: string;
+};
+
 export type SignupRequest = SignupProfileInput & {
+  address?: SignupAddress;
   agreedTerms: string[];
   name: string;
   phoneNumber: string;
