@@ -25,6 +25,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
         clip={query.view === "clip"}
         projectId={connection?.projectId}
         product={product}
+        rewardAction={connection ? <FundingCta projectId={connection.projectId} more /> : undefined}
       />
     );
   }

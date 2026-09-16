@@ -155,29 +155,26 @@
   line-height: 18px;
 }
 .chat b {
+  color: #dedede;
   flex: 0 0 32px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .project {
   display: flex;
-  gap: 8px;
+  overflow: hidden;
   border-radius: 4px;
-  padding: 8px;
   background: var(--layer-surface-default);
   color: var(--text-default);
 }
-.project > div:last-child {
-  flex: 1;
-  min-width: 0;
-}
-.project p {
+.project h2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  font-size: 14px;
-  line-height: 20px;
+  height: 36px;
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 500;
 }
 .actions,
