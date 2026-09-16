@@ -367,11 +367,16 @@ button {
 
 /* Scrollbar — Figma: Foundations/scroll_bar. 기본값은 size=S(4px), 트랙이
    넓어야 하는 곳(긴 리스트 등)엔 .scrollbar-l(size=L, 6px)을 opt-in으로 붙인다.
-   scrollbar-width는 임의 px를 못 받아 thin/auto로만 근사한다 — 실제 4px/6px는
-   webkit 계열(Chrome/Safari/Edge)에서만 정확히 맞는다. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+   WebKit 전용 스타일을 지원하지 않는 브라우저에서만 표준 속성으로 근사한다.
+   두 방식을 함께 쓰면 표준 속성이 4px/6px 크기 지정을 덮어쓴다. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  }
+  .scrollbar-l {
+    scrollbar-width: auto;
+  }
 }
 *::-webkit-scrollbar {
   width: 4px;
@@ -384,9 +389,6 @@ button {
 *::-webkit-scrollbar-thumb {
   background: var(--scroll-thumb);
   border-radius: var(--radius-full);
-}
-.scrollbar-l {
-  scrollbar-width: auto;
 }
 .scrollbar-l::-webkit-scrollbar {
   width: 6px;
