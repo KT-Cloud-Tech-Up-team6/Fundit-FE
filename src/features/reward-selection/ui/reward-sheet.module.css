@@ -1,3 +1,44 @@
+.sheet {
+  transform: translateY(100%);
+  transition:
+    transform 240ms ease-out,
+    display 240ms allow-discrete,
+    overlay 240ms allow-discrete;
+}
+
+.sheet[open] {
+  transform: translateY(0);
+}
+
+.sheet::backdrop {
+  opacity: 0;
+  transition:
+    opacity 240ms ease-out,
+    display 240ms allow-discrete,
+    overlay 240ms allow-discrete;
+}
+
+.sheet[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .sheet[open] {
+    transform: translateY(100%);
+  }
+
+  .sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheet::backdrop {
+    transition: none;
+  }
+}
+
 .sheet > div {
   height: min(698px, 90dvh);
   padding-bottom: env(safe-area-inset-bottom);
