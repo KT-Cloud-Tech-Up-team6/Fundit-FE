@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/shared/components/ui/badge";
+import { Icon } from "@/shared/components/ui/icon";
 import { Select } from "@/shared/components/ui/select";
 import type { Reward, RewardLine } from "../model/reward-demo";
 import { formatWon } from "../model/reward-demo";
@@ -39,12 +41,14 @@ export function RewardCard({
   return (
     <div
       className={[
-        "border-w-xs bg-layer-surface-default flex flex-col gap-2 rounded-xs",
+        "border-w-xs bg-layer-surface-default flex flex-col rounded-xs",
         selected ? "border-border-primary" : "border-border-default",
       ].join(" ")}
     >
       {/* 요약 줄만 label로 감싼다. 펼침 영역의 컨트롤을 label 안에 두면 중첩 인터랙티브가 된다. */}
-      <label className="flex cursor-pointer gap-2 px-4 py-3">
+      <label
+        className={`grid cursor-pointer grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-x-1 px-4 py-3 ${badges.length ? "gap-y-1" : "gap-y-2"}`}
+      >
         <input
           type="checkbox"
           value={reward.id}
@@ -55,58 +59,58 @@ export function RewardCard({
         />
         <span
           aria-hidden
-          className={[
-            "relative mt-0.5 size-5 shrink-0 rounded-full",
-            "peer-focus-visible:outline-border-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
-            selected ? "bg-layer-surface-primary" : "border-w-xs border-border-default",
-          ].join(" ")}
+          className="peer-focus-visible:outline-border-primary flex size-7 items-center justify-center peer-focus-visible:outline-2"
         >
-          {selected && (
-            <span className="border-text-inverse absolute top-1/2 left-1/2 h-2 w-1.5 -translate-x-1/2 -translate-y-[60%] rotate-45 border-r-2 border-b-2" />
-          )}
+          <span
+            className="block size-5"
+            style={{
+              backgroundImage: `url(/images/reward-selection/${selected ? "checked" : "unchecked"}.svg)`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+            }}
+          />
         </span>
-
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          {badges.length > 0 && (
-            <span className="flex flex-wrap gap-1">
-              {badges.map((badge) => (
-                <span
-                  key={badge}
-                  className="text-label-m text-text-default bg-layer-surface-disabled rounded-full px-2 py-1"
-                >
-                  {badge}
-                </span>
-              ))}
-            </span>
-          )}
-
-          <span className="flex items-start justify-between gap-2">
-            <span className="text-body-m text-text-default font-medium">{reward.name}</span>
-            <span className="flex shrink-0 flex-col items-end">
-              {reward.originalPrice !== undefined && (
-                <span className="text-body-s text-text-secondary line-through">
-                  {formatWon(reward.originalPrice)}
-                </span>
-              )}
-              <span className="text-title-s text-text-default">{formatWon(reward.price)}</span>
-            </span>
+        {badges.length > 0 && (
+          <span className="col-span-2 flex min-h-7 flex-wrap items-center gap-1">
+            {badges.map((badge) => (
+              <Badge key={badge} shape="rounded" variant="neutral">
+                {badge}
+              </Badge>
+            ))}
           </span>
-
-          {reward.meta.length > 0 && (
-            <span className="text-caption-s text-text-default flex flex-wrap items-center gap-1">
-              {reward.meta.map((piece, index) => (
-                <span key={piece} className="flex items-center gap-1">
-                  {index > 0 && <span aria-hidden>·</span>}
-                  {piece}
-                </span>
-              ))}
+        )}
+        <span
+          title={reward.name}
+          className={`text-body-m text-text-default min-w-0 truncate font-semibold ${badges.length ? "col-span-2 col-start-1" : "self-center"}`}
+        >
+          {reward.name}
+        </span>
+        <span className="col-start-3 flex shrink-0 flex-col items-end">
+          {reward.originalPrice !== undefined && (
+            <span className="text-body-s text-text-secondary line-through">
+              {formatWon(reward.originalPrice)}
             </span>
           )}
+          <span className="text-title-m text-text-default">{formatWon(reward.price)}</span>
         </span>
+        {reward.meta.length > 0 && (
+          <span
+            title={reward.meta.join(" · ")}
+            className="text-caption-s text-text-default col-span-3 truncate"
+          >
+            {selected && reward.meta.length > 2
+              ? reward.meta.slice(0, 2).join(" · ") + ` 및 +${reward.meta.length - 2}`
+              : reward.meta.join(" · ")}
+          </span>
+        )}
       </label>
 
       {selected && (
-        <div className="flex flex-col gap-2 px-4 pb-3">
+        <div className="bg-layer-bg mx-4 mb-3 flex flex-col gap-1 rounded-xs px-3 py-2">
+          {reward.shippingNote && (
+            <p className="text-caption-s text-text-secondary">{reward.shippingNote}</p>
+          )}
           {optionGroup && (
             <div className="flex items-center justify-between gap-3">
               <span className="text-body-s text-text-secondary shrink-0">
@@ -153,10 +157,7 @@ export function RewardCard({
                     onClick={() => onRemoveLine(index)}
                     className="focus-visible:outline-border-primary flex size-7 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
-                    <span aria-hidden className="relative size-3">
-                      <span className="bg-text-secondary absolute top-1/2 left-0 h-px w-3 rotate-45" />
-                      <span className="bg-text-secondary absolute top-1/2 left-0 h-px w-3 -rotate-45" />
-                    </span>
+                    <Icon name="closeSmall" className="text-text-secondary block size-3" />
                   </button>
                 )}
               </div>

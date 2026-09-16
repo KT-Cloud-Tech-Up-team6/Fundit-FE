@@ -8,16 +8,17 @@ import { Button } from "@/shared/components/ui/button";
 import {
   addOptionLine,
   calcCartTotal,
-  demoRewards,
+  designRewards,
   formatWon,
   initialLines,
   isCartSubmittable,
 } from "../model/reward-demo";
 import type { Reward, RewardCart } from "../model/reward-demo";
 import { RewardCard } from "./reward-card";
+import styles from "./reward-sheet.module.css";
 
 /* 목업은 불변이고 렌더마다 새로 만들 이유가 없다. 기본값으로 이 상수를 공유한다. */
-const DEMO_REWARDS = demoRewards();
+const DEMO_REWARDS = designRewards();
 
 type RewardSheetProps = {
   projectId: string;
@@ -80,15 +81,20 @@ export function RewardSheet({
       onClose={onClose}
       open={open}
       title={heading}
+      className={styles.sheet}
       footer={
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {/* 줄을 담고 빼거나 수량을 바꾸면 합계가 소리로 읽히도록 status로 둔다. */}
-          <div role="status" className="flex items-center justify-between">
-            <span className="text-body-m text-text-default">총 금액</span>
-            <span className="text-title-s text-text-default">{formatWon(total)}</span>
+          <div
+            role="status"
+            aria-label="리워드 총 금액"
+            className={Object.keys(cart).length ? "flex items-center justify-between" : "sr-only"}
+          >
+            <span className="text-body-s text-text-secondary">총 금액</span>
+            <span className="text-title-m text-text-default">{formatWon(total)}</span>
           </div>
           <Button className="w-full" disabled={!canSubmit} onClick={submit}>
-            펀딩하기
+            펀딩
           </Button>
         </div>
       }
