@@ -25,3 +25,24 @@
   height: 2px;
   background: var(--layer-surface-primary);
 }
+
+.compact {
+  height: calc(54px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  align-items: center;
+  border-top: 1px solid var(--border-default);
+  background: var(--layer-surface-default);
+}
+
+.compact .item {
+  gap: 4px;
+  color: var(--text-disabled);
+}
+
+.compact .item[aria-current="page"] {
+  color: var(--text-default);
+}
+
+.compact .item::after {
+  display: none;
+}
