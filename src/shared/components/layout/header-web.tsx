@@ -14,7 +14,9 @@ type HeaderWebProps = {
 export function HeaderWeb({ actions, className, logo, nav }: HeaderWebProps) {
   return (
     <header
-      className={["border-border-default h-[70px] border-b", className].filter(Boolean).join(" ")}
+      className={["border-border-default bg-layer-surface-default h-[70px] border-b", className]
+        .filter(Boolean)
+        .join(" ")}
     >
       <div className="max-w-content mx-auto flex h-full w-full items-center gap-2 px-5 md:gap-4 xl:px-0">
         {logo}

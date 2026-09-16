@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ModeSwitchLink } from "@/features/mode-switch/ui/mode-switch-link";
@@ -47,13 +48,14 @@ export function BuyerShell({ children }: { children: ReactNode }) {
         }
         actions={
           <>
-            <SearchField
-              aria-label="프로젝트 검색"
-              className="w-60"
-              name="q"
-              placeholder="place holder"
-              size="sm"
-            />
+            <Form action="/search" className="w-60" role="search">
+              <SearchField
+                aria-label="프로젝트 검색"
+                name="q"
+                placeholder="프로젝트 검색"
+                size="sm"
+              />
+            </Form>
             <ModeSwitchLink mode="buyer" />
           </>
         }

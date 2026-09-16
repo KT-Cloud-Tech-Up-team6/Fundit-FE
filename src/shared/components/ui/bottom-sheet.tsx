@@ -62,43 +62,37 @@ export function BottomSheet({
       open={open}
       {...dialogProps}
     >
-      {hasTitle && (
-        <div className="flex items-center justify-between px-5 py-2">
-          <div className="flex min-w-0 flex-1 items-center">
-            {onBack && (
-              <button
-                aria-label={backLabel}
-                className={dialogHeaderButtonClasses}
-                onClick={onBack}
-                type="button"
-              >
-                <Icon name="arrowLeft" className="size-5" />
-              </button>
-            )}
-            <h2 className="text-title-m text-text-default min-w-0 flex-1 truncate" id={titleId}>
-              {title}
-            </h2>
+      <div className="flex max-h-[90dvh] flex-col">
+        {hasTitle && (
+          <div className="flex shrink-0 items-center justify-between px-5 py-2">
+            <div className="flex min-w-0 flex-1 items-center">
+              {onBack && (
+                <button
+                  aria-label={backLabel}
+                  className={dialogHeaderButtonClasses}
+                  onClick={onBack}
+                  type="button"
+                >
+                  <Icon name="arrowLeft" className="size-5" />
+                </button>
+              )}
+              <h2 className="text-title-m text-text-default min-w-0 flex-1 truncate" id={titleId}>
+                {title}
+              </h2>
+            </div>
+            <button
+              aria-label={closeLabel}
+              className={dialogHeaderButtonClasses}
+              onClick={onClose}
+              type="button"
+            >
+              <Icon name="close" className="size-5" />
+            </button>
           </div>
-          <button
-            aria-label={closeLabel}
-            className={dialogHeaderButtonClasses}
-            onClick={onClose}
-            type="button"
-          >
-            <Icon name="close" className="size-5" />
-          </button>
-        </div>
-      )}
-      {footer ? (
-        /* display:flex는 dialog가 아니라 안쪽 요소에 건다(DialogBase 주석 참고).
-           max-h로 높이를 묶어야 flex-1 본문이 스크롤 영역을 갖는다. */
-        <div className="flex max-h-[90dvh] flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
-          <div className="border-border-default shrink-0 border-t p-5 pt-3">{footer}</div>
-        </div>
-      ) : (
-        <div className="max-h-[90dvh] overflow-y-auto p-5">{children}</div>
-      )}
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && <div className="border-border-default shrink-0 border-t p-5 pt-3">{footer}</div>}
+      </div>
     </DialogBase>
   );
 }

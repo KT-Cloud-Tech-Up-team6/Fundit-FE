@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
+import { expect, within } from "storybook/test";
 
 import { BottomSheet } from "./bottom-sheet";
 import { Button } from "./button";
@@ -49,6 +50,15 @@ const terms = [
 /* footer는 스크롤에서 빠져 하단에 고정된다. 본문(리스트)만 스크롤하는지 확인한다. */
 export const FixedFooter: Story = {
   args: { "aria-label": "리워드 선택", children: null, onClose: () => {}, open: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dialog = await canvas.findByRole("dialog", { name: "리워드 선택" });
+    const footer = canvas.getByRole("button", { name: "펀딩하기" });
+    await expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      dialog.getBoundingClientRect().bottom,
+    );
+    await expect(dialog.scrollHeight).toBeLessThanOrEqual(dialog.clientHeight + 1);
+  },
   render: function FixedFooterStory() {
     const [open, setOpen] = useState(true);
 
@@ -56,7 +66,7 @@ export const FixedFooter: Story = {
       <div className="min-h-dvh p-5">
         <Button onClick={() => setOpen(true)}>시트 열기</Button>
         <BottomSheet
-          aria-label="리워드 선택"
+          title="리워드 선택"
           onClose={() => setOpen(false)}
           open={open}
           footer={

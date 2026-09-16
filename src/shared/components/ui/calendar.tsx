@@ -8,7 +8,7 @@ import { Icon } from "./icon";
 export type CalendarProps = DayPickerProps;
 
 const navButtonClasses =
-  "flex size-9 items-center justify-center rounded-xs hover:bg-layer-surface-disabled focus-visible:outline-border-primary focus-visible:outline-2 disabled:opacity-40";
+  "pointer-events-auto flex size-9 items-center justify-center rounded-xs hover:bg-layer-surface-disabled focus-visible:outline-border-primary focus-visible:outline-2 disabled:opacity-40";
 
 /**
  * 날짜 선택 그리드 (Figma calendar organism). react-day-picker(v10)를 디자인 토큰으로 감싼다.
@@ -21,11 +21,11 @@ export function Calendar({ classNames, components, locale = ko, ...props }: Cale
       showOutsideDays
       classNames={{
         root: "text-text-default",
-        months: "flex flex-col",
+        months: "relative flex flex-col",
         month: "flex flex-col gap-3",
         month_caption: "relative flex h-9 items-center justify-center",
         caption_label: "text-body-strong",
-        nav: "absolute inset-x-0 flex items-center justify-between",
+        nav: "absolute inset-x-0 top-0 z-10 flex items-center justify-between pointer-events-none",
         button_previous: navButtonClasses,
         button_next: navButtonClasses,
         month_grid: "w-full border-collapse",
@@ -37,9 +37,13 @@ export function Calendar({ classNames, components, locale = ko, ...props }: Cale
           "text-body-m flex size-9 items-center justify-center rounded-full hover:bg-layer-surface-disabled focus-visible:outline-border-primary focus-visible:outline-2",
         today: "[&>button]:font-bold",
         selected:
+          props.mode === "range"
+            ? ""
+            : "[&>button]:bg-layer-surface-primary [&>button]:text-text-inverse [&>button]:hover:bg-layer-surface-primary-hover",
+        range_start:
           "[&>button]:bg-layer-surface-primary [&>button]:text-text-inverse [&>button]:hover:bg-layer-surface-primary-hover",
-        range_start: "[&>button]:bg-layer-surface-primary [&>button]:text-text-inverse",
-        range_end: "[&>button]:bg-layer-surface-primary [&>button]:text-text-inverse",
+        range_end:
+          "[&>button]:bg-layer-surface-primary [&>button]:text-text-inverse [&>button]:hover:bg-layer-surface-primary-hover",
         range_middle: "[&>button]:bg-layer-surface-disabled [&>button]:rounded-none",
         outside: "[&>button]:text-text-disabled",
         disabled: "[&>button]:text-text-disabled [&>button]:hover:bg-transparent",
