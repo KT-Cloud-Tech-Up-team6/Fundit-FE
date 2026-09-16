@@ -1,6 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
+import { getLiveDemo, subscribedIds, type LiveDemo } from "../model/live-demo";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
@@ -8,14 +13,8 @@ import { SearchField } from "@/shared/components/ui/search-field";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import styles from "./buyer-live-main.module.css";
 
-const projectTitle = "프로젝트 제목 프로젝트 제목 프로젝트 제목 프로젝트 제목";
-const rankingTitle =
-  "로보락F25 정말 좋고 깔끔하고 착한 무선 청소기! 이것은 역작이라고 말할 수 있다";
-const reasons = ["많이 본 카테고리", "좋아요한 브랜드", "시청 기반"];
-const subscribedIds = Array.from({ length: 5 }, (_, i) => `subscribed-${i + 1}`);
-
 function scheduledTitle(id: string) {
-  return id.startsWith("follow-") || id.startsWith("recommended-") ? projectTitle : rankingTitle;
+  return getLiveDemo(id, true).title;
 }
 
 function LiveAsset({
@@ -30,7 +29,7 @@ function LiveAsset({
       aria-hidden
       className={`inline-block shrink-0 bg-current ${className}`}
       style={{
-        maskImage: `url(/icons/buyer-live/${name}.svg)`,
+        maskImage: `url(/images/buyer-live/${{ alarm: "a5c09.svg", viewers: "b19ca.svg", "bell-add": "14f62.svg", "bell-subscribed": "95476.svg", "live-navigation": "3fa99.svg" }[name]})`,
         maskSize: "contain",
         maskPosition: "center",
         maskRepeat: "no-repeat",
@@ -39,40 +38,43 @@ function LiveAsset({
   );
 }
 
-function Seller({
-  ranking = false,
-  following = false,
-}: {
-  ranking?: boolean;
-  following?: boolean;
-}) {
+function Seller({ data, ranking = false }: { data: LiveDemo; ranking?: boolean }) {
   return (
     <div
       className={
         ranking
-          ? "flex items-center gap-2 text-[14px] leading-5 font-medium"
-          : following
-            ? "text-[13px] leading-[18px] font-medium"
-            : "text-[12px] leading-4 font-medium"
+          ? "text-body-s flex items-center gap-2 font-medium"
+          : "text-label-m text-text-secondary"
       }
     >
-      {ranking && <span aria-hidden className="bg-border-default size-7 shrink-0 rounded-full" />}
-      <span>판매자 이름</span>
+      {ranking && (
+        <Avatar size={28}>
+          <Image src={data.avatar!} alt="" fill sizes="28px" className="object-cover" />
+        </Avatar>
+      )}
+      <span>{data.seller}</span>
     </div>
   );
 }
 
-function StatusBadge({ scheduled = false, live = false }: { scheduled?: boolean; live?: boolean }) {
+function StatusBadge({
+  scheduled = false,
+  live = false,
+  ranking = false,
+}: {
+  scheduled?: boolean;
+  live?: boolean;
+  ranking?: boolean;
+}) {
   return (
-    <span
-      className={`bg-border-default text-caption-strong inline-flex items-center ${scheduled || live ? "gap-1" : "gap-2"} rounded-xs px-2 py-1`}
+    <Badge
+      shape="rounded"
+      variant="neutral"
+      className={live ? styles.liveBadge : ranking ? styles.rankingBadge : styles.viewerBadge}
     >
-      <LiveAsset
-        name={scheduled ? "alarm" : live ? "live-navigation" : "viewers"}
-        className="size-3.5"
-      />
+      <LiveAsset name={scheduled ? "alarm" : live ? "live-navigation" : "viewers"} />
       <span>{scheduled ? "예정됨" : live ? "LIVE" : "101"}</span>
-    </span>
+    </Badge>
   );
 }
 
@@ -80,9 +82,13 @@ function Section({ title, href, children }: { title: string; href?: string; chil
   return (
     <section aria-label={title} className="flex min-w-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-title-m">{title}</h2>
+        <h2 className="text-title-m text-text-title">{title}</h2>
         {href && (
-          <Link href={href} className={styles.more} aria-label={`${title} 전체보기`}>
+          <Link
+            href={href}
+            className="text-body-s text-text-secondary p-1"
+            aria-label={title + " 전체보기"}
+          >
             전체보기
           </Link>
         )}
@@ -92,56 +98,82 @@ function Section({ title, href, children }: { title: string; href?: string; chil
   );
 }
 
-function LiveCard({
-  id,
-  reason,
-  compact = false,
-  scheduled = false,
-}: {
-  id: string;
-  reason?: string;
-  compact?: boolean;
-  scheduled?: boolean;
-}) {
+function LiveCard({ id, compact = false }: { id: string; compact?: boolean }) {
+  const data = getLiveDemo(id);
   return (
-    <article className={`min-w-0 ${compact ? "w-41 shrink-0" : ""}`}>
+    <article className={compact ? "w-41 min-w-0 shrink-0" : "min-w-0"}>
       <Link
-        href={`/live/${id}`}
+        href={"/live/" + id}
         className="flex flex-col gap-2"
-        aria-label={`${projectTitle} 라이브 보기`}
+        aria-label={data.title + " 라이브 보기"}
       >
         <div
-          className={`bg-layer-surface-disabled relative rounded-xs ${compact ? "aspect-[164/163]" : "aspect-[169/170]"}`}
+          className={
+            "bg-layer-bg relative overflow-hidden rounded-xs " +
+            (compact ? "aspect-square" : "aspect-[3/4]")
+          }
         >
-          <span className="absolute top-2 right-2">
-            <StatusBadge scheduled={scheduled} live={Boolean(reason)} />
+          <Image
+            src={data.image}
+            alt=""
+            fill
+            sizes="(max-width: 390px) 44vw, 169px"
+            className="object-cover"
+          />
+          <span className="absolute top-1 right-2">
+            <StatusBadge scheduled={data.scheduled} live={id.startsWith("follow-")} />
           </span>
         </div>
-        <div className={`flex flex-col ${reason ? "gap-1" : "gap-2"}`}>
-          <h3 className={styles.cardTitle}>{projectTitle}</h3>
-          <Seller />
+        <div className="flex flex-col gap-1">
+          <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">{data.title}</h3>
+          <Seller data={data} />
         </div>
-        {reason && (
-          <span className="bg-layer-surface-disabled w-fit max-w-full truncate rounded-xs px-2 py-1 text-[11px] leading-[14px] font-medium">
-            {reason}
-          </span>
+        {data.reasons && (
+          <div className="flex flex-wrap gap-2">
+            {data.reasons.map((reason) => (
+              <Badge variant="neutral" key={reason} className={styles.reasonBadge}>
+                {reason}
+              </Badge>
+            ))}
+          </div>
         )}
       </Link>
     </article>
   );
 }
 
-function ScheduleMedia({ className = "", large = false }: { className?: string; large?: boolean }) {
+function ScheduleMedia({
+  id,
+  className = "",
+  large = false,
+}: {
+  id: string;
+  className?: string;
+  large?: boolean;
+}) {
+  const data = getLiveDemo(id, true);
   return (
     <div
-      className={`bg-layer-surface-disabled flex flex-col items-center justify-center ${large ? "gap-2" : "gap-1"} rounded-xs text-center ${className}`}
+      className={
+        "bg-layer-bg text-text-static-white relative flex flex-col items-center justify-center overflow-hidden rounded-xs text-center " +
+        (large ? "gap-2 " : "gap-1 ") +
+        className
+      }
     >
+      <Image
+        src={data.image}
+        alt=""
+        fill
+        sizes="(max-width: 390px) 44vw, 169px"
+        className="object-cover"
+      />
+      <span className="bg-layer-overlay absolute inset-0" />
       <span
-        className={`${large ? "text-[24px] leading-[1.35]" : "text-[20px] leading-7"} font-bold`}
+        className={"relative font-bold " + (large ? "text-[24px] leading-[1.35]" : "text-title-m")}
       >
         09.18
       </span>
-      <span className={`${large ? "text-[16px] leading-6" : "text-[14px] leading-5"} font-medium`}>
+      <span className={"relative font-medium " + (large ? "text-body-m" : "text-body-s")}>
         오후 3:40
       </span>
     </div>
@@ -220,8 +252,10 @@ export function BuyerLiveMain({
   function notificationButton(id: string, variant: "card" | "round" | "subscription" = "card") {
     const enabled = notifications.has(id);
     return (
-      <button
-        type="button"
+      <Button
+        size="md"
+        shape={variant === "card" ? "default" : "pill"}
+        variant={enabled ? "primary" : "secondary"}
         aria-label={`${scheduledTitle(id)} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림 받기") : "시작 알림"}`}
         aria-pressed={enabled}
         onClick={() => {
@@ -229,11 +263,13 @@ export function BuyerLiveMain({
             subscriptionFocusIndex.current = Array.from(notifications).indexOf(id);
           toggleNotification(id);
         }}
-        className={`${styles.notificationButton} flex shrink-0 items-center justify-center gap-2 border text-[14px] leading-5 font-medium ${variant === "card" ? `w-full rounded-xs ${id.startsWith("follow-") ? "border-[#ededed]" : "border-border-default"} p-2` : `border-border-default rounded-full ${variant === "subscription" ? "size-8" : "size-9"}`}`}
+        className={
+          variant === "card" ? "text-body-s! w-full gap-1 font-medium" : "size-8! shrink-0 p-0!"
+        }
       >
-        {variant === "card" && (enabled ? "알림 설정됨" : "알림 받기")}
+        {variant === "card" && (enabled ? "알림 설정됨" : "알림받기")}
         <LiveAsset name={enabled ? "bell-subscribed" : "bell-add"} />
-      </button>
+      </Button>
     );
   }
 
@@ -247,23 +283,20 @@ export function BuyerLiveMain({
   }
 
   function scheduledCard(id: string, compact = false) {
+    const data = getLiveDemo(id, true);
     return (
       <article
         key={id}
         className={`flex min-w-0 flex-col gap-2 ${compact ? "w-[153px] shrink-0" : ""}`}
       >
         <Link href={`/live/${id}`} className="flex flex-col gap-2">
-          <ScheduleMedia className="aspect-square" />
+          <ScheduleMedia id={id} className="aspect-square" />
           <div className="flex flex-col gap-1">
-            {compact && <Seller following />}
-            <h3 className={styles.cardTitle}>{projectTitle}</h3>
+            {compact && <Seller data={data} />}
+            <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">{data.title}</h3>
           </div>
         </Link>
-        {!compact && (
-          <p className="-mt-1 truncate text-[13px] leading-[18px] font-medium">
-            {notificationCount(id)}명 알림 신청
-          </p>
-        )}
+        {!compact && <Seller data={data} />}
         {notificationButton(id)}
       </article>
     );
@@ -273,29 +306,29 @@ export function BuyerLiveMain({
     <div
       className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(76px+env(safe-area-inset-bottom))]`}
     >
-      <header className="flex items-center gap-4 px-5 py-2">
+      <header className="flex items-center gap-4 py-2 pr-3 pl-5">
         <form action="/live/search" role="search" className="min-w-0 flex-1">
-          <SearchField
-            name="q"
-            aria-label="라이브 검색"
-            placeholder="place holder"
-            className={styles.search}
-          />
+          <SearchField name="q" aria-label="라이브 검색" placeholder="검색어를 입력해주세요" />
         </form>
         <Link
           href="/my/notifications"
           aria-label="알림함"
-          className="flex h-10 w-6 shrink-0 items-center justify-center"
+          className="flex size-10 shrink-0 items-center justify-center"
         >
-          <Icon name="bell" className="h-3.5 w-6" />
+          <Icon name="bell" className="size-6" />
         </Link>
       </header>
-      <TabList mode="nav" aria-label="라이브 탐색" className={styles.tabs}>
-        <Tab href="/live" selected={!upcoming} className={styles.tab}>
+      <TabList mode="nav" aria-label="라이브 탐색" className="w-full">
+        <Tab href="/live" selected={!upcoming} variant="primaryLive" className="text-body-m w-1/2!">
           실시간
         </Tab>
-        <Tab href="/live/upcoming" selected={upcoming} className={styles.tab}>
-          예정 라이브
+        <Tab
+          href="/live/upcoming"
+          selected={upcoming}
+          variant="primaryLive"
+          className="text-body-m w-1/2!"
+        >
+          예정 LIVE
         </Tab>
       </TabList>
       <main className="flex flex-col gap-10 px-5 pt-4 pb-10">
@@ -321,7 +354,7 @@ export function BuyerLiveMain({
                 upcoming ? (
                   scheduledCard(`follow-${n}`, true)
                 ) : (
-                  <LiveCard key={n} id={`new-${n}`} compact scheduled={n % 2 === 0} />
+                  <LiveCard key={n} id={`new-${n}`} compact />
                 ),
               )}
             </div>
@@ -336,20 +369,24 @@ export function BuyerLiveMain({
                     <Link
                       href={`/live/scheduled-${rank}`}
                       aria-label={`${rank}번째 예정 라이브 보기`}
-                      className="w-[146px] max-w-[44%] shrink-0"
+                      className="w-[150px] max-w-[44%] shrink-0"
                     >
-                      <ScheduleMedia className="h-[194px]" large />
+                      <ScheduleMedia id={`scheduled-${rank}`} className="aspect-[3/4]" large />
                     </Link>
                     <div className="flex min-w-0 flex-1 flex-col justify-between">
                       <Link href={`/live/scheduled-${rank}`} className="flex flex-col gap-1">
-                        <span className="py-1 text-[12px] leading-4 font-medium">테크·가전</span>
-                        <h3 className="line-clamp-4 text-[16px] leading-6 font-semibold">
-                          {rankingTitle}
+                        <span className="text-label-m text-text-secondary">
+                          {getLiveDemo(`scheduled-${rank}`).category}
+                        </span>
+                        <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
+                          {getLiveDemo(`scheduled-${rank}`).title}
                         </h3>
-                        <span className="mt-1 text-[14px] leading-5">판매자 이름</span>
+                        <span className="text-label-m text-text-secondary mt-1">
+                          {getLiveDemo(`scheduled-${rank}`).seller}
+                        </span>
                       </Link>
                       <div className="flex items-center gap-2">
-                        <p className="text-title-s min-w-0 flex-1 truncate">
+                        <p className="text-body-s text-text-primary-live min-w-0 flex-1 truncate font-semibold">
                           {(100000 + Number(notifications.has(`scheduled-${rank}`))).toLocaleString(
                             "ko-KR",
                           )}
@@ -361,28 +398,37 @@ export function BuyerLiveMain({
                   </article>
                 ) : (
                   <Link href={`/live/rank-${rank}`} className="flex gap-3">
-                    <div className="bg-layer-surface-disabled relative h-[194px] w-[146px] max-w-[44%] shrink-0 rounded-xs px-2 py-1">
-                      <div className="flex items-start justify-between gap-1">
+                    <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1">
+                      <Image
+                        src={getLiveDemo(`rank-${rank}`).image}
+                        alt=""
+                        fill
+                        sizes="150px"
+                        className="object-cover"
+                      />
+                      <div className="relative flex items-start justify-between gap-1">
                         <span
                           aria-label={`${rank}위`}
-                          className={`text-[24px] leading-8 ${rank <= 3 ? "font-bold" : "font-medium"}`}
+                          className="text-text-static-white text-[28px] leading-[1.3] font-bold [text-shadow:1px_2px_8px_rgba(0,0,0,0.3)]"
                         >
                           {rank}
                         </span>
-                        <StatusBadge />
+                        <StatusBadge ranking />
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col justify-between py-2">
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
-                          <span className="text-[12px] leading-4 font-medium">테크·가전</span>
+                          <span className="text-label-m text-text-secondary">
+                            {getLiveDemo(`rank-${rank}`).category}
+                          </span>
                           <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
-                            {rankingTitle}
+                            {getLiveDemo(`rank-${rank}`).title}
                           </h3>
                         </div>
-                        <span className="text-title-s">10,000% 달성</span>
+                        <span className="text-title-s text-text-primary-live">10,000% 달성</span>
                       </div>
-                      <Seller ranking />
+                      <Seller ranking data={getLiveDemo(`rank-${rank}`)} />
                     </div>
                   </Link>
                 )}
@@ -394,17 +440,17 @@ export function BuyerLiveMain({
               type="button"
               disabled
               aria-label="예정된 라이브 전체보기 · 화면 미정"
-              className="text-body-emphasis mx-auto cursor-not-allowed px-3 py-2"
+              className="text-body-s text-text-secondary mx-auto cursor-not-allowed px-3 py-2"
             >
-              전체보기
+              더 보러 가기
             </button>
           ) : (
             <Link
               href="/live/rank"
               aria-label="실시간 순위 전체보기"
-              className="text-body-emphasis mx-auto px-3 py-2"
+              className="text-body-s text-text-secondary mx-auto px-3 py-2"
             >
-              전체보기
+              더 보러 가기
             </Link>
           )}
         </Section>
@@ -427,15 +473,17 @@ export function BuyerLiveMain({
                     aria-label={`${scheduledTitle(id)} 라이브 보기`}
                     className="w-[104px] shrink-0"
                   >
-                    <ScheduleMedia className="h-full min-h-[104px]" />
+                    <ScheduleMedia id={id} className="h-full min-h-[104px]" />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
                     <Link href={`/live/${id}`} className="flex flex-col gap-1">
-                      <Seller />
-                      <h3 className={styles.cardTitle}>{scheduledTitle(id)}</h3>
+                      <Seller data={getLiveDemo(id, true)} />
+                      <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">
+                        {scheduledTitle(id)}
+                      </h3>
                     </Link>
                     <div className="flex items-center gap-1">
-                      <p className="min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
+                      <p className="text-text-primary-live min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
                         {notificationCount(id)}명 알림 신청
                       </p>
                       {notificationButton(id, "subscription")}
@@ -452,19 +500,12 @@ export function BuyerLiveMain({
           </Section>
         )}
         <Section title="추천 라이브">
-          <div
-            ref={recommendationList}
-            className={`grid gap-3 ${upcoming ? "grid-cols-[repeat(2,minmax(0,168px))]" : "grid-cols-2"}`}
-          >
+          <div ref={recommendationList} className="grid grid-cols-2 gap-x-3 gap-y-4">
             {Array.from({ length: visibleCount }, (_, i) =>
               upcoming ? (
                 scheduledCard(`recommended-${i + 1}`)
               ) : (
-                <LiveCard
-                  key={i}
-                  id={`recommended-${i + 1}`}
-                  reason={reasons[i % reasons.length]}
-                />
+                <LiveCard key={i} id={`recommended-${i + 1}`} />
               ),
             )}
           </div>
@@ -493,7 +534,7 @@ export function BuyerLiveMain({
       <BuyerBottomNavigation
         activeHref="/live"
         aria-label="LIVE 화면 하단 메뉴"
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+        className={`${styles.navigation} border-border-default fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2 border-t`}
       />
     </div>
   );
