@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import { Button, secondaryButtonClasses } from "./button";
 import { ChatDialogue } from "./chat-dialogue";
 const meta = {
@@ -16,9 +17,22 @@ const meta = {
 } satisfies Meta<typeof ChatDialogue>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("AI 메시지")).toBeInTheDocument();
+  },
+};
 export const User: Story = {
   args: { sender: "user", children: "일상에서 사용할 수 있는 제품입니다." },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("사용자 메시지")).toBeInTheDocument();
+  },
+};
+export const CustomAvatar: Story = {
+  args: { avatar: <span aria-hidden>●</span> },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("AI 메시지")).toBeInTheDocument();
+  },
 };
 export const Medium: Story = { args: { size: "md" } };
 export const WithActions: Story = {

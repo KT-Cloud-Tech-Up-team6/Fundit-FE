@@ -46,6 +46,7 @@ export function Dropdown({
   const search = useRef({ text: "", time: 0 });
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  if (disabled && open) setOpen(false);
   const selected = options.findIndex((option) => option.value === value);
   const available = options.flatMap((option, index) => (option.disabled ? [] : [index]));
 

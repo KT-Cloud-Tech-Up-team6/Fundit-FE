@@ -241,6 +241,7 @@ export function CreateLiveButton() {
             <div className="mt-auto flex flex-col gap-1">
               <Checkbox
                 checked={scheduled}
+                shape="circle"
                 onChange={(event) => setScheduled(event.target.checked)}
               >
                 방송 예약하기

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
+import { Tooltip } from "@/shared/components/ui/tooltip";
 import styles from "./buyer-project-detail.module.css";
 
 const tabs = [
@@ -41,7 +42,7 @@ function DetailIcon({
 
 function Information({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
-  const tooltip = useRef<HTMLSpanElement>(null);
+  const tooltip = useRef<HTMLDivElement>(null);
   const id = useId();
   useEffect(() => {
     if (!open) return;
@@ -71,18 +72,19 @@ function Information({ label }: { label: string }) {
         <DetailIcon name="info" className="h-3.5 w-4" />
       </button>
       {open && (
-        <span ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
-          <Image src="/icons/buyer-project/tooltip-tail.svg" width={8.925} height={21} alt="" />
-          <span className={styles.tooltipBody}>
-            <span>
-              본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+        <div ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
+          <Tooltip direction="horizontal">
+            <span className="flex flex-col gap-1">
+              <span>
+                본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+              </span>
+              <span>
+                다만 일부 표현이나 정보에 오류가 있을 수 있으니, 정확한 사항은 구매 전 문의해 주시기
+                바랍니다.
+              </span>
             </span>
-            <span>
-              다만 일부 표현이나 정보에 오류가 있을 수 있으니, 정확한 사항은 구매 전 문의해 주시기
-              바랍니다.
-            </span>
-          </span>
-        </span>
+          </Tooltip>
+        </div>
       )}
     </span>
   );

@@ -6,9 +6,21 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 취소·환불·교환 내역은 [BUYER_REFUNDS.md](./BUYER_REFUNDS.md)를 참고한다. `/my/refunds`는 전용 `(buyer-refunds)` 그룹의 조회 목업이며 삭제된 저장 버튼은 포함하지 않는다.
+
+- 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
+
+- 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+
+- 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+
 - 구매자 프로젝트 상세는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다. `(buyer-project)` 그룹의 story·live-proof 탭은 전용 화면이며 나머지 탭은 기존 BuyerShell을 유지한다.
 
-- 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지하며 카테고리 메뉴는 목적지가 미정이므로 비활성 상태다.
+- 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지한다.
+
+- 구매자 카테고리 리스트 `/categories/[slug]`는 전용 헤더·하단 탭을 사용하는 `(buyer-category)` 그룹에 둔다. 현재 카테고리와 소분류는 화면 확인용 목업이다. `BuyerBottomNavigation`의 카테고리 탭은 `/categories/tech-appliances`(첫 번째 카테고리)로 진입하며, 진입 시 현재 경로를 `sessionStorage`(`buyer-category-return-path`, `src/shared/lib/category-return-path.ts`)에 기록해뒀다가 카테고리 탭을 다시 누르면 그 경로로 돌아간다. 기록이 없으면(예: 카테고리 탭을 거치지 않고 처음 들어온 딥링크) 홈으로 대체하고, 새로고침으로는 기록이 사라지지 않는다.
+  이 기록을 "카테고리 영역을 실제로 벗어났을 때만" 정리하는 일은 `BuyerBottomNavigation`이 아니라 루트 레이아웃에 한 번만 마운트되는 `CategoryReturnPathGuard`(`src/providers/`)가 맡는다. 이 컴포넌트가 각 페이지마다 리마운트되거나(Next.js RSC 특성상 SNB로 카테고리 slug만 바꿔도 리마운트될 수 있다) `popstate` 리스너를 마운트/언마운트에 걸면, 뒤로가기가 유발한 같은 리렌더링이 그 리스너를 호출 전에 지워버리는 타이밍 문제가 있었다. `CategoryReturnPathGuard`는 앱 전체 내비게이션 동안 절대 언마운트되지 않으므로 `usePathname()` 변화만으로 안정적으로 감지한다 — pathname이 `/categories` 밖으로 나가면(탭 클릭이든 뒤로가기·앞으로가기든 무엇이든) 정리하고, `/categories` 내부에서 slug만 바뀌는 전환은 유지한다.
+  소분류명을 누르면 `/categories/[slug]/[subcategorySlug]`(소분류 결과 목록)로 이동하며, 이 화면은 아직 `PagePlaceholder`다. 실제 진입 slug·카테고리 체계는 여전히 목업이다.
 
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
@@ -23,6 +35,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 - AI 생성과 목록은 목업입니다. 저장은 현재 화면의 메모리 상태에만 유지되며 새로고침이나 페이지 이동 시 초기화됩니다. 실제 AI·API·송출·권한 검증은 포함하지 않습니다.
 - 방송 시간은 최대 10분이며, 구간 추가 시 선택 구간의 시간을 둘로 나누어 전체 시간을 유지합니다. 제목·순서·진행 개요·대사를 수정할 수 있습니다. 건너뛴 질문은 목업 생성 시 예시 내용으로 대체합니다.
 - 구매자 제작·배송 현황은 [공유 Figma의 제작·배송 현황 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=824-8077)을 기준으로 하며 관련 작업은 [Issue #70](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/70)입니다. `/my/fundings/[fundingId]/fulfillment`(요약)와 `.../fulfillment/history`(전체 이력)는 판매자와 같은 `fulfillment-tracking` 슬라이스를 확장한 목업입니다. 원본이 자체 상단 앱바를 가진 몰입형 화면이라 BuyerShell을 쓰지 않는 `(buyer-fulfillment)` 그룹에 두며, 다른 `/my` 화면과 달리 전역 네비게이션이 없습니다. 5단계 ↔ 배송·배송완료 enum 매핑은 `docs/OPEN_DECISIONS.md` P1로 남기고, 캐릭터 GIF UI·발송정보·수령확인은 원본 프레임에 없어 제외했습니다.
+- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소) 원본 모두 자체 상단 앱바(뒤로가기·제목·알림)를 가진 몰입형 화면이라 BuyerShell을 쓰지 않는 `(buyer-funding)` 그룹에 두며, `(buyer-fulfillment)`와 같은 이유입니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`은 같은 `funding-history` 슬라이스의 목업이고, 카드별 상태(펀딩 진행 중·완료·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. 취소 사유 목록과 환불 계산(수수료 0·적립금 0 고정)은 배송·환불 정책 미확정(P2)에 따른 placeholder이며, 취소 확인 후에는 제출 API가 없어 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
 
 ## 공통·인증
 
@@ -40,20 +53,21 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 구매자 탐색·LIVE
 
-| URL                     | 화면                    | 접근 조건                 | 상태                                                    |
-| ----------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
-| `/`                     | 홈                      | public                    | placeholder                                             |
-| `/categories/[slug]`    | 카테고리                | public                    | placeholder                                             |
-| `/search`               | 통합 검색               | public                    | placeholder                                             |
-| `/live`                 | LIVE 메인               | public                    | implemented                                             |
-| `/live/new`             | 신규 LIVE               | public                    | placeholder                                             |
-| `/live/rank`            | 실시간 순위             | public                    | placeholder                                             |
-| `/live/recommended`     | 추천 LIVE               | public                    | placeholder                                             |
-| `/live/following`       | 팔로우 LIVE             | member                    | placeholder                                             |
-| `/live/upcoming`        | 예정 LIVE               | public                    | implemented (목업)                                      |
-| `/live/search`          | LIVE 검색·결과          | public                    | placeholder                                             |
-| `/live/[liveId]`        | LIVE 방송·채팅·다시보기 | read public, write member | live / replay implemented (목업)                        |
-| `/projects/[projectId]` | 프로젝트 상세 탭        | public 또는 조건부        | story·live-proof implemented (목업), 나머지 placeholder |
+| URL                                    | 화면                    | 접근 조건                 | 상태                                                    |
+| -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
+| `/`                                    | 홈                      | public                    | placeholder                                             |
+| `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
+| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | placeholder                                             |
+| `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
+| `/live`                                | LIVE 메인               | public                    | implemented                                             |
+| `/live/new`                            | 신규 LIVE               | public                    | placeholder                                             |
+| `/live/rank`                           | 실시간 순위             | public                    | placeholder                                             |
+| `/live/recommended`                    | 추천 LIVE               | public                    | placeholder                                             |
+| `/live/following`                      | 팔로우 LIVE             | member                    | placeholder                                             |
+| `/live/upcoming`                       | 예정 LIVE               | public                    | implemented (목업)                                      |
+| `/live/search`                         | LIVE 검색·결과          | public                    | placeholder                                             |
+| `/live/[liveId]`                       | LIVE 방송·채팅·다시보기 | read public, write member | live / replay implemented (목업)                        |
+| `/projects/[projectId]`                | 프로젝트 상세 탭        | public 또는 조건부        | story·live-proof implemented (목업), 나머지 placeholder |
 
 ## 펀딩·결제
 
@@ -72,15 +86,15 @@ PG 결제 화면은 외부 SDK·창으로 처리하고 결과는 `/payment/resul
 
 | URL                                            | 화면                     | 접근 조건        | 상태               |
 | ---------------------------------------------- | ------------------------ | ---------------- | ------------------ |
-| `/my`                                          | 마이페이지               | member           | placeholder        |
-| `/my/fundings`                                 | 펀딩내역                 | member           | placeholder        |
-| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | placeholder        |
-| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | placeholder        |
+| `/my`                                          | 마이페이지               | member           | implemented (목업) |
+| `/my/fundings`                                 | 펀딩내역                 | member           | implemented (목업) |
+| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented (목업) |
+| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 취소·하자·지연 환불 신청 | owner + eligible | placeholder        |
-| `/my/refunds`                                  | 환불내역                 | member           | placeholder        |
-| `/my/wishlist`                                 | 찜                       | member           | placeholder        |
+| `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented (목업) |
+| `/my/wishlist`                                 | 관심 목록                | member           | implemented (목업) |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
 | `/my/notifications/settings`                   | 알림 설정                | member           | placeholder        |
 | `/my/preferences`                              | 맞춤 정보                | member           | placeholder        |

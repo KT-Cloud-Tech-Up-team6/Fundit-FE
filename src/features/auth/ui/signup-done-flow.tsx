@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AuthButton } from "./auth-form-controls";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
+import { Toast } from "@/shared/components/ui/toast";
 
 /* 임시 목록이다. 확정 카테고리를 받으면 데이터만 교체한다. */
 const categories = [
@@ -46,10 +47,7 @@ export function SignupDoneFlow({
   return (
     <AuthScreen withHeader={false}>
       {toastVisible ? (
-        <div
-          className="bg-layer-surface-primary text-text-inverse text-body-s mt-4 flex items-center justify-between gap-3 rounded-sm px-4 py-3"
-          role="status"
-        >
+        <Toast className="mx-auto mt-4 flex items-center justify-between gap-3">
           회원가입이 완료되었습니다
           <button
             className="text-text-inverse shrink-0"
@@ -58,7 +56,7 @@ export function SignupDoneFlow({
           >
             확인
           </button>
-        </div>
+        </Toast>
       ) : null}
 
       <AuthTitle>{"가입이 완료되었어요\n관심 카테고리를 골라주세요"}</AuthTitle>

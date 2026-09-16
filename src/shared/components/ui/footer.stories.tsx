@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
-import { Button, secondaryButtonClasses } from "./button";
+import { Button } from "./button";
 import { Footer } from "./footer";
 const meta = {
   title: "Shared/UI/Footer",
@@ -23,9 +23,9 @@ export const TwoActions: Story = {
   args: {
     children: (
       <>
-        <button type="button" className={`${secondaryButtonClasses} text-body-strong h-[46px]`}>
+        <Button variant="secondary" appearance="cta">
           장바구니
-        </button>
+        </Button>
         <Button appearance="cta">펀딩하기</Button>
       </>
     ),

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 import { Dropdown } from "./dropdown";
 
 const options = [
@@ -59,6 +59,34 @@ export const ExtraSmall: Story = {
 };
 export const Selected: Story = { args: { value: "recent" } };
 export const Disabled: Story = { args: { disabled: true } };
+export const DisabledWhileOpen: Story = {
+  render: function Render(args) {
+    const [disabled, setDisabled] = useState(false);
+    return (
+      <>
+        <Dropdown {...args} disabled={disabled} />
+        <button type="button" onClick={() => setDisabled((current) => !current)}>
+          비활성 전환
+        </button>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("button", { name: "정렬 기준" });
+    await userEvent.click(trigger);
+    await expect(canvas.getByRole("listbox")).toBeVisible();
+    const toggle = canvas.getByRole("button", { name: "비활성 전환" });
+    await fireEvent.click(toggle);
+    await expect(trigger).toBeDisabled();
+    await fireEvent.click(toggle);
+    await expect(trigger).toBeEnabled();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(canvas.queryByRole("listbox")).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    await expect(canvas.getByRole("listbox")).toBeVisible();
+  },
+};
 export const LongContent: Story = {
   args: {
     options: [{ value: "long", label: "여러 줄로 표시되는 매우 긴 선택 항목의 이름입니다." }],
@@ -107,6 +135,9 @@ export const PointerAndBlur: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "바깥 버튼" }));
     await expect(canvas.queryByRole("listbox")).not.toBeInTheDocument();
     await userEvent.click(button);
+    // 메뉴 제거 후 trigger로 돌아온 focus를 기준으로 다음 탭 대상을 계산한다.
+    await fireEvent.keyDown(canvas.getByRole("listbox"), { key: "Tab" });
+    await expect(button).toHaveFocus();
     await userEvent.tab();
     await expect(canvas.queryByRole("listbox")).not.toBeInTheDocument();
     await expect(canvas.getByRole("button", { name: "바깥 버튼" })).toHaveFocus();

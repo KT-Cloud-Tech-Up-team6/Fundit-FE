@@ -33,11 +33,10 @@ export function ChatDialogue({
         .join(" ")}
       {...props}
     >
+      <span className="sr-only">{isUser ? "사용자 메시지" : "AI 메시지"}</span>
       {!isUser && (
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full">
-          {avatar ?? (
-            <Image src="/icons/molecules/chat-avatar.svg" alt="AI" width={32} height={32} />
-          )}
+          {avatar ?? <Image src="/icons/molecules/chat-avatar.svg" alt="" width={32} height={32} />}
         </div>
       )}
       <div

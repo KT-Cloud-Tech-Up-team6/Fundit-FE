@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
 import { Checkbox } from "./checkbox";
+import { Radio } from "./radio";
 import { ListItem } from "./list-item";
 const arrow = (
   <span
@@ -40,20 +41,7 @@ export const WithRadio: Story = {
   render: (args) => (
     <div role="radiogroup" aria-label="선택 항목">
       {["첫 번째 항목", "두 번째 항목"].map((label) => (
-        <ListItem
-          {...args}
-          key={label}
-          leading={
-            <span>
-              <input
-                type="radio"
-                name="list-choice"
-                aria-label={label}
-                className="size-5 accent-current"
-              />
-            </span>
-          }
-        >
+        <ListItem {...args} key={label} leading={<Radio name="list-choice" aria-label={label} />}>
           {label}
         </ListItem>
       ))}
