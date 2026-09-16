@@ -9,6 +9,23 @@ export type LiveDemo = {
 };
 
 const demos: Record<string, LiveDemo[]> = {
+  search: [
+    {
+      title: "부모님 효도선물 무선청소기 가볍고 강력한 청소",
+      seller: "청소마켓",
+      image: "/images/buyer-search/0b9d6.png",
+    },
+    {
+      title: "[대박할인] 가성비 무선청소기 역대급 사은품 증정",
+      seller: "클린하우스",
+      image: "/images/buyer-search/7f446.png",
+    },
+    {
+      title: "[1+1 특가] 한정수량 무선청소기 오늘만 이 가격",
+      seller: "홈케어샵",
+      image: "/images/buyer-search/37dee.png",
+    },
+  ],
   new: [
     {
       title:
@@ -330,7 +347,7 @@ export function getLiveDemoConnection(id: string, upcoming = false) {
     return { projectId: "demo-project", liveId: id, data: demos.rank[3], hasLive: true };
   }
   const match =
-    /^(new|rank|follow|following|recommended|scheduled|subscribed|upcomingFollowing|upcomingRecommended)-(\d+)$/.exec(
+    /^(new|rank|follow|following|recommended|scheduled|subscribed|upcomingFollowing|upcomingRecommended|search)-(\d+)$/.exec(
       id,
     );
   if (!match) return undefined;

@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { Dropdown } from "@/shared/components/ui/dropdown";
+import { Chip } from "@/shared/components/ui/chip";
+import { EmptyState } from "@/shared/components/ui/empty-state";
+import { Button } from "@/shared/components/ui/button";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
+import styles from "./buyer-search.module.css";
 import { useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
 import { ProjectRow } from "@/entities/project/ui/project-row";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Icon } from "@/shared/components/ui/icon";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
+
 import {
   addRecentSearch,
+  matchesSearch,
+  searchSuggestions,
   parseSearch,
   searchResults,
   searchUrl,
@@ -44,14 +53,17 @@ export function BuyerSearch({
   onQueryChange: (query: SearchQuery) => void;
   initialInput?: string;
 }) {
+  const router = useRouter();
   const [draft, setDraft] = useState({
     base: query.q,
     value: initialInput || query.q,
     editing: Boolean(initialInput),
   });
-  const [recent, setRecent] = useState(["무선 청소기", "수박", "육하원칙"]);
+  const [recent, setRecent] = useState(["무선 청소기", "수박", "육하원칙", "고무대야"]);
   const [following, setFollowing] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
+  const recentDrag = useHorizontalDrag();
+  const popularDrag = useHorizontalDrag();
   const composing = useRef(false);
   const input = useRef<HTMLInputElement>(null);
   if (draft.base !== query.q) {
@@ -61,6 +73,11 @@ export function BuyerSearch({
   const editing = draft.base === query.q && draft.editing;
   const results = searchResults(query);
   const suggestions = searchResults({ ...query, q: value });
+  const tabCounts = {
+    projects: results.projects.length,
+    live: results.liveTotal,
+    sellers: results.sellers.length,
+  };
   const count =
     query.tab === "projects"
       ? results.projects.length
@@ -78,22 +95,33 @@ export function BuyerSearch({
   }
 
   return (
-    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh max-w-[390px] pb-[env(safe-area-inset-bottom)] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
+    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh w-full max-w-[390px] pb-[env(safe-area-inset-bottom)] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
       <h1 className="sr-only">통합 검색</h1>
       <form
         role="search"
-        className="bg-layer-surface-default sticky top-0 z-10 px-5 py-2"
+        className="bg-layer-surface-default sticky top-0 z-10 flex items-center gap-1 py-2 pr-5 pl-2"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
         }}
       >
+        <button
+          type="button"
+          aria-label="뒤로가기"
+          className="flex size-10 shrink-0 items-center justify-center"
+          onClick={() => {
+            if (window.history.length > 1) router.back();
+            else router.push("/");
+          }}
+        >
+          <Icon name="arrowLeft" className="size-5" />
+        </button>
         <SearchField
           size="lg"
           ref={input}
           aria-label="통합 검색어"
           placeholder="검색어를 입력해주세요"
-          className="border-border-primary! rounded-sm"
+
           value={value}
           enterKeyHint="search"
           onCompositionStart={() => {
@@ -124,10 +152,18 @@ export function BuyerSearch({
           {!value.trim() ? (
             <>
               <section className="py-3" aria-label="최근 검색어">
-                <h2 className="text-body-emphasis mb-3">최근</h2>
-                <div className="flex flex-wrap gap-2">
+                <h2 className="text-body-emphasis mb-1">최근</h2>
+                <div
+                  className={`${styles.track} flex gap-2 py-2`}
+                  {...recentDrag}
+                  tabIndex={0}
+                  aria-label="최근 검색어 가로 목록"
+                >
                   {recent.map((word) => (
-                    <div key={word} className={`${secondaryButtonClasses} h-9 gap-2 px-3`}>
+                    <div
+                      key={word}
+                      className="border-border-primary text-label-l flex h-9 shrink-0 items-center gap-2 rounded-full border px-3"
+                    >
                       <button type="button" onClick={() => submit(word)}>
                         {word}
                       </button>
@@ -147,13 +183,18 @@ export function BuyerSearch({
               </section>
               <section className="py-3" aria-label="인기 검색어">
                 <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
-                <ol className="flex gap-2 overflow-x-auto pb-2">
+                <ol
+                  className={`${styles.track} flex gap-2 py-2`}
+                  {...popularDrag}
+                  tabIndex={0}
+                  aria-label="인기 검색어 가로 목록"
+                >
                   {["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
                     (word, index) => (
                       <li key={word} className="shrink-0">
                         <button
                           type="button"
-                          className={`${secondaryButtonClasses} h-9 px-3`}
+                          className="border-border-primary text-label-l h-9 rounded-full border px-3"
                           onClick={() => submit(word)}
                         >
                           {index + 1} {word}
@@ -166,51 +207,53 @@ export function BuyerSearch({
             </>
           ) : (
             <section aria-label="연관 검색어" className="py-2">
-              {tabs
-                .filter((tab) =>
-                  tab.value === "projects"
-                    ? suggestions.projects.length
-                    : tab.value === "live"
-                      ? suggestions.lives.length
-                      : suggestions.sellers.length,
-                )
-                .map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    className="text-body-m flex min-h-11 w-full items-center gap-2 text-left"
-                    onClick={() => submit(value, tab.value)}
+              <button
+                type="button"
+                className="text-body-m flex h-11 w-full items-center gap-2 text-left"
+                onClick={() => submit()}
+              >
+                <span
+                  aria-hidden
+                  className="size-4 shrink-0 bg-current [mask-image:url('/icons/search.svg')] [mask-size:contain]"
+                />
+                <span className="min-w-0 flex-1 truncate font-semibold">{value}</span>
+                <Icon name="next" className="size-4" />
+              </button>
+              {searchSuggestions
+                .filter((item) => matchesSearch(item.data.title, value))
+                .map((item) => (
+                  <Link
+                    key={item.liveId}
+                    href={`/live/${item.liveId}`}
+                    className="text-body-m flex h-11 w-full items-center gap-2 text-left"
                   >
-                    {tab.value === "projects" ? (
-                      <span
-                        aria-hidden
-                        className="size-4 bg-current [mask-image:url('/icons/search.svg')] [mask-size:contain]"
-                      />
-                    ) : tab.value === "live" ? (
-                      <Icon name="live" className="size-4 shrink-0" />
-                    ) : (
-                      <span
-                        aria-hidden
-                        className="bg-border-default size-5 shrink-0 rounded-full"
-                      />
-                    )}
+                    <Icon name="live" className="size-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">
-                      {value} <span className="text-text-disabled">{tab.label}</span>
+                      <MatchedText text={item.data.title} query={value} />
                     </span>
-                    <Icon name="next" className="size-4" />
-                  </button>
+                    <Icon name="next" className="size-4 shrink-0" />
+                  </Link>
                 ))}
-              {!suggestions.projects.length &&
-                !suggestions.lives.length &&
-                !suggestions.sellers.length && (
-                  <button
-                    type="button"
-                    className="text-body-m w-full py-3 text-left"
-                    onClick={() => submit()}
-                  >
-                    {value} 검색
-                  </button>
-                )}
+              {suggestions.sellers.slice(0, 1).map((seller) => (
+                <button
+                  key={seller.id}
+                  type="button"
+                  className="text-body-m flex h-11 w-full items-center gap-2 text-left"
+                  onClick={() => submit(seller.name, "sellers")}
+                >
+                  <Image
+                    src={seller.avatar!}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="size-5 shrink-0 rounded-full object-cover"
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    <MatchedText text={seller.name} query={value} />
+                  </span>
+                  <Icon name="next" className="size-4 shrink-0" />
+                </button>
+              ))}
             </section>
           )}
         </div>
@@ -220,7 +263,13 @@ export function BuyerSearch({
             className="w-full!"
             aria-label="검색 결과 유형"
             selectedIndex={tabs.findIndex((tab) => tab.value === query.tab)}
-            onSelectedIndexChange={(index) => onQueryChange({ ...query, tab: tabs[index].value })}
+            onSelectedIndexChange={(index) =>
+              onQueryChange({
+                ...query,
+                tab: tabs[index].value,
+                status: tabs[index].value === "live" ? "live" : query.status,
+              })
+            }
           >
             {tabs.map((tab) => (
               <Tab
@@ -229,8 +278,12 @@ export function BuyerSearch({
                 aria-controls="search-results"
                 className="w-auto! flex-1"
                 size="md"
+                variant={tab.value === "live" ? "primaryLive" : "primary"}
               >
-                {tab.label}
+                {tab.label}{" "}
+                <span className="text-text-disabled ml-1 text-[12px] font-medium">
+                  {tabCounts[tab.value]}
+                </span>
               </Tab>
             ))}
           </TabList>
@@ -240,15 +293,17 @@ export function BuyerSearch({
             aria-labelledby={`search-${query.tab}`}
             className="px-5 pb-6"
           >
-            {query.tab !== "sellers" && (
-              <div className="text-caption-m flex flex-wrap items-center justify-between gap-2 py-4">
-                <p role="status">총 {count}개</p>
+            {query.tab !== "sellers" && count > 0 && (
+              <div className="text-body-s flex items-center justify-between gap-1 pt-3 pb-2">
+                <p role="status" className="text-text-disabled shrink-0">
+                  총 {count}개
+                </p>
                 <div className="flex items-center gap-2">
-                  {query.tab === "projects" && (
+                  {(query.tab === "projects" || query.status === "live") && (
                     <Checkbox
                       checked={query.closed}
                       shape="circle"
-                      className="text-[0.75rem]"
+                      className="text-[0.875rem]"
                       onChange={(event) =>
                         onQueryChange({ ...query, closed: event.target.checked })
                       }
@@ -256,41 +311,61 @@ export function BuyerSearch({
                       종료 프로젝트 보기
                     </Checkbox>
                   )}
-                  <select
+                  <Dropdown
+                    size="xs"
+                    className="[&_[role=listbox]]:right-0 [&_[role=listbox]]:w-max [&_[role=listbox]]:min-w-[81px]"
                     aria-label="검색 결과 정렬"
-                    className="max-w-24 bg-transparent"
                     value={query.sort}
-                    onChange={(event) =>
-                      onQueryChange({ ...query, sort: event.target.value as SearchQuery["sort"] })
+                    options={[
+                      { value: "latest", label: "최신순" },
+                      { value: "popular", label: "인기순" },
+                      { value: "closing", label: "마감 임박순" },
+                    ]}
+                    onValueChange={(sort) =>
+                      onQueryChange({ ...query, sort: sort as SearchQuery["sort"] })
                     }
-                  >
-                    <option value="latest">최신순</option>
-                    <option value="popular">인기순</option>
-                    <option value="closing">마감 임박순</option>
-                  </select>
+                  />
                 </div>
               </div>
             )}
-            {query.tab === "live" && (
-              <div className="mb-2 flex gap-2" role="group" aria-label="라이브 진행 상태">
+            {query.tab === "live" && results.liveTotal > 0 && (
+              <div className="mb-3 flex gap-2" role="group" aria-label="라이브 진행 상태">
                 {(["live", "upcoming"] as const).map((status) => (
-                  <button
+                  <Chip
                     key={status}
-                    type="button"
+                    size="md"
+                    variant="primaryLive"
+                    appearance={query.status === status ? "selected" : "outline"}
                     aria-pressed={query.status === status}
-                    className={`border-border-default text-caption-m rounded-xs border px-3 py-2 ${query.status === status ? "bg-border-default" : "bg-layer-surface-default"}`}
+                    className={`h-9 ${query.status !== status ? "border-border-default! text-text-disabled!" : ""}`}
                     onClick={() => onQueryChange({ ...query, status })}
                   >
                     {status === "live" ? "진행 중" : "진행 예정"}
-                  </button>
+                  </Chip>
                 ))}
               </div>
             )}
             {count === 0 ? (
-              <div role="status" className="pt-32 text-center">
-                <p className="text-body-emphasis">검색 결과가 없습니다</p>
-                <p className="text-caption-m mt-2">검색어의 상위 항목으로 다시 시도해보세요!</p>
-              </div>
+              <EmptyState
+                role="status"
+                className="[&>p]:text-body-s pt-[166px]"
+                graphic={
+                  <Image
+                    src="/images/buyer-search/04663.svg"
+                    alt=""
+                    width={112}
+                    height={112}
+                    className="size-28"
+                  />
+                }
+                message={
+                  <>
+                    검색 결과가 없습니다
+                    <br />
+                    검색어의 상위 항목으로 다시 검색해보세요
+                  </>
+                }
+              />
             ) : query.tab === "projects" ? (
               <div className="space-y-3">
                 {results.projects.map((project) => (
@@ -298,57 +373,67 @@ export function BuyerSearch({
                 ))}
               </div>
             ) : query.tab === "live" ? (
-              <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-6">
                 {results.lives.map((live) => (
                   <article key={live.id}>
-                    {query.status === "live" ? (
-                      <Link href={`/live/${live.id}`}>
-                        <div className="bg-layer-surface-disabled relative mb-2 aspect-square rounded-xs">
-                          <span className="bg-border-default text-label-m absolute top-2 right-2 flex items-center gap-1 rounded-xs px-2 py-1">
-                            <Icon name="live" className="size-3.5" />
-                            LIVE
+                    <Link
+                      href={
+                        live.status === "live"
+                          ? `/live/${live.id}`
+                          : `/projects/${live.projectId}?tab=story`
+                      }
+                    >
+                      <div
+                        className={`relative mb-2 overflow-hidden rounded-xs ${live.status === "live" ? "aspect-[3/4]" : "aspect-square"}`}
+                      >
+                        <Image
+                          src={live.image}
+                          alt=""
+                          fill
+                          sizes="169px"
+                          className="object-cover"
+                        />
+                        {live.status === "live" ? (
+                          <span className="text-text-primary-live text-label-m absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--blue-100)] px-2 py-1">
+                            <span
+                              aria-hidden
+                              className="size-4 bg-current [mask-image:url('/icons/buyer-live/viewers.svg')] [mask-size:contain]"
+                            />
+                            {live.viewers}
                           </span>
-                        </div>
-                        <h2 className="line-clamp-2 min-h-10 text-[0.875rem] leading-5 font-medium">
-                          {live.title}
-                        </h2>
-                        <p className="text-label-m mt-1">{live.seller}</p>
-                      </Link>
-                    ) : (
-                      <>
-                        <div className="bg-layer-surface-disabled mb-2 flex aspect-square flex-col items-center justify-center rounded-xs">
-                          <p className="text-title-m">{live.date}</p>
-                          <p className="text-body-emphasis">{live.time}</p>
-                        </div>
-                        <h2 className="line-clamp-2 min-h-10 text-[0.875rem] leading-5 font-medium">
-                          {live.title}
-                        </h2>
-                        <p className="text-caption-m my-1">
-                          {(
-                            live.subscribers + Number(notifications.includes(live.id))
-                          ).toLocaleString("ko-KR")}
-                          명 알림 신청
-                        </p>
-                        <button
-                          type="button"
-                          aria-label={`${live.date} ${live.title} 시작 알림`}
-                          aria-pressed={notifications.includes(live.id)}
-                          className="border-border-default text-caption-m flex min-h-9 w-full items-center justify-center gap-2 rounded-xs border"
-                          onClick={() =>
-                            setNotifications((ids) =>
-                              ids.includes(live.id)
-                                ? ids.filter((id) => id !== live.id)
-                                : [...ids, live.id],
-                            )
-                          }
-                        >
-                          {notifications.includes(live.id) ? "알림 신청됨" : "알림 받기"}
-                          <span
-                            aria-hidden
-                            className="size-4 bg-current [mask-image:url('/icons/buyer-live/bell-add.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-                          />
-                        </button>
-                      </>
+                        ) : (
+                          <div className="text-text-static-white absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/50">
+                            <p className="text-heading-s">{live.date}</p>
+                            <p className="text-body-s font-semibold">{live.time}</p>
+                          </div>
+                        )}
+                      </div>
+                      <h2 className="line-clamp-2 min-h-10 text-[14px] leading-5 font-medium">
+                        {live.title}
+                      </h2>
+                      <p className="text-label-m text-text-disabled mt-1 truncate">{live.seller}</p>
+                    </Link>
+                    {live.status === "upcoming" && (
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        className="mt-2 w-full text-[14px]!"
+                        aria-label={`${live.date} ${live.title} 시작 알림`}
+                        aria-pressed={notifications.includes(live.id)}
+                        onClick={() =>
+                          setNotifications((ids) =>
+                            ids.includes(live.id)
+                              ? ids.filter((id) => id !== live.id)
+                              : [...ids, live.id],
+                          )
+                        }
+                      >
+                        {notifications.includes(live.id) ? "알림 신청됨" : "알림받기"}
+                        <span
+                          aria-hidden
+                          className="size-4 bg-current [mask-image:url('/icons/buyer-live/bell-add.svg')] [mask-size:contain]"
+                        />
+                      </Button>
                     )}
                   </article>
                 ))}
@@ -375,5 +460,25 @@ export function BuyerSearch({
         </>
       )}
     </main>
+  );
+}
+
+function MatchedText({ text, query }: { text: string; query: string }) {
+  const words = query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  const escaped = words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!escaped.length) return text;
+  const parts = text.split(new RegExp(`(${escaped.join("|")})`, "gi"));
+  return parts.map((part, index) =>
+    index % 2 ? (
+      <strong key={index} className="font-semibold">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
   );
 }
