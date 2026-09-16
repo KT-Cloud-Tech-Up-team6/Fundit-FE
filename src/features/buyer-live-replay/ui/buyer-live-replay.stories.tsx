@@ -18,7 +18,7 @@ export const Default: Story = {
     expect(canvas.getByRole("region", { name: "다시보기 채팅 기록" })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "팔로우" }));
     expect(canvas.getByRole("button", { name: "팔로잉" })).toHaveAttribute("aria-pressed", "true");
-    await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
+    await userEvent.click(canvas.getByRole("button", { name: "리워드 5개 이상 더보기" }));
     expect(canvas.getByRole("status")).toHaveTextContent("연결된 프로젝트 정보가 없는 목업");
   },
 };

@@ -7,6 +7,10 @@
 
 .navigation {
   --layer-surface-disabled: var(--layer-surface-default);
+  height: calc(54px + env(safe-area-inset-bottom));
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .navigation a {

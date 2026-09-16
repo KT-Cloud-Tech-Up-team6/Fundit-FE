@@ -300,7 +300,7 @@ export function BuyerLiveMain({
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(76px+env(safe-area-inset-bottom))]`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(54px+env(safe-area-inset-bottom))]`}
     >
       <header className="flex items-center gap-4 py-2 pr-3 pl-5">
         <form action="/live/search" role="search" className="min-w-0 flex-1">
@@ -327,7 +327,7 @@ export function BuyerLiveMain({
           예정 LIVE
         </Tab>
       </TabList>
-      <main className="bg-layer-bg flex flex-col gap-3 pb-10">
+      <main className="bg-layer-bg flex flex-col gap-3">
         <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4">
           <h1 className="sr-only">{upcoming ? "예정 라이브" : "라이브 메인"}</h1>
           {(!upcoming || hasFollowing) && (
@@ -446,7 +446,7 @@ export function BuyerLiveMain({
             )}
           </Section>
         </div>
-        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4">
+        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 pb-10">
           {!upcoming && hasFollowing && (
             <Section title="팔로우한 판매자" href="/live/following">
               <div className="grid grid-cols-2 gap-3">
