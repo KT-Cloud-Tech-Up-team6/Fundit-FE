@@ -50,6 +50,7 @@ export function FundingHistoryList() {
 
       <div className="bg-layer-surface-default flex flex-col gap-2 px-5 py-2">
         <SearchField
+          size="lg"
           placeholder="프로젝트를 검색해보세요"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
