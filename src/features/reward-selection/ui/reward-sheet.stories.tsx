@@ -27,7 +27,7 @@ export const Default: Story = {
 
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
     await expect(totalRow).toHaveClass("sr-only");
-    await expect(canvas.getAllByRole("checkbox")).toHaveLength(5);
+    await expect(canvas.getAllByRole("radio")).toHaveLength(5);
 
     // 키보드로 접근 가능한 닫기 버튼이 onClose를 호출한다.
     await userEvent.click(canvas.getByRole("button", { name: "리워드 선택 닫기" }));
@@ -45,7 +45,7 @@ export const MultipleOptionLines: Story = {
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
 
     // 얼리버드를 담으면 색상 드롭다운만 뜨고 줄은 없음 → CTA 비활성.
-    await userEvent.click(canvas.getByRole("checkbox", { name: "얼리버드 클린포지 R1" }));
+    await userEvent.click(canvas.getByRole("radio", { name: "얼리버드 클린포지 R1" }));
     await expect(submit).toBeDisabled();
     await expect(canvas.getByText("옵션을 선택해 주세요.")).toBeVisible();
 
@@ -75,10 +75,14 @@ export const MultipleOptionLines: Story = {
     await expect(canvas.queryByRole("button", { name: "화이트 삭제" })).toBeNull();
     await expect(within(totalRow).getByText("1,797,000원")).toBeVisible();
 
-    // 옵션 없는 디럭스를 추가로 담으면 수량 1짜리 줄이 자동 생겨 합산된다.
-    await userEvent.click(canvas.getByRole("checkbox", { name: "디럭스 소모품 풀세트" }));
-    await expect(within(totalRow).getByText("2,586,000원")).toBeVisible();
+    // 다른 리워드를 고르면 이전 옵션 줄을 비우고 새 리워드 금액만 계산한다.
+    await userEvent.click(canvas.getByRole("radio", { name: "디럭스 소모품 풀세트" }));
+    await expect(within(totalRow).getByText("789,000원")).toBeVisible();
     await expect(submit).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: "블랙 삭제" })).toBeNull();
+    await userEvent.click(canvas.getByRole("radio", { name: "얼리버드 클린포지 R1" }));
+    await expect(submit).toBeDisabled();
+    await expect(canvas.getByText("옵션을 선택해 주세요.")).toBeVisible();
   },
 };
 
@@ -86,7 +90,7 @@ export const Selected: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(
-      await canvas.findByRole("checkbox", { name: "가장 먼저 만나는 스타터 세트" }),
+      await canvas.findByRole("radio", { name: "가장 먼저 만나는 스타터 세트" }),
     );
     expect(canvas.getByRole("button", { name: "펀딩" })).toBeEnabled();
     expect(
@@ -98,27 +102,33 @@ export const Selected: Story = {
   },
 };
 
-export const MultipleRewards: Story = {
+export const SingleReward: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const starter = await canvas.findByRole("checkbox", { name: "가장 먼저 만나는 스타터 세트" });
-    const bundle = canvas.getByRole("checkbox", { name: "한 번에 갖추는 올인원 패키지" });
+    const starter = await canvas.findByRole("radio", { name: "가장 먼저 만나는 스타터 세트" });
+    const bundle = canvas.getByRole("radio", { name: "한 번에 갖추는 올인원 패키지" });
     await userEvent.click(starter);
-    await userEvent.click(bundle);
-    expect(starter).toBeChecked();
-    expect(bundle).toBeChecked();
-    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
-      "468,000원",
-    );
     await userEvent.click(
       canvas.getByRole("button", { name: "가장 먼저 만나는 스타터 세트 수량 늘리기" }),
     );
     expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
-      "667,000원",
+      "398,000원",
     );
     await userEvent.click(starter);
+    expect(starter).toBeChecked();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "398,000원",
+    );
+    await userEvent.click(bundle);
+    expect(starter).not.toBeChecked();
+    expect(bundle).toBeChecked();
     expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
       "269,000원",
+    );
+    await userEvent.click(starter);
+    expect(bundle).not.toBeChecked();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "199,000원",
     );
   },
 };

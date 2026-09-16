@@ -9,8 +9,9 @@ import { QuantityStepper } from "./quantity-stepper";
 
 type RewardCardProps = {
   reward: Reward;
+  selectionName: string;
   selected: boolean;
-  onToggle: () => void;
+  onSelect: () => void;
   lines: RewardLine[];
   onAddLine: (value: string) => void;
   onLineQuantityChange: (index: number, quantity: number) => void;
@@ -19,8 +20,9 @@ type RewardCardProps = {
 
 export function RewardCard({
   reward,
+  selectionName,
   selected,
-  onToggle,
+  onSelect,
   lines,
   onAddLine,
   onLineQuantityChange,
@@ -50,10 +52,11 @@ export function RewardCard({
         className={`grid cursor-pointer grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-x-1 px-4 py-3 ${badges.length ? "gap-y-1" : "gap-y-2"}`}
       >
         <input
-          type="checkbox"
+          type="radio"
+          name={selectionName}
           value={reward.id}
           checked={selected}
-          onChange={onToggle}
+          onChange={onSelect}
           aria-label={reward.name}
           className="peer sr-only"
         />

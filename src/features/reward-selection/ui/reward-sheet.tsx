@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
@@ -35,19 +35,12 @@ export function RewardSheet({
   rewards = DEMO_REWARDS,
 }: RewardSheetProps) {
   const router = useRouter();
-  /* 멀티 선택: 담은 리워드마다 옵션 조합을 여러 줄로 들고, 키 존재 여부가 선택 상태다.
-     Figma는 라디오(단일)로 그려졌지만 요구사항은 멀티(Issue #56). */
+  const selectionName = useId();
+  /* 한 번에 리워드 하나만 선택한다. 다른 리워드를 고르면 이전 옵션·수량을 초기화한다. */
   const [cart, setCart] = useState<RewardCart>({});
 
-  function toggleReward(reward: Reward) {
-    setCart((prev) => {
-      if (prev[reward.id]) {
-        const next = { ...prev };
-        delete next[reward.id];
-        return next;
-      }
-      return { ...prev, [reward.id]: initialLines(reward) };
-    });
+  function selectReward(reward: Reward) {
+    setCart((prev) => (prev[reward.id] ? prev : { [reward.id]: initialLines(reward) }));
   }
 
   function addLine(id: string, value: string) {
@@ -99,15 +92,16 @@ export function RewardSheet({
         </div>
       }
     >
-      <div role="group" aria-label={heading} className="flex flex-col gap-3">
+      <div role="radiogroup" aria-label={heading} className="flex flex-col gap-3">
         {rewards.map((reward) => {
           const lines = cart[reward.id];
           return (
             <RewardCard
               key={reward.id}
               reward={reward}
+              selectionName={selectionName}
               selected={Boolean(lines)}
-              onToggle={() => toggleReward(reward)}
+              onSelect={() => selectReward(reward)}
               lines={lines ?? []}
               onAddLine={(value) => addLine(reward.id, value)}
               onLineQuantityChange={(index, quantity) =>
