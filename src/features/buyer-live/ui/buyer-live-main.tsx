@@ -5,7 +5,12 @@ import Link from "next/link";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { getLiveDemo, subscribedIds, type LiveDemo } from "../model/live-demo";
+import {
+  getLiveDemo,
+  getUpcomingProjectHref,
+  subscribedIds,
+  type LiveDemo,
+} from "../model/live-demo";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
@@ -289,7 +294,7 @@ export function BuyerLiveMain({
         key={id}
         className={`flex min-w-0 flex-col gap-2 ${compact ? "w-[153px] shrink-0" : ""}`}
       >
-        <Link href={`/live/${id}`} className="flex flex-col gap-2">
+        <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-2">
           <ScheduleMedia id={id} className="aspect-square" />
           <div className="flex flex-col gap-1">
             {compact && <Seller data={data} />}
@@ -367,14 +372,17 @@ export function BuyerLiveMain({
                 {upcoming ? (
                   <article className="flex gap-3">
                     <Link
-                      href={`/live/scheduled-${rank}`}
+                      href={getUpcomingProjectHref(`scheduled-${rank}`)}
                       aria-label={`${rank}번째 예정 라이브 보기`}
                       className="w-[150px] max-w-[44%] shrink-0"
                     >
                       <ScheduleMedia id={`scheduled-${rank}`} className="aspect-[3/4]" large />
                     </Link>
                     <div className="flex min-w-0 flex-1 flex-col justify-between">
-                      <Link href={`/live/scheduled-${rank}`} className="flex flex-col gap-1">
+                      <Link
+                        href={getUpcomingProjectHref(`scheduled-${rank}`)}
+                        className="flex flex-col gap-1"
+                      >
                         <span className="text-label-m text-text-secondary">
                           {getLiveDemo(`scheduled-${rank}`).category}
                         </span>
@@ -469,14 +477,14 @@ export function BuyerLiveMain({
               {Array.from(notifications).map((id) => (
                 <article key={id} className="flex gap-3">
                   <Link
-                    href={`/live/${id}`}
+                    href={getUpcomingProjectHref(id)}
                     aria-label={`${scheduledTitle(id)} 라이브 보기`}
                     className="w-[104px] shrink-0"
                   >
                     <ScheduleMedia id={id} className="h-full min-h-[104px]" />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-                    <Link href={`/live/${id}`} className="flex flex-col gap-1">
+                    <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-1">
                       <Seller data={getLiveDemo(id, true)} />
                       <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">
                         {scheduledTitle(id)}

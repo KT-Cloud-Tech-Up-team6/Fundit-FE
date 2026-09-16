@@ -33,6 +33,8 @@ function RoomIcon({
 
 type BuyerLiveRoomProps = {
   liveId: string;
+  projectId?: string;
+  product?: typeof roomDemo;
   initialChatExpanded?: boolean;
   initialQuestions?: "closed" | "compact" | "expanded";
   initialMessage?: string;
@@ -40,6 +42,8 @@ type BuyerLiveRoomProps = {
 
 export function BuyerLiveRoom({
   liveId,
+  projectId,
+  product = roomDemo,
   initialChatExpanded = false,
   initialQuestions = "closed",
   initialMessage = "",
@@ -157,10 +161,10 @@ export function BuyerLiveRoom({
   return (
     <div ref={root} className={styles.room}>
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <Image src={roomDemo.poster} alt="" fill sizes="566px" className={styles.poster} />
+        <Image src={product.poster} alt="" fill sizes="566px" className={styles.poster} />
       </div>
       <header className={styles.header}>
-        <h1>{roomDemo.title}</h1>
+        <h1>{product.title}</h1>
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
         </button>
@@ -172,9 +176,9 @@ export function BuyerLiveRoom({
         <section aria-label="판매자와 라이브 현황" className={styles.seller}>
           <div className={styles.sellerRow}>
             <Avatar size={32}>
-              <Image src={roomDemo.avatar} alt="" fill sizes="32px" className="object-cover" />
+              <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
             </Avatar>
-            <span>{roomDemo.seller}</span>
+            <span>{product.seller}</span>
             <Button
               size="sm"
               variant={following ? "primary" : "secondary"}
@@ -251,10 +255,10 @@ export function BuyerLiveRoom({
                   ))}
                 </div>
               </div>
-              <article className={styles.product}>
+              <article className={styles.product + " relative"}>
                 <div className="relative size-20 shrink-0">
                   <Image
-                    src={roomDemo.productImage}
+                    src={product.productImage}
                     alt=""
                     fill
                     sizes="80px"
@@ -262,18 +266,39 @@ export function BuyerLiveRoom({
                   />
                 </div>
                 <div>
-                  <h2>{roomDemo.title}</h2>
-                  <Button
-                    size="sm"
-                    className="text-body-s! mt-3 w-full"
-                    onClick={() =>
-                      setNotice(
-                        "연결된 프로젝트 정보가 없는 목업입니다. 펀딩 연결은 API 연동 후 제공됩니다.",
-                      )
-                    }
-                  >
-                    펀딩하기
-                  </Button>
+                  <h2>
+                    {projectId ? (
+                      <Link
+                        href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                        className="after:absolute after:inset-0"
+                        aria-label={`${product.title} 프로젝트 상세 보기`}
+                      >
+                        {product.title}
+                      </Link>
+                    ) : (
+                      product.title
+                    )}
+                  </h2>
+                  {projectId ? (
+                    <Link
+                      href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                      className="bg-layer-surface-primary text-text-inverse text-body-s relative z-10 mt-3 flex h-7 w-full items-center justify-center rounded-xs px-2 py-1"
+                    >
+                      펀딩하기
+                    </Link>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="text-body-s! mt-3 w-full"
+                      onClick={() =>
+                        setNotice(
+                          "연결된 프로젝트 정보가 없는 목업입니다. 펀딩 연결은 API 연동 후 제공됩니다.",
+                        )
+                      }
+                    >
+                      펀딩하기
+                    </Button>
+                  )}
                 </div>
               </article>
             </div>

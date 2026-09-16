@@ -101,22 +101,11 @@
   position: relative;
   overflow: hidden;
   aspect-ratio: 350 / 1347;
-  opacity: 0.3;
 }
 .storyImage img {
   width: 124.43% !important;
   max-width: none;
   left: -12.22% !important;
-}
-.story > p {
-  position: absolute;
-  top: 23.38%;
-  left: 0;
-  width: 100%;
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 600;
-  color: var(--text-primary-live);
 }
 .liveContent h2 {
   display: flex;
@@ -156,7 +145,7 @@
   flex: 0 0 163px;
   min-width: 0;
 }
-.carousel button {
+.carousel a {
   display: block;
   width: 100%;
   text-align: left;

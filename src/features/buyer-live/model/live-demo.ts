@@ -311,3 +311,51 @@ export function getLiveDemo(id: string, upcoming = false): LiveDemo {
 }
 
 export const subscribedIds = Array.from({ length: 5 }, (_, index) => `subscribed-${index + 1}`);
+
+// 화면 간 이동 검증을 위한 명시적인 목업 관계이며 API 식별자가 아니다.
+const demoConnections = Object.entries(demos).flatMap(([section, items]) =>
+  items.map((data, index) => ({
+    projectId: `demo-${section}-${index + 1}`,
+    liveId: `${section}-${index + 1}`,
+    data,
+    hasLive:
+      !section.startsWith("upcoming") &&
+      !["scheduled", "subscribed"].includes(section) &&
+      !data.scheduled,
+  })),
+);
+
+export function getLiveDemoConnection(id: string, upcoming = false) {
+  if (id === "demo-live") {
+    return { projectId: "demo-project", liveId: id, data: demos.rank[3], hasLive: true };
+  }
+  const match =
+    /^(new|rank|follow|following|recommended|scheduled|subscribed|upcomingFollowing|upcomingRecommended)-(\d+)$/.exec(
+      id,
+    );
+  if (!match) return undefined;
+  const section =
+    match[1] === "follow"
+      ? upcoming
+        ? "upcomingFollowing"
+        : "following"
+      : match[1] === "recommended" && upcoming
+        ? "upcomingRecommended"
+        : match[1];
+  const number = Number(match[2]);
+  if (number < 1 || number > 30) return undefined;
+  return demoConnections.find(
+    (connection) =>
+      connection.liveId === `${section}-${((number - 1) % demos[section].length) + 1}`,
+  );
+}
+
+export function getProjectDemoConnection(projectId: string) {
+  return projectId === "demo-project"
+    ? getLiveDemoConnection("demo-live")
+    : demoConnections.find((connection) => connection.projectId === projectId);
+}
+
+export function getUpcomingProjectHref(id: string) {
+  return `/projects/${getLiveDemoConnection(id, true)!.projectId}?tab=story`;
+}

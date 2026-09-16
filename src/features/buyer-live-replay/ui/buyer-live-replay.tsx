@@ -50,10 +50,14 @@ function ReplayIcon({
 
 export function BuyerLiveReplay({
   liveId,
+  projectId,
+  product = replayDemo,
   clip = false,
   initialPanel = "chat",
 }: {
   liveId: string;
+  projectId?: string;
+  product?: typeof replayDemo;
   clip?: boolean;
   initialPanel?: "chat" | "chapters";
 }) {
@@ -83,7 +87,12 @@ export function BuyerLiveReplay({
   useEffect(() => {
     const list = chapters.current;
     const selected = list?.children[currentChapter] as HTMLElement | undefined;
-    if (list && selected) list.scrollTo({ left: selected.offsetLeft, behavior: "smooth" });
+    if (list && selected) {
+      list.scrollTo({
+        left: selected.offsetLeft - (list.clientWidth - selected.offsetWidth) / 2,
+        behavior: "smooth",
+      });
+    }
   }, [currentChapter, panel]);
 
   function announce(message: string) {
@@ -125,10 +134,10 @@ export function BuyerLiveReplay({
   return (
     <div ref={root} className={styles.screen} data-clip={clip}>
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <Image src={replayDemo.poster} alt="" fill sizes="566px" className={styles.poster} />
+        <Image src={product.poster} alt="" fill sizes="566px" className={styles.poster} />
       </div>
       <header className={styles.header}>
-        <h1>{clip ? "[제품명] AI 생성 제목" : replayDemo.title}</h1>
+        <h1>{clip ? "[제품명] AI 생성 제목" : product.title}</h1>
         <button type="button" aria-label="전체 화면 전환" onClick={fullscreen}>
           <ReplayIcon name="expand" />
         </button>
@@ -141,9 +150,9 @@ export function BuyerLiveReplay({
           <div className={styles.sellerRow}>
             <div>
               <Avatar size={32}>
-                <Image src={replayDemo.avatar} fill sizes="32px" alt="" className="object-cover" />
+                <Image src={product.avatar} fill sizes="32px" alt="" className="object-cover" />
               </Avatar>
-              <span>{replayDemo.seller}</span>
+              <span>{product.seller}</span>
             </div>
             <Button
               size="sm"
@@ -221,10 +230,10 @@ export function BuyerLiveReplay({
                     </div>
                   </section>
                 )}
-                <section className={styles.project} aria-label="연결된 프로젝트 목업">
+                <section className={styles.project + " relative"} aria-label="연결된 프로젝트 목업">
                   <div className="relative size-20 shrink-0">
                     <Image
-                      src={replayDemo.productImage}
+                      src={product.productImage}
                       alt=""
                       fill
                       sizes="80px"
@@ -232,14 +241,35 @@ export function BuyerLiveReplay({
                     />
                   </div>
                   <div>
-                    <p>{replayDemo.title}</p>
-                    <Button
-                      size="sm"
-                      className="text-body-s! mt-3 w-full"
-                      onClick={() => announce("연결된 프로젝트 정보가 없는 목업입니다.")}
-                    >
-                      펀딩하기
-                    </Button>
+                    <p>
+                      {projectId ? (
+                        <Link
+                          href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                          className="after:absolute after:inset-0"
+                          aria-label={`${product.title} 프로젝트 상세 보기`}
+                        >
+                          {product.title}
+                        </Link>
+                      ) : (
+                        product.title
+                      )}
+                    </p>
+                    {projectId ? (
+                      <Link
+                        href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                        className="bg-layer-surface-primary text-text-inverse text-body-s relative z-10 mt-3 flex h-7 w-full items-center justify-center rounded-xs px-2 py-1"
+                      >
+                        펀딩하기
+                      </Link>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="text-body-s! mt-3 w-full"
+                        onClick={() => announce("연결된 프로젝트 정보가 없는 목업입니다.")}
+                      >
+                        펀딩하기
+                      </Button>
+                    )}
                   </div>
                 </section>
               </div>
