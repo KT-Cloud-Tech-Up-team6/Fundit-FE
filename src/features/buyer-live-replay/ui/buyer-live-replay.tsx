@@ -2,23 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
+import { replayDemo, chapterDemos, messages } from "../model/replay-demo";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-replay.module.css";
 
-const messages = [
-  "할인 있나요?",
-  "할인 있나요?",
-  "나도 이번에 무선 청소기 사볼까~",
-  "나도 이번에 무선 청소기 사볼까~",
-  "로보락이 뭐예요?",
-  "로보락이 뭐예요?",
-];
-const title = "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기";
-// 원본의 37.5% 진행률이 첫 구간에 속하도록 설정한 목업 시작점이다.
+// UI 목업 진행률이며 영상 타임스탬프가 아니다.
 const chapterStarts = [0, 50, 75, 90];
-const projectTitle =
-  "프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등";
 
 function ReplayIcon({
   name,
@@ -47,7 +40,9 @@ function ReplayIcon({
       aria-hidden
       className={small ? styles.smallIcon : styles.icon}
       style={{
-        maskImage: `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `${folder}/${name}`}.svg)`,
+        maskImage: ["pause", "previous", "next"].includes(name)
+          ? `url(/images/buyer-live-replay/${name}.svg)`
+          : `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `${folder}/${name}`}.svg)`,
       }}
     />
   );
@@ -128,9 +123,12 @@ export function BuyerLiveReplay({
   }
 
   return (
-    <div ref={root} className={styles.screen}>
+    <div ref={root} className={styles.screen} data-clip={clip}>
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <Image src={replayDemo.poster} alt="" fill sizes="566px" className={styles.poster} />
+      </div>
       <header className={styles.header}>
-        <h1>{title}</h1>
+        <h1>{clip ? "[제품명] AI 생성 제목" : replayDemo.title}</h1>
         <button type="button" aria-label="전체 화면 전환" onClick={fullscreen}>
           <ReplayIcon name="expand" />
         </button>
@@ -142,15 +140,25 @@ export function BuyerLiveReplay({
         <section className={styles.seller} aria-label="판매자 정보">
           <div className={styles.sellerRow}>
             <div>
-              <Image src="/icons/buyer-live-replay/avatar.svg" width={32} height={32} alt="" />
-              <span>판매자</span>
+              <Avatar size={32}>
+                <Image src={replayDemo.avatar} fill sizes="32px" alt="" className="object-cover" />
+              </Avatar>
+              <span>{replayDemo.seller}</span>
             </div>
-            <button type="button" aria-pressed={following} onClick={() => setFollowing(!following)}>
+            <Button
+              size="sm"
+              variant={following ? "primary" : "secondary"}
+              className="text-body-s! px-3"
+              aria-pressed={following}
+              onClick={() => setFollowing(!following)}
+            >
               {following ? "팔로잉" : "팔로우"}
-            </button>
+            </Button>
           </div>
           {clip ? (
-            <span className={styles.badge}>시연 영상</span>
+            <Badge variant="neutral" className={styles.badge}>
+              시연 영상
+            </Badge>
           ) : (
             <div className={styles.metrics}>
               <span>
@@ -164,6 +172,16 @@ export function BuyerLiveReplay({
             </div>
           )}
         </section>
+        {clip && (
+          <>
+            <p className={styles.subtitle}>
+              안녕하세요. 오늘은 로보락 F25를 직접 보면서, 왜 물걸레 청소기와 진공청소기를 하나로
+            </p>
+            <p className={styles.caption}>
+              <strong>물걸레+진공</strong> 동시 청소
+            </p>
+          </>
+        )}
         {clip ? (
           <div className={styles.clipActions}>
             <button type="button" aria-pressed={liked} onClick={() => setLiked(!liked)}>
@@ -204,15 +222,24 @@ export function BuyerLiveReplay({
                   </section>
                 )}
                 <section className={styles.project} aria-label="연결된 프로젝트 목업">
-                  <div className={styles.thumbnail} />
+                  <div className="relative size-20 shrink-0">
+                    <Image
+                      src={replayDemo.productImage}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  </div>
                   <div>
-                    <p>{projectTitle}</p>
-                    <button
-                      type="button"
+                    <p>{replayDemo.title}</p>
+                    <Button
+                      size="sm"
+                      className="text-body-s! mt-3 w-full"
                       onClick={() => announce("연결된 프로젝트 정보가 없는 목업입니다.")}
                     >
                       펀딩하기
-                    </button>
+                    </Button>
                   </div>
                 </section>
               </div>
@@ -238,7 +265,7 @@ export function BuyerLiveReplay({
                   onClick={() => setPanel("chapters")}
                 >
                   <ReplayIcon name={panel === "chapters" ? "chapters-filled" : "chapters"} small />
-                  구간 탐색
+                  타임라인
                 </button>
               </div>
             </div>
@@ -250,7 +277,7 @@ export function BuyerLiveReplay({
                 aria-label="영상 구간 목록"
                 tabIndex={0}
               >
-                {[0, 1, 2, 3].map((n) => (
+                {chapterDemos.map((chapter, n) => (
                   <button
                     type="button"
                     key={n}
@@ -258,13 +285,17 @@ export function BuyerLiveReplay({
                     aria-pressed={currentChapter === n}
                     onClick={() => seek(chapterStarts[n])}
                   >
-                    <span className={styles.chapterImage} />
-                    <span>
-                      <b>00분 00초</b>
-                      <span className={styles.chapterText}>
-                        구간 개요 구간 개요 구간 개요 구간 개요 구간 개요 구간 개요 구간 개요 구간
-                        개요 구간 개요
+                    <span className="flex min-w-0 flex-1 flex-col items-start gap-3">
+                      <span className="flex w-full flex-col gap-1">
+                        <b>{chapter.time}</b>
+                        <span className="text-body-s truncate font-medium">{chapter.title}</span>
                       </span>
+                      <Badge
+                        variant={currentChapter === n ? "neutral" : "live"}
+                        className={currentChapter === n ? styles.badge : undefined}
+                      >
+                        {chapter.label}
+                      </Badge>
                     </span>
                   </button>
                 ))}
