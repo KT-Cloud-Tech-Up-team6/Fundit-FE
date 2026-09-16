@@ -1,23 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
 import {
   addOptionLine,
   calcCartTotal,
-  demoRewards,
+  designRewards,
   formatWon,
   initialLines,
   isCartSubmittable,
 } from "../model/reward-demo";
 import type { Reward, RewardCart } from "../model/reward-demo";
 import { RewardCard } from "./reward-card";
+import styles from "./reward-sheet.module.css";
 
 /* 목업은 불변이고 렌더마다 새로 만들 이유가 없다. 기본값으로 이 상수를 공유한다. */
-const DEMO_REWARDS = demoRewards();
+const DEMO_REWARDS = designRewards();
 
 type RewardSheetProps = {
   projectId: string;
@@ -34,19 +35,12 @@ export function RewardSheet({
   rewards = DEMO_REWARDS,
 }: RewardSheetProps) {
   const router = useRouter();
-  /* 멀티 선택: 담은 리워드마다 옵션 조합을 여러 줄로 들고, 키 존재 여부가 선택 상태다.
-     Figma는 라디오(단일)로 그려졌지만 요구사항은 멀티(Issue #56). */
+  const selectionName = useId();
+  /* 한 번에 리워드 하나만 선택한다. 다른 리워드를 고르면 이전 옵션·수량을 초기화한다. */
   const [cart, setCart] = useState<RewardCart>({});
 
-  function toggleReward(reward: Reward) {
-    setCart((prev) => {
-      if (prev[reward.id]) {
-        const next = { ...prev };
-        delete next[reward.id];
-        return next;
-      }
-      return { ...prev, [reward.id]: initialLines(reward) };
-    });
+  function selectReward(reward: Reward) {
+    setCart((prev) => (prev[reward.id] ? prev : { [reward.id]: initialLines(reward) }));
   }
 
   function addLine(id: string, value: string) {
@@ -80,28 +74,34 @@ export function RewardSheet({
       onClose={onClose}
       open={open}
       title={heading}
+      className={styles.sheet}
       footer={
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {/* 줄을 담고 빼거나 수량을 바꾸면 합계가 소리로 읽히도록 status로 둔다. */}
-          <div role="status" className="flex items-center justify-between">
-            <span className="text-body-m text-text-default">총 금액</span>
-            <span className="text-title-s text-text-default">{formatWon(total)}</span>
+          <div
+            role="status"
+            aria-label="리워드 총 금액"
+            className={Object.keys(cart).length ? "flex items-center justify-between" : "sr-only"}
+          >
+            <span className="text-body-s text-text-secondary">총 금액</span>
+            <span className="text-title-m text-text-default">{formatWon(total)}</span>
           </div>
           <Button className="w-full" disabled={!canSubmit} onClick={submit}>
-            펀딩하기
+            펀딩
           </Button>
         </div>
       }
     >
-      <div role="group" aria-label={heading} className="flex flex-col gap-3">
+      <div role="radiogroup" aria-label={heading} className="flex flex-col gap-3">
         {rewards.map((reward) => {
           const lines = cart[reward.id];
           return (
             <RewardCard
               key={reward.id}
               reward={reward}
+              selectionName={selectionName}
               selected={Boolean(lines)}
-              onToggle={() => toggleReward(reward)}
+              onSelect={() => selectReward(reward)}
               lines={lines ?? []}
               onAddLine={(value) => addLine(reward.id, value)}
               onLineQuantityChange={(index, quantity) =>

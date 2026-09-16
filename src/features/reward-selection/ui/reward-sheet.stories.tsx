@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { RewardSheet } from "./reward-sheet";
+import { demoRewards } from "../model/reward-demo";
 
 const meta = {
   title: "Features/Reward Selection",
@@ -22,11 +23,11 @@ export const Default: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole("dialog", { name: "리워드 선택" });
-    await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "펀딩" })).toBeDisabled();
 
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
-    await expect(within(totalRow).getByText("0원")).toBeVisible();
-    await expect(canvas.getAllByRole("checkbox")).toHaveLength(4);
+    await expect(totalRow).toHaveClass("sr-only");
+    await expect(canvas.getAllByRole("radio")).toHaveLength(5);
 
     // 키보드로 접근 가능한 닫기 버튼이 onClose를 호출한다.
     await userEvent.click(canvas.getByRole("button", { name: "리워드 선택 닫기" }));
@@ -36,14 +37,15 @@ export const Default: Story = {
 
 /** 한 리워드에서 옵션 조합을 여러 줄로 담기 — 블랙 + 화이트를 각각 수량과 함께. */
 export const MultipleOptionLines: Story = {
+  args: { rewards: demoRewards() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole("dialog", { name: "리워드 선택" });
-    const submit = canvas.getByRole("button", { name: "펀딩하기" });
+    const submit = canvas.getByRole("button", { name: "펀딩" });
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
 
     // 얼리버드를 담으면 색상 드롭다운만 뜨고 줄은 없음 → CTA 비활성.
-    await userEvent.click(canvas.getByRole("checkbox", { name: "얼리버드 클린포지 R1" }));
+    await userEvent.click(canvas.getByRole("radio", { name: "얼리버드 클린포지 R1" }));
     await expect(submit).toBeDisabled();
     await expect(canvas.getByText("옵션을 선택해 주세요.")).toBeVisible();
 
@@ -73,9 +75,60 @@ export const MultipleOptionLines: Story = {
     await expect(canvas.queryByRole("button", { name: "화이트 삭제" })).toBeNull();
     await expect(within(totalRow).getByText("1,797,000원")).toBeVisible();
 
-    // 옵션 없는 디럭스를 추가로 담으면 수량 1짜리 줄이 자동 생겨 합산된다.
-    await userEvent.click(canvas.getByRole("checkbox", { name: "디럭스 소모품 풀세트" }));
-    await expect(within(totalRow).getByText("2,586,000원")).toBeVisible();
+    // 다른 리워드를 고르면 이전 옵션 줄을 비우고 새 리워드 금액만 계산한다.
+    await userEvent.click(canvas.getByRole("radio", { name: "디럭스 소모품 풀세트" }));
+    await expect(within(totalRow).getByText("789,000원")).toBeVisible();
     await expect(submit).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: "블랙 삭제" })).toBeNull();
+    await userEvent.click(canvas.getByRole("radio", { name: "얼리버드 클린포지 R1" }));
+    await expect(submit).toBeDisabled();
+    await expect(canvas.getByText("옵션을 선택해 주세요.")).toBeVisible();
+  },
+};
+
+export const Selected: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("radio", { name: "가장 먼저 만나는 스타터 세트" }),
+    );
+    expect(canvas.getByRole("button", { name: "펀딩" })).toBeEnabled();
+    expect(
+      canvas.getByRole("button", { name: "가장 먼저 만나는 스타터 세트 수량 줄이기" }),
+    ).toBeDisabled();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "199,000원",
+    );
+  },
+};
+
+export const SingleReward: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const starter = await canvas.findByRole("radio", { name: "가장 먼저 만나는 스타터 세트" });
+    const bundle = canvas.getByRole("radio", { name: "한 번에 갖추는 올인원 패키지" });
+    await userEvent.click(starter);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "가장 먼저 만나는 스타터 세트 수량 늘리기" }),
+    );
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "398,000원",
+    );
+    await userEvent.click(starter);
+    expect(starter).toBeChecked();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "398,000원",
+    );
+    await userEvent.click(bundle);
+    expect(starter).not.toBeChecked();
+    expect(bundle).toBeChecked();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "269,000원",
+    );
+    await userEvent.click(starter);
+    expect(bundle).not.toBeChecked();
+    expect(canvas.getByRole("status", { name: "리워드 총 금액" }).textContent).toContain(
+      "199,000원",
+    );
   },
 };
