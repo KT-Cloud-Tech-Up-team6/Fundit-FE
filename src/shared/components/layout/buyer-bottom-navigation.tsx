@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 import { Icon } from "@/shared/components/ui/icon";
@@ -31,6 +31,15 @@ function NavigationAsset({ name }: { name: "home" | "live-navigation" | "categor
   );
 }
 
+/** `pathname`이 세 세그먼트 중 무엇의 하위 경로인지로 활성 탭을 고른다. 어디에도 안 속하면 undefined. */
+function deriveActiveHref(pathname: string): BuyerBottomNavigationProps["activeHref"] {
+  if (pathname === "/") return "/";
+  if (pathname.startsWith("/live")) return "/live";
+  if (pathname.startsWith("/categories")) return "/categories";
+  if (pathname.startsWith("/my")) return "/my";
+  return undefined;
+}
+
 export function BuyerBottomNavigation({
   activeHref,
   className = "",
@@ -38,7 +47,11 @@ export function BuyerBottomNavigation({
   ...props
 }: BuyerBottomNavigationProps) {
   const router = useRouter();
-  const isCategoriesActive = activeHref === "/categories";
+  const pathname = usePathname();
+  /* 호출자가 명시하면 그 값을 따르고(예: 라이브 화면의 특수 케이스), 안 주면 현재 경로로 스스로 판단한다.
+     SellerNavLink와 같은 방식 — 매 호출처가 activeHref를 계산해 넘기게 하지 않는다. */
+  const resolvedActiveHref = activeHref ?? deriveActiveHref(pathname);
+  const isCategoriesActive = resolvedActiveHref === "/categories";
   const hasReturnedRef = useRef(false);
 
   // 카테고리 탭으로 들어갈 때 현재 경로를 기록해두고, 다시 누르면 그 경로로 돌아간다.
@@ -67,12 +80,16 @@ export function BuyerBottomNavigation({
       aria-label={ariaLabel}
       className={`bg-layer-surface-disabled text-text-default flex justify-between px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] ${className}`}
     >
-      <Link href="/" aria-current={activeHref === "/" ? "page" : undefined} className={styles.item}>
+      <Link
+        href="/"
+        aria-current={resolvedActiveHref === "/" ? "page" : undefined}
+        className={styles.item}
+      >
         <NavigationAsset name="home" />홈
       </Link>
       <Link
         href="/live"
-        aria-current={activeHref === "/live" ? "page" : undefined}
+        aria-current={resolvedActiveHref === "/live" ? "page" : undefined}
         className={styles.item}
       >
         <NavigationAsset name="live-navigation" />
@@ -100,7 +117,7 @@ export function BuyerBottomNavigation({
       )}
       <Link
         href="/my"
-        aria-current={activeHref === "/my" ? "page" : undefined}
+        aria-current={resolvedActiveHref === "/my" ? "page" : undefined}
         className={styles.item}
       >
         <Icon name="profile" className="size-5" />

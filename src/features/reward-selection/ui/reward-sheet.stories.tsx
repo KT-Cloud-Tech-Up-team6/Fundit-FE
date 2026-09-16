@@ -21,6 +21,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog", { name: "리워드 선택" });
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
 
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
@@ -37,6 +38,7 @@ export const Default: Story = {
 export const MultipleOptionLines: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog", { name: "리워드 선택" });
     const submit = canvas.getByRole("button", { name: "펀딩하기" });
     const totalRow = canvas.getByText("총 금액").parentElement as HTMLElement;
 

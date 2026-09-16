@@ -1,23 +1,26 @@
+import Image from "next/image";
+import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ModeSwitchLink } from "@/features/mode-switch/ui/mode-switch-link";
+import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
+import { HeaderWeb } from "@/shared/components/layout/header-web";
+import { SearchField } from "@/shared/components/ui/search-field";
 import { buyerNavigation } from "@/shared/config/navigation";
+
+const logo = (
+  <Link href="/" className="flex shrink-0 items-center">
+    <Image alt="Fundit" className="h-9 w-auto" height={36} src="/logo.svg" width={100} />
+  </Link>
+);
 
 export function BuyerShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen pb-20 md:pb-0">
-      <header className="border-border-default bg-layer-surface-default/95 sticky top-0 z-20 border-b backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-          <Link href="/" className="text-heading-s text-text-default tracking-tight">
-            Fundit
-          </Link>
-          <nav aria-label="구매자 주요 메뉴" className="hidden items-center gap-5 md:flex">
-            {buyerNavigation.map((item) => (
-              <Link key={item.href} href={item.href} className="text-label-l hover:underline">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+      {/* mobile: Figma header/header_mobile(default) */}
+      <header className="border-border-default bg-layer-surface-default/95 sticky top-0 z-20 border-b px-4 py-3 backdrop-blur md:hidden">
+        <div className="flex items-center justify-between gap-4">
+          {logo}
           <div className="flex items-center gap-2">
             <Link
               href="/search"
@@ -30,17 +33,35 @@ export function BuyerShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      {/* PC: 판매자 화면과 공유하는 Figma header/header_web */}
+      <HeaderWeb
+        className="sticky top-0 z-20 hidden md:block"
+        logo={logo}
+        nav={
+          <nav aria-label="구매자 주요 메뉴" className="flex items-center gap-5">
+            {buyerNavigation.map((item) => (
+              <Link key={item.href} href={item.href} className="text-label-l hover:underline">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        }
+        actions={
+          <>
+            <Form action="/search" className="w-60" role="search">
+              <SearchField
+                aria-label="프로젝트 검색"
+                name="q"
+                placeholder="프로젝트 검색"
+                size="sm"
+              />
+            </Form>
+            <ModeSwitchLink mode="buyer" />
+          </>
+        }
+      />
       <main>{children}</main>
-      <nav
-        aria-label="모바일 구매자 메뉴"
-        className="border-border-default bg-layer-surface-default fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
-      >
-        {buyerNavigation.map((item) => (
-          <Link key={item.href} href={item.href} className="text-label-m px-2 py-3 text-center">
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <BuyerBottomNavigation className="fixed inset-x-0 bottom-0 z-20 md:hidden" />
     </div>
   );
 }

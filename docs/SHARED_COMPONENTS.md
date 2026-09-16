@@ -166,3 +166,13 @@ src/shared/components/
 - semantic 디자인 토큰을 사용하고 light·dark 테마를 확인했습니다.
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm build`를 통과합니다.
 - UI나 Storybook 구성이 바뀌면 `pnpm build-storybook`을 추가로 확인합니다.
+
+## Organisms 공개 계약
+
+- `HeaderWeb`은 로고·메뉴·액션 슬롯을 제공하며 구매자·판매자 Shell에서 공유합니다. 구매자 데스크톱 검색은 `/search?q=...`로 제출합니다.
+- `BuyerBottomNavigation`은 현재 경로로 활성 탭을 결정하고 `activeHref`로 재정의할 수 있습니다. 카테고리 재선택 시 기존 복귀 경로를 유지합니다.
+- `Calendar`는 react-day-picker의 선택 모드·선택값·disabled 계약을 그대로 받으며 기본 locale은 한국어입니다. `classNames`와 `components`는 기본값에 병합합니다. 실제 화면 연결은 호출자가 담당합니다.
+- `Breadcrumb`은 텍스트 경로를 표시하고 마지막 항목에 `aria-current="page"`를 지정합니다.
+- `BottomSheet`는 `title`을 주면 제목과 닫기 버튼을 표시하며 `onBack`으로 뒤로가기를 추가합니다. 헤더가 없으면 `aria-label` 또는 `aria-labelledby`를 제공합니다. 제목·하단 영역은 고정하고 본문만 스크롤합니다.
+- `Modal`의 `size="m"`은 588px, `size="l"`은 996px이며 작은 화면에서는 좌우 여백을 남기도록 제한합니다.
+- Navigation의 outline/filled 아이콘 전환과 Calendar 실제 화면 연동은 #90의 제외 범위입니다.

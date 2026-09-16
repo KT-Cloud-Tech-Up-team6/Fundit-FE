@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { DialogBase } from "./dialog-base";
+import { DialogBase, dialogHeaderButtonClasses } from "./dialog-base";
 import { Icon } from "./icon";
 
 type ModalProps = Omit<
@@ -12,22 +12,35 @@ type ModalProps = Omit<
   children: ReactNode;
   onClose: () => void;
   open: boolean;
+  /** Figma modal_web 폭 variant. `l`은 996px(w-249), `m`(기본)은 588px(w-147). */
+  size?: "l" | "m";
   /** 헤더에 보이는 제목이자 dialog의 접근 가능한 이름. 둘을 분리하지 않는다. */
   title: ReactNode;
 };
+
+const sizeClasses = { l: "w-249", m: "w-147" } as const;
 
 /**
  * PC 중앙 다이얼로그. 헤더(제목 + 닫기)만 갖고 본문 구성은 호출자가 소유한다.
  * 높이는 화면마다 달라 고정하지 않는다. 필요하면 `className`으로 준다.
  */
-export function Modal({ children, className, onClose, open, title, ...props }: ModalProps) {
+export function Modal({
+  children,
+  className,
+  onClose,
+  open,
+  size = "m",
+  title,
+  ...props
+}: ModalProps) {
   const titleId = useId();
 
   return (
     <DialogBase
       aria-labelledby={titleId}
       className={[
-        "bg-layer-surface-default m-auto max-h-[90dvh] w-147 max-w-[calc(100vw-40px)]",
+        "bg-layer-surface-default m-auto max-h-[90dvh] max-w-[calc(100vw-40px)]",
+        sizeClasses[size],
         "backdrop:bg-layer-overlay rounded-sm p-0",
         className,
       ]
@@ -45,8 +58,8 @@ export function Modal({ children, className, onClose, open, title, ...props }: M
             {title}
           </h2>
           <button
-            aria-label="닫기"
-            className="text-text-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex size-9 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2"
+            aria-label={typeof title === "string" ? `${title} 닫기` : "닫기"}
+            className={dialogHeaderButtonClasses}
             onClick={onClose}
             type="button"
           >
