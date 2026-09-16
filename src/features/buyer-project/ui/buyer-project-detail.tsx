@@ -87,7 +87,7 @@ function Information({ label }: { label: string }) {
   );
 }
 
-function VideoList({ clips = false, onPlay }: { clips?: boolean; onPlay: () => void }) {
+function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
   const title = clips ? "숏 클립" : "종료된 라이브";
   return (
     <section className={styles.videoSection} aria-label={title}>
@@ -97,9 +97,8 @@ function VideoList({ clips = false, onPlay }: { clips?: boolean; onPlay: () => v
       <div className={styles.carousel} tabIndex={0} role="region" aria-label={`${title} 목록`}>
         {replayDemos.map((video, index) => (
           <article key={index}>
-            <button
-              type="button"
-              onClick={onPlay}
+            <Link
+              href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
               aria-label={`${title} ${index + 1} · ${clips ? "[제품명] AI 생성 제목" : video.title} 재생`}
             >
               <span className={styles.videoPoster}>
@@ -122,7 +121,7 @@ function VideoList({ clips = false, onPlay }: { clips?: boolean; onPlay: () => v
               <span className="text-caption-s text-text-secondary block">
                 {clips ? "09.07" : video.date}
               </span>
-            </button>
+            </Link>
           </article>
         ))}
       </div>
@@ -134,10 +133,16 @@ export function BuyerProjectDetail({
   projectId,
   activeTab,
   fundingAction,
+  project = projectDemo,
+  liveId = "demo-live",
+  hasLive = true,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
   fundingAction: ReactNode;
+  project?: typeof projectDemo;
+  liveId?: string;
+  hasLive?: boolean;
 }) {
   const [liked, setLiked] = useState(false);
   const [notice, setNotice] = useState("");
@@ -193,39 +198,40 @@ export function BuyerProjectDetail({
         </button>
       </header>
       <main>
-        <div
-          className="bg-layer-bg relative aspect-[390/292] overflow-hidden"
-          role="img"
-          aria-label="상품 이미지 목업 · 1/3"
-        >
-          <Image src={projectDemo.image} alt="" fill sizes="390px" className={styles.heroImage} />
-          <div className="absolute top-5 left-5 flex flex-col gap-1">
-            <Badge variant="neutral" shape="rounded" className={styles.liveBadge}>
-              <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
-              LIVE
-            </Badge>
-            <div className="relative h-30 w-[90px] overflow-hidden rounded-xs shadow-md">
-              <Image src={projectDemo.poster} alt="" fill sizes="90px" className="object-cover" />
-            </div>
-          </div>
+        <div className="bg-layer-bg relative aspect-[390/292] overflow-hidden">
+          <Image src={project.image} alt="" fill sizes="390px" className={styles.heroImage} />
+          {hasLive && (
+            <Link
+              href={`/live/${encodeURIComponent(liveId)}`}
+              aria-label="진행 중 라이브 시청"
+              className="absolute top-5 left-5 flex flex-col gap-1"
+            >
+              <Badge variant="neutral" shape="rounded" className={styles.liveBadge}>
+                <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
+                LIVE
+              </Badge>
+              <div className="relative h-30 w-[90px] overflow-hidden rounded-xs shadow-md">
+                <Image src={project.poster} alt="" fill sizes="90px" className="object-cover" />
+              </div>
+            </Link>
+          )}
           <Badge variant="neutral" className="absolute right-5 bottom-5">
             1/3
           </Badge>
         </div>
         <section className="px-5 py-4" aria-label="프로젝트 정보">
-          <p className="text-body-s text-text-secondary mb-1 font-medium">{projectDemo.seller}</p>
-          <h1 className="text-title-m">{projectDemo.title}</h1>
+          <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
+          <h1 className="text-title-m">{project.title}</h1>
           <div className={styles.fundingNumbers}>
             <div>
               <p>
-                <strong>{projectDemo.rate}</strong> <span>% 달성</span>
+                <strong>{project.rate}</strong> <span>% 달성</span>
               </p>
               <Badge variant="neutral">D-28</Badge>
             </div>
             <div>
               <p>
-                <b>{projectDemo.amount}</b>{" "}
-                <span className="text-body-s">/{projectDemo.goal}원</span>
+                <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
               </p>
               <span className={styles.participants}>100명 참여</span>
             </div>
@@ -239,7 +245,7 @@ export function BuyerProjectDetail({
               <h2 className="text-label-l">AI 프로젝트 요약</h2>
               <Information label="AI 프로젝트 요약 안내" />
             </div>
-            {["프로젝트 요약", "프로젝트 요약", "라이브 요약(라이브 미 진행 시 생략)"].map(
+            {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
               (title, i) => (
                 <div className="text-caption-s" key={i}>
                   <h3 className="flex items-center gap-1 font-medium">
@@ -283,7 +289,6 @@ export function BuyerProjectDetail({
                 unoptimized
               />
             </div>
-            <p>AI스토리 생성 이미지 자동 업로드</p>
           </section>
         ) : (
           <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
@@ -292,11 +297,8 @@ export function BuyerProjectDetail({
                 <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
                 LIVE 다시 보기 <small>3건</small>
               </h2>
-              <VideoList onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")} />
-              <VideoList
-                clips
-                onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")}
-              />
+              <VideoList liveId={liveId} />
+              <VideoList clips liveId={liveId} />
             </section>
             <section className="flex flex-col gap-6" aria-label="LIVE Q&A">
               <div className="-mb-3 flex items-center gap-1">

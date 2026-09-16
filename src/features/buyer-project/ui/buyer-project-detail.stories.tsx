@@ -53,8 +53,14 @@ export const LiveCheck: Story = {
     expect(
       within(canvas.getByRole("region", { name: "LIVE Q&A" })).getAllByRole("article"),
     ).toHaveLength(5);
-    await userEvent.click(canvas.getByRole("button", { name: /^종료된 라이브 1/ }));
-    expect(canvas.getByRole("status")).toHaveTextContent("영상 재생은 아직 연결되지 않은 목업");
+    expect(canvas.getByRole("link", { name: /^종료된 라이브 1/ })).toHaveAttribute(
+      "href",
+      "/live/demo-live?mode=replay",
+    );
+    expect(canvas.getByRole("link", { name: /^숏 클립 1/ })).toHaveAttribute(
+      "href",
+      "/live/demo-live?mode=replay&view=clip",
+    );
   },
 };
 
