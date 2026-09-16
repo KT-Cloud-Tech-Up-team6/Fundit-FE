@@ -1,20 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { Button } from "@/shared/components/ui/button";
+import { roomDemo, sampleMessages } from "../model/room-demo";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-room.module.css";
-
-const sampleMessages = [
-  "할인 있나요?",
-  "나도 이번에 무선 청소기 사볼까~",
-  "나도 이번에 무선 청소기 사볼까~",
-  "로보락이 뭐예요?",
-  "로보락이 뭐예요?",
-];
-const projectTitle =
-  "프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등";
 
 function RoomIcon({
   name,
@@ -162,8 +156,11 @@ export function BuyerLiveRoom({
 
   return (
     <div ref={root} className={styles.room}>
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <Image src={roomDemo.poster} alt="" fill sizes="566px" className={styles.poster} />
+      </div>
       <header className={styles.header}>
-        <h1>라이브명(프로젝트 제목)</h1>
+        <h1>{roomDemo.title}</h1>
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
         </button>
@@ -174,11 +171,19 @@ export function BuyerLiveRoom({
       <main className={styles.main}>
         <section aria-label="판매자와 라이브 현황" className={styles.seller}>
           <div className={styles.sellerRow}>
-            <span className={styles.avatar} aria-hidden />
-            <span>판매자</span>
-            <button type="button" aria-pressed={following} onClick={() => setFollowing(!following)}>
+            <Avatar size={32}>
+              <Image src={roomDemo.avatar} alt="" fill sizes="32px" className="object-cover" />
+            </Avatar>
+            <span>{roomDemo.seller}</span>
+            <Button
+              size="sm"
+              variant={following ? "primary" : "secondary"}
+              className="text-body-s! ml-auto px-3"
+              aria-pressed={following}
+              onClick={() => setFollowing(!following)}
+            >
               {following ? "팔로잉" : "팔로우"}
-            </button>
+            </Button>
           </div>
           <div className={styles.metrics}>
             <span aria-label="펀딩 수치 목업">
@@ -247,11 +252,20 @@ export function BuyerLiveRoom({
                 </div>
               </div>
               <article className={styles.product}>
-                <span aria-hidden className={styles.productImage} />
+                <div className="relative size-20 shrink-0">
+                  <Image
+                    src={roomDemo.productImage}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                </div>
                 <div>
-                  <h2>{projectTitle}</h2>
-                  <button
-                    type="button"
+                  <h2>{roomDemo.title}</h2>
+                  <Button
+                    size="sm"
+                    className="text-body-s! mt-3 w-full"
                     onClick={() =>
                       setNotice(
                         "연결된 프로젝트 정보가 없는 목업입니다. 펀딩 연결은 API 연동 후 제공됩니다.",
@@ -259,7 +273,7 @@ export function BuyerLiveRoom({
                     }
                   >
                     펀딩하기
-                  </button>
+                  </Button>
                 </div>
               </article>
             </div>
@@ -423,13 +437,13 @@ export function BuyerLiveRoom({
             role="region"
             aria-label="Q&A 질문 목록"
           >
-            {Array.from({ length: 4 }, (_, index) => (
+            {Array.from({ length: 5 }, (_, index) => (
               <article key={index}>
                 <div className={styles.questionTitle}>
                   <RoomIcon name="question-filled" className="size-5" />
                   <h3>로보락이 뭐예요?</h3>
                 </div>
-                <p className={styles.questionCount}>질문 12건</p>
+                <p className={styles.questionCount}>질문 {index === 0 ? 12 : 11}건</p>
                 <div className={styles.answer}>
                   <p>무선 청소기 입니다.</p>
                   <p>판매자 · 1분 전</p>
