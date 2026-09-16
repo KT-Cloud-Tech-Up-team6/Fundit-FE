@@ -180,7 +180,7 @@ export function BuyerProjectDetail({
     <div
       className={
         styles.screen +
-        " bg-layer-surface-default text-text-default mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))]"
+        " bg-layer-surface-default text-text-default mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(63px+env(safe-area-inset-bottom))]"
       }
     >
       <header className={styles.header}>
@@ -320,7 +320,7 @@ export function BuyerProjectDetail({
           </div>
         )}
       </main>
-      <footer className={styles.footer}>
+      <footer className={`${styles.footer} border-border-default border-t`}>
         <button
           type="button"
           aria-label="프로젝트 찜"
