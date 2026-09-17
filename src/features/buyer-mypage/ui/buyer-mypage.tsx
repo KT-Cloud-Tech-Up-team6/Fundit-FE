@@ -5,10 +5,10 @@ import { Icon } from "@/shared/components/ui/icon";
 
 const menuGroups = [
   {
-    title: "펀딩내역",
+    title: "펀딩 내역",
     items: [
       { label: "참여 프로젝트", href: "/my/fundings" },
-      { label: "취소/환불내역", href: "/my/refunds" },
+      { label: "취소/환불/교환 내역", href: "/my/refunds" },
       { label: "제작/배송 현황", href: "/my/fundings" },
     ],
   },
@@ -59,12 +59,14 @@ export function BuyerMyPage() {
                 <span className="truncate">홍길동</span>
                 <Icon name="next" className="size-4 shrink-0" />
               </p>
-              <p className="text-caption-s text-text-disabled mt-1 truncate">12*****@gmail.com</p>
+              <p className="text-caption-s text-text-disabled mt-1 truncate font-medium">
+                12*****@gmail.com
+              </p>
             </div>
           </Link>
           <Link
             href="/seller/projects"
-            className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-2 rounded-xs px-3 text-[14px]"
+            className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
             aria-label="판매자 모드로 이동"
           >
             판매자 전환
@@ -84,19 +86,22 @@ export function BuyerMyPage() {
               Ripple(잔물결)
             </h2>
             <p className="text-[14px] leading-5">
-              성립 펀딩 2건 이상 또는 누적 15만원 이상일 시<br />
-              Current(해류) 달성
+              <span className="font-medium">성립 펀딩 2건 이상</span> 또는{" "}
+              <span className="font-medium">누적 15만원 이상</span>일 시<br />
+              <span className="font-medium">Current(해류)</span> 달성
             </p>
           </div>
-          <div className="bg-layer-surface-disabled rounded-xs px-3 py-2 text-[0.75rem] leading-[1.5]">
-            <h3 className="mb-1 flex items-center gap-1 leading-4 font-medium">
+          <div className="bg-layer-surface-disabled rounded-xs px-3 py-2">
+            <h3 className="text-caption-strong mb-1 flex items-center gap-1">
               <span
                 aria-hidden
                 className="size-3.5 bg-current [mask-image:url('/icons/buyer-account/9d49f.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
               />
               Current(해류) 혜택
             </h3>
-            <p>등급 전용 쿠폰(분기) 3천원, 등급 배지(프로필·서포터 탭 노출)</p>
+            <p className="text-caption-s font-medium">
+              등급 전용 쿠폰(분기) 3천원, 등급 배지(프로필·서포터 탭 노출)
+            </p>
           </div>
         </section>
         <div className="mt-8 space-y-6">
