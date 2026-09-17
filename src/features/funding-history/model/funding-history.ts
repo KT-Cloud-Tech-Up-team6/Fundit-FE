@@ -97,15 +97,35 @@ export function filterFundingHistory(
   });
 }
 
+function currentDateString(): string {
+  const now = new Date();
+  return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
+    .join("-");
+}
+
+/** 기간 시작일을 날짜-only 산술로 계산해 시간대와 월말 overflow의 영향을 받지 않게 한다. */
+export function getFundingPeriodStartDate(
+  period: Exclude<FundingPeriod, "custom">,
+  referenceDate: string,
+): string {
+  const [year, month, day] = referenceDate.split("-").map(Number);
+  const monthCount = period === "1m" ? 1 : period === "3m" ? 3 : period === "6m" ? 6 : 12;
+  const targetMonthIndex = year * 12 + (month - 1) - monthCount;
+  const targetYear = Math.floor(targetMonthIndex / 12);
+  const targetMonth = targetMonthIndex % 12;
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, daysInTargetMonth);
+  return [targetYear, targetMonth + 1, clampedDay]
+    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
+    .join("-");
+}
+
 /** 결제일을 선택 기간 안에 포함하는 카드만 남긴다. 날짜는 `yyyy-mm-dd`라 문자열 비교가 가능하다. */
 export function filterFundingHistoryByPeriod(
   items: FundingHistoryItem[],
   period: FundingPeriod,
-  {
-    startDate,
-    endDate,
-    referenceDate = new Date().toISOString().slice(0, 10),
-  }: FundingPeriodRange = {},
+  { startDate, endDate, referenceDate = currentDateString() }: FundingPeriodRange = {},
 ): FundingHistoryItem[] {
   if (period === "custom") {
     return items.filter(
@@ -113,10 +133,7 @@ export function filterFundingHistoryByPeriod(
     );
   }
 
-  const reference = new Date(`${referenceDate}T00:00:00`);
-  const monthCount = period === "1m" ? 1 : period === "3m" ? 3 : period === "6m" ? 6 : 12;
-  reference.setMonth(reference.getMonth() - monthCount);
-  const periodStart = reference.toISOString().slice(0, 10);
+  const periodStart = getFundingPeriodStartDate(period, referenceDate);
   return items.filter((item) => item.paidAt >= periodStart && item.paidAt <= referenceDate);
 }
 

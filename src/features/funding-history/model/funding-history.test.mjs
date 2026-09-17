@@ -8,6 +8,7 @@ import {
   filterFundingHistoryByPeriod,
   formatDate,
   formatWon,
+  getFundingPeriodStartDate,
 } from "./funding-history.ts";
 
 test("검색어는 제목 일부·대소문자 무시로 매칭한다", () => {
@@ -39,6 +40,18 @@ test("기간 필터는 결제일과 기준일을 비교하고 직접 기간도 �
       endDate: "2026-09-10",
     }).map((item) => item.id),
     ["completed"],
+  );
+});
+
+test("기간 시작일은 시간대와 월말에 관계없이 날짜를 보존한다", () => {
+  assert.equal(getFundingPeriodStartDate("1m", "2026-09-17"), "2026-08-17");
+  assert.equal(getFundingPeriodStartDate("1m", "2026-03-31"), "2026-02-28");
+  assert.equal(getFundingPeriodStartDate("1m", "2024-03-31"), "2024-02-29");
+
+  const boundaryItem = { ...demoFundingHistoryItems()[0], id: "boundary", paidAt: "2026-08-16" };
+  assert.deepEqual(
+    filterFundingHistoryByPeriod([boundaryItem], "1m", { referenceDate: "2026-09-17" }),
+    [],
   );
 });
 
