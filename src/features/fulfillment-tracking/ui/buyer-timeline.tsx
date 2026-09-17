@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
+import { Badge } from "@/shared/components/ui/badge";
 import { Icon } from "@/shared/components/ui/icon";
 import {
   formatRecordDate,
@@ -18,6 +20,7 @@ type BuyerTimelineProps = {
    * 미지정(화면2, 전체 이력): 전부 펼친다.
    */
   collapsibleItems?: boolean;
+  showLatestBadge?: boolean;
 };
 
 const mediaKindLabel = { image: "사진", video: "동영상" } as const;
@@ -26,6 +29,7 @@ export function BuyerTimeline({
   records,
   onSelectMedia,
   collapsibleItems = false,
+  showLatestBadge = true,
 }: BuyerTimelineProps) {
   const sorted = sortRecordsByDateDesc(records);
   const latestId = latestRecordId(records);
@@ -50,35 +54,29 @@ export function BuyerTimeline({
               isLastRow ? "" : "border-border-default border-b"
             }`}
           >
-            {/* dot + 세로 연결선 — SVG 대신 토큰 div로 그린다(판매자 stage-timeline과 동일). */}
-            <span aria-hidden className="flex flex-col items-center pt-1">
-              <span
-                className={`size-[14px] shrink-0 rounded-full ${
-                  isLatest ? "bg-layer-surface-primary" : "bg-layer-surface-disabled"
-                }`}
-              />
-              {!isLastRow && <span className="bg-layer-surface-disabled mt-1 w-px flex-1" />}
-            </span>
-
             <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-caption-s text-text-secondary flex items-center gap-2">
-                  <span>{formatRecordDate(record.date)}</span>
-                  {record.delayed && <span className="text-warning">지연</span>}
+              <div className="flex items-center gap-[11px]">
+                <p
+                  className={`text-caption-s font-medium ${collapsibleItems && isLatest ? "text-text-default" : "text-text-secondary"}`}
+                >
+                  {formatRecordDate(record.date)}
                 </p>
-                {isLatest && (
-                  <span className="bg-layer-surface-disabled text-label-m text-text-default shrink-0 rounded-full px-2 py-1">
+                {isLatest && showLatestBadge && (
+                  <Badge shape="rounded" variant="success">
                     업데이트
-                  </span>
+                  </Badge>
+                )}
+                {record.delayed && (
+                  <Badge shape="rounded" variant="warning">
+                    지연
+                  </Badge>
                 )}
               </div>
 
               <p
-                className={`text-body-s text-text-default mt-2 whitespace-pre-wrap ${
-                  open ? "line-clamp-3" : "line-clamp-1"
-                }`}
+                className={`text-body-s mt-2 leading-[1.42] ${collapsibleItems && !isLatest ? "text-text-secondary" : "text-text-default"} ${open ? "whitespace-pre-wrap" : "truncate"}`}
               >
-                {record.text}
+                {open ? record.text : record.text.replace(/\n/g, " ")}
               </p>
 
               {open && record.media.length > 0 && (
@@ -119,7 +117,13 @@ export function BuyerTimeline({
                 className="text-text-secondary flex shrink-0 cursor-pointer items-center justify-center p-1"
               >
                 {/* frequently/arrow_up는 arrow_down 셰브런을 뒤집은 것과 같다(별도 에셋 없음). */}
-                <Icon name="arrowDown" className={`size-3.5 ${open ? "rotate-180" : ""}`} />
+                <Image
+                  src="/images/fulfillment/arrow-down.svg"
+                  width={14}
+                  height={14}
+                  alt=""
+                  className={open ? "rotate-180" : ""}
+                />
               </button>
             )}
           </li>

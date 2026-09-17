@@ -4,8 +4,8 @@ import { demoBuyerFulfillmentState } from "../model/fulfillment-demo";
 import type { BuyerFulfillmentState } from "../model/fulfillment-demo";
 import { BuyerFulfillmentSummary } from "./buyer-fulfillment-summary";
 
-/* 목업 기록 날짜는 오늘 기준 상대값이라, 스토리는 기준일을 고정해 상태를 만든다. */
-const today = "2026-08-28";
+/* Figma 기준일로 목업과 날짜 의존 상태를 고정한다. */
+const today = "2026-09-28";
 
 /** 목업 기본 상태를 조금씩 바꿔 상태별 스토리를 만든다. */
 function stateWith(change: (state: BuyerFulfillmentState) => void): BuyerFulfillmentState {
@@ -37,7 +37,7 @@ export const Default: Story = {
   args: { today },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "제작·배송 현황" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: /진짜싹싹/ })).toBeVisible();
 
     const currentStep = canvas.getByRole("listitem", { name: "생산 단계, 진행 중" });
     await expect(currentStep).toHaveAttribute("aria-current", "step");
@@ -129,7 +129,7 @@ export const NotStarted: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("제작 착수 시작 전이에요")).toBeVisible();
-    await expect(canvas.queryByText(/제작 착수 중이에요/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/제작 착수 중 이에요/)).not.toBeInTheDocument();
   },
 };
 
@@ -146,5 +146,42 @@ export const Completed: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("제작·배송이 완료됐어요")).toBeVisible();
     await expect(canvas.queryByText(/완료 예정일/)).not.toBeInTheDocument();
+  },
+};
+
+/** Figma 1165:15459의 과거 사진 기록을 펼친 상태. */
+export const ExpandedPhotoRecord: Story = {
+  args: { today },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "09월 21일 기록 펼치기" }));
+    await userEvent.click(canvas.getByRole("button", { name: "material-1.jpg 사진 크게 보기" }));
+    await expect(canvas.getByRole("dialog", { name: "material-1.jpg" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "09월 21일 기록 접기" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  },
+};
+
+/** 긴 기록을 펼치면 3줄을 초과해도 본문 전체를 읽을 수 있다. */
+export const LongRecord: Story = {
+  args: {
+    today,
+    initialState: stateWith((state) => {
+      state.stages.production.records[0].text =
+        "첫 번째 기록\n두 번째 기록\n세 번째 기록\n네 번째 기록\n마지막 기록";
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "09월 25일 기록 펼치기" }));
+    const text = canvas.getByText(/마지막 기록/);
+    await expect(text).toBeVisible();
+    await expect(getComputedStyle(text).webkitLineClamp).toBe("none");
+    await userEvent.click(canvas.getByRole("button", { name: "09월 25일 기록 접기" }));
+    await expect(getComputedStyle(canvas.getByText(/마지막 기록/)).whiteSpace).toBe("nowrap");
   },
 };

@@ -170,7 +170,7 @@ test("구매자 목업 상태는 생산 진행 중이고 지연 기록을 포함
   assert.equal(initialStage(state.stages), "production");
   assert.equal(state.stages.production.records.length, 4);
   assert.equal(state.stages.production.records.filter((record) => record.delayed).length, 1);
-  assert.equal(state.stages.production.startDate, "2026-08-18");
+  assert.equal(state.stages.production.startDate, "2026-08-23");
   assert.match(formatShippingDate(state.expectedShippingDate), /^\d{4}\.\d{2}\.\d{2}$/);
   // 미래 단계는 기록 없이 예상 시작일만 갖는다.
   assert.equal(state.stages.inspection.records.length, 0);
