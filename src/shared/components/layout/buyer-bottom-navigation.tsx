@@ -10,20 +10,22 @@ import {
   getCategoryReturnPath,
   setCategoryReturnPath,
 } from "@/shared/lib/category-return-path";
-import styles from "./buyer-bottom-navigation.module.css";
 
 type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
   activeHref?: "/" | "/live" | "/categories" | "/my";
   compact?: boolean;
+  flat?: boolean;
 };
 
 function NavigationAsset({
   name,
   compact,
+  flat,
   selected,
 }: {
   name: "home" | "live-navigation" | "categories" | "profile";
   compact?: boolean;
+  flat?: boolean;
   selected?: boolean;
 }) {
   if (name === "profile" && !compact) return <Icon name="profile" className="size-5" />;
@@ -40,7 +42,9 @@ function NavigationAsset({
       style={{
         maskImage: compact
           ? `url(/icons/buyer-account/${compactAssets[name]}.svg)`
-          : `url(/icons/buyer-live/${name}.svg)`,
+          : flat && name === "live-navigation" && selected
+            ? "url(/images/buyer-live/c4001.svg)"
+            : `url(/icons/buyer-live/${name}.svg)`,
         maskSize: "contain",
         maskPosition: "center",
         maskRepeat: "no-repeat",
@@ -58,90 +62,116 @@ function deriveActiveHref(pathname: string): BuyerBottomNavigationProps["activeH
   return undefined;
 }
 
-export function BuyerBottomNavigation({
-  activeHref,
-  compact = false,
-  className = "",
-  "aria-label": ariaLabel = "구매자 하단 메뉴",
-  ...props
-}: BuyerBottomNavigationProps) {
+function itemClass(compact: boolean, flat: boolean, active: boolean) {
+  return [
+    "relative flex w-[39px] flex-col items-center text-[11px] font-medium leading-[1.3] focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+    compact ? "gap-1 text-text-disabled" : "gap-2",
+    compact && active && "text-text-default",
+    !compact &&
+      !flat &&
+      active &&
+      "after:absolute after:-bottom-2 after:right-0 after:left-0 after:h-0.5 after:bg-layer-surface-primary after:content-['']",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function ActiveCategoriesTab({ compact, flat }: { compact: boolean; flat: boolean }) {
   const router = useRouter();
-  const pathname = usePathname();
-  /* 호출자가 명시하면 그 값을 따르고(예: 라이브 화면의 특수 케이스), 안 주면 현재 경로로 스스로 판단한다.
-     SellerNavLink와 같은 방식 — 매 호출처가 activeHref를 계산해 넘기게 하지 않는다. */
-  const resolvedActiveHref = activeHref ?? deriveActiveHref(pathname);
-  const isCategoriesActive = resolvedActiveHref === "/categories";
   const hasReturnedRef = useRef(false);
-
-  // 카테고리 탭으로 들어갈 때 현재 경로를 기록해두고, 다시 누르면 그 경로로 돌아간다.
-  // 기록이 없으면(예: 앱 내에서 카테고리 탭을 거치지 않고 처음 들어온 딥링크) 홈으로 간다.
-  // 카테고리 영역을 실제로 벗어났을 때 이 기록을 정리하는 건 클릭·뒤로가기 등
-  // 어떤 방식으로 벗어나든 항상 안전하게 동작해야 해서, 이 컴포넌트가 아니라
-  // 앱 전체에 한 번만 마운트되는 CategoryReturnPathGuard(providers/)가 담당한다.
-  function handleCategoriesTabEnter() {
-    setCategoryReturnPath(window.location.pathname + window.location.search);
-  }
-
-  function handleCategoriesTabClick() {
-    // router.push는 비동기라 전환이 끝나기 전까지 이 버튼이 그대로 남아있다. 빠르게
-    // 두 번 누르면 두 번째 호출은 첫 호출이 이미 지운 값을 읽어 홈으로 잘못 이동하므로,
-    // 전환을 예약한 뒤에는 같은 인스턴스의 후속 클릭을 무시한다.
+  function handleClick() {
     if (hasReturnedRef.current) return;
     hasReturnedRef.current = true;
     const returnPath = getCategoryReturnPath();
     clearCategoryReturnPath();
     router.push(returnPath ?? "/");
   }
+  return (
+    <button
+      type="button"
+      aria-current="page"
+      className={itemClass(compact, flat, true)}
+      onClick={handleClick}
+    >
+      <NavigationAsset name="categories" compact={compact} flat={flat} selected />
+      카테고리
+    </button>
+  );
+}
 
+function BuyerBottomNavigationContent({
+  activeHref,
+  compact = false,
+  flat = false,
+  className = "",
+  "aria-label": ariaLabel = "구매자 하단 메뉴",
+  ...props
+}: BuyerBottomNavigationProps) {
+  const isCategoriesActive = activeHref === "/categories";
   return (
     <nav
       {...props}
       aria-label={ariaLabel}
-      className={`${compact ? styles.compact : "bg-layer-surface-disabled pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]"} text-text-default flex justify-between px-5 ${className}`}
+      className={`${compact || flat ? "bg-layer-surface-default border-border-default h-[calc(54px+env(safe-area-inset-bottom))] items-center border-t pb-[env(safe-area-inset-bottom)]" : "bg-layer-surface-disabled pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]"} ${flat ? "[&_a]:text-text-secondary [&_a[aria-current='page']]:text-text-default" : "text-text-default"} flex justify-between px-5 ${className}`}
     >
       <Link
         href="/"
-        aria-current={resolvedActiveHref === "/" ? "page" : undefined}
-        className={styles.item}
+        aria-current={activeHref === "/" ? "page" : undefined}
+        className={itemClass(compact, flat, activeHref === "/")}
       >
-        <NavigationAsset name="home" compact={compact} />홈
+        <NavigationAsset name="home" compact={compact} flat={flat} selected={activeHref === "/"} />
+        홈
       </Link>
       <Link
         href="/live"
-        aria-current={resolvedActiveHref === "/live" ? "page" : undefined}
-        className={styles.item}
+        aria-current={activeHref === "/live" ? "page" : undefined}
+        className={itemClass(compact, flat, activeHref === "/live")}
       >
-        <NavigationAsset name="live-navigation" compact={compact} />
+        <NavigationAsset
+          name="live-navigation"
+          compact={compact}
+          flat={flat}
+          selected={activeHref === "/live"}
+        />
         라이브
       </Link>
       {isCategoriesActive ? (
-        <button
-          type="button"
-          aria-current="page"
-          className={styles.item}
-          onClick={handleCategoriesTabClick}
-        >
-          <NavigationAsset name="categories" compact={compact} selected />
-          카테고리
-        </button>
+        <ActiveCategoriesTab compact={compact} flat={flat} />
       ) : (
         <Link
           href="/categories/tech-appliances"
-          onClick={handleCategoriesTabEnter}
-          className={styles.item}
+          onClick={() => setCategoryReturnPath(window.location.pathname + window.location.search)}
+          className={itemClass(compact, flat, false)}
         >
-          <NavigationAsset name="categories" compact={compact} />
+          <NavigationAsset name="categories" compact={compact} flat={flat} />
           카테고리
         </Link>
       )}
       <Link
         href="/my"
-        aria-current={resolvedActiveHref === "/my" ? "page" : undefined}
-        className={styles.item}
+        aria-current={activeHref === "/my" ? "page" : undefined}
+        className={itemClass(compact, flat, activeHref === "/my")}
       >
-        <NavigationAsset name="profile" compact={compact} selected={resolvedActiveHref === "/my"} />
+        <NavigationAsset
+          name="profile"
+          compact={compact}
+          flat={flat}
+          selected={activeHref === "/my"}
+        />
         마이
       </Link>
     </nav>
+  );
+}
+
+function BuyerBottomNavigationWithDerivedActive(props: BuyerBottomNavigationProps) {
+  return <BuyerBottomNavigationContent {...props} activeHref={deriveActiveHref(usePathname())} />;
+}
+
+export function BuyerBottomNavigation(props: BuyerBottomNavigationProps) {
+  return props.activeHref === undefined ? (
+    <BuyerBottomNavigationWithDerivedActive {...props} />
+  ) : (
+    <BuyerBottomNavigationContent {...props} />
   );
 }

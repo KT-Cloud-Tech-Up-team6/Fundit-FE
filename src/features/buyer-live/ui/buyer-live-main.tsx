@@ -528,7 +528,8 @@ export function BuyerLiveMain({
       <BuyerBottomNavigation
         activeHref="/live"
         aria-label="LIVE 화면 하단 메뉴"
-        className={`${styles.navigation} border-border-default fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2 border-t`}
+        flat
+        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
       />
     </div>
   );

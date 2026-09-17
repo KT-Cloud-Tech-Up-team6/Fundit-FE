@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
+import { demoFundingDetail } from "@/features/funding-history/model/funding-history";
 import {
   demoBuyerFulfillmentState,
   formatShippingDate,
@@ -37,14 +38,13 @@ const statusBadge: Record<StageStatus, string | null> = {
   todo: null,
 };
 
-const DEMO_TITLE = "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기";
-
 type BuyerFulfillmentHistoryProps = {
   fundingId: string;
   initialState?: BuyerFulfillmentState;
 };
 
 export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfillmentHistoryProps) {
+  const product = demoFundingDetail(fundingId);
   const [state] = useState<BuyerFulfillmentState>(
     () => initialState ?? demoBuyerFulfillmentState(),
   );
@@ -71,13 +71,15 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
           <Image src="/images/fulfillment/arrow-left.svg" width={20} height={20} alt="" />
         </Link>
         <h1 className="text-title-s text-text-title min-w-0 flex-1 truncate text-center leading-[1.42]">
-          {DEMO_TITLE}
+          {product.projectTitle}
         </h1>
         <span aria-hidden className="size-10 shrink-0" />
       </header>
 
       <div className="bg-layer-surface-default flex flex-col gap-1 px-5 py-4">
-        <p className="text-body-s text-text-default truncate leading-[1.42]">{DEMO_TITLE}</p>
+        <p className="text-body-s text-text-default truncate leading-[1.42]">
+          {product.projectTitle}
+        </p>
         {state.expectedShippingDate && (
           <p className="text-body-strong text-text-default">
             예상 발송일 {formatShippingDate(state.expectedShippingDate)}
