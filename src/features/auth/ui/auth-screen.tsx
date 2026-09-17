@@ -10,38 +10,32 @@ type AuthScreenProps = {
 
 export function AuthScreen({ children, headerTitle, onBack, withHeader = true }: AuthScreenProps) {
   return (
-    <div className="bg-layer-surface-default min-h-dvh">
+    <div className="bg-layer-surface-default min-h-dvh overflow-x-hidden">
       {withHeader ? (
-        <header className="bg-layer-surface-disabled relative flex h-13 items-center px-3">
+        <header className="bg-layer-surface-default relative z-10 flex h-13 items-center px-3">
           <button
             aria-label="뒤로가기"
             className="flex size-10 items-center justify-center"
             onClick={onBack}
             type="button"
           >
-            <Image
-              alt=""
-              className="h-5 w-3 -rotate-90"
-              height={20}
-              src="/icons/arrow-up.svg"
-              width={12}
-            />
+            <Image alt="" className="size-3" height={12} src="/icons/arrow_left.svg" width={12} />
           </button>
           {headerTitle ? (
-            <p className="text-body-m text-text-primary-live absolute left-1/2 -translate-x-1/2">
+            <p className="text-title-s text-text-title absolute left-1/2 -translate-x-1/2">
               {headerTitle}
             </p>
           ) : null}
         </header>
       ) : null}
-      <div
+      <main
         className={[
-          "mx-auto w-[calc(100%-40px)] max-w-[350px]",
-          withHeader ? "pt-[84px]" : "pt-[136px]",
+          "mx-auto flex w-[calc(100%-40px)] max-w-[350px] flex-col pb-8",
+          withHeader ? "min-h-[calc(100dvh-52px)] pt-21" : "min-h-dvh pt-32",
         ].join(" ")}
       >
         {children}
-      </div>
+      </main>
     </div>
   );
 }
@@ -51,9 +45,5 @@ export function AuthTitle({ children }: { children: ReactNode }) {
 }
 
 export function AuthBottomAction({ children }: { children: ReactNode }) {
-  return (
-    <div className="fixed inset-x-5 bottom-[34px] mx-auto w-[calc(100%-40px)] max-w-[350px]">
-      {children}
-    </div>
-  );
+  return <div className="mt-auto pt-16">{children}</div>;
 }

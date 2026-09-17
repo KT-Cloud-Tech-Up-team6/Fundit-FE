@@ -127,8 +127,9 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
               placeholder="전화번호"
               value={phone}
             />
-            <AuthButton disabled={!demoMode} type="submit">
-              확인
+            {/* 회원가입 CTA(52px)와 달리 이 화면군은 46px다(FL_C_ME_IDFIND_1/2 실측). */}
+            <AuthButton disabled={!demoMode} size="lg" type="submit">
+              찾기
             </AuthButton>
           </div>
         </form>
@@ -166,7 +167,9 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
           </button>
         </div>
         <AuthBottomAction>
-          <AuthButton onClick={showLogin}>로그인 화면으로</AuthButton>
+          <AuthButton onClick={showLogin} size="lg">
+            로그인 화면으로
+          </AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
@@ -188,7 +191,9 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
           로그인 화면으로
         </button>
         <AuthBottomAction>
-          <AuthButton onClick={() => router.push("/auth/signup")}>회원가입하기</AuthButton>
+          <AuthButton onClick={() => router.push("/auth/signup")} size="lg">
+            회원가입하기
+          </AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
@@ -202,15 +207,17 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
 
     return (
       <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
-        <AuthTitle>가입 정보로 비밀번호를 확인해보세요</AuthTitle>
+        <AuthTitle>새 비밀번호 설정하기</AuthTitle>
         <RecoveryDescription>등록된 이메일로 재설정 링크를 보내드립니다.</RecoveryDescription>
-        <form className="mt-16" onSubmit={submitPasswordReset}>
+        {/* AuthBottomAction의 mt-auto는 flex 부모 안에서만 하단으로 밀린다.
+            main도 flex-col이지만 이 form이 그 사이에 끼어 있어 form도 flex-1로 맞춘다. */}
+        <form className="mt-16 flex flex-1 flex-col" onSubmit={submitPasswordReset}>
           <div className="flex flex-col gap-3">
             <AuthInput
               aria-label="이름"
               onChange={(event) => setName(event.target.value)}
               onClear={() => setName("")}
-              placeholder="이름 input field"
+              placeholder="이름"
               value={name}
             />
             <AuthInput
@@ -218,20 +225,20 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
               inputMode="tel"
               onChange={(event) => setPhone(event.target.value)}
               onClear={() => setPhone("")}
-              placeholder="휴대폰번호 input field"
+              placeholder="휴대폰번호"
               value={phone}
             />
             <AuthInput
               aria-label="이메일"
               onChange={(event) => setEmail(event.target.value)}
               onClear={() => setEmail("")}
-              placeholder="이메일 input field"
+              placeholder="이메일"
               type="email"
               value={email}
             />
           </div>
           <AuthBottomAction>
-            <AuthButton disabled={!demoMode} type="submit">
+            <AuthButton disabled={!demoMode} size="lg" type="submit">
               발송
             </AuthButton>
           </AuthBottomAction>
@@ -243,12 +250,17 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
   if (view === "password-sent") {
     return (
       <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
-        <AuthTitle>{"등록된 이메일로\n비밀번호 재설정 링크를 보내드렸어요"}</AuthTitle>
+        <AuthTitle>메일을 확인해 주세요</AuthTitle>
+        <RecoveryDescription>
+          아래 이메일함에서 링크를 클릭해 새 비밀번호를 설정하세요.
+        </RecoveryDescription>
         <p className="text-body-m mt-7">
           <span className="text-text-primary-live">이메일 ex***@gmail.com</span>으로 보내드렸어요
         </p>
         <AuthBottomAction>
-          <AuthButton onClick={showLogin}>로그인 화면으로</AuthButton>
+          <AuthButton onClick={showLogin} size="lg">
+            로그인 화면으로
+          </AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
@@ -276,7 +288,9 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
           비밀번호 찾기
         </button>
         <AuthBottomAction>
-          <AuthButton onClick={showLogin}>로그인 화면으로</AuthButton>
+          <AuthButton onClick={showLogin} size="lg">
+            로그인 화면으로
+          </AuthButton>
         </AuthBottomAction>
       </RecoveryHeader>
     );
