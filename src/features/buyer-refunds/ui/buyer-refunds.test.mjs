@@ -25,11 +25,14 @@ test("적립금이 없으면 행을 숨기고 명시된 0원과 금액은 표시
     const html = renderToStaticMarkup(
       createElement(BuyerRefunds, { entries: [{ ...refundHistory[1], points }] }),
     );
-    assert.match(html, /실 환불 금액<\/dt><dd>89,000원<\/dd>/);
+    assert.match(html, /실 환불 금액<\/dt><dd[^>]*>199,000원<\/dd>/);
     if (points === null) {
       assert.doesNotMatch(html, /적립금 환불 금액/);
     } else {
-      assert.ok(html.includes(`적립금 환불 금액</dt><dd>${points.toLocaleString("ko-KR")}원</dd>`));
+      assert.match(
+        html,
+        new RegExp(`적립금 환불 금액<\\/dt><dd[^>]*>${points.toLocaleString("ko-KR")}원<\\/dd>`),
+      );
     }
   }
 });

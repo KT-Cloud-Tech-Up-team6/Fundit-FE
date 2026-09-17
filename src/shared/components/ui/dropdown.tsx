@@ -19,7 +19,8 @@ type DropdownProps = Omit<
 const sizes = {
   lg: "h-13 rounded-xs border border-border-default pl-4 pr-1 text-body-m",
   sm: "h-8 gap-2 rounded-xs border border-border-default px-3 text-body-s leading-[1.42]",
-  xs: "h-[30px] gap-1 text-body-s font-medium leading-[1.42]",
+  // Figma Dropdown/xs_30: 텍스트 14px regular + 위아래 4px, 12px caret.
+  xs: "h-7 gap-0 text-caption-m font-normal leading-[1.42]",
 };
 const optionSizes = { lg: "min-h-[46px] px-4", sm: "min-h-10 px-4", xs: "min-h-9 px-2" };
 
@@ -166,7 +167,7 @@ export function Dropdown({
         <span
           className={[
             "min-w-0 flex-1 truncate",
-            size === "xs" && "px-2",
+            size === "xs" && "px-2 text-right",
             selected < 0 && "text-text-disabled",
           ]
             .filter(Boolean)
@@ -197,7 +198,7 @@ export function Dropdown({
           id={listId}
           role="listbox"
           aria-labelledby={triggerId}
-          className="bg-layer-surface-default border-border-default shadow-light-m absolute top-full z-10 mt-2 max-h-60 w-full overflow-auto rounded-xs border py-0"
+          className="bg-layer-surface-default border-border-default shadow-light-m absolute top-full right-0 z-10 mt-2 max-h-60 w-max min-w-full overflow-auto rounded-xs border py-0"
           onKeyDown={handleMenuKey}
         >
           {options.map((option, index) => (
@@ -216,7 +217,7 @@ export function Dropdown({
               onFocus={() => setActive(index)}
               onClick={() => choose(index)}
               className={[
-                "text-body-s flex items-center py-2 leading-[1.42] break-words outline-none",
+                "text-body-s flex items-center py-2 leading-[1.42] whitespace-nowrap outline-none",
                 optionSizes[size],
                 option.disabled
                   ? "text-text-disabled cursor-not-allowed"
