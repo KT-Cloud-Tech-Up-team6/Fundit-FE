@@ -27,10 +27,11 @@ export default async function SellerProjectsPage({
     ? (params.status as Status)
     : "active";
   const search = params.search?.trim() ?? "";
+  const parsedPage = Number(params.page);
   const result = getSellerProjectList({
     status,
     search,
-    page: Math.trunc(Number(params.page)) || 1,
+    page: Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined,
   });
   const buildHref = (nextStatus = status, page = 1) => {
     const query = new URLSearchParams({ status: nextStatus });
