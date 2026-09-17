@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Icon } from "@/shared/components/ui/icon";
 import {
   daysSinceLastRecord,
   demoBuyerFulfillmentState,
@@ -25,8 +25,6 @@ import { MediaLightbox } from "./media-lightbox";
 
 const DEMO_PRODUCT = {
   title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
-  rewardOption: "[얼리버드] 가장 먼저 만나는 스타터 세트",
-  rewardCount: 1,
 };
 
 type BuyerFulfillmentSummaryProps = {
@@ -44,63 +42,60 @@ export function BuyerFulfillmentSummary({
 }: BuyerFulfillmentSummaryProps) {
   const [today] = useState(() => fixedToday ?? todayValue());
   const [state] = useState<BuyerFulfillmentState>(
-    () => initialState ?? demoBuyerFulfillmentState(today),
+    () => initialState ?? demoBuyerFulfillmentState(),
   );
   const [preview, setPreview] = useState<MediaItem | null>(null);
 
   const current = initialStage(state.stages);
   const currentStage = state.stages[current];
-  const isComplete = currentStage.status === "done";
   const staleDays = isStale(currentStage, today)
     ? daysSinceLastRecord(currentStage.records, today)
     : null;
 
   return (
-    <div className="bg-layer-bg mx-auto min-h-dvh w-full max-w-[390px] min-w-0">
+    <div className="bg-layer-bg mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(32px+env(safe-area-inset-bottom))]">
       <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
         <Link
           href={`/my/fundings/${fundingId}`}
           aria-label="뒤로"
-          className="flex size-10 shrink-0 items-center justify-center"
+          className="flex size-10 shrink-0 items-center px-1"
         >
-          <Icon name="arrowLeft" className="text-text-default size-5" />
+          <Image src="/images/fulfillment/arrow-left.svg" width={20} height={20} alt="" />
         </Link>
-        <h1 className="text-title-s text-text-default flex-1 text-center">제작·배송 현황</h1>
+        <h1 className="text-title-s text-text-title min-w-0 flex-1 truncate text-center leading-[1.42]">
+          {DEMO_PRODUCT.title}
+        </h1>
         <span aria-hidden className="size-10 shrink-0" />
       </header>
 
       <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
-        <div className="flex gap-3">
-          <div className="bg-layer-surface-disabled text-caption-m text-text-secondary flex aspect-square size-[42px] shrink-0 items-center justify-center rounded-xs">
-            IMG
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-body-emphasis text-text-default truncate">{DEMO_PRODUCT.title}</p>
-            <p className="text-caption-s text-text-secondary flex gap-1">
-              <span className="truncate">{DEMO_PRODUCT.rewardOption}</span>
-              <span aria-hidden>·</span>
-              <span className="shrink-0">{DEMO_PRODUCT.rewardCount}개</span>
+        <div className="flex min-h-10 items-center justify-between gap-3">
+          {currentStage.status === "active" ? (
+            <p className="text-body-l text-text-default">
+              현재 <span className="text-title-s">{stageLabel(current)}</span> 중 이에요
             </p>
-          </div>
-        </div>
+          ) : currentStage.status === "todo" ? (
+            <p className="text-body-l text-text-default">
+              <span className="text-title-s">{stageLabel(current)}</span> 시작 전이에요
+            </p>
+          ) : (
+            <p className="text-title-s text-text-default">제작·배송이 완료됐어요</p>
+          )}
 
-        {currentStage.status === "active" ? (
-          <p className="text-body-l text-text-default">
-            현재 <span className="text-title-s">{stageLabel(current)}</span> 중이에요
-          </p>
-        ) : currentStage.status === "todo" ? (
-          <p className="text-body-l text-text-default">
-            <span className="text-title-s">{stageLabel(current)}</span> 시작 전이에요
-          </p>
-        ) : (
-          <p className="text-title-s text-text-default">제작·배송이 완료됐어요</p>
-        )}
+          <Link
+            href={`/my/fundings/${fundingId}/fulfillment/history`}
+            aria-label="세부 진행 기록 더보기"
+            className="text-caption-s text-text-secondary flex h-10 shrink-0 items-center px-2 font-medium underline"
+          >
+            더보기
+          </Link>
+        </div>
 
         <BuyerStageStepper state={state.stages} />
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col">
           {currentStage.startDate && currentStage.status === "active" && (
-            <p className="text-caption-m text-text-secondary">
+            <p className="text-body-s text-text-secondary leading-[1.42] font-medium">
               {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
             </p>
           )}
@@ -117,28 +112,10 @@ export function BuyerFulfillmentSummary({
         </div>
       </section>
 
-      <section className="bg-layer-surface-default mt-2 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-title-s text-text-default">세부 진행 기록</h2>
-          <Link
-            href={`/my/fundings/${fundingId}/fulfillment/history`}
-            aria-label="세부 진행 기록 더보기"
-            className="text-caption-s text-text-secondary p-1"
-          >
-            더보기
-          </Link>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3">
+      <section className="bg-layer-surface-default mt-3">
+        <h2 className="text-title-s text-text-default px-5 pt-4 leading-[1.42]">세부 진행 기록</h2>
+        <div className="flex flex-col gap-2.5 px-5 py-4">
           <p className="text-body-strong text-text-default">{stageLabel(current)}</p>
-          {!isComplete && (currentStage.startDate || currentStage.expectedEndDate) && (
-            <p className="text-caption-m text-text-secondary">
-              {currentStage.startDate ? formatShippingDate(currentStage.startDate) : "미정"} - 예정{" "}
-              {currentStage.expectedEndDate
-                ? formatShippingDate(currentStage.expectedEndDate)
-                : "미정"}
-            </p>
-          )}
           {/* Figma 프레임에는 없지만 이슈 #70 P2(미갱신 안내) 요구로 현재 단계가
               7일 이상 갱신되지 않으면 구매자용 읽기 전용 안내를 노출한다. */}
           {staleDays !== null && <BuyerStaleBanner days={staleDays} />}

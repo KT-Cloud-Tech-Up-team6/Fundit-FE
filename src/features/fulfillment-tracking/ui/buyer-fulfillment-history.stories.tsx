@@ -3,13 +3,13 @@ import { expect, userEvent, within } from "storybook/test";
 import { demoBuyerFulfillmentState } from "../model/fulfillment-demo";
 import { BuyerFulfillmentHistory } from "./buyer-fulfillment-history";
 
-/* 목업 기록 날짜는 오늘 기준 상대값이라, 스토리는 기준일을 고정한다. */
-const today = "2026-08-28";
+/* 단계별 테스트의 날짜를 Figma 기준일로 고정한다. */
+const today = "2026-09-28";
 
 const meta = {
   title: "Features/Fulfillment Tracking/Buyer History",
   component: BuyerFulfillmentHistory,
-  args: { fundingId: "demo-funding", today },
+  args: { fundingId: "demo-funding" },
   parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
@@ -32,7 +32,7 @@ export const Default: Story = {
 
     const production = canvas.getByRole("button", { name: /생산/ });
     await expect(production).toHaveAttribute("aria-expanded", "true");
-    await expect(canvas.getByText(/생산 준비를 마치고 원자재 검수/)).toBeVisible();
+    await expect(canvas.getByText(/생산 준비 완료, 원자재 검수/)).toBeVisible();
 
     const inspection = canvas.getByRole("button", { name: /검수/ });
     await expect(inspection).toHaveAttribute("aria-expanded", "false");
@@ -43,7 +43,12 @@ export const Default: Story = {
 export const FutureStageExpanded: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: /검수/ }));
+    await userEvent.click(canvas.getByRole("button", { name: /생산/ }));
+    await userEvent.click(canvas.getByRole("button", { name: /배송/ }));
+    await expect(canvas.getByRole("button", { name: /생산/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
     await expect(canvas.getByText(/^예상 시작일/)).toBeVisible();
   },
 };
@@ -52,8 +57,10 @@ export const FutureStageExpanded: Story = {
 export const DoneStageExpanded: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /생산/ }));
     await userEvent.click(canvas.getByRole("button", { name: /제작 착수/ }));
-    await expect(canvas.getByText(/샘플 검토를 마치고 초도 물량 발주/)).toBeVisible();
+    await expect(canvas.queryByText("업데이트")).not.toBeInTheDocument();
+    await expect(canvas.getByText(/제작 착수 확정, 생산팀 및 발주 정보/)).toBeVisible();
   },
 };
 

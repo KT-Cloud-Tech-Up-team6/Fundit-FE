@@ -42,14 +42,14 @@ export function BuyerStageStepper({ state }: BuyerStageStepperProps) {
             >
               <Icon
                 name={stageIcon[value]}
-                className={`size-5 ${filled ? "text-text-inverse" : "text-text-secondary"}`}
+                className={`size-5 ${filled ? "text-text-inverse" : "text-text-default"}`}
               />
             </span>
             {!isLast && (
               <span
                 aria-hidden
                 className={`h-0.5 flex-1 ${
-                  status === "done" ? "bg-layer-surface-primary" : "bg-layer-surface-disabled"
+                  status === "done" ? "bg-layer-surface-primary" : "bg-border-default"
                 }`}
               />
             )}
