@@ -97,6 +97,7 @@ export function ShippingAddressSheet({
         <div className="flex flex-col gap-4">
           <Field label="받는 사람">
             <Input
+              shape="compact"
               aria-label="받는 사람"
               placeholder="받는 사람을 입력해주세요"
               value={form.recipientName}
@@ -106,6 +107,7 @@ export function ShippingAddressSheet({
           </Field>
           <Field label="연락처">
             <Input
+              shape="compact"
               aria-label="연락처"
               inputMode="tel"
               placeholder="연락처를 입력해주세요"
@@ -118,6 +120,7 @@ export function ShippingAddressSheet({
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
                 <Input
+                  shape="compact"
                   aria-label="우편번호"
                   placeholder="우편번호"
                   readOnly
@@ -135,6 +138,7 @@ export function ShippingAddressSheet({
                 </Button>
               </div>
               <Input
+                shape="compact"
                 aria-label="주소"
                 placeholder="주소"
                 readOnly
@@ -143,6 +147,7 @@ export function ShippingAddressSheet({
               />
               {form.zipCode && (
                 <Input
+                  shape="compact"
                   ref={detail}
                   aria-label="상세주소"
                   placeholder="상세주소를 입력해주세요"
@@ -163,6 +168,7 @@ export function ShippingAddressSheet({
           </Field>
           <Field label="배송 요청사항">
             <Input
+              shape="compact"
               aria-label="배송 요청 사항"
               placeholder="요청사항을 입력해주세요 (선택)"
               value={form.deliveryMemo ?? ""}

@@ -77,7 +77,7 @@ export function OrderCheckoutScreen({
     () =>
       initialForm ?? {
         address: hasSavedAddress ? address : null,
-        couponId: null,
+        couponId: undefined,
         points: "",
         method: null,
         card: "",
@@ -245,7 +245,7 @@ export function OrderCheckoutScreen({
         onClose={() => setCouponSheetOpen(false)}
         coupons={coupons}
         orderAmount={orderAmount}
-        selectedId={selectedCoupon?.id ?? null}
+        selectedId={form.couponId === null ? null : selectedCoupon?.id}
         onApply={(couponId) => {
           update({ couponId });
           setCouponSheetOpen(false);
@@ -334,6 +334,7 @@ function PointUsageSection({
       <h2 className="text-title-s text-text-default">적립금 사용</h2>
       <div className="flex items-center gap-2">
         <Input
+          shape="compact"
           inputMode="numeric"
           placeholder="사용하실 적립금을 입력해주세요"
           aria-label="사용할 적립금"

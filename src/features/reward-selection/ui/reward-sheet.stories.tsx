@@ -36,7 +36,11 @@ export const MultipleRewards: Story = {
     const canvas = within(canvasElement);
     const choose = async (name: string) => {
       await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
-      await userEvent.click(canvas.getByRole("button", { name }));
+      await userEvent.click(
+        within(canvas.getByRole("group", { name: "리워드 목록" })).getByRole("button", {
+          name: new RegExp(name),
+        }),
+      );
     };
     await choose("가장 먼저 만나는 스타터 세트");
     await userEvent.click(
@@ -67,7 +71,7 @@ export const MultipleOptionLines: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
-    await userEvent.click(canvas.getByRole("button", { name: "얼리버드 클린포지 R1" }));
+    await userEvent.click(canvas.getByRole("button", { name: /얼리버드 클린포지 R1/ }));
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
     const select = canvas.getByRole("combobox", { name: /얼리버드 클린포지 R1 색상/ });
     await userEvent.selectOptions(select, "블랙");

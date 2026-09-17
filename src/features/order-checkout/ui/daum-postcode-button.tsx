@@ -96,6 +96,7 @@ export function DaumPostcodeSearch({
       <div
         ref={container}
         className="h-[min(640px,70dvh)] w-full"
+        role="group"
         aria-label="카카오 우편번호 검색"
       />
     </div>

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 
 import { Select } from "./select";
 
@@ -61,6 +62,14 @@ export const Sizes: Story = {
       <Select {...args} size="md" />
     </div>
   ),
+};
+
+export const Compact: Story = {
+  args: { shape: "compact" },
+  play: async ({ canvasElement }) => {
+    const select = within(canvasElement).getByRole("combobox");
+    expect(getComputedStyle(select.parentElement as HTMLElement).borderRadius).toBe("4px");
+  },
 };
 
 export const Gallery: Story = {

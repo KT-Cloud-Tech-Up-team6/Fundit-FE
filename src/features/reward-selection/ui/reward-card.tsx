@@ -15,7 +15,6 @@ export function RewardCard({ reward, onSelect }: { reward: Reward; onSelect: () 
   return (
     <button
       type="button"
-      aria-label={reward.name}
       onClick={onSelect}
       className="border-border-default focus-visible:outline-border-primary flex w-full flex-col gap-1 border-b px-4 py-3 text-left last:border-0 focus-visible:outline-2 focus-visible:-outline-offset-2"
     >

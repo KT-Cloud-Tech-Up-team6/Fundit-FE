@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useId } from "react";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -9,9 +9,16 @@ import { Input } from "@/shared/components/ui/input";
 type AuthInputProps = Omit<ComponentPropsWithoutRef<"input">, "className" | "size"> & {
   errorMessage?: string;
   onClear?: () => void;
+  startAdornment?: ReactNode;
 };
 
-export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputProps) {
+export function AuthInput({
+  errorMessage,
+  onClear,
+  startAdornment,
+  value,
+  ...props
+}: AuthInputProps) {
   const generatedId = useId();
   const errorId = errorMessage ? `${props.id ?? generatedId}-error` : undefined;
   const describedBy = [props["aria-describedby"], errorId].filter(Boolean).join(" ") || undefined;
@@ -22,7 +29,6 @@ export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputP
       <Input
         {...props}
         aria-describedby={describedBy}
-        className="bg-layer-surface-disabled focus-within:border-border-primary border-transparent"
         endAdornment={
           hasValue && onClear && !props.disabled ? (
             <button
@@ -35,6 +41,8 @@ export function AuthInput({ errorMessage, onClear, value, ...props }: AuthInputP
           ) : undefined
         }
         error={Boolean(errorMessage)}
+        shape="compact"
+        startAdornment={startAdornment}
         value={value}
       />
       {errorMessage ? (
@@ -51,10 +59,47 @@ type AuthButtonProps = ComponentPropsWithoutRef<typeof Button>;
 export function AuthButton({ className, ...props }: AuthButtonProps) {
   return (
     <Button
-      className={["!bg-layer-surface-disabled !text-text-default w-full rounded-sm", className]
-        .filter(Boolean)
-        .join(" ")}
+      appearance="cta"
+      className={["w-full", className].filter(Boolean).join(" ")}
+      size="xl"
       {...props}
     />
+  );
+}
+
+/* 소셜 로그인·가입 버튼은 OAuth 연동 전까지 두 화면 모두 비활성 상태로 둔다(같은 디자인). */
+export function AuthSocialButton({
+  icon,
+  label,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  tone: "google" | "kakao";
+}) {
+  return (
+    <button
+      aria-label={`${label} (준비 중)`}
+      className={[
+        "text-body-emphasis relative flex h-13 w-full items-center justify-center rounded-xs px-4",
+        tone === "kakao"
+          ? "text-text-static-black shadow-light-s bg-[#fee500]"
+          : "border-w-xs border-border-default bg-layer-surface-default text-text-secondary",
+      ].join(" ")}
+      disabled
+      type="button"
+    >
+      <Image
+        alt=""
+        className={[
+          "absolute left-6 object-contain",
+          tone === "kakao" ? "size-[18px]" : "size-6",
+        ].join(" ")}
+        height={24}
+        src={icon}
+        width={24}
+      />
+      {label}
+    </button>
   );
 }

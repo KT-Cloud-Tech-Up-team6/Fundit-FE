@@ -35,14 +35,14 @@ export const Disabled: Story = {
 };
 
 export const Cta: Story = {
-  args: { appearance: "cta", onClick: fn() },
+  args: { appearance: "cta", size: "xl", onClick: fn() },
   play: async ({ canvasElement, args }) => {
     const button = within(canvasElement).getByRole("button");
     const style = getComputedStyle(button);
     expect(style.fontSize).toBe("16px");
     expect(style.fontWeight).toBe("600");
     expect(style.lineHeight).toBe("24px");
-    expect(style.height).toBe("46px");
+    expect(style.height).toBe("52px");
     button.focus();
     expect(button).toHaveFocus();
     await userEvent.keyboard("{Enter}");
@@ -66,6 +66,7 @@ export const CtaDisabled: Story = {
   play: async ({ canvasElement, args }) => {
     const button = within(canvasElement).getByRole("button");
     expect(getComputedStyle(button).height).toBe("40px");
+    expect(getComputedStyle(button).backgroundColor).toBe("rgb(221, 222, 226)");
     expect(button).toBeDisabled();
     await userEvent.click(button);
     expect(args.onClick).not.toHaveBeenCalled();

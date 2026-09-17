@@ -15,13 +15,10 @@ type CouponSheetProps = {
   coupons: Coupon[];
   /** 사용 가능 여부 판정에 쓰는 이번 주문 금액(할인 전). */
   orderAmount: number;
-  /** 현재 적용된 쿠폰 id. null = 사용 안 함. */
-  selectedId: string | null;
+  /** 현재 적용된 쿠폰 id. undefined = 미선택, null = 사용하지 않음. */
+  selectedId?: string | null;
   onApply: (couponId: string | null) => void;
 };
-
-/* "사용하지 않음"을 라디오 값으로 다루기 위한 센티널. null 과 매핑한다. */
-const NONE = "__none__";
 
 /* 쿠폰 선택 바텀시트 (FL_B_PY_CPN). 라디오 단일 선택 → 저장 시 주문서 요약에 반영.
    최소 주문액 미달 쿠폰은 비활성(회색)으로 표시. */
@@ -33,7 +30,7 @@ export function CouponSheet({
   selectedId,
   onApply,
 }: CouponSheetProps) {
-  const [choice, setChoice] = useState<string | null>(selectedId);
+  const [choice, setChoice] = useState<string | null | undefined>(selectedId);
 
   /* 닫았다 다시 열면 현재 적용값으로 되돌린다. */
   const [wasOpen, setWasOpen] = useState(open);
@@ -43,7 +40,7 @@ export function CouponSheet({
   }
 
   function submit() {
-    if (choice !== null) onApply(choice === NONE ? null : choice);
+    if (choice !== undefined) onApply(choice);
   }
 
   return (
@@ -56,7 +53,7 @@ export function CouponSheet({
         <Button
           className="w-full disabled:bg-[#cdced4]!"
           appearance="cta"
-          disabled={coupons.length > 0 && choice === null}
+          disabled={coupons.length > 0 && choice === undefined}
           onClick={coupons.length ? submit : onClose}
         >
           {coupons.length ? "적용" : "닫기"}
@@ -80,8 +77,8 @@ export function CouponSheet({
 
           <CouponRadio
             label="사용하지 않음"
-            checked={choice === NONE}
-            onSelect={() => setChoice(NONE)}
+            checked={choice === null}
+            onSelect={() => setChoice(null)}
           />
 
           {coupons.map((coupon) => {

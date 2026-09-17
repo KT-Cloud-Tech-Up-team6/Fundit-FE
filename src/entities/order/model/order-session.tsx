@@ -20,7 +20,8 @@ export type OrderSelection = {
 
 export type CheckoutForm = {
   address: ShippingAddress | null;
-  couponId: string | null;
+  /** undefined는 미선택, null은 명시적으로 사용하지 않음. */
+  couponId?: string | null;
   points: string;
   method: "credit_card" | "toss_pay" | null;
   card: string;
