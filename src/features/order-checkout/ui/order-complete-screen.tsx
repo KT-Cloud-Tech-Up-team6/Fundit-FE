@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import { Button } from "@/shared/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -13,15 +15,6 @@ import { CheckoutTopBar } from "./checkout-top-bar";
 
 const DEMO_RECEIPT = demoOrderReceipt();
 const FUNDING_HISTORY_PATH = "/my/fundings";
-
-/* Figma btn_share_project / btn_view_funding_history: bg #ededed, Medium 16, rounded 4, h≈44. */
-const bottomButtonClasses = [
-  "bg-layer-surface-disabled text-text-default text-body-m font-medium",
-  "flex h-11 flex-1 items-center justify-center rounded-xs whitespace-nowrap",
-  "enabled:hover:bg-layer-surface-disabled-hover",
-  "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
-  "disabled:text-text-disabled disabled:cursor-not-allowed",
-].join(" ");
 
 type OrderCompleteScreenProps = {
   receipt?: OrderReceipt;
@@ -37,6 +30,20 @@ export function OrderCompleteScreen({
 }: OrderCompleteScreenProps) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(redirectSeconds);
+  const [shareNotice, setShareNotice] = useState("");
+  async function shareProject() {
+    if (!receipt.projectId) return;
+    const url = new URL(
+      `/projects/${encodeURIComponent(receipt.projectId)}`,
+      window.location.origin,
+    ).href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareNotice("프로젝트 링크를 복사했습니다.");
+    } catch {
+      setShareNotice(`프로젝트 링크: ${url}`);
+    }
+  }
 
   /* 카운트다운만 담당한다. 상태 업데이터는 순수하게 두고 이동은 아래 effect가 한다. */
   useEffect(() => {
@@ -49,7 +56,7 @@ export function OrderCompleteScreen({
 
   /* 0초가 되면 펀딩내역으로 이동. */
   useEffect(() => {
-    if (redirectSeconds > 0 && remaining === 0) router.push(FUNDING_HISTORY_PATH);
+    if (redirectSeconds > 0 && remaining === 0) router.replace(FUNDING_HISTORY_PATH);
   }, [remaining, redirectSeconds, router]);
 
   const rows: [string, string][] = [
@@ -61,21 +68,24 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    /* 다른 소비자 화면처럼 바깥 배경은 회색, 가운데 390 컬럼만 흰색. 그래픽·영수증 카드는 회색(#ededed). */
+    /* 다른 구매자 화면처럼 390px 컬럼을 사용한다. */
     <div className="bg-layer-bg min-h-dvh w-full">
       <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
         <CheckoutTopBar />
 
-        <div className="flex flex-1 flex-col items-center gap-6 px-5 pt-16">
-          <div className="flex w-full flex-col items-center gap-9">
-            {/* Figma: 112×112 그래픽 자리 */}
-            <div className="bg-layer-surface-disabled size-28 shrink-0" aria-hidden />
-            <div className="flex w-full flex-col items-center gap-3">
-              <h2 className="text-heading-s text-text-default text-center">
-                펀딩 참여가 완료됐어요!
-              </h2>
+        <div className="flex flex-1 flex-col items-center gap-8 px-5 pt-12 pb-8">
+          <div className="flex w-full flex-col items-center gap-10">
+            <div className="flex size-28 shrink-0 items-center justify-center" aria-hidden>
+              <Image src="/images/checkout/complete.svg" alt="" width={102} height={102} />
+            </div>
+            <div className="flex w-full flex-col items-center gap-4">
               <div className="flex flex-col items-center gap-1">
-                <p className="text-caption-s text-text-default">{receipt.completeMessage}</p>
+                <h2 className="text-title-s text-text-default text-center">
+                  펀딩 참여가 완료되었어요
+                </h2>
+                <p className="text-body-s text-text-secondary">{receipt.completeMessage}</p>
+              </div>
+              <div className="flex flex-col items-center gap-1">
                 <p className="text-body-m text-text-default font-medium">
                   예상 발송일 {receipt.expectedShippingDate}
                 </p>
@@ -83,35 +93,53 @@ export function OrderCompleteScreen({
             </div>
           </div>
 
-          <div className="flex w-full flex-col items-center gap-1">
-            <dl className="bg-layer-surface-disabled flex w-full flex-col gap-3 rounded-xs p-4">
+          <div className="flex w-full flex-col items-center gap-4">
+            <dl className="bg-layer-bg flex min-h-[180px] w-full flex-col justify-center gap-3 rounded-xs p-4">
               {rows.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-3">
-                  <dt className="text-caption-s text-text-secondary shrink-0">{label}</dt>
-                  <dd className="text-caption-s text-text-default truncate text-right">{value}</dd>
+                <div key={label} className="flex items-center gap-3">
+                  <dt className="text-body-s text-text-secondary w-[50px] shrink-0 leading-[1.42]">
+                    {label}
+                  </dt>
+                  <dd
+                    title={value}
+                    className="text-body-s text-text-default min-w-0 truncate leading-[1.42]"
+                  >
+                    {value}
+                  </dd>
                 </div>
               ))}
             </dl>
             {redirectSeconds > 0 && (
-              <p className="text-caption-strong text-text-secondary p-2 text-center">
-                {remaining}초 후 펀딩내역 화면으로 자동 이동합니다
+              <p className="text-body-s text-text-secondary p-2 text-center">
+                <strong className="font-semibold">{remaining}초</strong> 후 펀딩내역 화면으로 자동
+                이동합니다
               </p>
             )}
           </div>
         </div>
 
+        {shareNotice && (
+          <p role="status" className="text-body-s px-5 py-2 break-all">
+            {shareNotice}
+          </p>
+        )}
         <div className="bg-layer-surface-default sticky bottom-0 flex gap-2 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
-          {/* 공유 연동(프로젝트 URL·제목 필요)은 후속 — 그 전까지 비활성. */}
-          <button type="button" className={bottomButtonClasses} disabled>
-            프로젝트 공유하기
-          </button>
-          <button
-            type="button"
-            className={bottomButtonClasses}
-            onClick={() => router.push(FUNDING_HISTORY_PATH)}
+          <Button
+            variant="secondary"
+            appearance="cta"
+            className="flex-1"
+            disabled={!receipt.projectId}
+            onClick={shareProject}
+          >
+            프로젝트 공유
+          </Button>
+          <Button
+            appearance="cta"
+            className="flex-1"
+            onClick={() => router.replace(FUNDING_HISTORY_PATH)}
           >
             펀딩내역 보기
-          </button>
+          </Button>
         </div>
       </div>
     </div>

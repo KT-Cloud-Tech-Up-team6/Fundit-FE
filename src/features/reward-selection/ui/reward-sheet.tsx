@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
-
+import { useId, useRef, useState } from "react";
+import { useOrderSession } from "@/entities/order/model/order-session";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
+import { Icon } from "@/shared/components/ui/icon";
+import { Select } from "@/shared/components/ui/select";
 import {
   addOptionLine,
   calcCartTotal,
@@ -15,16 +17,15 @@ import {
 } from "../model/reward-demo";
 import type { Reward, RewardCart } from "../model/reward-demo";
 import { RewardCard } from "./reward-card";
+import { QuantityStepper } from "./quantity-stepper";
 import styles from "./reward-sheet.module.css";
 
-/* 목업은 불변이고 렌더마다 새로 만들 이유가 없다. 기본값으로 이 상수를 공유한다. */
 const DEMO_REWARDS = designRewards();
 
 type RewardSheetProps = {
   projectId: string;
   open: boolean;
   onClose: () => void;
-  /** Storybook에서 목업을 갈아끼우기 위한 자리. 화면에서는 기본 목업을 쓴다. */
   rewards?: Reward[];
 };
 
@@ -35,83 +36,182 @@ export function RewardSheet({
   rewards = DEMO_REWARDS,
 }: RewardSheetProps) {
   const router = useRouter();
-  const selectionName = useId();
-  /* 한 번에 리워드 하나만 선택한다. 다른 리워드를 고르면 이전 옵션·수량을 초기화한다. */
-  const [cart, setCart] = useState<RewardCart>({});
+  const session = useOrderSession();
+  const listId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [cart, setCart] = useState<RewardCart>(() =>
+    session?.selection?.projectId === projectId ? session.selection.cart : {},
+  );
 
   function selectReward(reward: Reward) {
-    setCart((prev) => (prev[reward.id] ? prev : { [reward.id]: initialLines(reward) }));
+    setCart((previous) =>
+      previous[reward.id] ? previous : { [reward.id]: initialLines(reward), ...previous },
+    );
+    setExpanded(false);
+    trigger.current?.focus();
   }
 
-  function addLine(id: string, value: string) {
-    setCart((prev) => ({ ...prev, [id]: addOptionLine(prev[id] ?? [], value) }));
+  function removeReward(id: string) {
+    setCart((previous) =>
+      Object.fromEntries(Object.entries(previous).filter(([key]) => key !== id)),
+    );
   }
 
-  function setLineQuantity(id: string, index: number, quantity: number) {
-    setCart((prev) => ({
-      ...prev,
-      [id]: prev[id].map((line, i) => (i === index ? { ...line, quantity } : line)),
-    }));
-  }
-
-  function removeLine(id: string, index: number) {
-    setCart((prev) => ({ ...prev, [id]: prev[id].filter((_, i) => i !== index) }));
-  }
-
+  const selected = Object.entries(cart).flatMap(([id, lines]) => {
+    const reward = rewards.find((item) => item.id === id);
+    return reward ? [{ reward, lines }] : [];
+  });
   const total = calcCartTotal(rewards, cart);
-  const canSubmit = isCartSubmittable(cart);
+  const quantity = selected.reduce(
+    (sum, { lines }) => sum + lines.reduce((count, line) => count + line.quantity, 0),
+    0,
+  );
 
   function submit() {
-    /* 선택값(리워드·옵션·수량)을 주문서로 넘기는 방식은 checkout 이슈에서 확정한다.
-       이번엔 이동만 한다(Issue #56). */
+    if (!isCartSubmittable(cart)) return;
+    session?.setSelection({ projectId, cart });
+    if (session?.selection?.projectId !== projectId) session?.setForm(null);
+    session?.setReceipt(null);
+    onClose();
     router.push(`/funding/${projectId}/checkout`);
   }
 
-  const heading = "리워드 선택";
-
   return (
     <BottomSheet
-      onClose={onClose}
       open={open}
-      title={heading}
+      onClose={onClose}
+      title="리워드 선택"
       className={styles.sheet}
+      data-expanded={expanded}
       footer={
         <div className="flex flex-col gap-3">
-          {/* 줄을 담고 빼거나 수량을 바꾸면 합계가 소리로 읽히도록 status로 둔다. */}
           <div
             role="status"
             aria-label="리워드 총 금액"
-            className={Object.keys(cart).length ? "flex items-center justify-between" : "sr-only"}
+            className={selected.length ? "flex items-center justify-between" : "sr-only"}
           >
-            <span className="text-body-s text-text-secondary">총 금액</span>
-            <span className="text-title-m text-text-default">{formatWon(total)}</span>
+            <span className="text-body-s text-text-secondary">총 {quantity}개</span>
+            <span className="text-title-m">{formatWon(total)}</span>
           </div>
-          <Button className="w-full" disabled={!canSubmit} onClick={submit}>
-            펀딩
+          <Button
+            appearance="cta"
+            className="w-full disabled:bg-[#cdced4]!"
+            disabled={!isCartSubmittable(cart)}
+            onClick={submit}
+          >
+            펀딩하기
           </Button>
         </div>
       }
     >
-      <div role="radiogroup" aria-label={heading} className="flex flex-col gap-3">
-        {rewards.map((reward) => {
-          const lines = cart[reward.id];
-          return (
-            <RewardCard
-              key={reward.id}
-              reward={reward}
-              selectionName={selectionName}
-              selected={Boolean(lines)}
-              onSelect={() => selectReward(reward)}
-              lines={lines ?? []}
-              onAddLine={(value) => addLine(reward.id, value)}
-              onLineQuantityChange={(index, quantity) =>
-                setLineQuantity(reward.id, index, quantity)
-              }
-              onRemoveLine={(index) => removeLine(reward.id, index)}
-            />
-          );
-        })}
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <button
+          ref={trigger}
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={() => setExpanded(!expanded)}
+          className="border-border-default text-text-secondary focus-visible:outline-border-primary flex h-13 w-full shrink-0 items-center justify-between rounded-xs border px-4 text-[14px] focus-visible:outline-2"
+        >
+          리워드
+          <Icon name="arrowDown" className={`size-4 ${expanded ? "rotate-180" : ""}`} />
+        </button>
+        {expanded && (
+          <div
+            id={listId}
+            role="group"
+            aria-label="리워드 목록"
+            className="border-border-default min-h-0 [scrollbar-width:none] overflow-y-auto rounded-xs border"
+          >
+            {rewards.map((reward) => (
+              <RewardCard key={reward.id} reward={reward} onSelect={() => selectReward(reward)} />
+            ))}
+          </div>
+        )}
       </div>
+      {selected.length > 0 && (
+        <div
+          role="group"
+          aria-label="선택한 리워드"
+          tabIndex={0}
+          className={`mt-8 shrink-0 [scrollbar-width:none] space-y-2 overflow-y-auto ${expanded ? "max-h-32" : "max-h-[min(400px,50dvh)]"}`}
+        >
+          {selected.map(({ reward, lines }) => (
+            <div key={reward.id} className="bg-layer-bg rounded-xs px-3 py-2">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <h3 className="text-body-strong min-w-0 truncate">{reward.name}</h3>
+                <button
+                  type="button"
+                  aria-label={`${reward.name} 삭제`}
+                  onClick={() => removeReward(reward.id)}
+                  className="focus-visible:outline-border-primary flex size-4 shrink-0 items-center justify-center focus-visible:outline-2"
+                >
+                  <Icon name="close" className="size-4" />
+                </button>
+              </div>
+              <p className="text-caption-s text-text-secondary mb-1">예상 발송일 2026.10.12</p>
+              {reward.options[0] && (
+                <Select
+                  aria-label={`${reward.name} ${reward.options[0].groupName}`}
+                  value=""
+                  onChange={(event) =>
+                    setCart((prev) => ({
+                      ...prev,
+                      [reward.id]: addOptionLine(prev[reward.id], event.target.value),
+                    }))
+                  }
+                >
+                  <option value="" disabled>
+                    옵션을 선택해 주세요.
+                  </option>
+                  {reward.options[0].values.map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </Select>
+              )}
+              {lines.map((line, index) => (
+                <div
+                  key={line.value ?? "quantity"}
+                  className="flex flex-wrap items-center justify-between gap-2"
+                >
+                  {line.value && <span className="text-body-s">{line.value}</span>}
+                  <QuantityStepper
+                    label={line.value ?? reward.name}
+                    value={line.quantity}
+                    onChange={(quantity) =>
+                      setCart((prev) => ({
+                        ...prev,
+                        [reward.id]: prev[reward.id].map((entry, i) =>
+                          i === index ? { ...entry, quantity } : entry,
+                        ),
+                      }))
+                    }
+                  />
+                  <span className="text-title-m ml-auto">
+                    {formatWon(reward.price * line.quantity)}
+                  </span>
+                  {line.value && (
+                    <button
+                      type="button"
+                      className="flex size-4 items-center justify-center"
+                      aria-label={`${line.value} 삭제`}
+                      onClick={() =>
+                        setCart((prev) => ({
+                          ...prev,
+                          [reward.id]: prev[reward.id].filter((_, i) => i !== index),
+                        }))
+                      }
+                    >
+                      <Icon name="close" className="size-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </BottomSheet>
   );
 }

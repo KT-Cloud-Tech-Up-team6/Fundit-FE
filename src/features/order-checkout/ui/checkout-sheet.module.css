@@ -1,0 +1,38 @@
+.sheet > div {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sheet > div > div:first-child {
+  position: relative;
+  min-height: 56px;
+  padding: 8px 20px;
+}
+
+.sheet h2 {
+  text-align: center;
+  font-size: var(--text-title-s);
+  line-height: 1.42;
+}
+
+.sheet > div > div:first-child > button {
+  position: absolute;
+  right: 8px;
+  opacity: 0;
+}
+
+.sheet > div > div:first-child > button:focus-visible {
+  opacity: 1;
+}
+
+.sheet > div > div:nth-child(2) {
+  padding: 0 20px 32px;
+}
+
+.sheet > div > div:last-child:not(:nth-child(2)) {
+  border: 0;
+  padding: 8px 20px;
+}
+
+.searchSheet > div > div:first-child > button {
+  opacity: 1;
+}
