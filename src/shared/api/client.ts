@@ -82,7 +82,9 @@ async function refreshOnce(): Promise<string> {
         return accessToken;
       })
       .catch((error: unknown) => {
-        authTokenStore.clear();
+        /* 네트워크 오류·타임아웃·5xx까지 세션 실패로 취급하면 일시적 장애로 강제 로그아웃된다.
+           Refresh Token 자체가 무효하다고 서버가 확인한 401에서만 지운다. */
+        if (error instanceof ApiError && error.status === 401) authTokenStore.clear();
         throw error;
       })
       .finally(() => {

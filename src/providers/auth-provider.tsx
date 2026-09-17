@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const restoreStarted = useRef(false);
   const statusRef = useRef(state.status);
+  /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
+  const restoreSupersededRef = useRef(false);
 
   useEffect(() => {
     statusRef.current = state.status;
@@ -70,11 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const { accessToken } = await refreshAccessToken();
+        if (restoreSupersededRef.current) return;
         authTokenStore.set(accessToken);
         const user = await getMe();
+        if (restoreSupersededRef.current) return;
         dispatch({ accessToken, type: "AUTHENTICATED" });
         dispatch({ type: "USER_LOADED", user });
       } catch {
+        if (restoreSupersededRef.current) return;
         authTokenStore.clear();
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
@@ -85,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       async authenticate(accessToken) {
+        restoreSupersededRef.current = true;
         authTokenStore.set(accessToken);
         dispatch({ accessToken, type: "AUTHENTICATED" });
 
@@ -96,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       clearSession() {
+        restoreSupersededRef.current = true;
         authTokenStore.clear();
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
