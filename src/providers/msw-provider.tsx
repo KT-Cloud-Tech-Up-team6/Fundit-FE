@@ -19,7 +19,14 @@ export function MswProvider({ children, forceEnabled = false }: MswProviderProps
 
     void import("@/mocks/browser")
       .then(({ startMockWorker }) => startMockWorker())
-      .then(() => setReady(true));
+      .then(
+        () => setReady(true),
+        // ponytail: MSW가 안 켜져도 화면을 영원히 막지 않는다. 이후 호출은 실제 네트워크 오류로 드러난다.
+        (error: unknown) => {
+          console.error("[MSW] failed to start", error);
+          setReady(true);
+        },
+      );
   }, [shouldStart]);
 
   return ready ? children : null;

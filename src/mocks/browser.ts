@@ -7,6 +7,9 @@ export const worker = setupWorker(...handlers);
 let workerStart: Promise<unknown> | null = null;
 
 export function startMockWorker() {
-  workerStart ??= worker.start({ onUnhandledRequest: "bypass" });
+  workerStart ??= worker.start({ onUnhandledRequest: "bypass" }).catch((error: unknown) => {
+    workerStart = null;
+    throw error;
+  });
   return workerStart;
 }

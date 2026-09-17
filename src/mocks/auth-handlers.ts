@@ -78,7 +78,10 @@ export const authHandlers = [
 
   http.post("*/api/v1/auth/identity-verifications", async ({ request }) => {
     const body = (await request.json()) as { identityVerificationId?: string };
-    if (body.identityVerificationId?.startsWith("token-invalid")) {
+    if (!body.identityVerificationId) {
+      return error(400, "INVALID_INPUT", "본인인증 식별자를 확인해 주세요.");
+    }
+    if (body.identityVerificationId.startsWith("token-invalid")) {
       return error(401, "TOKEN_INVALID", "본인인증 결과가 만료되었습니다.");
     }
     if (body.identityVerificationId?.startsWith("dependency-failure")) {
