@@ -30,6 +30,7 @@ function ReplayIcon({
     | "previous"
     | "next"
     | "pause"
+    | "play"
     | "viewers";
   small?: boolean;
 }) {
@@ -41,9 +42,10 @@ function ReplayIcon({
       aria-hidden
       className={small ? styles.smallIcon : styles.icon}
       style={{
-        maskImage: ["pause", "previous", "next"].includes(name)
+        maskImage: ["play", "pause", "previous", "next"].includes(name)
           ? `url(/images/buyer-live-replay/${name}.svg)`
           : `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `${folder}/${name}`}.svg)`,
+        maskSize: ["play", "pause"].includes(name) ? "contain" : undefined,
       }}
     />
   );
@@ -140,7 +142,7 @@ export function BuyerLiveReplay({
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <Image src={product.poster} alt="" fill sizes="566px" className={styles.poster} />
       </div>
-      <header className={styles.header}>
+      <header className={`${styles.header} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
         <h1>{clip ? "[제품명] AI 생성 제목" : product.title}</h1>
         <button type="button" aria-label="전체 화면 전환" onClick={fullscreen}>
           <ReplayIcon name="expand" />
@@ -156,7 +158,7 @@ export function BuyerLiveReplay({
               <Avatar size={32}>
                 <Image src={product.avatar} fill sizes="32px" alt="" className="object-cover" />
               </Avatar>
-              <span>{product.seller}</span>
+              <span className="[text-shadow:0_0_4px_rgba(0,0,0,0.3)]">{product.seller}</span>
             </div>
             <Button
               size="sm"
@@ -173,7 +175,7 @@ export function BuyerLiveReplay({
               시연 영상
             </Badge>
           ) : (
-            <div className={styles.metrics}>
+            <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
               <span>
                 <Icon name="funding" className="size-3.5" />
                 000,000
@@ -196,7 +198,7 @@ export function BuyerLiveReplay({
           </>
         )}
         {clip ? (
-          <div className={styles.clipActions}>
+          <div className={`${styles.clipActions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
             <button type="button" aria-pressed={liked} onClick={() => setLiked(!liked)}>
               <ReplayIcon name="heart" />
               좋아요
@@ -220,7 +222,7 @@ export function BuyerLiveReplay({
                 {panel === "chat" && (
                   <section
                     ref={chat}
-                    className={styles.chat}
+                    className={`${styles.chat} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}
                     aria-label="다시보기 채팅 기록"
                     tabIndex={0}
                   >
@@ -283,7 +285,7 @@ export function BuyerLiveReplay({
                   )}
                 </section>
               </div>
-              <div className={styles.actions}>
+              <div className={`${styles.actions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
                 <button
                   type="button"
                   onClick={() => announce("다시보기 Q&A는 아직 연결되지 않은 목업입니다.")}
@@ -370,11 +372,7 @@ export function BuyerLiveReplay({
                     ref={playbackButton}
                     onClick={() => setPlaying(!playing)}
                   >
-                    {playing ? (
-                      <ReplayIcon name="pause" small />
-                    ) : (
-                      <Icon name="play" className="h-3.5 w-5" />
-                    )}
+                    <ReplayIcon name={playing ? "pause" : "play"} small />
                   </button>
                   <button
                     type="button"

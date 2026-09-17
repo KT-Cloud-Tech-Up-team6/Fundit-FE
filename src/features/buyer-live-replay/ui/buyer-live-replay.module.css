@@ -345,13 +345,21 @@
 }
 .caption {
   position: absolute;
-  top: 68%;
+  top: 522px;
   left: 20px;
   right: 20px;
+  height: 38px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: center;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.35;
-  text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+.caption strong {
+  font-size: 28px;
+  font-weight: 700;
 }
 .chapters > button[aria-pressed="true"] b {
   color: var(--text-primary-live);
@@ -378,10 +386,16 @@
   position: absolute;
   top: 128px;
   left: 20px;
-  max-width: 242px;
+  width: min(242px, calc(100% - 40px));
+  height: 40px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   background: rgba(0, 0, 0, 0.8);
   color: var(--text-static-white);
   font-size: 14px;
+  font-weight: 500;
   line-height: 1.42;
 }
 .screen[data-clip="true"]::before {
