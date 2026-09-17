@@ -24,7 +24,7 @@
 - 인증 사용자 요약과 테마처럼 제한된 공유 값만 React Context로 제공합니다.
 - Zustand와 Redux Toolkit은 현재 도입하지 않습니다.
 
-TanStack Query는 도구로 선정했지만 아직 설치하지 않습니다. 첫 API 계약과 MSW handler가 확정되는 기능에서 함께 도입해 사용하지 않는 전역 Provider와 의존성이 먼저 생기지 않게 합니다.
+TanStack Query는 인증 기능에서 처음 도입했습니다(`QueryProvider`, 인증 API의 `useQuery`·`useMutation`). 다른 기능은 각자의 API 계약과 MSW handler가 확정될 때 같은 조건으로 도입해 쓰지 않는 전역 Provider와 의존성이 먼저 생기지 않게 합니다.
 
 ## 선택 배경
 
@@ -150,7 +150,7 @@ MSW는 상태 저장소가 아니라 실제 API와 동일한 HTTP 경계를 제�
 - 실제 API 전환은 base URL과 실행 환경만 바꾸고 query와 컴포넌트는 유지합니다.
 - production bundle에서는 MSW를 실행하지 않습니다.
 
-첫 검증 대상은 인증(약관 조회·로그인·회원가입)입니다. 다음 조건이 갖춰지면 TanStack Query와 MSW를 함께 도입합니다.
+첫 도입 대상은 인증(약관 조회·본인인증·회원가입)이며, 아래 조건을 확인하며 TanStack Query와 MSW를 함께 도입했습니다. 로그인은 화면만 있고 아직 API 연동 전입니다.
 
 1. 약관 조회, 로그인, 회원가입, 본인인증의 Request·Response가 확정됩니다.
 2. 로그인 응답의 accessToken·mustChangePassword, 약관의 code·title·content·required·version 등 화면에 필요한 필드가 확정됩니다.
