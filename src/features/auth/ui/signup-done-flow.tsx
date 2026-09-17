@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Toast } from "@/shared/components/ui/toast";
+
 import { AuthButton } from "./auth-form-controls";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
-import { Toast } from "@/shared/components/ui/toast";
 
 /* 임시 목록이다. 확정 카테고리를 받으면 데이터만 교체한다. */
 const categories = [
@@ -47,7 +48,7 @@ export function SignupDoneFlow({
   return (
     <AuthScreen withHeader={false}>
       {toastVisible ? (
-        <Toast className="mx-auto mt-4 flex items-center justify-between gap-3">
+        <Toast className="fixed top-16 left-1/2 z-20 flex -translate-x-1/2 items-center justify-between gap-3">
           회원가입이 완료되었습니다
           <button
             className="text-text-inverse shrink-0"
@@ -61,7 +62,7 @@ export function SignupDoneFlow({
 
       <AuthTitle>{"가입이 완료되었어요\n관심 카테고리를 골라주세요"}</AuthTitle>
 
-      <ul className="mt-10 grid grid-cols-3 gap-3 pb-24">
+      <ul className="mt-6 flex flex-wrap gap-x-3 gap-y-4 p-2">
         {categories.map((category) => {
           const isSelected = selected.includes(category);
 
@@ -70,11 +71,11 @@ export function SignupDoneFlow({
               <button
                 aria-pressed={isSelected}
                 className={[
-                  "text-caption-s flex aspect-square w-full flex-col items-center justify-end gap-2 rounded-sm p-2",
+                  "text-label-l flex min-h-9 items-center justify-center rounded-full px-4 py-2",
                   "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
                   isSelected
                     ? "bg-layer-surface-primary text-text-inverse"
-                    : "bg-layer-surface-disabled text-text-default",
+                    : "border-w-xs border-border-default bg-layer-surface-default text-text-disabled",
                 ].join(" ")}
                 onClick={() => toggle(category)}
                 type="button"

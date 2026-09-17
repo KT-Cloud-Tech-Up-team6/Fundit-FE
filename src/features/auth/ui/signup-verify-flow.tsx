@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthButton } from "./auth-form-controls";
 import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
 import type { IdentityStatus } from "./auth-identity-verification";
-import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
+import { AuthBottomAction, AuthScreen } from "./auth-screen";
 
 export type SignupVerifyView = IdentityStatus | "done";
 
@@ -35,11 +36,18 @@ export function SignupVerifyFlow({ initialView = "ready" }: SignupVerifyFlowProp
   if (view === "done") {
     return (
       <AuthScreen onBack={() => setView("ready")}>
-        {/* FL_C_ME_AUTH_8은 제목을 가운데 정렬한다. AuthTitle이 정렬을 상속받는다. */}
-        <div className="text-center">
-          <AuthTitle>{"본인 확인이\n완료되었습니다"}</AuthTitle>
+        <div className="flex flex-col items-center pt-14 text-center">
+          <h1 className="text-heading-m text-text-title whitespace-pre-line">
+            {"본인 확인이\n완료되었습니다"}
+          </h1>
+          <Image
+            alt=""
+            className="mt-10 size-[100px]"
+            height={100}
+            src="/images/auth/verification-complete.svg"
+            width={100}
+          />
         </div>
-        <div aria-hidden="true" className="bg-layer-surface-disabled mx-auto mt-18 size-[150px]" />
         <AuthBottomAction>
           <AuthButton onClick={() => router.push("/auth/signup/profile")}>다음</AuthButton>
         </AuthBottomAction>

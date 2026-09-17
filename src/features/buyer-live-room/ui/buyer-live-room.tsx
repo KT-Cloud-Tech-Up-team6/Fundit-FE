@@ -165,7 +165,7 @@ export function BuyerLiveRoom({
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <Image src={product.poster} alt="" fill sizes="566px" className={styles.poster} />
       </div>
-      <header className={styles.header}>
+      <header className={`${styles.header} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
         <h1>{product.title}</h1>
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
@@ -180,7 +180,7 @@ export function BuyerLiveRoom({
             <Avatar size={32}>
               <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
             </Avatar>
-            <span>{product.seller}</span>
+            <span className="[text-shadow:0_0_4px_rgba(0,0,0,0.3)]">{product.seller}</span>
             <Button
               size="sm"
               variant={following ? "primary" : "secondary"}
@@ -191,7 +191,7 @@ export function BuyerLiveRoom({
               {following ? "팔로잉" : "팔로우"}
             </Button>
           </div>
-          <div className={styles.metrics}>
+          <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
             <span aria-label="펀딩 수치 목업">
               <Icon name="funding" className="inline-block size-3.5" />
               000,000
@@ -227,7 +227,7 @@ export function BuyerLiveRoom({
                   aria-live="polite"
                   aria-relevant="additions"
                   tabIndex={0}
-                  className={styles.chat}
+                  className={`${styles.chat} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}
                   data-expanded={chatExpanded}
                   onPointerDown={(event) => {
                     chatPointerStart.current =
@@ -306,7 +306,7 @@ export function BuyerLiveRoom({
                 )}
               </article>
             </div>
-            <div className={styles.actions}>
+            <div className={`${styles.actions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
               <button type="button" aria-haspopup="dialog" onClick={() => setQuestions("compact")}>
                 <RoomIcon name="question" />
                 <span>Q&amp;A</span>

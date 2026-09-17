@@ -18,6 +18,9 @@
 
 ## 확인 경로
 
+- 2026-09-17 재확인한 최신 시청 프레임은 1151:22331이며, 채팅 상태는 1151:22587·1151:22673·1151:22907·1151:22770·1151:22838이다. 작업 히스토리 1116:20608의 9월 16일 17:42 변경에 따라 헤더·채팅·우측 동작·수치에는 검정 30% drop shadow(오프셋 0, CSS blur 2px), 판매자명에는 검정 30% text shadow(오프셋 0, blur 4px)를 적용한다. Figma blur 4px인 컨테이너 효과는 디자인 컨텍스트의 CSS drop-shadow 2px로 변환한다.
+- #128에서 소비자 플로우 1087:18097과 이미지 명세를 재확인했다. 라이브 → 상세 → 리워드 시트는 기존 목업 연결을 유지한다. 인증·결제·배송 및 AI·IVS 실제 연동은 여전히 미구현이다. 댓글 원문은 연결 도구에서 조회하지 못했으며 캔버스 이력·노드 속성·지시문을 기준으로 한다.
+
 - 앱 `/live/demo-live`. 기존 메인의 라이브 카드도 `/live/[liveId]`로 진입한다.
 - Storybook `Features/BuyerLive/Room`. Default, ExpandedChat, Questions, ExpandedQuestions, QuestionNavigation, MessageInput, BlockedMessage.
 - 390px 기준이며 큰 화면은 중앙 정렬한다. OS 상태바·홈 인디케이터·키보드는 복제하지 않는다. 브라우저의 실제 키보드와 VisualViewport 높이를 사용하고 하단 safe area를 적용한다.
