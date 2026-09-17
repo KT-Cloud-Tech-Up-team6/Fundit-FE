@@ -10,6 +10,7 @@ import {
   actionsForStatus,
   demoFundingHistoryItems,
   filterFundingHistory,
+  filterFundingHistoryByPeriod,
   formatDate,
   formatWon,
   fundingHistoryStatusLabel,
@@ -19,9 +20,8 @@ import {
   type FundingPeriod,
 } from "../model/funding-history";
 
-/* ponytail: 펀딩 집계·필터 API가 없어(docs/OPEN_DECISIONS.md P1) 목록은 useState 목업이다.
-   API가 생기면 demoFundingHistoryItems 자리를 서버 응답으로 바꾼다. 기간 필터는 UI만
-   반영하며, 필터링 API·데이터 모델이 확정되면 실제 날짜 비교 로직을 연결한다. */
+/* ponytail: 펀딩 집계 API가 없어(docs/OPEN_DECISIONS.md P1) 목록은 useState 목업이다.
+   API가 생기면 demoFundingHistoryItems 자리를 서버 응답으로 바꾼다. */
 
 const statusFilterOptions = [
   { value: "all", label: "전체" },
@@ -33,10 +33,16 @@ export function FundingHistoryList() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<FundingHistoryStatus | "all">("all");
   const [period, setPeriod] = useState<FundingPeriod>(fundingPeriodOptions[0].value);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   const filtered = useMemo(
-    () => filterFundingHistory(items, query, status),
-    [items, query, status],
+    () =>
+      filterFundingHistoryByPeriod(filterFundingHistory(items, query, status), period, {
+        startDate: customStartDate || undefined,
+        endDate: customEndDate || undefined,
+      }),
+    [items, query, status, period, customStartDate, customEndDate],
   );
 
   return (
@@ -88,6 +94,33 @@ export function FundingHistoryList() {
             />
           </div>
         </div>
+        {period === "custom" && (
+          <div className="flex items-center gap-2" aria-label="직접 기간 선택">
+            <label className="text-caption-m text-text-secondary flex min-w-0 flex-1 items-center gap-1">
+              <span className="sr-only">시작일</span>
+              <input
+                type="date"
+                value={customStartDate}
+                max={customEndDate || undefined}
+                onChange={(event) => setCustomStartDate(event.target.value)}
+                className="border-border-default h-8 min-w-0 flex-1 rounded-xs border px-2"
+              />
+            </label>
+            <span aria-hidden className="text-text-secondary">
+              ~
+            </span>
+            <label className="text-caption-m text-text-secondary flex min-w-0 flex-1 items-center gap-1">
+              <span className="sr-only">종료일</span>
+              <input
+                type="date"
+                value={customEndDate}
+                min={customStartDate || undefined}
+                onChange={(event) => setCustomEndDate(event.target.value)}
+                className="border-border-default h-8 min-w-0 flex-1 rounded-xs border px-2"
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2">

@@ -5,6 +5,7 @@ import {
   demoFundingDetail,
   demoFundingHistoryItems,
   filterFundingHistory,
+  filterFundingHistoryByPeriod,
   formatDate,
   formatWon,
 } from "./funding-history.ts";
@@ -21,6 +22,23 @@ test("상태 필터는 all이면 전체, 아니면 해당 상태만 남긴다", 
   assert.deepEqual(
     filterFundingHistory(items, "", "shipping").map((item) => item.status),
     ["shipping"],
+  );
+});
+
+test("기간 필터는 결제일과 기준일을 비교하고 직접 기간도 적용한다", () => {
+  const items = demoFundingHistoryItems();
+  assert.deepEqual(
+    filterFundingHistoryByPeriod(items, "1m", { referenceDate: "2026-09-17" }).map(
+      (item) => item.id,
+    ),
+    ["in_progress", "completed", "shipping", "delivered"],
+  );
+  assert.deepEqual(
+    filterFundingHistoryByPeriod(items, "custom", {
+      startDate: "2026-09-01",
+      endDate: "2026-09-10",
+    }).map((item) => item.id),
+    ["completed"],
   );
 });
 

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { demoFundingDetail } from "@/features/funding-history/model/funding-history";
 import {
   daysSinceLastRecord,
   demoBuyerFulfillmentState,
@@ -23,10 +24,6 @@ import { MediaLightbox } from "./media-lightbox";
    상태는 목업 + useState로만 들고 있다. 라이트박스·타임라인 펼침 외 상호작용은 없고
    새로고침하면 초기화된다. 계약이 생기면 useState 자리를 서버 상태로 바꾼다. */
 
-const DEMO_PRODUCT = {
-  title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
-};
-
 type BuyerFulfillmentSummaryProps = {
   fundingId: string;
   /** Storybook에서 단계 상태를 바꿔 끼우기 위한 자리. 화면에서는 목업 기본값을 쓴다. */
@@ -40,6 +37,7 @@ export function BuyerFulfillmentSummary({
   initialState,
   today: fixedToday,
 }: BuyerFulfillmentSummaryProps) {
+  const product = demoFundingDetail(fundingId);
   const [today] = useState(() => fixedToday ?? todayValue());
   const [state] = useState<BuyerFulfillmentState>(
     () => initialState ?? demoBuyerFulfillmentState(),
@@ -63,7 +61,7 @@ export function BuyerFulfillmentSummary({
           <Image src="/images/fulfillment/arrow-left.svg" width={20} height={20} alt="" />
         </Link>
         <h1 className="text-title-s text-text-title min-w-0 flex-1 truncate text-center leading-[1.42]">
-          {DEMO_PRODUCT.title}
+          {product.projectTitle}
         </h1>
         <span aria-hidden className="size-10 shrink-0" />
       </header>

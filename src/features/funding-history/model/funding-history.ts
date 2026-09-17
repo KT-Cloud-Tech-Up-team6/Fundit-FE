@@ -31,6 +31,13 @@ export const fundingPeriodOptions = [
 
 export type FundingPeriod = (typeof fundingPeriodOptions)[number]["value"];
 
+export type FundingPeriodRange = {
+  startDate?: string;
+  endDate?: string;
+  /** 테스트·목업에서 기준일을 고정할 때 쓴다. `yyyy-mm-dd` 형식이다. */
+  referenceDate?: string;
+};
+
 export type FundingHistoryAction = {
   label: string;
   href: string;
@@ -88,6 +95,29 @@ export function filterFundingHistory(
       keyword.length === 0 || item.projectTitle.toLowerCase().includes(keyword);
     return matchesStatus && matchesKeyword;
   });
+}
+
+/** 결제일을 선택 기간 안에 포함하는 카드만 남긴다. 날짜는 `yyyy-mm-dd`라 문자열 비교가 가능하다. */
+export function filterFundingHistoryByPeriod(
+  items: FundingHistoryItem[],
+  period: FundingPeriod,
+  {
+    startDate,
+    endDate,
+    referenceDate = new Date().toISOString().slice(0, 10),
+  }: FundingPeriodRange = {},
+): FundingHistoryItem[] {
+  if (period === "custom") {
+    return items.filter(
+      (item) => (!startDate || item.paidAt >= startDate) && (!endDate || item.paidAt <= endDate),
+    );
+  }
+
+  const reference = new Date(`${referenceDate}T00:00:00`);
+  const monthCount = period === "1m" ? 1 : period === "3m" ? 3 : period === "6m" ? 6 : 12;
+  reference.setMonth(reference.getMonth() - monthCount);
+  const periodStart = reference.toISOString().slice(0, 10);
+  return items.filter((item) => item.paidAt >= periodStart && item.paidAt <= referenceDate);
 }
 
 /* Figma FL_B_MY_FUND_CL_1(1165:16434) 카드 4개를 그대로 옮긴 값이다.
