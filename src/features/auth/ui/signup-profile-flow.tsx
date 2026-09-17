@@ -344,6 +344,7 @@ export function SignupProfileFlow({
               {...emailLocalField}
               aria-label="이메일 아이디"
               autoComplete="username"
+              disabled={emailMutation.isPending}
               errorMessage={
                 emailTaken ? "이미 가입된 주소입니다." : form.formState.errors.emailLocal?.message
               }
@@ -359,12 +360,18 @@ export function SignupProfileFlow({
             {usesCustomDomain ? (
               <AuthInput
                 aria-label="이메일 도메인 직접 입력"
+                disabled={emailMutation.isPending}
                 errorMessage={form.formState.errors.customDomain?.message}
                 placeholder="@직접 입력"
                 {...form.register("customDomain")}
               />
             ) : (
-              <Select aria-label="이메일 도메인" shape="compact" {...form.register("domain")}>
+              <Select
+                aria-label="이메일 도메인"
+                disabled={emailMutation.isPending}
+                shape="compact"
+                {...form.register("domain")}
+              >
                 <option value="">@ 선택</option>
                 <option value={CUSTOM_DOMAIN}>직접 입력</option>
                 {emailDomains.map((value) => (
@@ -381,6 +388,7 @@ export function SignupProfileFlow({
         <AuthInput
           aria-label="닉네임"
           autoComplete="nickname"
+          disabled={emailMutation.isPending}
           errorMessage={form.formState.errors.nickname?.message}
           maxLength={50}
           placeholder="닉네임 (최대 50자)"
