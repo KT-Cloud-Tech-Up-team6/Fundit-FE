@@ -26,6 +26,9 @@ export async function requestIdentityVerification(
 
   if (!storeId || !channelKey) {
     // ponytail: 실제 PortOne Store ID와 Channel Key가 생기면 개발 시뮬레이션 대신 SDK 결과를 사용한다.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("PortOne 설정(NEXT_PUBLIC_PORTONE_STORE_ID/CHANNEL_KEY)이 없습니다.");
+    }
     if (options?.redirectUrl && isNarrowViewport()) {
       // 좁은 화면에서는 실제 모바일 리다이렉트처럼 콜백 URL로 이동시켜 그 경로도 테스트할 수 있게 한다.
       const url = new URL(options.redirectUrl, window.location.origin);
