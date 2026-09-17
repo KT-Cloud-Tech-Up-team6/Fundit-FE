@@ -3,7 +3,7 @@
 ## 기준 Figma
 
 - 실제 회원가입 UI: [회원가입 `1007:9253`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1007-9253).
-- 실제 로그인 UI: [로그인 `1012:11465`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1012-11465). 진입(`FL_C_ME_LOGIN_1`)과 이메일 로그인 폼(`FL_C_ME_LOGIN_2` 및 오류·잠금 상태)을 포함한다. 같은 노드 하위의 아이디 찾기(`FL_C_ME_IDFIND_1`)·비밀번호 재설정(`FL_C_ME_PWFIND`)은 아직 반영하지 않았다.
+- 실제 로그인 UI: [로그인 `1012:11465`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1012-11465). 진입(`FL_C_ME_LOGIN_1`), 이메일 로그인 폼(`FL_C_ME_LOGIN_2` 및 오류·잠금 상태), 아이디 찾기(`FL_C_ME_IDFIND_1`)와 비밀번호 재설정(`FL_C_ME_PWFIND`)을 포함한다.
 - 반응형 배치 참고용 와이어프레임: [로그인 반응형 예시 `72:2089`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=72-2089).
 
 ## 적용 원칙
@@ -68,7 +68,6 @@ Figma `1007:9253`은 하나의 정적 화면이 아니라 아래 회원가입 �
 ## 미확정 항목
 
 - 실제 로그인 Figma의 데스크톱 헤더 구성과 모바일 전환 기준(모바일 390px 화면만 반영함)
-- 로그인 화면의 아이디 찾기·비밀번호 재설정 실제 디자인(`FL_C_ME_IDFIND_1`, `FL_C_ME_PWFIND`) 반영 여부
 - Gateway 개발 주소, 쿠키/CORS 설정과 OAuth·PortOne 공개 환경값
 - 법무·기획이 확정한 약관 전문과 약관 버전
 - 관심 카테고리 저장, 이메일 찾기, 비밀번호 재설정과 로그아웃 API 제공 범위
