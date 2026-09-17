@@ -1,6 +1,8 @@
 .track {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
 }
 
 .track::-webkit-scrollbar {
@@ -9,10 +11,14 @@
 
 .slide {
   scroll-snap-align: start;
-  background: #ededed;
+  background: var(--layer-surface-disabled);
 }
 
 .counter {
-  background: #d9d9d9;
+  background: var(--layer-surface-disabled);
   color: var(--text-default);
+}
+
+.track[data-dragging] {
+  cursor: grabbing;
 }

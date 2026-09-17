@@ -73,7 +73,7 @@ export function SignupTermsSheet({
       <div className="flex items-center justify-between">
         <Checkbox
           checked={allChecked}
-          className="[&>span:last-child]:text-title-s"
+          className="[&>span:last-child]:text-body-emphasis"
           indeterminate={checkedIds.length > 0 && !allChecked}
           onChange={(event) => toggleAll(event.target.checked)}
           shape="circle"

@@ -149,14 +149,10 @@ Figma 레이어명(`green` / `bright_green` / `dark_green`)을 그대로 따라 
 | `--color-alpha-30` | `#0000004d` |
 | `--color-alpha-60` | `#00000099` |
 
-### 6.5a Primitive — External brand
+### 6.5a External brand
 
-| 토큰             | 값        | 용도                 |
-| ---------------- | --------- | -------------------- |
-| `--kakao-yellow` | `#fee500` | 카카오 인증 CTA 배경 |
-
-외부 브랜드의 고정 색은 일반 제품 CTA 색과 섞지 않는다. 화면에서는 Primitive를 직접 쓰지
-않고 `Layer/surface_kakao`로 승격한 Semantic을 사용한다.
+카카오 인증 CTA의 `#fee500`처럼 한 컴포넌트에서만 쓰는 외부 브랜드 색은 전역 제품 토큰으로
+승격하지 않고 해당 컴포넌트에 한정한다.
 
 ### 6.6 Semantic / Component
 
@@ -395,7 +391,6 @@ Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모�
 | `layer-surface-disabled`           | `charcoal-100`     | `charcoal-700`        |
 | `layer-surface-primary`            | `charcoal-900`     | `charcoal-200`        |
 | `layer-surface-primary-live`       | `blue-500`         | 동일                  |
-| `layer-surface-kakao`              | `kakao-yellow`     | 동일                  |
 | `layer-surface-primary-disabled`   | `charcoal-200`     | `charcoal-700`        |
 | `layer-surface-primary-hover`      | `charcoal-800`     | 동일                  |
 | `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |

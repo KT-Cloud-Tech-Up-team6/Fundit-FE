@@ -10,6 +10,9 @@ const meta = {
   component: Modal,
   tags: ["autodocs"],
   parameters: { layout: "fullscreen" },
+  argTypes: {
+    size: { control: "radio", options: ["l", "m"] },
+  },
 } satisfies Meta<typeof Modal>;
 
 export default meta;
@@ -69,6 +72,29 @@ export const CreateLiveConfirm: Story = {
               </Button>
             </div>
           </div>
+        </Modal>
+      </div>
+    );
+  },
+};
+
+/* Figma modal_web `l`(996px). AI 스토리 미리보기의 실제 배치다. */
+export const LargeSize: Story = {
+  args: baseArgs,
+  render: function LargeSizeStory() {
+    const [open, setOpen] = useState(true);
+
+    return (
+      <div className="min-h-dvh p-5">
+        <Button onClick={() => setOpen(true)}>모달 열기</Button>
+        <Modal
+          className="h-168"
+          onClose={() => setOpen(false)}
+          open={open}
+          size="l"
+          title="스토리 미리보기"
+        >
+          <p className="text-body-m text-text-default mt-6">기본(m)보다 넓은 996px 폭입니다.</p>
         </Modal>
       </div>
     );

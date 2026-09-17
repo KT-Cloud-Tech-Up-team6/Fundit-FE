@@ -83,7 +83,7 @@ export function AuthSocialButton({
       className={[
         "text-body-emphasis relative flex h-13 w-full items-center justify-center rounded-xs px-4",
         tone === "kakao"
-          ? "bg-layer-surface-kakao text-text-default shadow-light-s"
+          ? "text-text-static-black shadow-light-s bg-[#fee500]"
           : "border-w-xs border-border-default bg-layer-surface-default text-text-secondary",
       ].join(" ")}
       disabled

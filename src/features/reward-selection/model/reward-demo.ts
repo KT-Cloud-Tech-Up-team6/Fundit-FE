@@ -21,6 +21,7 @@ export type Reward = {
   perks: string[];
   /** 메타 줄에 가운뎃점으로 잇는 조각. 예: ["무료배송", "색상 2종"] / ["무료배송", "예상 발송일 2026.09.21"]. */
   meta: string[];
+  shippingNote?: string;
   options: RewardOptionGroup[];
 };
 
@@ -109,6 +110,65 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["복층", "2대 사용 가구 추천"],
+      options: [],
+    },
+  ];
+}
+
+export function designRewards(): Reward[] {
+  return [
+    {
+      id: "reward-starter",
+      name: "가장 먼저 만나는 스타터 세트",
+      price: 199_000,
+      originalPrice: 219_900,
+      earlyBirdRate: 14,
+      isEarlyBird: true,
+      isLimited: true,
+      perks: [],
+      meta: ["무선청소기 본체", "기본 브러쉬", "충전 어댑터"],
+      shippingNote: "무료배송· 예상 발송일 2026.10.12",
+      options: [],
+    },
+    {
+      id: "reward-standard",
+      name: "스탠다드 세트",
+      price: 219_000,
+      isEarlyBird: false,
+      isLimited: false,
+      perks: [],
+      meta: ["무선청소기 본체", "브러쉬 2종", "충전 어댑터"],
+      options: [{ groupName: "색상", values: ["블랙", "화이트"] }],
+    },
+    {
+      id: "reward-all-in-one",
+      name: "한 번에 갖추는 올인원 패키지",
+      price: 269_000,
+      isEarlyBird: false,
+      isLimited: false,
+      perks: ["추가 필터 포함"],
+      meta: ["무선청소기 본체", "브러쉬 4종", "전용 거치대", "추가 필터 2개"],
+      options: [],
+    },
+    {
+      id: "reward-multi-clean",
+      name: "구석부터 침구까지 멀티 클린 세트",
+      price: 239_000,
+      isEarlyBird: false,
+      isLimited: false,
+      perks: [],
+      meta: ["무선청소기 본체", "브러쉬 3종", "충전 어댑터"],
+      options: [],
+    },
+    {
+      id: "reward-family",
+      name: "우리 집과 부모님 댁 패밀리 세트",
+      price: 389_000,
+      originalPrice: 438_000,
+      isEarlyBird: false,
+      isLimited: false,
+      perks: ["함께할수록 더 저렴하게"],
+      meta: ["본체 2대", "기본 브러시 2개", "충전 어댑터 2개"],
       options: [],
     },
   ];

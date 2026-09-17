@@ -33,9 +33,7 @@ test("종료 필터와 정렬은 실제 목록에 적용되며 원본을 변경�
   assert.ok(results.every((project) => !project.closed));
   assert.equal(searchResults({ ...query, closed: true }).projects.length, results.length + 1);
   const sorted = searchResults({ ...query, sort: "popular" }).projects;
-  assert.ok(
-    sorted.every((item, index) => index === 0 || sorted[index - 1].popularity >= item.popularity),
-  );
+  assert.ok(sorted.every((item, index) => index === 0 || sorted[index - 1].likes >= item.likes));
   assert.deepEqual(searchResults(query).projects, results);
   assert.equal(searchResults({ ...query, q: "존재하지않는검색어" }).projects.length, 0);
 });

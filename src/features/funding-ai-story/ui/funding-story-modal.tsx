@@ -82,7 +82,8 @@ export function FundingStoryModal({
       title={
         loading ? "AI가 스토리를 만들고 있어요" : result ? "AI 스토리 결과" : "펀딩 AI 스토리 작성"
       }
-      className={`h-168 ${result ? "w-249!" : ""}`}
+      className="h-168"
+      size={result ? "l" : "m"}
     >
       {loading ? (
         <div

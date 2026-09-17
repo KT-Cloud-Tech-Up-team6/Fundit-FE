@@ -241,6 +241,7 @@ export function CreateLiveButton() {
             <div className="mt-auto flex flex-col gap-1">
               <Checkbox
                 checked={scheduled}
+                shape="circle"
                 onChange={(event) => setScheduled(event.target.checked)}
               >
                 방송 예약하기
@@ -273,10 +274,10 @@ export function CreateLiveButton() {
                   임시저장
                 </button>
                 {/* size="sm"로 두는 건 md가 강제하는 text-title-s(18px)를 피하려는 것.
-                    Figma bottom_bt의 `다음`은 14px Medium이고, 비활성일 때 보조 버튼보다
-                    진한 회색 면 + 흰 글자(layer-surface-primary-disabled)로 구분된다. */}
+                    이 와이어프레임의 disabled는 최신 공용 Button보다 진한 charcoal-500이므로
+                    기존 화면에만 예외를 한정한다. */}
                 <Button
-                  className="text-body-s disabled:bg-layer-surface-primary-disabled disabled:text-text-inverse h-10 w-36 font-medium"
+                  className="text-body-s disabled:text-text-inverse! h-10 w-36 font-medium disabled:bg-[var(--charcoal-500)]!"
                   disabled={!canProceed}
                   onClick={() => setStep("confirm")}
                   size="sm"

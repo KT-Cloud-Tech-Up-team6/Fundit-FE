@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Icon } from "@/shared/components/ui/icon";
+import { Badge } from "@/shared/components/ui/badge";
+import { projectDemo, replayDemos } from "../model/project-demo";
+import { Tooltip } from "@/shared/components/ui/tooltip";
 import styles from "./buyer-project-detail.module.css";
 
 const tabs = [
@@ -41,7 +44,7 @@ function DetailIcon({
 
 function Information({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
-  const tooltip = useRef<HTMLSpanElement>(null);
+  const tooltip = useRef<HTMLDivElement>(null);
   const id = useId();
   useEffect(() => {
     if (!open) return;
@@ -71,44 +74,62 @@ function Information({ label }: { label: string }) {
         <DetailIcon name="info" className="h-3.5 w-4" />
       </button>
       {open && (
-        <span ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
-          <Image src="/icons/buyer-project/tooltip-tail.svg" width={8.925} height={21} alt="" />
-          <span className={styles.tooltipBody}>
-            <span>
-              본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+        <div ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
+          <Tooltip direction="horizontal">
+            <span className="flex flex-col gap-1">
+              <span>
+                본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+              </span>
             </span>
-            <span>
-              다만 일부 표현이나 정보에 오류가 있을 수 있으니, 정확한 사항은 구매 전 문의해 주시기
-              바랍니다.
-            </span>
-          </span>
-        </span>
+          </Tooltip>
+        </div>
       )}
     </span>
   );
 }
 
-function VideoList({ clips = false, onPlay }: { clips?: boolean; onPlay: () => void }) {
+function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
+  const carouselDrag = useHorizontalDrag();
   const title = clips ? "숏 클립" : "종료된 라이브";
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
         {title} <small>3건</small>
       </h3>
-      <div className={styles.carousel} tabIndex={0} role="region" aria-label={`${title} 목록`}>
-        {[1, 2, 3].map((n) => (
-          <article key={n}>
-            <button
-              type="button"
-              onClick={onPlay}
-              aria-label={`${title} ${n} · (프로젝트 명 무선 청소기 입니다.) 재생`}
+      <div
+        {...carouselDrag}
+        className={styles.carousel}
+        tabIndex={0}
+        role="region"
+        aria-label={`${title} 목록`}
+      >
+        {replayDemos.map((video, index) => (
+          <article key={index}>
+            <Link
+              href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
+              aria-label={`${title} ${index + 1} · ${clips ? "[제품명] AI 생성 제목" : video.title} 재생`}
             >
               <span className={styles.videoPoster}>
-                {clips && <span>{n === 2 ? "하이라이트" : "시연 영상"}</span>}
+                <Image
+                  src={clips ? projectDemo.image : projectDemo.poster}
+                  alt=""
+                  fill
+                  sizes="163px"
+                  className="object-cover"
+                />
+                {clips && (
+                  <Badge variant="live" className="relative">
+                    {index === 1 ? "하이라이트" : "시연 영상"}
+                  </Badge>
+                )}
               </span>
-              <span className={styles.videoTitle}>(프로젝트 명 무선 청소기 입니다.)</span>
-              <span className={styles.date}>09.07</span>
-            </button>
+              <span className="text-body-s mt-1 line-clamp-2 font-medium">
+                {clips ? "[제품명] AI 생성 제목" : video.title}
+              </span>
+              <span className="text-caption-s text-text-secondary block">
+                {clips ? "09.07" : video.date}
+              </span>
+            </Link>
           </article>
         ))}
       </div>
@@ -120,11 +141,18 @@ export function BuyerProjectDetail({
   projectId,
   activeTab,
   fundingAction,
+  project = projectDemo,
+  liveId = "demo-live",
+  hasLive = true,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
   fundingAction: ReactNode;
+  project?: typeof projectDemo;
+  liveId?: string;
+  hasLive?: boolean;
 }) {
+  const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,73 +191,95 @@ export function BuyerProjectDetail({
     }
   }
   return (
-    <div className={styles.screen}>
+    <div
+      className={
+        styles.screen +
+        " bg-layer-surface-default text-text-default mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(63px+env(safe-area-inset-bottom))]"
+      }
+    >
       <header className={styles.header}>
         <Link href="/live" aria-label="라이브 목록으로 돌아가기">
           <DetailIcon name="arrow-left" className="size-5" />
         </Link>
         <span>상세페이지</span>
         <button type="button" aria-label="프로젝트 공유" onClick={share}>
-          <DetailIcon name="share" className="h-3.5 w-6" />
+          <DetailIcon name="share" className="size-6" />
         </button>
       </header>
       <main>
-        <div className={styles.hero} role="img" aria-label="상품 이미지 목업 · 1/3">
-          <span className={styles.liveThumbnail}>
-            라이브
-            <br />
-            썸네일
-            <br />
-            -진행중일 시
-          </span>
-          <span className={styles.liveBadge}>
-            <Icon name="live" className="inline-block h-3.5 w-4" /> LIVE
-          </span>
-          <span className={styles.imageLabel}>상품 이미지</span>
-          <span className={styles.pagination}>1/3</span>
+        <div className="bg-layer-bg relative aspect-[390/292] overflow-hidden">
+          <Image src={project.image} alt="" fill sizes="390px" className={styles.heroImage} />
+          {hasLive && (
+            <Link
+              href={`/live/${encodeURIComponent(liveId)}`}
+              aria-label="진행 중 라이브 시청"
+              className="absolute top-5 left-5 flex flex-col gap-1"
+            >
+              <Badge variant="neutral" shape="rounded" className={styles.liveBadge}>
+                <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
+                LIVE
+              </Badge>
+              <div className="border-border-default relative h-30 w-[90px] overflow-hidden rounded-xs border shadow-md">
+                <Image src={project.poster} alt="" fill sizes="90px" className="object-cover" />
+              </div>
+            </Link>
+          )}
+          <Badge variant="neutral" className="absolute right-5 bottom-5">
+            1/3
+          </Badge>
         </div>
-        <section className={styles.summary} aria-label="프로젝트 정보">
-          <p className={styles.seller}>판매자 정보</p>
-          <h1>[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기</h1>
+        <section className="px-5 py-4" aria-label="프로젝트 정보">
+          <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
+          <h1 className="text-title-m">{project.title}</h1>
           <div className={styles.fundingNumbers}>
             <div>
               <p>
-                <strong>10,000</strong> <span>% 달성</span>
+                <strong>{project.rate}</strong> <span>% 달성</span>
               </p>
-              <span className={styles.deadline}>D-28</span>
+              <Badge variant="neutral">D-28</Badge>
             </div>
             <div>
               <p>
-                <b>2,000,000</b> <span className={styles.goal}>/10,000,000원</span>
+                <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
               </p>
               <span className={styles.participants}>100명 참여</span>
             </div>
           </div>
-          <section className={styles.aiSummary} aria-label="AI 프로젝트 요약">
-            <div className={styles.aiHeading}>
-              <h2>AI 프로젝트 요약</h2>
+          <section
+            className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
+            aria-label="AI 프로젝트 요약"
+          >
+            <div className="flex items-center gap-1">
+              <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
+              <h2 className="text-label-l">AI 프로젝트 요약</h2>
               <Information label="AI 프로젝트 요약 안내" />
             </div>
-            {["프로젝트 요약", "프로젝트 요약", "라이브 요약(라이브 미 진행 시 생략)"].map(
+            {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
               (title, i) => (
-                <div className={styles.summaryItem} key={i}>
-                  <h3>
-                    <Image src="/icons/buyer-project/check.svg" width={12} height={12} alt="" />
+                <div className="text-caption-s" key={i}>
+                  <h3 className="flex items-center gap-1 font-medium">
+                    <Image
+                      src="/images/buyer-project/summary-check.svg"
+                      width={12}
+                      height={12}
+                      alt=""
+                    />
                     {title}
                   </h3>
-                  <p>뭐시기저시기</p>
+                  <p className="pl-4">상세 내용</p>
                 </div>
               ),
             )}
           </section>
         </section>
-        <nav className={styles.tabs} aria-label="프로젝트 상세 탭">
+        <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
           {tabs.map(([value, label]) => (
             <Link
+              scroll={false}
+              className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
               key={value}
               ref={value === activeTab ? selectedTab : undefined}
               href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
-              scroll={false}
               aria-current={value === activeTab ? "page" : undefined}
             >
               {label}
@@ -238,7 +288,7 @@ export function BuyerProjectDetail({
           ))}
         </nav>
         {activeTab === "story" ? (
-          <section className={styles.story} aria-label="상품 소개">
+          <section className={styles.story + " relative mx-5 mt-4 mb-8"} aria-label="상품 소개">
             <div className={styles.storyImage}>
               <Image
                 src="/images/buyer-project/story.png"
@@ -248,36 +298,32 @@ export function BuyerProjectDetail({
                 unoptimized
               />
             </div>
-            <p>예시 이미지로, 자세한 결과물은 AI측의 솔루션에 따라 바뀔 것 같습니다</p>
           </section>
         ) : (
-          <div className={styles.liveContent}>
-            <section aria-label="LIVE 다시 보기" className={styles.replays}>
+          <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
+            <section aria-label="LIVE 다시 보기" className="flex min-w-0 flex-col gap-3">
               <h2>
-                <DetailIcon name="replay" className="size-3.5" />
+                <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
                 LIVE 다시 보기 <small>3건</small>
               </h2>
-              <VideoList onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")} />
-              <VideoList
-                clips
-                onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")}
-              />
+              <VideoList liveId={liveId} />
+              <VideoList clips liveId={liveId} />
             </section>
-            <section className={styles.questions} aria-label="LIVE Q&A">
-              <div className={styles.questionHeading}>
+            <section className="flex flex-col gap-6" aria-label="LIVE Q&A">
+              <div className="-mb-3 flex items-center gap-1">
                 <h2>
-                  <DetailIcon name="question-filled" className="h-3.5 w-5" />
-                  LIVE Q&amp;A <small>3건</small>
+                  <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
+                  LIVE Q&amp;A <small>5건</small>
                 </h2>
                 <Information label="LIVE Q&A 안내" />
               </div>
-              {[1, 2, 3].map((n) => (
+              {[1, 2, 3, 4, 5].map((n) => (
                 <article key={n}>
                   <h3>로보락이 뭐예요?</h3>
-                  <p className={styles.date}>12건 · 09.07</p>
-                  <div className={styles.answer}>
+                  <p className="text-caption-s text-text-secondary block">12건 · 09.07</p>
+                  <div className="border-border-default text-body-s mt-2 flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
                     <p>무선 청소기 입니다.</p>
-                    <p className={styles.date}>판매자 · 09.07</p>
+                    <p className="text-caption-s text-text-secondary block">판매자 · 09.07</p>
                   </div>
                 </article>
               ))}
@@ -285,15 +331,15 @@ export function BuyerProjectDetail({
           </div>
         )}
       </main>
-      <footer className={styles.footer}>
+      <footer className={`${styles.footer} border-border-default border-t`}>
         <button
           type="button"
           aria-label="프로젝트 찜"
           aria-pressed={liked}
           onClick={() => setLiked(!liked)}
         >
-          <DetailIcon name="heart" className="h-3.5 w-6" />
-          <span>{activeTab === "live-proof" ? "9999+" : 9999 + Number(liked)}</span>
+          <DetailIcon name="heart" className="size-6" />
+          <span>9999+</span>
         </button>
         {fundingAction}
       </footer>

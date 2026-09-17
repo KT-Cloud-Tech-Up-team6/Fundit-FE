@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Fragment, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
@@ -37,7 +38,7 @@ export function BuyerWishlist({
   const [sellers, setSellers] = useState(initialEmpty ? [] : wishlistSellers);
   const count = tab === "projects" ? projects.length : sellers.length;
   return (
-    <BuyerAccountScreen title="관심 목록">
+    <BuyerAccountScreen title="관심 목록" className="w-full">
       <TabList
         aria-label="관심 목록 종류"
         selectedIndex={tab === "projects" ? 0 : 1}
@@ -65,7 +66,7 @@ export function BuyerWishlist({
         aria-labelledby={`wishlist-${tab}`}
         className="px-5 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))]"
       >
-        <p role="status" className="mb-3 text-[0.875rem] leading-[1.5] font-medium">
+        <p role="status" className="text-text-disabled text-body-s mb-3">
           총 {count}개
         </p>
         {count === 0 ? (
@@ -76,18 +77,18 @@ export function BuyerWishlist({
           <div className="space-y-3">
             {projects.map((project, index) => (
               <Fragment key={project.id}>
-                <ProjectRow project={project} thumbnailClassName="w-[39%]">
+                <ProjectRow project={project} thumbnailClassName="w-[41.14%]">
                   <button
                     type="button"
                     aria-label={`${project.title} 찜 해제`}
-                    className="bg-layer-surface-primary text-text-inverse flex size-[30px] shrink-0 items-center justify-center rounded-full"
+                    className="bg-layer-surface-primary text-text-inverse flex size-9 shrink-0 items-center justify-center rounded-full"
                     onClick={() =>
                       setProjects((items) => items.filter((item) => item.id !== project.id))
                     }
                   >
                     <span
                       aria-hidden
-                      className="size-4 bg-current [mask-image:url('/icons/buyer-wishlist/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
+                      className="size-4 bg-current [mask-image:url('/icons/buyer-account/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
                     />
                   </button>
                 </ProjectRow>
@@ -106,7 +107,7 @@ export function BuyerWishlist({
                     setSellers((items) => items.filter((item) => item.id !== seller.id))
                   }
                 />
-                {index === 4 && <Advertisement />}
+                {index === 5 && <Advertisement />}
               </Fragment>
             ))}
           </div>
@@ -118,11 +119,14 @@ export function BuyerWishlist({
 
 function Advertisement() {
   return (
-    <aside
-      aria-label="광고 영역"
-      className="bg-layer-surface-disabled text-body-s my-5 flex h-[88px] items-center justify-center rounded-xs"
-    >
-      광고
+    <aside aria-label="광고 영역" className="relative my-5 h-[88px] overflow-hidden rounded-xs">
+      <Image
+        src="/images/buyer-category/promotion.png"
+        alt="벨로라 건강 음료 프로모션"
+        fill
+        sizes="350px"
+        className="object-cover object-top"
+      />
     </aside>
   );
 }

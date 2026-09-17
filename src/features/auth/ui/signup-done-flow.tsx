@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Toast } from "@/shared/components/ui/toast";
+
 import { AuthButton } from "./auth-form-controls";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 
@@ -46,10 +48,7 @@ export function SignupDoneFlow({
   return (
     <AuthScreen withHeader={false}>
       {toastVisible ? (
-        <div
-          className="bg-layer-overlay text-text-static-white text-caption-m fixed top-16 left-1/2 z-20 flex w-[min(300px,calc(100vw-40px))] -translate-x-1/2 items-center justify-between gap-3 rounded-sm px-4 py-3"
-          role="status"
-        >
+        <Toast className="fixed top-16 left-1/2 z-20 flex -translate-x-1/2 items-center justify-between gap-3">
           회원가입이 완료되었습니다
           <button
             className="text-text-inverse shrink-0"
@@ -58,7 +57,7 @@ export function SignupDoneFlow({
           >
             확인
           </button>
-        </div>
+        </Toast>
       ) : null}
 
       <AuthTitle>{"가입이 완료되었어요\n관심 카테고리를 골라주세요"}</AuthTitle>

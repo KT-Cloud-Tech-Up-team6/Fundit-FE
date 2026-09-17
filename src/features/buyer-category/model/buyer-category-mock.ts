@@ -18,8 +18,30 @@ const placeholderSubcategories: readonly BuyerSubcategory[] = [
 ];
 
 export const buyerCategories: readonly BuyerCategory[] = [
-  { slug: "tech-appliances", name: "테크·가전", subcategories: placeholderSubcategories },
-  { slug: "home-living", name: "홈·리빙", subcategories: placeholderSubcategories },
+  {
+    slug: "tech-appliances",
+    name: "테크·가전",
+    subcategories: [
+      { slug: "computers", name: "컴퓨터·노트북" },
+      { slug: "mobile", name: "모바일·태블릿" },
+      { slug: "audio", name: "음향기기" },
+      { slug: "large-appliances", name: "대형가전" },
+      { slug: "kitchen-appliances", name: "생활·주방가전" },
+      { slug: "beauty-appliances", name: "미용·건강가전" },
+      { slug: "cameras", name: "스마트·디카" },
+    ],
+  },
+  {
+    slug: "home-living",
+    name: "홈·리빙",
+    subcategories: [
+      { slug: "bedding", name: "침구·커튼" },
+      { slug: "furniture", name: "가구·인테리어" },
+      { slug: "kitchen", name: "주방용품" },
+      { slug: "bathroom", name: "생활·욕실용품" },
+      { slug: "storage", name: "수납·정리" },
+    ],
+  },
   { slug: "beauty", name: "뷰티", subcategories: placeholderSubcategories },
   { slug: "fashion", name: "패션", subcategories: placeholderSubcategories },
   { slug: "food", name: "푸드", subcategories: placeholderSubcategories },
@@ -29,6 +51,7 @@ export const buyerCategories: readonly BuyerCategory[] = [
   { slug: "pets", name: "반려동물", subcategories: placeholderSubcategories },
   { slug: "books", name: "도서", subcategories: placeholderSubcategories },
   { slug: "games", name: "게임", subcategories: placeholderSubcategories },
+  { slug: "children", name: "아동", subcategories: placeholderSubcategories },
 ];
 
 export function getBuyerCategory(slug: string) {

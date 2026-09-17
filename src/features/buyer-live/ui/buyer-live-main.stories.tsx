@@ -17,6 +17,7 @@ export const SubscriptionKeyboard: Story = {
     const canvas = within(canvasElement);
     const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
     const nextButton = subscriptions.getAllByRole("button")[2];
+    await userEvent.tab();
     for (const article of subscriptions.getAllByRole("article")) {
       const card = within(article);
       const title = card.getByRole("heading").textContent;
@@ -43,6 +44,7 @@ export const RecommendationKeyboard: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const recommendations = within(canvas.getByRole("region", { name: "추천 라이브" }));
+    await userEvent.tab();
     for (const count of [20, 30]) {
       recommendations.getByRole("button", { name: "추천 라이브 더 불러오기" }).focus();
       await userEvent.keyboard("{Enter}");
@@ -64,10 +66,7 @@ export const UpcomingNoFollowing: Story = {
     const canvas = within(canvasElement);
     expect(canvas.queryByRole("region", { name: "팔로우한 판매자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "알림 신청한 라이브" })).toBeInTheDocument();
-    expect(canvas.getByRole("link", { name: "예정 라이브" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(canvas.getByRole("link", { name: "예정 LIVE" })).toHaveAttribute("aria-current", "page");
   },
 };
 
@@ -134,7 +133,7 @@ export const SearchAndNavigation: Story = {
     expect(search).toHaveValue("로보락");
     await userEvent.click(canvas.getByRole("button", { name: "검색어 지우기" }));
     expect(search).toHaveValue("");
-    expect(canvas.getByRole("link", { name: "예정 라이브" })).toHaveAttribute(
+    expect(canvas.getByRole("link", { name: "예정 LIVE" })).toHaveAttribute(
       "href",
       "/live/upcoming",
     );

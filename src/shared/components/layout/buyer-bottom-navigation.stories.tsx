@@ -60,4 +60,10 @@ export const Live: Story = {};
 export const Home: Story = { args: { activeHref: "/" } };
 export const Categories: Story = { args: { activeHref: "/categories" } };
 export const My: Story = { args: { activeHref: "/my" } };
-export const NoSelection: Story = { args: { activeHref: undefined } };
+
+/* activeHref를 안 주면 현재 경로로 스스로 판단한다(SellerNavLink와 같은 방식). 네 탭 중
+   어디에도 속하지 않는 경로를 목(mock)으로 줘서 "판단할 활성 탭이 없는" 경우를 재현한다. */
+export const NoSelection: Story = {
+  args: { activeHref: undefined },
+  parameters: { nextjs: { navigation: { pathname: "/search" } } },
+};
