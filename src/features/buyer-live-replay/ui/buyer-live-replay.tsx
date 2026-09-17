@@ -30,6 +30,7 @@ function ReplayIcon({
     | "previous"
     | "next"
     | "pause"
+    | "play"
     | "viewers";
   small?: boolean;
 }) {
@@ -41,9 +42,10 @@ function ReplayIcon({
       aria-hidden
       className={small ? styles.smallIcon : styles.icon}
       style={{
-        maskImage: ["pause", "previous", "next"].includes(name)
+        maskImage: ["play", "pause", "previous", "next"].includes(name)
           ? `url(/images/buyer-live-replay/${name}.svg)`
           : `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `${folder}/${name}`}.svg)`,
+        maskSize: ["play", "pause"].includes(name) ? "contain" : undefined,
       }}
     />
   );
@@ -370,11 +372,7 @@ export function BuyerLiveReplay({
                     ref={playbackButton}
                     onClick={() => setPlaying(!playing)}
                   >
-                    {playing ? (
-                      <ReplayIcon name="pause" small />
-                    ) : (
-                      <Icon name="play" className="h-3.5 w-5" />
-                    )}
+                    <ReplayIcon name={playing ? "pause" : "play"} small />
                   </button>
                   <button
                     type="button"
