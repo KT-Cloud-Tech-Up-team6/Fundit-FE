@@ -32,6 +32,14 @@ export function SignupTermsSheet({
     initialCheckedIds.length > 0 ? initialCheckedIds : selectedTermCodes,
   );
   const [detailCode, setDetailCode] = useState<string | undefined>(initialDetailId);
+
+  /* 시트는 SignupFlow에 항상 마운트돼 있어(open만 토글) resetFlow()가 selectedTermCodes를
+     비워도 이 로컬 state는 안 비워진다. 다시 열릴 때마다 최신 selectedTermCodes로 맞춘다. */
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setCheckedCodes(initialCheckedIds.length > 0 ? initialCheckedIds : selectedTermCodes);
+  }
   const termsQuery = useQuery({
     enabled: open,
     queryFn: ({ signal }) => getTerms({ signal }),
