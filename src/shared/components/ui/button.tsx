@@ -37,9 +37,15 @@ const ctaSizeClasses: Record<ButtonSize, string> = {
   xl: "h-13 text-body-strong",
 };
 
-/* ponytail: Foundations의 Button은 primary / primary_live 둘뿐이라 보조 CTA variant가 없다.
-   Foundations에 secondary가 생기면 Button variant로 올린다. 그 전까지는 이 클래스 조합을
-   여러 화면이 그대로 가져다 쓴다(live-create, project-story 등) — 각자 복붙하지 않는다. */
+/* primary 계열의 disabled는 Figma Button 토큰을, secondary는 일반 disabled surface를 쓴다. */
+const disabledBgByVariant: Record<ButtonVariant, string> = {
+  primary: "disabled:bg-layer-surface-primary-disabled",
+  primaryLive: "disabled:bg-layer-surface-primary-disabled",
+  secondary: "disabled:bg-layer-surface-disabled",
+};
+
+/* 기존 화면의 네이티브 button 사용처를 위한 호환 클래스다. 신규 코드는 Button의
+   secondary variant를 사용하고, 기존 사용처는 별도 정리 작업에서 순차적으로 옮긴다. */
 export const secondaryButtonClasses = [
   "text-body-s bg-layer-surface-disabled text-text-default rounded-xs",
   "flex items-center justify-center whitespace-nowrap",
@@ -64,7 +70,8 @@ export function Button({
         "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
         shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
         "focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:bg-layer-surface-disabled disabled:text-text-disabled disabled:cursor-not-allowed",
+        "disabled:text-text-disabled disabled:cursor-not-allowed",
+        disabledBgByVariant[variant],
         variantClasses[variant],
         appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
         className,
