@@ -22,7 +22,7 @@ export const Empty: Story = {
   args: { initial: null },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "배송지 입력" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "신규 배송지" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "우편번호 찾기" })).toBeInTheDocument();
     await expect(canvas.getByLabelText("우편번호")).toHaveAttribute("readonly");
     await expect(canvas.getByRole("button", { name: "저장" })).toBeDisabled();

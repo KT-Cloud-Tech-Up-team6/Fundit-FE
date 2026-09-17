@@ -36,7 +36,7 @@ export const List: Story = {
 
     // 다른 쿠폰으로 바꾸고 저장 → 그 id 가 onApply 로 넘어간다.
     await userEvent.click(canvas.getByRole("radio", { name: "3,000원 할인 쿠폰" }));
-    await userEvent.click(canvas.getByRole("button", { name: "저장" }));
+    await userEvent.click(canvas.getByRole("button", { name: "적용" }));
     await expect(args.onApply).toHaveBeenCalledWith("flat-3000");
   },
 };
@@ -46,7 +46,7 @@ export const SelectNone: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("radio", { name: "사용하지 않음" }));
-    await userEvent.click(canvas.getByRole("button", { name: "저장" }));
+    await userEvent.click(canvas.getByRole("button", { name: "적용" }));
     await expect(args.onApply).toHaveBeenCalledWith(null);
   },
 };

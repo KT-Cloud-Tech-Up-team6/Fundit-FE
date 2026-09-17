@@ -22,21 +22,21 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await expect(canvas.getByRole("heading", { name: "펀딩 참여가 완료됐어요!" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "펀딩 참여가 완료되었어요" })).toBeVisible();
     await expect(canvas.getByText("예상 발송일 2026.11.02")).toBeVisible();
 
     // 영수증 행
     await expect(canvas.getByText("주문번호").nextElementSibling).toHaveTextContent(
-      "FD20261108-000123",
+      "DEMO-20260901-000123",
     );
-    await expect(canvas.getByText("결제금액").nextElementSibling).toHaveTextContent("39,000원");
+    await expect(canvas.getByText("결제금액").nextElementSibling).toHaveTextContent("199,000원");
     await expect(canvas.getByText("주문자").nextElementSibling).toHaveTextContent(
       "홍길동 · 010-1111-2222",
     );
 
     await expect(canvas.getByText(/초 후 펀딩내역 화면으로 자동 이동합니다/)).toBeVisible();
-    // 공유 연동 전까지 비활성
-    await expect(canvas.getByRole("button", { name: "프로젝트 공유하기" })).toBeDisabled();
+    // 현재 주문의 프로젝트 링크 공유
+    await expect(canvas.getByRole("button", { name: "프로젝트 공유" })).toBeEnabled();
     await expect(canvas.getByRole("button", { name: "펀딩내역 보기" })).toBeEnabled();
   },
 };

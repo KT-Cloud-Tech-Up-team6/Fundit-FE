@@ -138,7 +138,7 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무선청소기 본체", "브러쉬 2종", "충전 어댑터"],
-      options: [{ groupName: "색상", values: ["블랙", "화이트"] }],
+      options: [],
     },
     {
       id: "reward-all-in-one",
