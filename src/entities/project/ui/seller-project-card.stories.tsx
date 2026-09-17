@@ -13,17 +13,22 @@ const active: SellerProject = {
   ...funding,
   status: "active",
   id: "p-1",
+  thumbnail: "/images/seller-projects/project-01.jpeg",
   title: "친환경 소재로 만든 데일리 백",
-  badges: ["D-12", "목표 달성"],
+  badges: [
+    { label: "D-12", variant: "warning" },
+    { label: "목표 달성", variant: "success" },
+  ],
   currentAmount: 6_400_000,
 };
 
 const draft: SellerProject = {
   status: "draft",
   id: "p-3",
+  thumbnail: "/images/seller-projects/project-04.jpeg",
   title: "친환경 소재로 만든 100% 오가닉! 데일리 백",
-  badges: ["D-12"],
-  progressLabel: "스토리 작성 중 · 60% 완료",
+  badges: [{ label: "D-12", variant: "neutral" }],
+  draftPhaseLabel: "스토리 작성중",
   openScheduledAt: "2026.09.21",
   updatedAt: "2026.08.26 12:54",
 };
@@ -32,14 +37,15 @@ const closed: SellerProject = {
   ...funding,
   status: "closed",
   id: "p-c1",
+  thumbnail: "/images/seller-projects/project-03.jpeg",
   title: "친환경 소재로 만든 데일리 백",
-  badges: ["배송 준비 중"],
+  badges: [{ label: "배송 완료", variant: "neutral" }],
   currentAmount: 1_600_000,
 };
 
 /* SellerProject 가 status 기준 유니온이라 Meta<typeof SellerProjectCard> 로 두면
    args 가 never 로 좁혀진다. args 타입을 직접 지정한다. */
-const meta: Meta<SellerProject> = {
+const meta: Meta = {
   title: "Entities/Project/SellerProjectCard",
   component: SellerProjectCard,
   tags: ["autodocs"],
@@ -54,7 +60,7 @@ const meta: Meta<SellerProject> = {
 };
 
 export default meta;
-type Story = StoryObj<SellerProject>;
+type Story = StoryObj;
 
 /** 진행중. 모금액과 진행률 바를 노출하고 액션은 펀딩 현황으로 간다. */
 export const Active: Story = { args: active };
@@ -67,7 +73,14 @@ export const Closed: Story = { args: closed };
 
 /** 달성률 100% 이상이면 진행률 바가 가득 찬다. */
 export const GoalReached: Story = {
-  args: { ...active, badges: ["D-12", "목표 달성"], currentAmount: 6_400_000 },
+  args: {
+    ...active,
+    badges: [
+      { label: "D-12", variant: "warning" },
+      { label: "목표 달성", variant: "success" },
+    ],
+    currentAmount: 6_400_000,
+  },
 };
 
 export const Gallery: Story = {

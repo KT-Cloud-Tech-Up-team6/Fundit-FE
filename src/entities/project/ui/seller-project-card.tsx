@@ -1,30 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
+import { type SellerProject } from "@/entities/project/model/seller-project";
+import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { ProgressBar } from "@/shared/components/ui/progress-bar";
 
-type SellerProjectBase = {
-  id: string;
-  title: string;
-  badges: readonly string[];
-};
-
-export type SellerProject = SellerProjectBase &
-  (
-    | {
-        status: "draft";
-        progressLabel: string;
-        openScheduledAt: string;
-        updatedAt: string;
-      }
-    | {
-        status: "active" | "closed";
-        category: string;
-        period: string;
-        participantCount: number;
-        currentAmount: number;
-        goalAmount: number;
-      }
-  );
+export type { SellerProject } from "@/entities/project/model/seller-project";
 
 /* IA FL_S_PR_LIST → FL_S_PR_DTL. 상태별 기본 진입 탭이 달라 목적지도 갈린다. */
 const destinations = {
@@ -33,30 +15,37 @@ const destinations = {
   closed: (id: string) => `/seller/projects/${id}?tab=fulfillment`,
 } as const;
 
-const actionLabels = { draft: "관리", active: "관리", closed: "확인하기" } as const;
-
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
 export function SellerProjectCard(project: SellerProject) {
   const href = destinations[project.status](project.id);
 
   return (
-    <article className="border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:h-[146px] md:flex-row md:items-start md:justify-between md:gap-6">
+    <article
+      className={`border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:flex-row md:items-start md:justify-between md:gap-6 ${project.status === "draft" ? "md:h-[136px]" : "md:h-[148px]"}`}
+    >
       <div className="flex min-w-0 flex-1 gap-4 md:gap-6">
-        <div className="bg-border-default text-body-s text-text-primary-live flex size-[81px] shrink-0 items-center justify-center">
-          IMG
+        <div className="bg-layer-bg size-[82px] shrink-0 overflow-hidden rounded-xs">
+          <Image
+            src={project.thumbnail}
+            alt=""
+            width={82}
+            height={82}
+            className="size-full object-cover"
+          />
         </div>
         <div className="flex min-w-0 flex-1 flex-col md:max-w-[268px]">
-          <h3 className="text-body-strong truncate">
-            <Link href={href} className="hover:underline">
-              {project.title}
-            </Link>
-          </h3>
-
           {project.status === "draft" ? (
             <>
-              <p className="text-title-s mt-0.5 truncate">{project.progressLabel}</p>
-              <dl className="text-caption-m text-text-secondary mt-4">
+              <Badge size="sm" variant="info">
+                {project.draftPhaseLabel}
+              </Badge>
+              <h3 className="text-body-strong mt-1 truncate">
+                <Link href={href} className="hover:underline">
+                  {project.title}
+                </Link>
+              </h3>
+              <dl className="text-caption-m text-text-secondary mt-1">
                 <div className="flex gap-1">
                   <dt>오픈 예정일</dt>
                   <dd>{project.openScheduledAt}</dd>
@@ -69,6 +58,11 @@ export function SellerProjectCard(project: SellerProject) {
             </>
           ) : (
             <>
+              <h3 className="text-body-strong truncate">
+                <Link href={href} className="hover:underline">
+                  {project.title}
+                </Link>
+              </h3>
               <p className="text-caption-m text-text-secondary flex min-w-0 items-center gap-1 truncate">
                 <span>{project.category}</span>
                 <span aria-hidden>·</span>
@@ -91,20 +85,19 @@ export function SellerProjectCard(project: SellerProject) {
       <div className="flex w-full shrink-0 items-center justify-between gap-2 md:h-[106px] md:w-34 md:flex-col md:items-end md:justify-between">
         <div className="flex min-w-0 flex-wrap gap-1">
           {project.badges.map((badge) => (
-            <span
-              key={badge}
-              className="text-caption-s bg-layer-surface-disabled text-text-default flex h-6 min-w-[66px] items-center justify-center rounded-full px-2 whitespace-nowrap"
-            >
-              {badge}
-            </span>
+            <Badge key={badge.label} variant={badge.variant} size="md" shape="rounded">
+              {badge.label}
+            </Badge>
           ))}
         </div>
-        <Link
+        <Button
           href={href}
-          className="text-body-s bg-layer-surface-disabled focus-visible:outline-border-primary hover:bg-layer-surface-disabled-hover flex h-9 w-28 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 md:w-full"
+          variant="secondary"
+          size="md"
+          className="text-caption-m! h-9! w-28 shrink-0 font-medium! md:w-full"
         >
-          {actionLabels[project.status]}
-        </Link>
+          관리
+        </Button>
       </div>
     </article>
   );
@@ -130,7 +123,7 @@ function FundingProgress({
           <ProgressBar knob={false} value={rate} aria-label="목표 대비 달성률" />
         </div>
         <span aria-hidden className="text-title-s w-14 shrink-0 text-right">
-          {rate} %
+          {rate}%
         </span>
       </div>
     </>

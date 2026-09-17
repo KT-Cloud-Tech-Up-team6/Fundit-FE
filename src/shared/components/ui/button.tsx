@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ComponentPropsWithRef } from "react";
 
 type ButtonVariant = "primary" | "primaryLive" | "secondary";
@@ -9,6 +10,8 @@ type ButtonProps = ComponentPropsWithRef<"button"> & {
   size?: ButtonSize;
   appearance?: ButtonAppearance;
   shape?: "default" | "pill";
+  /** 버튼 모양을 유지한 페이지 이동. 중첩 interactive 요소를 만들지 않는다. */
+  href?: string;
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -61,24 +64,49 @@ export function Button({
   appearance = "default",
   shape = "default",
   type = "button",
+  href,
+  disabled = false,
   ...props
 }: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={[
-        "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
-        shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
-        "focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:text-text-disabled disabled:cursor-not-allowed",
-        disabledBgByVariant[variant],
-        variantClasses[variant],
-        appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      {...props}
-    />
-  );
+  const classNames = [
+    "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
+    shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
+    "focus-visible:outline-2 focus-visible:outline-offset-2",
+    "disabled:text-text-disabled disabled:cursor-not-allowed",
+    disabledBgByVariant[variant],
+    variantClasses[variant],
+    appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
+    href &&
+      disabled &&
+      (variant === "secondary"
+        ? "bg-layer-surface-disabled text-text-disabled cursor-not-allowed"
+        : "bg-layer-surface-primary-disabled text-text-disabled cursor-not-allowed"),
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  if (href) {
+    if (disabled) {
+      return (
+        <Link
+          href={href}
+          aria-disabled="true"
+          tabIndex={-1}
+          className={classNames}
+          onClick={(event) => event.preventDefault()}
+        >
+          {props.children}
+        </Link>
+      );
+    }
+
+    return (
+      <Link href={href} className={classNames}>
+        {props.children}
+      </Link>
+    );
+  }
+
+  return <button type={type} className={classNames} disabled={disabled} {...props} />;
 }
