@@ -39,7 +39,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
   - 기록은 날짜 최신순으로 정렬합니다(1165:15797). 요약은 최신 기록을 항상 펼치고 과거 기록은 개별 토글합니다. 전체 이력은 선택한 단계의 모든 기록을 줄 수 제한 없이 표시합니다. 완료 단계에는 업데이트 배지를 표시하지 않습니다.
   - 1165:16037·16046 지시대로 하단 콘텐츠 여백은 32px + 기기 safe area이고, 더보기는 상단 요약에 둡니다. 사진은 Figma 원본 에셋이며 클릭하면 기존 라이트박스를 엽니다. 완료 배지는 Figma의 `#eeeef0/#53545c`가 현재 공통 status/info·text/info 토큰과 달라 화면 한정 색상 예외로 적용합니다.
   - 기본 날짜·내용은 Figma 예시(2026.09.28 기준)로 고정합니다. #70의 7일 미갱신 안내·기록 없음·미시작·완료 처리는 유지합니다. 실제 주문별 프로젝트/제작 현황 조회·인증·5단계 ↔ 배송·배송완료 enum 매핑은 `docs/OPEN_DECISIONS.md` P1이며, 판매자 상태 저장과 연동되지 않습니다.
-- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소) 원본 모두 자체 상단 앱바(뒤로가기·제목·알림)를 가진 몰입형 화면이라 BuyerShell을 쓰지 않는 `(buyer-funding)` 그룹에 두며, `(buyer-fulfillment)`와 같은 이유입니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`은 같은 `funding-history` 슬라이스의 목업이고, 카드별 상태(펀딩 진행 중·완료·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. 취소 사유 목록과 환불 계산(수수료 0·적립금 0 고정)은 배송·환불 정책 미확정(P2)에 따른 placeholder이며, 취소 확인 후에는 제출 API가 없어 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
+- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)(이후 [필수 산출물 섹션 `1143:22492`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1143-22492)로 최신화)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소/반품·교환) 원본은 자체 상단 앱바(뒤로가기·제목·알림)를 가져 BuyerShell을 쓰지 않는 `(buyer-funding)` 그룹에 두며, 하단 메뉴는 `/my`와 동일한 공통 `compact` 네비게이션을 사용합니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`·`.../refund/new`는 같은 `funding-history` 슬라이스의 목업이고, 카드별 상태(펀딩 진행 중·펀딩 완료·제작 중·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. `FundingCancel` 컴포넌트는 `variant="cancel"`(펀딩 취소, 사진 첨부 없음)과 `variant="return"`(펀딩 반품/교환, 사진 첨부·배송비 포함)을 함께 렌더링합니다. 취소 사유 목록과 환불 계산(수수료 0·적립금 0 고정)은 배송·환불 정책 미확정(P2)에 따른 placeholder이며, 확인 후에는 제출 API가 없어 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
 
 ## 공통·인증
 
@@ -102,7 +102,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
-| `/my/fundings/[fundingId]/refund/new`          | 취소·하자·지연 환불 신청 | owner + eligible | placeholder        |
+| `/my/fundings/[fundingId]/refund/new`          | 펀딩 반품·교환           | owner + eligible | implemented (목업) |
 | `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented (목업) |
 | `/my/wishlist`                                 | 관심 목록                | member           | implemented (목업) |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |

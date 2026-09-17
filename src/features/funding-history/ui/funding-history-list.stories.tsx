@@ -19,7 +19,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 진입 기본값 — 4개 상태 카드가 모두 보이고 각 카드는 상태에 맞는 액션 버튼을 가진다. */
+/** 진입 기본값 — Figma의 4개 상태 카드와 액션 구성을 보여준다. */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -27,6 +27,7 @@ export const Default: Story = {
     await expect(canvas.getByText("총 4개")).toBeVisible();
 
     await expect(canvas.getByRole("heading", { name: "펀딩 진행 중" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "펀딩 완료" })).toBeVisible();
     await expect(canvas.getByRole("heading", { name: "배송 중" })).toBeVisible();
 
     const shippingActions = canvas.getByRole("heading", { name: "배송 중" }).closest("article")!;
@@ -42,7 +43,7 @@ export const SearchNoResult: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.type(
-      canvas.getByPlaceholderText("프로젝트를 검색해보세요"),
+      canvas.getByPlaceholderText("검색어를 입력하세요"),
       "존재하지않는프로젝트",
     );
     await expect(canvas.getByText("조건에 맞는 참여 내역이 없어요.")).toBeVisible();
@@ -54,7 +55,8 @@ export const SearchNoResult: Story = {
 export const FilterByStatus: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.selectOptions(canvas.getByLabelText("상태 필터"), "delivered");
+    await userEvent.click(canvas.getByRole("button", { name: "상태 필터" }));
+    await userEvent.click(canvas.getByRole("option", { name: "배송 완료" }));
     await expect(canvas.getByText("총 1개")).toBeVisible();
     await expect(canvas.getByRole("heading", { name: "배송 완료" })).toBeVisible();
     await expect(canvas.queryByRole("heading", { name: "펀딩 진행 중" })).toBeNull();
