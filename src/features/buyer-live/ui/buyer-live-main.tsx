@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { Avatar } from "@/shared/components/ui/avatar";
@@ -85,11 +86,24 @@ function StatusBadge({
   );
 }
 
-function Section({ title, href, children }: { title: string; href?: string; children: ReactNode }) {
+function Section({
+  title,
+  href,
+  children,
+  className = "",
+}: {
+  title: string;
+  href?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section aria-label={title} className="flex min-w-0 flex-col gap-3">
+    <section
+      aria-label={title}
+      className={`flex min-w-0 flex-col gap-3 min-[1200px]:mx-auto min-[1200px]:w-full min-[1200px]:max-w-300 min-[1200px]:gap-6 ${className}`}
+    >
       <div className="flex h-7 items-center justify-between gap-2">
-        <h2 className="text-title-m text-text-title">{title}</h2>
+        <h2 className="text-title-m text-text-title min-[1200px]:text-heading-l">{title}</h2>
         {href && (
           <TextLink href={href} aria-label={title + " 전체보기"}>
             전체보기
@@ -101,10 +115,20 @@ function Section({ title, href, children }: { title: string; href?: string; chil
   );
 }
 
-function LiveCard({ id, compact = false }: { id: string; compact?: boolean }) {
+function LiveCard({
+  id,
+  compact = false,
+  desktopOnly = false,
+}: {
+  id: string;
+  compact?: boolean;
+  desktopOnly?: boolean;
+}) {
   const data = getLiveDemo(id);
   return (
-    <article className={compact ? "w-41 min-w-0 shrink-0" : "min-w-0"}>
+    <article
+      className={`${compact ? "w-41 min-w-0 shrink-0 min-[1200px]:w-[226px]" : "min-w-0"} ${desktopOnly ? "hidden min-[1200px]:block" : ""}`}
+    >
       <Link
         href={"/live/" + id}
         className="flex flex-col gap-2"
@@ -120,7 +144,7 @@ function LiveCard({ id, compact = false }: { id: string; compact?: boolean }) {
             src={data.image}
             alt=""
             fill
-            sizes="(max-width: 390px) 44vw, 169px"
+            sizes="(min-width: 1200px) 226px, (max-width: 390px) 44vw, 169px"
             className="object-cover"
           />
           <span className="absolute top-1 right-2">
@@ -128,7 +152,9 @@ function LiveCard({ id, compact = false }: { id: string; compact?: boolean }) {
           </span>
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">{data.title}</h3>
+          <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
+            {data.title}
+          </h3>
           <Seller data={data} />
         </div>
         {data.reasons && (
@@ -167,7 +193,7 @@ function ScheduleMedia({
         src={data.image}
         alt=""
         fill
-        sizes="(max-width: 390px) 44vw, 169px"
+        sizes="(min-width: 1200px) 226px, (max-width: 390px) 44vw, 169px"
         className="object-cover"
       />
       <span className="bg-layer-overlay absolute inset-0" />
@@ -197,6 +223,7 @@ export function BuyerLiveMain({
   const [announcement, setAnnouncement] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
   const carouselDrag = useHorizontalDrag();
+  const followingDrag = useHorizontalDrag();
   const sentinel = useRef<HTMLDivElement>(null);
   const recommendationList = useRef<HTMLDivElement>(null);
   const subscriptionList = useRef<HTMLDivElement>(null);
@@ -278,18 +305,23 @@ export function BuyerLiveMain({
     return (base + Number(notifications.has(id))).toLocaleString("ko-KR");
   }
 
-  function scheduledCard(id: string, compact = false) {
+  function scheduledCard(id: string, compact = false, desktopOnly = false) {
     const data = getLiveDemo(id, true);
     return (
       <article
         key={id}
-        className={`flex min-w-0 flex-col gap-2 ${compact ? "w-[153px] shrink-0" : ""}`}
+        className={`flex min-w-0 flex-col gap-2 ${compact ? "w-[153px] shrink-0 min-[1200px]:w-[226px]" : ""} ${desktopOnly ? "hidden min-[1200px]:flex" : ""}`}
       >
         <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-2">
-          <ScheduleMedia id={id} className="aspect-square" />
+          <ScheduleMedia
+            id={id}
+            className={compact ? "aspect-square" : "aspect-square min-[1200px]:aspect-[3/4]"}
+          />
           <div className="flex flex-col gap-1">
             {compact && <Seller data={data} />}
-            <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">{data.title}</h3>
+            <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
+              {data.title}
+            </h3>
           </div>
         </Link>
         {!compact && <Seller data={data} />}
@@ -300,38 +332,47 @@ export function BuyerLiveMain({
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(54px+env(safe-area-inset-bottom))]`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:max-w-none min-[1200px]:pb-0`}
     >
-      <header className="flex items-center gap-4 py-2 pr-3 pl-5">
-        <form action="/live/search" role="search" className="min-w-0 flex-1">
-          <SearchField name="q" aria-label="라이브 검색" placeholder="검색어를 입력해주세요" />
-        </form>
-        <Link
-          href="/my/notifications"
-          aria-label="알림함"
-          className="flex size-10 shrink-0 items-center justify-center"
-        >
-          <Icon name="bell" className="size-6" />
-        </Link>
-      </header>
-      <TabList mode="nav" aria-label="라이브 탐색" className="w-full">
-        <Tab href="/live" selected={!upcoming} variant="primaryLive" className="text-body-m w-1/2!">
-          실시간
-        </Tab>
-        <Tab
-          href="/live/upcoming"
-          selected={upcoming}
-          variant="primaryLive"
-          className="text-body-m w-1/2!"
-        >
-          예정 LIVE
-        </Tab>
-      </TabList>
-      <main className="bg-layer-bg flex flex-col gap-3">
-        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4">
+      <BuyerDesktopHeader />
+      <div className="min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:h-[138px] min-[1200px]:max-w-300 min-[1200px]:items-center min-[1200px]:justify-center min-[1200px]:gap-10">
+        <header className="flex items-center gap-4 py-2 pr-3 pl-5 min-[1200px]:order-2 min-[1200px]:w-[614px] min-[1200px]:p-0">
+          <form action="/live/search" role="search" className="min-w-0 flex-1">
+            <SearchField name="q" aria-label="라이브 검색" placeholder="검색어를 입력해주세요" />
+          </form>
+          <Link
+            href="/my/notifications"
+            aria-label="알림함"
+            className="flex size-10 shrink-0 items-center justify-center min-[1200px]:hidden"
+          >
+            <Icon name="bell" className="size-6" />
+          </Link>
+        </header>
+        <TabList mode="nav" aria-label="라이브 탐색" className="w-full min-[1200px]:w-[390px]">
+          <Tab
+            href="/live"
+            selected={!upcoming}
+            variant="primaryLive"
+            className="text-body-m w-1/2!"
+          >
+            실시간
+          </Tab>
+          <Tab
+            href="/live/upcoming"
+            selected={upcoming}
+            variant="primaryLive"
+            className="text-body-m w-1/2!"
+          >
+            예정 LIVE
+          </Tab>
+        </TabList>
+      </div>
+      <main className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-col gap-3 min-[1200px]:gap-16 min-[1200px]:px-5 min-[1200px]:pt-12 min-[1200px]:pb-16">
+        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 min-[1200px]:contents">
           <h1 className="sr-only">{upcoming ? "예정 라이브" : "라이브 메인"}</h1>
           {(!upcoming || hasFollowing) && (
             <Section
+              className={upcoming ? "min-[1200px]:order-3" : "min-[1200px]:order-1"}
               title={upcoming ? "팔로우한 판매자" : "신규 오픈"}
               href={upcoming ? "/live/following" : "/live/new"}
             >
@@ -342,26 +383,29 @@ export function BuyerLiveMain({
                 className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
                 {...carouselDrag}
               >
-                {[1, 2, 3, 4].map((n) =>
+                {[1, 2, 3, 4, 5, 6].map((n) =>
                   upcoming ? (
-                    scheduledCard(`follow-${n}`, true)
+                    scheduledCard(`follow-${n}`, true, n > 4)
                   ) : (
-                    <LiveCard key={n} id={`new-${n}`} compact />
+                    <LiveCard key={n} id={`new-${n}`} compact desktopOnly={n > 4} />
                   ),
                 )}
               </div>
             </Section>
           )}
-          <Section title={upcoming ? "9/8일 (화) 예정된 라이브" : "실시간 순위"}>
-            <ol className="flex flex-col gap-4">
-              {[1, 2, 3, 4, 5].map((rank) => (
-                <li key={rank}>
+          <Section
+            className="min-[1200px]:order-2"
+            title={upcoming ? "9/8일 (화) 예정된 라이브" : "실시간 순위"}
+          >
+            <ol className="flex flex-col gap-4 min-[1200px]:grid min-[1200px]:grid-cols-2 min-[1200px]:gap-x-24">
+              {Array.from({ length: upcoming ? 8 : 10 }, (_, i) => i + 1).map((rank) => (
+                <li key={rank} className={rank > 5 ? "hidden min-[1200px]:block" : ""}>
                   {upcoming ? (
                     <article className="flex gap-3">
                       <Link
                         href={getUpcomingProjectHref(`scheduled-${rank}`)}
                         aria-label={`${rank}번째 예정 라이브 보기`}
-                        className="w-[150px] max-w-[44%] shrink-0"
+                        className="w-[150px] max-w-[44%] shrink-0 min-[1200px]:w-[186px]"
                       >
                         <ScheduleMedia id={`scheduled-${rank}`} className="aspect-[3/4]" large />
                       </Link>
@@ -373,7 +417,7 @@ export function BuyerLiveMain({
                           <span className="text-label-m text-text-secondary">
                             {getLiveDemo(`scheduled-${rank}`).category}
                           </span>
-                          <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
+                          <h3 className="min-[1200px]:text-title-m line-clamp-3 text-[16px] leading-6 font-semibold">
                             {getLiveDemo(`scheduled-${rank}`).title}
                           </h3>
                           <span className="text-label-m text-text-secondary mt-1">
@@ -393,7 +437,7 @@ export function BuyerLiveMain({
                     </article>
                   ) : (
                     <Link href={`/live/rank-${rank}`} className="flex gap-3">
-                      <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1">
+                      <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1 min-[1200px]:w-[186px]">
                         <Image
                           src={getLiveDemo(`rank-${rank}`).image}
                           alt=""
@@ -417,11 +461,19 @@ export function BuyerLiveMain({
                             <span className="text-label-m text-text-secondary">
                               {getLiveDemo(`rank-${rank}`).category}
                             </span>
-                            <h3 className="line-clamp-3 text-[16px] leading-6 font-semibold">
+                            <h3 className="min-[1200px]:text-title-m line-clamp-3 text-[16px] leading-6 font-semibold">
                               {getLiveDemo(`rank-${rank}`).title}
                             </h3>
                           </div>
-                          <span className="text-title-s text-text-primary-live">10,000% 달성</span>
+                          <span className="text-title-s text-text-primary-live">
+                            <span className="min-[1200px]:hidden">10,000</span>
+                            <span className="hidden min-[1200px]:inline">
+                              {[16000, 120000, 11000, 10900, 9000, 9700, 8080, 8000, 17000, 10000][
+                                rank - 1
+                              ].toLocaleString("ko-KR")}
+                            </span>
+                            % 달성
+                          </span>
                         </div>
                         <Seller ranking data={getLiveDemo(`rank-${rank}`)} />
                       </div>
@@ -446,10 +498,20 @@ export function BuyerLiveMain({
             )}
           </Section>
         </div>
-        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 pb-10">
+        <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 pb-10 min-[1200px]:contents">
           {!upcoming && hasFollowing && (
-            <Section title="팔로우한 판매자" href="/live/following">
-              <div className="grid grid-cols-2 gap-3">
+            <Section
+              className="min-[1200px]:order-3"
+              title="팔로우한 판매자"
+              href="/live/following"
+            >
+              <div
+                {...followingDrag}
+                tabIndex={0}
+                role="region"
+                aria-label="팔로우한 판매자 라이브 목록"
+                className={`${styles.carousel} grid grid-cols-2 gap-3 min-[1200px]:flex min-[1200px]:overflow-x-auto min-[1200px]:[&>article]:w-[226px] min-[1200px]:[&>article]:shrink-0`}
+              >
                 {[1, 2, 3, 4].map((n) => (
                   <LiveCard key={n} id={`follow-${n}`} />
                 ))}
@@ -457,8 +519,15 @@ export function BuyerLiveMain({
             </Section>
           )}
           {upcoming && (
-            <Section title="알림 신청한 라이브" href="/my/notifications">
-              <div ref={subscriptionList} className="flex flex-col gap-3">
+            <Section
+              className="min-[1200px]:order-4"
+              title="알림 신청한 라이브"
+              href="/my/notifications"
+            >
+              <div
+                ref={subscriptionList}
+                className="flex flex-col gap-3 min-[1200px]:grid min-[1200px]:grid-cols-3 min-[1200px]:gap-6"
+              >
                 {Array.from(notifications).map((id) => (
                   <article key={id} className="flex gap-3">
                     <Link
@@ -471,7 +540,7 @@ export function BuyerLiveMain({
                     <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
                       <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-1">
                         <Seller data={getLiveDemo(id, true)} />
-                        <h3 className="text-body-s line-clamp-2 leading-[1.42] font-medium">
+                        <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
                           {scheduledTitle(id)}
                         </h3>
                       </Link>
@@ -492,8 +561,11 @@ export function BuyerLiveMain({
               )}
             </Section>
           )}
-          <Section title="추천 라이브">
-            <div ref={recommendationList} className="grid grid-cols-2 gap-x-3 gap-y-4">
+          <Section className="min-[1200px]:order-5" title="추천 라이브">
+            <div
+              ref={recommendationList}
+              className="grid grid-cols-2 gap-x-3 gap-y-4 min-[1200px]:grid-cols-5 min-[1200px]:gap-x-4 min-[1200px]:gap-y-6"
+            >
               {Array.from({ length: visibleCount }, (_, i) =>
                 upcoming ? (
                   scheduledCard(`recommended-${i + 1}`)
@@ -529,7 +601,7 @@ export function BuyerLiveMain({
         activeHref="/live"
         aria-label="LIVE 화면 하단 메뉴"
         flat
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2 min-[1200px]:hidden"
       />
     </div>
   );

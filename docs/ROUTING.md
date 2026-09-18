@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 LIVE 목록·프로젝트 상세의 1200px 이상 데스크톱 확장은 [Figma `1419:48997`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1419-48997)와 #154 기준이다. 텍스트·박스 지시 및 구현·미연동 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md#데스크톱-확장-154), [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md#데스크톱-확장-154)에 기록한다. 기존 구매자 URL과 모바일 흐름을 유지한다.
+
 - 판매자 펀딩 관리는 [최신 Figma `1328:48252`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1328-48252)와 [Issue #150](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/150)을 기준으로 합니다. 화면 `1328:48253`, 요약 `1328:48257`, 참여 현황 `1328:48313`, 리워드 표 `1328:48370`, 화면 정의 `1328:48379`, 이력 `1328:49904`와 섹션 전체 이미지를 확인했습니다. 섹션 내부 `interaction_spec`·개발자 주석·prototype reaction은 검사 결과 없습니다.
 - `/seller/projects/vacuum-cleaner?tab=funding`에서 최신 화면을 확인합니다. 프로젝트 목록의 기존 목업 ID·제목·썸네일·금액·후원자 수를 재사용하며, 다른 프로젝트에 청소기의 상세 통계를 복제하지 않습니다. 알려지지 않은 ID나 준비중 프로젝트로 펀딩 현황을 직접 요청하면 404입니다. 상세 목업이 없는 기존 프로젝트는 추가 집계값을 `—`, 리워드 표를 정보 없음으로 표시합니다.
 - 2026-09-18 사용자 승인에 따라 원본의 제작·배송 breadcrumb는 `내 프로젝트 > 펀딩 관리`, 복귀는 `/seller/projects`로 맞춥니다. 원본에서 서로 다른 요약·참여 금액은 같은 데이터로 표시하고, 청소기 리워드 예시 5행의 합계도 모금액 1,280,000원에 맞춥니다. 달성률 128%는 숫자와 접근성 정보로 유지하고 막대는 100%까지 채웁니다. 목표 달성 배지는 목업 금액이 양수 목표액 이상일 때 표시하며 D-day는 기존 목록의 목업 문구입니다. 운영 상태·집계 정책을 확정한 것은 아닙니다.

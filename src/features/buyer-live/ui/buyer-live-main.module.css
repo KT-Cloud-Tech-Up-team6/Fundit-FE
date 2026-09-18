@@ -39,6 +39,13 @@
   --text-secondary: var(--text-static-white);
 }
 
+@media (min-width: 1200px) {
+  .liveBadge {
+    background-color: var(--layer-surface-primary-live);
+    color: var(--text-static-white);
+  }
+}
+
 .rankingBadge,
 .reasonBadge {
   --text-secondary: var(--text-info);

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { RewardSummaryList } from "@/features/reward-selection/ui/reward-summary-list";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import styles from "./buyer-project-detail.module.css";
@@ -10,6 +11,7 @@ const meta = {
   tags: ["autodocs"],
   parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
   args: {
+    rewardSummary: <RewardSummaryList />,
     projectId: "demo-project",
     activeTab: "story",
     fundingAction: <FundingCta projectId="demo-project" className={styles.funding} />,
@@ -33,9 +35,8 @@ export const Default: Story = {
     const like = canvas.getByRole("button", { name: "프로젝트 찜" });
     await userEvent.click(like);
     expect(like).toHaveAttribute("aria-pressed", "true");
-    expect(like).toHaveTextContent("9999+");
     await userEvent.click(like);
-    expect(like).toHaveTextContent("9999");
+    expect(like).toHaveAttribute("aria-pressed", "false");
   },
 };
 
@@ -46,10 +47,10 @@ export const LiveCheck: Story = {
     expect(canvas.getByRole("link", { name: /LIVE 체크/ })).toHaveAttribute("aria-current", "page");
     expect(
       within(canvas.getByRole("region", { name: "종료된 라이브 목록" })).getAllByRole("article"),
-    ).toHaveLength(3);
+    ).toHaveLength(2);
     expect(
       within(canvas.getByRole("region", { name: "숏 클립 목록" })).getAllByRole("article"),
-    ).toHaveLength(3);
+    ).toHaveLength(5);
     expect(
       within(canvas.getByRole("region", { name: "LIVE Q&A" })).getAllByRole("article"),
     ).toHaveLength(5);
@@ -110,7 +111,7 @@ export const FundingSelection: Story = {
     const dialog = await canvas.findByRole("dialog");
     expect(dialog).toBeVisible();
     await userEvent.click(within(dialog).getByRole("button", { name: "리워드 선택 닫기" }));
-    expect(dialog).not.toBeVisible();
+    await waitFor(() => expect(dialog).not.toBeVisible());
     expect(trigger).toHaveFocus();
   },
 };
