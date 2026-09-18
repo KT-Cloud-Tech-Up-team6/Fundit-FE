@@ -136,6 +136,7 @@ export function Button(props: ButtonProps) {
           "rel",
           "replace",
           "scroll",
+          "tabIndex",
           "target",
           "transitionTypes",
         ]),
