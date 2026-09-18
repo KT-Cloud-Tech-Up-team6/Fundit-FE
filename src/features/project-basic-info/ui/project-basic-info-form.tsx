@@ -355,7 +355,7 @@ export function ProjectBasicInfoForm({
               type="button"
               variant="secondary"
               size="lg"
-              className="text-body-strong! w-[186px]"
+              className="text-body-strong! w-[186px] font-semibold!"
               onClick={() => {
                 setFormMessageRole("status");
                 setFormMessage("목업 임시저장입니다. 새로고침하면 입력이 초기화됩니다.");
