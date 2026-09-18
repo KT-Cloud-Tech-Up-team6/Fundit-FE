@@ -1,7 +1,7 @@
 "use client";
 
 import { Placeholder } from "@tiptap/extensions";
-import { AllSelection } from "@tiptap/pm/state";
+import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { useRef, useState } from "react";
 import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
@@ -294,8 +294,12 @@ export function StoryEditor({
             if (!editor) return;
             const chain = editor.chain().focus();
             if (editor.state.selection instanceof AllSelection) {
-              // 인용구 뒤에 자동 추가되는 빈 문단이 전체 선택에 포함되지 않도록 한다.
-              chain.setTextSelection({ from: 1, to: editor.state.doc.content.size - 1 });
+              // 영상 등 텍스트가 없는 노드를 제외한 유효한 텍스트 경계로 선택한다.
+              const { doc } = editor.state;
+              const start = TextSelection.findFrom(doc.resolve(0), 1, true);
+              const end = TextSelection.findFrom(doc.resolve(doc.content.size), -1, true);
+              if (!start || !end) return;
+              chain.setTextSelection({ from: start.from, to: end.to });
             }
             chain.toggleBlockquote().run();
           }}
