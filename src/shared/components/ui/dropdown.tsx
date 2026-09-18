@@ -145,7 +145,7 @@ export function Dropdown({
         aria-expanded={open && !disabled}
         aria-controls={open && !disabled ? listId : undefined}
         className={[
-          "bg-layer-surface-default text-text-default focus-visible:outline-border-primary disabled:text-text-disabled flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed",
+          "bg-layer-surface-default text-text-default focus-visible:outline-border-primary disabled:bg-layer-surface-disabled disabled:text-text-disabled flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:border-transparent",
           sizes[size],
         ].join(" ")}
         onClick={(event) => {
