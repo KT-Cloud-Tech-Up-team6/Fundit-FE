@@ -12,7 +12,7 @@ const projects: readonly SellerProject[] = [
   {
     id: "vacuum-cleaner",
     status: "active",
-    thumbnail: "/images/seller-projects/project-01.jpeg",
+    thumbnail: "/images/funding-status/vacuum-cleaner.png",
     title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
     badges: [
       { label: "D-12", variant: "neutral" },
@@ -109,6 +109,10 @@ const projects: readonly SellerProject[] = [
     goalAmount: Number(goalAmount),
   })),
 ];
+
+export function getSellerProject(projectId: string): SellerProject | undefined {
+  return projects.find((project) => project.id === projectId);
+}
 
 export function getSellerProjectList(query: SellerProjectListQuery): SellerProjectListResult {
   const search = query.search?.trim().toLocaleLowerCase("ko-KR") ?? "";

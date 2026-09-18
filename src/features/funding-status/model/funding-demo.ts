@@ -1,3 +1,6 @@
+import { getSellerProject } from "@/entities/project/model/seller-project-demo";
+import type { SellerProjectBadge } from "@/entities/project/model/seller-project";
+
 /* 펀딩 관리 현황(FL_S_FD_STATUS)의 화면 데이터와 순수 헬퍼.
    ponytail: 펀딩 집계 API가 없어(docs/OPEN_DECISIONS.md P1) 값은 목업 상수다.
    API가 생기면 이 파일의 타입을 응답 스키마에 맞추고 포맷 헬퍼는 그대로 재사용한다. */
@@ -6,15 +9,17 @@ export type FundingPeriod = { start: string; end: string };
 
 export type FundingSummary = {
   title: string;
+  thumbnail: string;
   category: string;
   period: FundingPeriod;
   goalAmount: number;
   raisedAmount: number;
   backerCount: number;
-  wishlistCount: number;
-  openAlertCount: number;
+  wishlistCount: number | null;
+  openAlertCount: number | null;
   /** 남은 기간 배지 문구. 펀딩 상태 enum이 미확정(P1)이라 문자열 그대로 둔다. */
   dday: string;
+  closedBadge: SellerProjectBadge | null;
 };
 
 export type RewardStatusRow = {
@@ -53,18 +58,32 @@ export function formatPeriod({ start, end }: FundingPeriod): string {
   return `${dot(start)} - ${dot(end)}`;
 }
 
-export function demoFundingSummary(): FundingSummary {
-  return {
-    title: "친환경 소재로 만든 데일리 백",
-    category: "가방",
-    period: { start: "2026-07-01", end: "2026-08-12" },
-    goalAmount: 5_000_000,
-    raisedAmount: 6_400_000,
-    backerCount: 132,
-    wishlistCount: 132,
-    openAlertCount: 132,
-    dday: "D-NN",
+export function getFundingDemo(projectId: string) {
+  const project = getSellerProject(projectId);
+  if (!project || project.status === "draft") return undefined;
+  const [start, end] = project.period.split(" - ");
+  const hasDetails = project.id === "vacuum-cleaner";
+  const summary: FundingSummary = {
+    title: project.title,
+    thumbnail: project.thumbnail,
+    category: project.category,
+    period: { start, end },
+    goalAmount: project.goalAmount,
+    raisedAmount: project.currentAmount,
+    backerCount: project.participantCount,
+    wishlistCount: hasDetails ? 132 : null,
+    openAlertCount: hasDetails ? 132 : null,
+    dday: project.status === "closed" ? "종료" : project.badges[0].label,
+    closedBadge: project.status === "closed" ? project.badges[0] : null,
   };
+  return {
+    summary,
+    rewards: hasDetails ? demoRewardRows() : [],
+  };
+}
+
+export function demoFundingSummary(): FundingSummary {
+  return getFundingDemo("vacuum-cleaner")!.summary;
 }
 
 export function demoRewardRows(): RewardStatusRow[] {
@@ -73,6 +92,6 @@ export function demoRewardRows(): RewardStatusRow[] {
     name: "리워드 이름이 얼마나 길까요 이정도?",
     option: "화이트",
     quantity: 100,
-    amount: 3_200_000,
+    amount: 256_000,
   }));
 }

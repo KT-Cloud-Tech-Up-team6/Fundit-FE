@@ -6,6 +6,11 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 판매자 펀딩 관리는 [최신 Figma `1328:48252`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1328-48252)와 [Issue #150](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/150)을 기준으로 합니다. 화면 `1328:48253`, 요약 `1328:48257`, 참여 현황 `1328:48313`, 리워드 표 `1328:48370`, 화면 정의 `1328:48379`, 이력 `1328:49904`와 섹션 전체 이미지를 확인했습니다. 섹션 내부 `interaction_spec`·개발자 주석·prototype reaction은 검사 결과 없습니다.
+- `/seller/projects/vacuum-cleaner?tab=funding`에서 최신 화면을 확인합니다. 프로젝트 목록의 기존 목업 ID·제목·썸네일·금액·후원자 수를 재사용하며, 다른 프로젝트에 청소기의 상세 통계를 복제하지 않습니다. 알려지지 않은 ID나 준비중 프로젝트로 펀딩 현황을 직접 요청하면 404입니다. 상세 목업이 없는 기존 프로젝트는 추가 집계값을 `—`, 리워드 표를 정보 없음으로 표시합니다.
+- 2026-09-18 사용자 승인에 따라 원본의 제작·배송 breadcrumb는 `내 프로젝트 > 펀딩 관리`, 복귀는 `/seller/projects`로 맞춥니다. 원본에서 서로 다른 요약·참여 금액은 같은 데이터로 표시하고, 청소기 리워드 예시 5행의 합계도 모금액 1,280,000원에 맞춥니다. 달성률 128%는 숫자와 접근성 정보로 유지하고 막대는 100%까지 채웁니다. 목표 달성 배지는 목업 금액이 양수 목표액 이상일 때 표시하며 D-day는 기존 목록의 목업 문구입니다. 운영 상태·집계 정책을 확정한 것은 아닙니다.
+- PDF 다운로드는 비활성화합니다. 하단은 1페이지와 비활성 이전·다음만 표시하며, PDF 출력 범위와 페이지네이션 대상·크기·정렬 규칙은 정의 확정 후 연결합니다. 실제 집계 API·권한 검증은 미연동입니다. 커뮤니티·정산 링크의 목적지는 기존 placeholder이며 해당 화면 구현은 포함하지 않습니다. 모바일 별도 원본은 지정 섹션에 없으므로 기존 반응형 관례로 카드 줄바꿈과 표 내부 가로 스크롤을 적용합니다.
+
 - 구매자 취소·환불·교환 내역은 [BUYER_REFUNDS.md](./BUYER_REFUNDS.md)를 참고한다. `/my/refunds`는 전용 `(buyer-refunds)` 그룹의 조회 목업이며 삭제된 저장 버튼은 포함하지 않는다.
 
 - 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
@@ -115,20 +120,20 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 판매자
 
-| URL                                                  | 화면                    | 접근 조건               | 상태                                   |
-| ---------------------------------------------------- | ----------------------- | ----------------------- | -------------------------------------- |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                            |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                            |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                            |
-| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                            |
-| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                            |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                            |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                            |
-| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                            |
+| URL                                                  | 화면                    | 접근 조건               | 상태                                             |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------ |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                      |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                      |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                      |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`funding`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                                      |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                      |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                      |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                      |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                      |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.
 
