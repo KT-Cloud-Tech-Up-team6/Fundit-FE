@@ -58,3 +58,23 @@ test("ended sessions reject replies and publish only answered unique questions",
   assert.deepEqual(published.publishedIds, ["gap"]);
   assert.deepEqual(ended.publishedIds, []);
 });
+
+test("manual completion never invents an answer or sends a chat", () => {
+  const live = createConsoleDemo("live");
+  const completed = consoleDemoReducer(live, { type: "complete", questionId: "models" });
+  assert.ok(completed.completedIds.includes("models"));
+  assert.equal(completed.answers.models, undefined);
+  assert.equal(completed.messages, live.messages);
+  const repeated = consoleDemoReducer(completed, { type: "complete", questionId: "models" });
+  assert.equal(repeated.completedIds.filter((id) => id === "models").length, 1);
+  const ended = consoleDemoReducer(completed, { type: "end" });
+  assert.deepEqual(
+    consoleDemoReducer(ended, { type: "publish", ids: ["models"] }).publishedIds,
+    [],
+  );
+  for (const phase of ["ready", "ended"]) {
+    const state = createConsoleDemo(phase);
+    assert.equal(consoleDemoReducer(state, { type: "complete", questionId: "models" }), state);
+  }
+  assert.equal(consoleDemoReducer(live, { type: "complete", questionId: "unknown" }), live);
+});

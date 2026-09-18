@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { CreateLiveButton } from "@/features/live-create/ui/create-live-button";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { SearchField } from "@/shared/components/ui/search-field";
@@ -59,15 +60,21 @@ export default async function SellerLiveStudioPage({
 
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:gap-6">
           <div className="min-w-45 flex-1 sm:w-[282px] sm:flex-none">
-            <SearchField size="sm" placeholder="검색하기" aria-label="LIVE 검색" />
+            <SearchField size="sm" placeholder="검색어를 입력하세요" aria-label="LIVE 검색" />
           </div>
           <CreateLiveButton />
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col items-center pt-[162px]">
-        <div aria-hidden className="bg-border-default size-[101px]" />
-        <p className="text-body-m text-text-secondary mt-8">{current.emptyMessage}</p>
+      <div className="mt-6 flex flex-1 flex-col items-center justify-center pb-16">
+        <Image
+          alt=""
+          src="/images/seller-live/island.svg"
+          width={112}
+          height={112}
+          className="size-28"
+        />
+        <p className="text-body-s text-text-secondary mt-10">{current.emptyMessage}</p>
       </div>
 
       <Pagination

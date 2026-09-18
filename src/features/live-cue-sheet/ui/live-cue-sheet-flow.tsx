@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
@@ -31,27 +32,22 @@ type LiveCueSheetFlowProps = {
   autoAdvanceGeneration?: boolean;
 };
 
-const loadingLabels = [
-  "제품 핵심 스펙과 이미지를 분석 중입니다",
-  "입력하신 내용을 확인하는 중",
-  "제품 특징을 분석하는 중",
-  "필요한 정보를 정리하는 중",
-  "한 번 더 검토하는 중",
-];
-const readyLabels = [
-  "제품 핵심 스펙과 이미지를 분석 완료",
-  "내용 확인 완료",
-  "특징 분석 완료",
-  "정보 정리 완료",
-  "검토 완료",
-];
-
 function ProjectInfo({ project }: { project: CueSheetProject }) {
   return (
-    <div className="border-border-default rounded-xs border p-4 md:h-[418px]">
-      <div className="bg-border-default text-text-primary-live text-body-s mb-4 flex aspect-[4/3] w-full shrink-0 items-center justify-center rounded-xs max-md:hidden">
-        IMG
-      </div>
+    <div className="border-border-default rounded-xs border p-4 md:h-[468px]">
+      {project.image ? (
+        <Image
+          src={project.image}
+          alt=""
+          width={162}
+          height={122}
+          className="mb-4 aspect-[4/3] w-full rounded-xs object-cover max-md:hidden"
+        />
+      ) : (
+        <div className="bg-layer-bg text-caption-s text-text-secondary mb-4 flex aspect-[4/3] w-full items-center justify-center rounded-xs max-md:hidden">
+          이미지 없음
+        </div>
+      )}
       <div className="min-w-0">
         <h4 className="text-body-strong">{project.title}</h4>
         <div className="text-caption-s text-text-secondary flex flex-col gap-1">
@@ -130,7 +126,7 @@ export function LiveCueSheetFlow({
   }, [open]);
 
   useEffect(() => {
-    if (open) headingRef.current?.focus();
+    if (open && step !== "editor") headingRef.current?.focus();
   }, [step, open]);
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -227,16 +223,18 @@ export function LiveCueSheetFlow({
           if (event.target === event.currentTarget) close();
         }}
       >
-        <div className={styles.frame}>
+        <div
+          className={`${styles.frame} ${step === "generating" || step === "ready" ? styles.loading : ""}`}
+        >
           <header className="grid grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-2">
             <span />
             <h2
               id="cue-sheet-title"
               ref={headingRef}
               tabIndex={-1}
-              className="text-title-l text-center outline-none"
+              className="text-heading-m text-center outline-none"
             >
-              {`‘${project.title}’ AI 큐시트`}
+              AI 큐시트 생성
             </h2>
             <button
               type="button"
@@ -254,28 +252,16 @@ export function LiveCueSheetFlow({
               aria-live="polite"
               className="flex min-h-[540px] flex-col items-center justify-center gap-10"
             >
-              <h3 className="text-title-l text-center">
-                {step === "generating"
-                  ? "AI가 큐시트를 생성중이에요"
-                  : "AI가 스토리 준비를 시작할게요"}
-              </h3>
-              <ul className="space-y-6">
-                {(step === "generating" ? loadingLabels : readyLabels).map((label) => (
-                  <li key={label} className="text-body-m flex items-center justify-center gap-2">
-                    {step === "generating" ? (
-                      <span aria-hidden className="motion-safe:animate-pulse">
-                        ···
-                      </span>
-                    ) : (
-                      <span
-                        aria-hidden
-                        className="size-5 bg-current [mask-image:url('/images/live-cue-sheet/check.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-                      />
-                    )}
-                    {label}
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-title-s text-center">AI가 큐시트를 생성중이에요...</h3>
+              <div className="bg-layer-surface-default flex size-40 items-center justify-center rounded-full">
+                <Image
+                  src="/images/seller-live/loading-logo.svg"
+                  alt=""
+                  width={144}
+                  height={121}
+                  className={styles.loadingLogo}
+                />
+              </div>
             </div>
           ) : step === "editor" ? (
             <CueSheetEditor
@@ -302,7 +288,7 @@ export function LiveCueSheetFlow({
                         : "큐시트 유형과 방송 시간을 선택해주세요"}
                   </h3>
                   {step === "chat" ? (
-                    <div className={`${styles.panel} bg-layer-surface-disabled flex flex-col p-4`}>
+                    <div className={`${styles.panel} bg-layer-bg flex flex-col p-4`}>
                       <div
                         ref={chatRef}
                         role="log"
@@ -314,21 +300,24 @@ export function LiveCueSheetFlow({
                           .map((question, index) => (
                             <div key={question.label} className="space-y-3">
                               <div className="flex items-start gap-3">
-                                <span
-                                  aria-hidden
-                                  className="bg-border-default size-8 shrink-0 rounded-full"
+                                <Image
+                                  src="/icons/funding-story/avatar.svg"
+                                  alt=""
+                                  width={28}
+                                  height={32}
+                                  className="h-8 w-7 shrink-0"
                                 />
                                 <div className="max-w-[85%]">
-                                  <div className="bg-border-default text-body-s rounded-sm p-3">
+                                  <div className="bg-layer-surface-default border-border-default text-body-s rounded-[16px] rounded-tl-none border p-4">
                                     <p>{question.question}</p>
-                                    <p className="text-caption-strong mt-1 text-right">
+                                    <p className="text-caption-s text-text-secondary mt-1 text-right">
                                       {index + 1}/5
                                     </p>
                                   </div>
-                                  {index === answers.length && (
+                                  {index === answers.length && index > 0 && (
                                     <button
                                       type="button"
-                                      className="bg-border-default text-caption-s mt-2 rounded-full px-4 py-1"
+                                      className="border-border-default text-caption-s text-text-secondary mt-2 rounded-full border px-2 py-1"
                                       onClick={() => {
                                         setAnswers([...answers, ""]);
                                         setDraft("");
@@ -340,14 +329,14 @@ export function LiveCueSheetFlow({
                                 </div>
                               </div>
                               {index < answers.length && (
-                                <p className="bg-layer-surface-default text-body-s ml-auto w-fit max-w-[85%] rounded-sm p-3 whitespace-pre-wrap">
+                                <p className="bg-layer-surface-primary text-text-inverse text-body-s ml-auto w-fit max-w-[85%] rounded-[16px] rounded-br-none p-4 whitespace-pre-wrap">
                                   {answers[index] || "건너뛰었습니다."}
                                 </p>
                               )}
                             </div>
                           ))}
                         {complete && (
-                          <p className="bg-border-default text-body-s rounded-sm p-3">
+                          <p className="bg-layer-surface-default border-border-default text-body-s rounded-[16px] rounded-tl-none border p-4">
                             필수 항목 입력을 완료했어요. 다음으로 이동하거나 정정할 내용을
                             입력해주세요.
                           </p>
@@ -362,18 +351,22 @@ export function LiveCueSheetFlow({
                       >
                         <input
                           aria-label="AI에게 답변"
-                          className="bg-border-default text-body-s min-w-0 flex-1 rounded-xs px-3 py-2"
+                          className="bg-layer-surface-default border-border-default text-body-s min-w-0 flex-1 rounded-full border px-4 py-3"
                           placeholder={
                             complete ? "정정할 내용을 작성해주세요" : "답변을 작성해주세요"
                           }
                           value={draft}
                           onChange={(event) => setDraft(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && event.nativeEvent.isComposing)
+                              event.preventDefault();
+                          }}
                         />
                         <button
                           type="submit"
                           aria-label="답변 보내기"
                           disabled={!draft.trim()}
-                          className="bg-layer-surface-primary text-text-inverse disabled:bg-border-default flex h-10 w-14 items-center justify-center rounded-xs"
+                          className="bg-layer-surface-primary text-text-inverse disabled:bg-border-default flex size-11 shrink-0 items-center justify-center rounded-full"
                         >
                           <Icon name="send" className="size-5" />
                         </button>
@@ -387,7 +380,7 @@ export function LiveCueSheetFlow({
                       </p>
                       <dl
                         ref={summaryRef}
-                        className="bg-layer-surface-disabled min-h-0 flex-1 overflow-y-auto p-3"
+                        className="bg-layer-bg min-h-0 flex-1 overflow-y-auto p-3"
                       >
                         {[
                           ["제품명", project.title],
@@ -432,7 +425,7 @@ export function LiveCueSheetFlow({
                         {(["scenario", "script"] as const).map((value) => (
                           <label
                             key={value}
-                            className={`bg-layer-surface-disabled cursor-pointer overflow-y-auto rounded-xs border p-4 ${type === value ? "border-border-primary" : "border-transparent"}`}
+                            className={`cursor-pointer overflow-y-auto rounded-xs border p-4 ${type === value ? "border-border-primary-live bg-layer-surface-primary-live/5" : "bg-layer-bg border-transparent"}`}
                           >
                             <span className="text-body-s flex items-center justify-between gap-2 font-medium">
                               {value === "scenario" ? "시나리오" : "대사 완성"}
@@ -514,6 +507,9 @@ export function LiveCueSheetFlow({
                     </button>
                     <Button
                       size="md"
+                      variant={
+                        step === "options" && type && minutes > 0 ? "primaryLive" : "primary"
+                      }
                       className="text-body-s! h-10! w-36"
                       disabled={
                         step === "chat"
@@ -534,7 +530,7 @@ export function LiveCueSheetFlow({
                       {step === "options" ? "큐시트 생성하기" : "다음으로"}
                     </Button>
                   </div>
-                  <p role="status" className="text-caption-s mt-2">
+                  <p role="status" className="sr-only">
                     {notice}
                   </p>
                 </section>

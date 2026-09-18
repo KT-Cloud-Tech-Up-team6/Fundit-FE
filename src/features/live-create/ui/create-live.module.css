@@ -1,0 +1,17 @@
+﻿.category [role="listbox"] {
+  max-height: 288px;
+  width: 100%;
+  padding: 1px;
+  box-shadow: none;
+}
+
+.category [role="option"]:hover,
+.category [role="option"]:focus {
+  background: var(--layer-surface-disabled-hover);
+  color: var(--text-default);
+}
+
+.category [role="option"][aria-selected="true"] {
+  background: var(--text-secondary);
+  color: var(--text-inverse);
+}

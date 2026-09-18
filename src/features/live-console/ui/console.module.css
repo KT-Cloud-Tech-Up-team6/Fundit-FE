@@ -1,6 +1,8 @@
 .console {
-  min-height: 100vh;
-  background: var(--layer-surface-default);
+  box-shadow: 0 0 0 100vmax var(--layer-bg);
+  clip-path: inset(0 -100vmax);
+  min-height: calc(100vh - 70px);
+  background: var(--layer-bg);
   color: var(--text-default);
 }
 
@@ -8,19 +10,6 @@
 .dialog :is(button, a, input, textarea):focus-visible {
   outline: 2px solid var(--border-primary);
   outline-offset: 2px;
-}
-
-.header {
-  border-bottom: 1px solid var(--border-default);
-}
-
-.headerInner {
-  max-width: 1200px;
-  min-height: 70px;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  gap: 16px;
 }
 
 .grid {
@@ -33,6 +22,7 @@
 
 .panel {
   min-width: 0;
+  background: var(--layer-surface-default);
   height: 726px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
@@ -88,31 +78,11 @@
   overflow-y: auto;
 }
 
-@media (max-width: 1240px) {
-  .headerInner {
-    padding: 8px 20px;
-  }
-
-  .grid {
-    margin-right: 20px;
-    margin-left: 20px;
-  }
-}
-
 @media (max-width: 1023px) {
-  .headerInner {
-    flex-wrap: wrap;
-  }
-
-  .headerInner h1 {
-    flex: 1 1 calc(100% - 118px);
-  }
-
   .grid {
     grid-template-columns: minmax(0, 1fr);
     margin-top: 24px;
   }
-
   .panel {
     height: 600px;
   }

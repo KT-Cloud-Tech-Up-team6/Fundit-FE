@@ -1,6 +1,7 @@
 export type DemoQuestion = {
   id: string;
   title: string;
+  keyword?: string;
   originals: string[];
   suggestion: string | null;
   answer: string;
@@ -9,6 +10,7 @@ export type DemoQuestion = {
 export const demoQuestions: DemoQuestion[] = [
   {
     id: "vacuum",
+    keyword: "일반 진공 청소 모드",
     title: "일반 진공 청소 모드(물 없이 청소)도 가능한가요?",
     originals: [
       "f25 이거 물 없이 그냥 청소기로도 쓸 수 있나요?",
@@ -31,6 +33,7 @@ export const demoQuestions: DemoQuestion[] = [
   },
   {
     id: "gap",
+    keyword: "좁은 틈새도 청소",
     title: "가구 밑 좁은 틈새도 청소가 가능한가요?",
     originals: Array.from({ length: 8 }, () => "가구 밑 좁은 틈새도 청소가 가능한가요?"),
     suggestion: "가구 밑을 청소하는 모습을 방송에서 확인해 주세요.",
@@ -38,6 +41,7 @@ export const demoQuestions: DemoQuestion[] = [
   },
   {
     id: "models",
+    keyword: "F25 'Ultra'와 'ACE' 모델의 가장 큰 차이점",
     title: "F25 'Ultra'와 'ACE' 모델의 가장 큰 차이점은 무엇인가요?",
     originals: Array.from({ length: 6 }, () => "Ultra와 ACE 모델은 어떤 점이 다른가요?"),
     suggestion: null,
@@ -45,6 +49,7 @@ export const demoQuestions: DemoQuestion[] = [
   },
   {
     id: "cleaning",
+    keyword: "롤러(걸레) 세척과 건조",
     title: "청소 후 롤러(걸레) 세척과 건조는 어떻게 하나요?",
     originals: Array.from({ length: 4 }, () => "롤러 세척과 건조는 어떻게 하나요?"),
     suggestion: "자동세척 스테이션에서 진행하는 과정을 확인해 주세요.",
@@ -52,6 +57,7 @@ export const demoQuestions: DemoQuestion[] = [
   },
   {
     id: "hair",
+    keyword: "털이 롤러",
     title: "머리카락이나 반려동물의 털이 롤러에 엉키지 않나요?",
     originals: Array.from({ length: 3 }, () => "반려동물 털도 청소할 수 있나요?"),
     suggestion: "롤러에 남은 털을 관리하는 방법을 시연합니다.",
@@ -97,6 +103,7 @@ export const demoCues = [
 export type ConsoleDemoState = {
   phase: "ready" | "live" | "ended";
   answers: Record<string, string>;
+  completedIds: string[];
   messages: { id: number; author: string; text: string }[];
   publishedIds: string[];
 };
@@ -106,6 +113,7 @@ export function createConsoleDemo(phase: ConsoleDemoState["phase"]): ConsoleDemo
     phase === "ended" ? ["vacuum", "gap", "cleaning", "hair", "carpet"] : ["gap", "cleaning"];
   return {
     phase,
+    completedIds: phase === "ready" ? [] : answeredIds,
     answers:
       phase === "ready"
         ? {}
@@ -115,11 +123,17 @@ export function createConsoleDemo(phase: ConsoleDemoState["phase"]): ConsoleDemo
     messages:
       phase === "ready"
         ? []
-        : Array.from({ length: 9 }, (_, index) => ({
+        : [
+            "f25 흡입력이랑 물걸레 동시 작동할 때 소음은 어떤가요?",
+            "지금 구매하면 사은품 언제 같이 배송되나요?",
+            "로보락 신상만 기다렸는데 오늘 라이브 사은품 역대급이네요.",
+            "디자인 깔끔해서 거실에 두기 딱 좋겠어요. 대박 예감!",
+            "머리카락 엉킴 방지 기능 진짜 잘 되나요? 반려동물 키우는데 궁금해요.",
+            "부모님 댁에 보내드리려고 고려하다가 방송 보고 구매 완료했습니다!",
+          ].map((text, index) => ({
             id: index,
             author: "아이디",
-            text:
-              index === 8 ? "내가 제일 최신 댓글이야" : "신규 채팅 신규 채팅 신규 채팅 신규 채팅",
+            text,
           })),
     publishedIds: [],
   };
@@ -130,6 +144,7 @@ export type ConsoleDemoAction =
   | { type: "end" }
   | { type: "chat"; text: string }
   | { type: "answer"; questionId: string; text: string }
+  | { type: "complete"; questionId: string }
   | { type: "publish"; ids: string[] };
 
 export function consoleDemoReducer(
@@ -137,6 +152,10 @@ export function consoleDemoReducer(
   action: ConsoleDemoAction,
 ): ConsoleDemoState {
   switch (action.type) {
+    case "complete":
+      return state.phase === "live" && demoQuestions.some((q) => q.id === action.questionId)
+        ? { ...state, completedIds: [...new Set([...state.completedIds, action.questionId])] }
+        : state;
     case "start":
       return state.phase === "ready"
         ? { ...createConsoleDemo("live"), messages: state.messages }
@@ -154,6 +173,10 @@ export function consoleDemoReducer(
         return state;
       return {
         ...state,
+        completedIds:
+          action.type === "answer"
+            ? [...new Set([...state.completedIds, action.questionId])]
+            : state.completedIds,
         answers:
           action.type === "answer"
             ? { ...state.answers, [action.questionId]: text }
