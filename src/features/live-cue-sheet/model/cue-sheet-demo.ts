@@ -83,8 +83,8 @@ export function createDemoScenes(
     answers[index] || "입력하지 않은 내용입니다. 방송 전에 확인해주세요.";
   const details = [
     `안녕하세요. 오늘 소개할 제품은 ${project.title}입니다.`,
-    project.description,
-    `${answer(0)}\n${answer(1)}`,
+    answers[0] || project.description,
+    answer(1),
     answer(3),
     `${project.reward || "리워드 정보는 입력하지 않았습니다."}\n${answer(4)}`,
     answer(2),

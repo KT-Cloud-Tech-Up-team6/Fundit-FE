@@ -84,7 +84,7 @@ function ProjectSummary({
   return (
     <div className="border-w-xs border-border-default flex items-center justify-between gap-3 rounded-xs p-3">
       <div className="flex min-w-0 flex-1 gap-4">
-        {project.image && (
+        {project.image ? (
           <Image
             src={project.image}
             alt=""
@@ -92,6 +92,10 @@ function ProjectSummary({
             height={82}
             className="size-[82px] shrink-0 rounded-xs object-cover"
           />
+        ) : (
+          <span className="bg-layer-bg text-caption-s text-text-secondary flex size-[82px] shrink-0 items-center justify-center rounded-xs">
+            이미지 없음
+          </span>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-body-strong truncate">{project.title}</p>

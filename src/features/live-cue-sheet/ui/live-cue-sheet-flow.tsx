@@ -35,7 +35,7 @@ type LiveCueSheetFlowProps = {
 function ProjectInfo({ project }: { project: CueSheetProject }) {
   return (
     <div className="border-border-default rounded-xs border p-4 md:h-[468px]">
-      {project.image && (
+      {project.image ? (
         <Image
           src={project.image}
           alt=""
@@ -43,6 +43,10 @@ function ProjectInfo({ project }: { project: CueSheetProject }) {
           height={122}
           className="mb-4 aspect-[4/3] w-full rounded-xs object-cover max-md:hidden"
         />
+      ) : (
+        <div className="bg-layer-bg text-caption-s text-text-secondary mb-4 flex aspect-[4/3] w-full items-center justify-center rounded-xs max-md:hidden">
+          이미지 없음
+        </div>
       )}
       <div className="min-w-0">
         <h4 className="text-body-strong">{project.title}</h4>

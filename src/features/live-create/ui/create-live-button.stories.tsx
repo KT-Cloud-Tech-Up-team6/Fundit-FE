@@ -20,9 +20,17 @@ export const ProjectToSavedCueSheet: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "선택" }));
     await userEvent.type(dialog.getByRole("textbox", { name: "소개 문구" }), "가방 전용 소개 문구");
     await userEvent.click(dialog.getByRole("button", { name: "다음" }));
+    const thumbnail = dialog.getByText("이미지 없음");
+    await expect(thumbnail).toBeVisible();
+    expect(thumbnail.getBoundingClientRect().width).toBe(82);
+    expect(thumbnail.getBoundingClientRect().height).toBe(82);
     await expect(dialog.getByRole("button", { name: "LIVE 시작" })).toBeDisabled();
     await userEvent.click(dialog.getByRole("button", { name: "AI 큐시트 생성" }));
     dialog = within(await canvas.findByRole("dialog", { name: "AI 큐시트 생성" }));
+    const cueThumbnail = dialog.getByText("이미지 없음");
+    expect(cueThumbnail).toBeVisible();
+    const box = cueThumbnail.getBoundingClientRect();
+    expect(box.width / box.height).toBeCloseTo(4 / 3, 1);
     await userEvent.type(dialog.getByRole("textbox", { name: "AI에게 답변" }), "가방 개발 이야기");
     await userEvent.click(dialog.getByRole("button", { name: "답변 보내기" }));
     for (let index = 0; index < 4; index++)
