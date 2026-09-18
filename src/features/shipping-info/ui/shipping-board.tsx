@@ -161,15 +161,15 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p aria-live="polite" className="text-body-s text-text-default">
               {selected.size} 개 선택 됨
             </p>
-            <div className="flex items-center justify-end gap-[9px]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-[9px]">
               <Select
                 aria-label="선택한 주문의 택배사"
                 /* Select의 기본 w-full보다 Figma의 164px 일괄 택배사 폭을 우선한다. */
-                className="w-41! shrink-0"
+                className="w-full shrink-0 sm:w-41!"
                 onChange={(event) => {
                   const courier = event.target.value as Courier | "";
                   setBulkCourier(courier);
@@ -185,16 +185,16 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
                   </option>
                 ))}
               </Select>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <button
-                  className={`${bulkActionClasses} bg-layer-surface-disabled text-text-default hover:bg-layer-surface-disabled-hover w-[114px]`}
+                  className={`${bulkActionClasses} bg-layer-surface-disabled text-text-default hover:bg-layer-surface-disabled-hover min-w-0 flex-1 sm:w-[114px] sm:flex-none`}
                   onClick={() => ship(selected)}
                   type="button"
                 >
                   발송 처리
                 </button>
                 <button
-                  className={`${bulkActionClasses} bg-layer-surface-primary text-text-inverse hover:bg-layer-surface-primary-hover w-[146px]`}
+                  className={`${bulkActionClasses} bg-layer-surface-primary text-text-inverse hover:bg-layer-surface-primary-hover min-w-0 flex-1 sm:w-[146px] sm:flex-none`}
                   onClick={() => {
                     /* API 계약 전에는 현재 편집값을 로컬 상태에 반영하고 완료 피드백을 준다.
                        계약이 생기면 이 지점에서 선택 건만 저장하는 mutation을 호출한다. */
