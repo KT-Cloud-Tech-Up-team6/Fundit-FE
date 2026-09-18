@@ -15,6 +15,7 @@ type RecordComposerProps = {
   /** "수정" 클릭으로 불러온 기존 기록값. 부모가 `key`를 바꿔 다시 마운트시킨다. */
   initialDate?: string;
   initialText?: string;
+  initialMedia?: MediaItem[];
 };
 
 /** Figma "지연 사유 등록" 경고 버튼(border/accent_warning + text/warning). */
@@ -28,12 +29,15 @@ export function RecordComposer({
   onPreviewMedia,
   initialDate,
   initialText = "",
+  initialMedia,
 }: RecordComposerProps) {
   const dropzoneId = useId();
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [date, setDate] = useState(initialDate ?? todayValue);
   const [text, setText] = useState(initialText);
-  const [media, setMedia] = useState<MediaItem[]>([]);
+  /* 수정일 때 기존 첨부를 그대로 들고 시작한다 — 저장은 이 배열로 덮어쓰므로
+     비워두면 텍스트만 고쳐도 첨부가 사라진다. */
+  const [media, setMedia] = useState<MediaItem[]>(() => initialMedia ?? []);
   const [dropzoneOpen, setDropzoneOpen] = useState(false);
 
   return (
@@ -79,8 +83,6 @@ export function RecordComposer({
           >
             <Icon className="size-4" name="linkChain" />
           </button>
-          {/* 여러 줄 진행 내용을 그대로 보여주려 input 대신 textarea를 쓴다.
-              field-sizing:content로 rows 없이 내용만큼 자동으로 늘어난다(rung: 네이티브 CSS). */}
           <textarea
             aria-label="진행 내용"
             className="text-body-s placeholder:text-text-disabled [field-sizing:content] min-w-0 flex-1 resize-none bg-transparent outline-none"

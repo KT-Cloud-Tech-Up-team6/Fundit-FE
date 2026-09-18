@@ -90,6 +90,13 @@ export function FulfillmentBoard({
   const previousLabel =
     selectedIndex > 0 ? fulfillmentStages[selectedIndex - 1].label : stageLabel(selected);
 
+  /* 수정 대상은 선택한 단계의 기록이다. 단계가 바뀌면 다른 단계의 records에서
+     그 id를 찾다가 아무것도 못 고치고 입력만 날아가므로 같이 버린다. */
+  function selectStage(next: FulfillmentStage) {
+    setSelected(next);
+    setEditing(null);
+  }
+
   function notify(message: string) {
     setNotice(message);
     setToast(message);
@@ -103,6 +110,7 @@ export function FulfillmentBoard({
     const next = stages[stages.indexOf(selected) + 1];
 
     setState(nextState);
+    setEditing(null);
     if (next && nextState[next].status === "active") setSelected(next);
     notify(`${stageLabel(selected)} 단계를 완료했어요.`);
   }
@@ -125,7 +133,7 @@ export function FulfillmentBoard({
       </div>
 
       <div className="mt-5 flex flex-col gap-3">
-        <StageTabs onSelect={setSelected} selected={selected} state={state} />
+        <StageTabs onSelect={selectStage} selected={selected} state={state} />
 
         <section
           aria-label={`${stageLabel(selected)} 단계 진행 내용`}
@@ -162,7 +170,8 @@ export function FulfillmentBoard({
             <>
               <div className="bg-layer-surface-default p-4">
                 <StageTimeline
-                  onEditRecord={setEditing}
+                  /* 완료된 단계에는 작성영역이 없어 수정해도 반영할 곳이 없다. */
+                  onEditRecord={stage.status === "active" ? setEditing : undefined}
                   onSelectMedia={setPreview}
                   records={stage.records}
                 />
@@ -172,6 +181,7 @@ export function FulfillmentBoard({
                 <div className="bg-layer-surface-default border-border-default border-t">
                   <RecordComposer
                     initialDate={editing?.date}
+                    initialMedia={editing?.media}
                     initialText={editing?.text}
                     key={editing?.id ?? selected}
                     onOpenDelay={() => setDelayOpen(true)}

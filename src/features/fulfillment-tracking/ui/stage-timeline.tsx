@@ -10,7 +10,8 @@ import {
 type StageTimelineProps = {
   records: FulfillmentRecord[];
   onSelectMedia: (media: MediaItem) => void;
-  onEditRecord: (record: FulfillmentRecord) => void;
+  /** 없으면 "수정" 버튼을 숨긴다(작성영역이 없는 완료 단계). */
+  onEditRecord?: (record: FulfillmentRecord) => void;
 };
 
 const mediaKindLabel = { image: "사진", video: "동영상" } as const;
@@ -80,13 +81,15 @@ export function StageTimeline({ records, onSelectMedia, onEditRecord }: StageTim
                 ))}
               </ul>
             )}
-            <button
-              className="text-caption-s text-text-secondary mt-1 flex h-6 shrink-0 items-center self-end rounded-xs px-2 underline"
-              onClick={() => onEditRecord(record)}
-              type="button"
-            >
-              수정
-            </button>
+            {onEditRecord && (
+              <button
+                className="text-caption-s text-text-secondary mt-1 flex h-6 shrink-0 items-center self-end rounded-xs px-2 underline"
+                onClick={() => onEditRecord(record)}
+                type="button"
+              >
+                수정
+              </button>
+            )}
           </div>
         </li>
       ))}
