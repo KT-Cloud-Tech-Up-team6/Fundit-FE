@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { formatCueTime, type CueScene, type CueSheetType } from "../model/cue-sheet-demo";
@@ -25,6 +25,10 @@ export function CueSheetEditor({
 }: CueSheetEditorProps) {
   const [selectedId, setSelectedId] = useState(scenes[0].id);
   const [renaming, setRenaming] = useState<string | null>(null);
+  const outlineRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    outlineRef.current?.focus();
+  }, []);
   const draggedId = useRef<string | null>(null);
   const selectedIndex = Math.max(
     0,
@@ -72,12 +76,12 @@ export function CueSheetEditor({
   return (
     <div className={styles.body}>
       <aside className="relative min-w-0">
-        <p className="text-caption-s mb-3 md:absolute md:-top-9">
+        <p className="text-caption-s mb-3 md:absolute md:-top-7">
           예상 방송 시간 {formatCueTime(total)}
         </p>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="text-body-strong">방송 진행 타임라인</h3>
-          <span className="bg-layer-surface-disabled text-caption-strong rounded-xs px-2 py-1">
+          <span className="bg-layer-surface-primary-live/5 text-text-primary-live text-caption-strong rounded-xs px-2 py-1">
             총 {scenes.length}구간
           </span>
         </div>
@@ -103,7 +107,7 @@ export function CueSheetEditor({
                     if (draggedId.current) moveScene(draggedId.current, index);
                     draggedId.current = null;
                   }}
-                  className={`rounded-xs ${scene.id === selected.id ? "bg-border-default" : "bg-layer-surface-disabled"}`}
+                  className={`rounded-xs ${scene.id === selected.id ? "bg-layer-surface-primary-live/5 border-border-primary-live border" : "bg-layer-bg"}`}
                 >
                   {renaming === scene.id ? (
                     <input
@@ -178,7 +182,7 @@ export function CueSheetEditor({
       <section className="relative min-w-0">
         <button
           type="button"
-          className="text-caption-s text-text-secondary mb-3 flex items-center gap-1 underline md:absolute md:-top-9 md:right-0"
+          className="text-caption-s text-text-secondary mb-3 flex items-center gap-1 underline md:absolute md:-top-7 md:right-0"
           onClick={() => {
             if (window.confirm("수정한 내용을 초기화하고 큐시트를 다시 생성할까요?"))
               onRegenerate();
@@ -192,8 +196,8 @@ export function CueSheetEditor({
             {formatCueTime(start)}–{formatCueTime(start + selected.duration - 1)}
           </span>
         </h3>
-        <div className={`${styles.panel} bg-layer-surface-disabled overflow-y-auto p-4`}>
-          <div className="mb-3 flex flex-wrap gap-2">
+        <div className={`${styles.panel} bg-layer-bg overflow-y-auto p-4`}>
+          <div className="sr-only mb-3 flex flex-wrap gap-2 focus-within:not-sr-only">
             <button
               type="button"
               className="text-caption-s underline"
@@ -221,7 +225,8 @@ export function CueSheetEditor({
           <label className="text-body-s block">
             진행 개요
             <textarea
-              className="bg-layer-surface-default border-border-default mt-2 block min-h-24 w-full rounded-xs border p-3"
+              ref={outlineRef}
+              className="text-text-primary-live focus-visible:outline-border-primary-live mt-2 block min-h-24 w-full rounded-xs p-1 focus-visible:outline-2 focus-visible:outline-offset-2"
               value={selected.outline}
               onChange={(event) => updateScene(selected.id, { outline: event.target.value })}
             />
@@ -260,7 +265,12 @@ export function CueSheetEditor({
           <button type="button" className={`${styles.secondary} w-36`} onClick={onBack}>
             뒤로가기
           </button>
-          <Button size="md" className="text-body-s! h-10! w-36" onClick={onSave}>
+          <Button
+            variant="primaryLive"
+            size="md"
+            className="text-body-s! h-10! w-36"
+            onClick={onSave}
+          >
             저장하기
           </Button>
         </div>
