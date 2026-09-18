@@ -32,6 +32,7 @@ export function ProjectSidebar({
   activeTab,
   backHref = "/seller/projects",
   backLabel = "내 프로젝트로",
+  className,
   projectId,
   projectName,
   tabs,
@@ -40,6 +41,7 @@ export function ProjectSidebar({
   /** 하위 화면(발송정보 등)은 목록이 아니라 상위 탭으로 돌아간다. */
   backHref?: string;
   backLabel?: string;
+  className?: string;
   projectId: string;
   projectName: string;
   tabs: readonly ProjectSidebarTab[];
@@ -47,7 +49,7 @@ export function ProjectSidebar({
   return (
     <nav
       aria-label="프로젝트 메뉴"
-      className="border-w-xs border-border-default bg-layer-surface-default flex w-full shrink-0 flex-col gap-2 self-stretch rounded-xs p-2 py-3 lg:w-45"
+      className={`border-w-xs border-border-default bg-layer-surface-default flex w-full shrink-0 flex-col gap-2 self-stretch rounded-xs p-2 py-3 lg:w-45 ${className ?? ""}`}
     >
       <div className="border-border-default flex flex-col gap-2 border-b p-2">
         <Link

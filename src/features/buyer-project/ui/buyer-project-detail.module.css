@@ -2,6 +2,16 @@
 .screen a {
   -webkit-tap-highlight-color: transparent;
 }
+
+.preview {
+  overflow-wrap: anywhere;
+}
+
+.preview .footer {
+  position: sticky;
+  left: auto;
+  transform: none;
+}
 .screen button:focus-visible,
 .screen a:focus-visible,
 .carousel:focus-visible {
