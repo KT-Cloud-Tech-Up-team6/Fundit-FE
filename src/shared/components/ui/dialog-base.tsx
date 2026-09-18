@@ -70,6 +70,9 @@ export function DialogBase({
       /* ESC의 기본 닫기를 막고 open만 내린다. 닫는 경로를 위 effect 하나로 모아
          dialog가 먼저 닫히고 open이 true로 남는 어긋남을 없앤다. */
       onCancel={(event) => {
+        /* file input의 파일 선택 취소도 cancel 이벤트를 발생시켜 dialog까지 버블링한다.
+           모달 자체(ESC)가 낸 이벤트만 닫기 처리해야 파일 선택기를 취소해도 폼을 유지한다. */
+        if (event.target !== event.currentTarget) return;
         onCancel?.(event);
         event.preventDefault();
         onClose();

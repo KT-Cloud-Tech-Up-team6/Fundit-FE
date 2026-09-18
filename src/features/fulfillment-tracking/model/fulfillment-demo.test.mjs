@@ -90,7 +90,7 @@ test("정체 경고는 마지막 기록 기준이고 완료 단계는 제외한�
   const stage = demoFulfillmentState("2026-08-30").prep;
   assert.deepEqual(
     stage.records.map((record) => record.date),
-    ["2026-08-20", "2026-08-27"],
+    ["2026-08-20", "2026-08-24", "2026-08-27"],
   );
   assert.equal(daysSinceLastRecord(stage.records, "2026-09-04"), 8);
   assert.equal(daysSinceLastRecord([], "2026-09-04"), null);

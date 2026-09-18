@@ -95,7 +95,31 @@ export const Questions: Story = {
     expect(canvas.getAllByText("사용자 메시지")).toHaveLength(2);
   },
 };
-export const Summarizing: Story = { args: { stage: "summarizing", pauseDemo: true } };
+export const Summarizing: Story = {
+  args: { stage: "summarizing", pauseDemo: true },
+  play: async ({ canvasElement }) => {
+    const dialog = within(await within(canvasElement).findByRole("dialog"));
+    expect(dialog.getByRole("status")).toHaveTextContent("요약 중 …");
+    expect(dialog.getByRole("status")).toBeVisible();
+    expect(dialog.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(dialog.getByRole("status")).toHaveAttribute("aria-atomic", "true");
+    expect(dialog.getByRole("textbox", { name: "스토리 메시지" })).toBeDisabled();
+  },
+};
+export const SummaryRevisionStatus: Story = {
+  args: { stage: "summary", pauseDemo: true },
+  play: async ({ canvasElement }) => {
+    const dialog = within(await within(canvasElement).findByRole("dialog"));
+    const input = dialog.getByRole("textbox", { name: "스토리 메시지" });
+    await userEvent.type(input, "추천 대상을 1인 가구로 수정해주세요.");
+    await userEvent.click(dialog.getByRole("button", { name: "메시지 보내기" }));
+    expect(dialog.getByRole("log")).toHaveTextContent("추천 대상을 1인 가구로 수정해주세요.");
+    expect(dialog.getByRole("status")).toHaveTextContent("요약 중 …");
+    expect(dialog.getByRole("status")).toBeVisible();
+    expect(within(dialog.getByRole("log")).queryByRole("status")).not.toBeInTheDocument();
+    expect(input).toBeDisabled();
+  },
+};
 export const Summary: Story = {
   args: { stage: "summary" },
   play: async ({ canvasElement }) => {

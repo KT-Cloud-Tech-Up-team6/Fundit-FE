@@ -1,6 +1,8 @@
+import { Badge } from "@/shared/components/ui/badge";
 import { Icon } from "@/shared/components/ui/icon";
 import {
   formatRecordDate,
+  sortRecordsByDateDesc,
   type FulfillmentRecord,
   type MediaItem,
 } from "../model/fulfillment-demo";
@@ -8,30 +10,53 @@ import {
 type StageTimelineProps = {
   records: FulfillmentRecord[];
   onSelectMedia: (media: MediaItem) => void;
+  /** 없으면 "수정" 버튼을 숨긴다(작성영역이 없는 완료 단계). */
+  onEditRecord?: (record: FulfillmentRecord) => void;
 };
 
 const mediaKindLabel = { image: "사진", video: "동영상" } as const;
 
-export function StageTimeline({ records, onSelectMedia }: StageTimelineProps) {
-  if (records.length === 0) {
+export function StageTimeline({ records, onSelectMedia, onEditRecord }: StageTimelineProps) {
+  const sorted = sortRecordsByDateDesc(records);
+
+  if (sorted.length === 0) {
     return <p className="text-body-s text-text-secondary">아직 등록된 기록이 없어요.</p>;
   }
 
   return (
-    <ol>
-      {records.map((record, index) => (
-        <li key={record.id} className="flex gap-3">
-          {/* 점 + 세로 연결선. 마지막 기록은 선을 이어가지 않는다. */}
-          <span aria-hidden className="flex flex-col items-center pt-1">
-            <span className="bg-text-secondary size-2 shrink-0 rounded-full" />
-            {index < records.length - 1 && (
-              <span className="bg-layer-surface-disabled w-px flex-1" />
+    <ol className="flex flex-col">
+      {sorted.map((record, index) => (
+        <li className="flex gap-[11px]" key={record.id}>
+          {/* 점 + 세로 연결선. 마지막 기록은 선을 이어가지 않는다.
+              ponytail: 오늘 날짜를 채우지 않은 원(링)으로 구분하는 Figma 디테일은 값 대비가 작아 생략한다. */}
+          <span aria-hidden className="flex w-[18px] shrink-0 flex-col items-center pt-1.5">
+            <span
+              className={`size-2 shrink-0 rounded-full ${record.delayed ? "bg-status-warning" : "bg-text-secondary"}`}
+            />
+            {index < sorted.length - 1 && (
+              <span className="bg-layer-surface-disabled mt-1 w-px flex-1" />
             )}
           </span>
 
-          <div className={index < records.length - 1 ? "flex-1 pb-6" : "flex-1"}>
-            <p className="text-body-s text-text-secondary">{formatRecordDate(record.date)}</p>
-            <p className="text-body-s text-text-default mt-1 whitespace-pre-wrap">{record.text}</p>
+          <div
+            className={`flex min-w-0 flex-1 flex-col ${index < sorted.length - 1 ? "pb-4" : ""}`}
+          >
+            <div className="flex items-center gap-[11px]">
+              <p className="text-caption-s text-text-secondary">{formatRecordDate(record.date)}</p>
+              {record.delayed && (
+                <Badge shape="rounded" variant="warning">
+                  지연
+                </Badge>
+              )}
+              {record.edited && (
+                <Badge shape="rounded" variant="caution">
+                  수정 됨
+                </Badge>
+              )}
+            </div>
+            <p className="text-body-s text-text-default mt-[11px] whitespace-pre-wrap">
+              {record.text}
+            </p>
             {record.media.length > 0 && (
               <ul className="mt-2 flex flex-wrap gap-2">
                 {record.media.map((media) => (
@@ -55,6 +80,15 @@ export function StageTimeline({ records, onSelectMedia }: StageTimelineProps) {
                   </li>
                 ))}
               </ul>
+            )}
+            {onEditRecord && (
+              <button
+                className="text-caption-s text-text-secondary mt-1 flex h-6 shrink-0 items-center self-end rounded-xs px-2 underline"
+                onClick={() => onEditRecord(record)}
+                type="button"
+              >
+                수정
+              </button>
             )}
           </div>
         </li>

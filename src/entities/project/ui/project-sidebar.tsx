@@ -21,7 +21,7 @@ export const projectManageTabs: readonly ProjectSidebarTab[] = [
   { value: "funding", label: "펀딩 관리" },
   { value: "community", label: "커뮤니티 관리" },
   { value: "fulfillment", label: "제작 · 배송" },
-  { value: "settlement", label: "정산관리" },
+  { value: "settlement", label: "정산 관리" },
 ];
 
 /**
@@ -51,10 +51,10 @@ export function ProjectSidebar({
       aria-label="프로젝트 메뉴"
       className={`border-w-xs border-border-default bg-layer-surface-default flex w-full shrink-0 flex-col gap-2 self-stretch rounded-xs p-2 py-3 lg:w-45 ${className ?? ""}`}
     >
-      <div className="border-border-default flex flex-col gap-1 border-b px-2 pt-2 pb-3">
+      <div className="border-border-default flex flex-col gap-2 border-b p-2">
         <Link
           href={backHref}
-          className="text-body-m text-text-secondary hover:text-text-default flex items-center gap-1"
+          className="text-body-m text-text-default flex items-center gap-1 hover:underline"
         >
           <Icon name="arrowLeft" className="size-3" />
           {backLabel}
@@ -67,7 +67,7 @@ export function ProjectSidebar({
           tab.value === null ? (
             <li
               key={tab.label}
-              className="text-body-emphasis text-text-disabled flex h-7 items-center rounded-xs px-2"
+              className="text-body-emphasis text-text-disabled flex h-9 items-center rounded-xs px-2"
             >
               {tab.label}
             </li>
@@ -76,10 +76,8 @@ export function ProjectSidebar({
               <Link
                 href={`/seller/projects/${projectId}?tab=${tab.value}`}
                 aria-current={activeTab === tab.value ? "page" : undefined}
-                className={`text-body-emphasis flex h-7 items-center rounded-xs px-2 ${
-                  activeTab === tab.value
-                    ? "bg-layer-surface-disabled text-text-default"
-                    : "text-text-secondary hover:bg-layer-surface-disabled"
+                className={`text-body-emphasis text-text-default flex h-9 items-center rounded-xs px-2 ${
+                  activeTab === tab.value ? "bg-layer-bg" : "hover:bg-layer-surface-disabled"
                 }`}
               >
                 {tab.label}

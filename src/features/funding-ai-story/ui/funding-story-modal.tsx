@@ -180,7 +180,6 @@ export function FundingStoryModal({
                     progress={
                       message.question ? `${message.question}/${storyQuestions.length}` : undefined
                     }
-                    status={state.stage === "summarizing" && latest ? "요약 중 …" : undefined}
                     actions={
                       message.question ? (
                         <Chip
@@ -208,6 +207,18 @@ export function FundingStoryModal({
               })}
             </div>
           </div>
+          <p
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className={
+              state.stage === "summarizing"
+                ? "text-caption-s text-text-secondary mb-2 pl-10"
+                : "sr-only"
+            }
+          >
+            {state.stage === "summarizing" ? "요약 중 …" : ""}
+          </p>
           <InputChat
             ref={textareaRef}
             appearance="story"
