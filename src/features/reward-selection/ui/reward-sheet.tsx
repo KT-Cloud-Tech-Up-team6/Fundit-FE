@@ -24,15 +24,17 @@ const DEMO_REWARDS = designRewards();
 
 type RewardSheetProps = {
   projectId: string;
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
+  inlineFormId?: string;
   rewards?: Reward[];
 };
 
 export function RewardSheet({
   projectId,
-  open,
+  open = false,
   onClose,
+  inlineFormId,
   rewards = DEMO_REWARDS,
 }: RewardSheetProps) {
   const router = useRouter();
@@ -69,42 +71,30 @@ export function RewardSheet({
   );
 
   function submit() {
-    if (!isCartSubmittable(cart)) return;
+    if (!isCartSubmittable(cart)) {
+      setExpanded(true);
+      trigger.current?.focus();
+      return;
+    }
     session?.setSelection({ projectId, cart });
     if (session?.selection?.projectId !== projectId) session?.setForm(null);
     session?.setReceipt(null);
-    onClose();
+    onClose?.();
     router.push(`/funding/${projectId}/checkout`);
   }
 
-  return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title="리워드 선택"
-      className={styles.sheet}
-      data-expanded={expanded}
-      footer={
-        <div className="flex flex-col gap-3">
-          <div
-            role="status"
-            aria-label="리워드 총 금액"
-            className={selected.length ? "flex items-center justify-between" : "sr-only"}
-          >
-            <span className="text-body-s text-text-secondary">총 {quantity}개</span>
-            <span className="text-title-m">{formatWon(total)}</span>
-          </div>
-          <Button
-            appearance="cta"
-            className="w-full disabled:bg-[#cdced4]!"
-            disabled={!isCartSubmittable(cart)}
-            onClick={submit}
-          >
-            펀딩하기
-          </Button>
-        </div>
-      }
+  const totalRow = (
+    <div
+      role="status"
+      aria-label="리워드 총 금액"
+      className={selected.length ? "flex items-center justify-between" : "sr-only"}
     >
+      <span className="text-body-s text-text-secondary">총 {quantity}개</span>
+      <span className="text-title-m">{formatWon(total)}</span>
+    </div>
+  );
+  const content = (
+    <>
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         <button
           ref={trigger}
@@ -122,7 +112,7 @@ export function RewardSheet({
             id={listId}
             role="group"
             aria-label="리워드 목록"
-            className="border-border-default min-h-0 [scrollbar-width:none] overflow-y-auto rounded-xs border"
+            className={`border-border-default min-h-0 [scrollbar-width:none] overflow-y-auto rounded-xs border ${inlineFormId ? "max-h-[460px]" : ""}`}
           >
             {rewards.map((reward) => (
               <RewardCard key={reward.id} reward={reward} onSelect={() => selectReward(reward)} />
@@ -135,10 +125,13 @@ export function RewardSheet({
           role="group"
           aria-label="선택한 리워드"
           tabIndex={0}
-          className={`mt-8 shrink-0 [scrollbar-width:none] space-y-2 overflow-y-auto ${expanded ? "max-h-32" : "max-h-[min(400px,50dvh)]"}`}
+          className={`${inlineFormId ? "mt-4" : "mt-8"} shrink-0 [scrollbar-width:none] space-y-2 overflow-y-auto ${expanded ? "max-h-32" : "max-h-[min(400px,50dvh)]"}`}
         >
           {selected.map(({ reward, lines }) => (
-            <div key={reward.id} className="bg-layer-bg rounded-xs px-3 py-2">
+            <div
+              key={reward.id}
+              className={`bg-layer-bg rounded-xs px-3 ${inlineFormId ? "py-4" : "py-2"}`}
+            >
               <div className="mb-1 flex items-start justify-between gap-2">
                 <h3 className="text-body-strong min-w-0 truncate">{reward.name}</h3>
                 <button
@@ -150,7 +143,9 @@ export function RewardSheet({
                   <Icon name="close" className="size-4" />
                 </button>
               </div>
-              <p className="text-caption-s text-text-secondary mb-1">예상 발송일 2026.10.12</p>
+              <p className={`text-caption-s text-text-secondary ${inlineFormId ? "mb-4" : "mb-1"}`}>
+                예상 발송일 2026.10.12
+              </p>
               {reward.options[0] && (
                 <Select
                   aria-label={`${reward.name} ${reward.options[0].groupName}`}
@@ -212,6 +207,49 @@ export function RewardSheet({
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (inlineFormId) {
+    return (
+      <form
+        id={inlineFormId}
+        aria-label="웹 리워드 선택"
+        className="mt-8"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+        <h2 className="text-title-s mb-2">리워드 선택</h2>
+        {content}
+        <div className={selected.length ? "mt-6" : undefined}>{totalRow}</div>
+      </form>
+    );
+  }
+
+  return (
+    <BottomSheet
+      open={open}
+      onClose={() => onClose?.()}
+      title="리워드 선택"
+      className={styles.sheet}
+      data-expanded={expanded}
+      footer={
+        <div className="flex flex-col gap-3">
+          {totalRow}
+          <Button
+            appearance="cta"
+            className="w-full disabled:bg-[#cdced4]!"
+            disabled={!isCartSubmittable(cart)}
+            onClick={submit}
+          >
+            펀딩하기
+          </Button>
+        </div>
+      }
+    >
+      {content}
     </BottomSheet>
   );
 }

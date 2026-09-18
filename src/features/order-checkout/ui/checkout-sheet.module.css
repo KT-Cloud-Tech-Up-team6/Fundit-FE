@@ -36,3 +36,9 @@
 .searchSheet > div > div:first-child > button {
   opacity: 1;
 }
+
+@media (width < 1200px) {
+  .sheet {
+    max-width: none;
+  }
+}

@@ -34,6 +34,7 @@ export const Default: Story = {
 export const MultipleRewards: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog", { name: "리워드 선택" });
     const choose = async (name: string) => {
       await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
       await userEvent.click(
@@ -70,6 +71,7 @@ export const MultipleOptionLines: Story = {
   args: { rewards: demoRewards() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog", { name: "리워드 선택" });
     await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
     await userEvent.click(canvas.getByRole("button", { name: /얼리버드 클린포지 R1/ }));
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
