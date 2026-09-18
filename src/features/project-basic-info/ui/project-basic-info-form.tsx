@@ -1,37 +1,42 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
-import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
+import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
-import { CategoryDropdown } from "./category-dropdown";
-import { Textarea } from "@/shared/components/ui/textarea";
+import { Modal } from "@/shared/components/ui/modal";
+import { Radio } from "@/shared/components/ui/radio";
+import { TextButton } from "@/shared/components/ui/text-button";
 import {
   addAmount,
   amountSteps,
+  basicInfoError,
   businessTypes,
   demoRewards,
+  discountedPrice,
   emptyReward,
-  homeCategories,
   mainCategories,
-  positiveInteger,
   rewardError,
+  subcategoriesByMain,
   upsertReward,
   type DemoReward,
   type RewardDraft,
 } from "../model/basic-info-demo";
+import { RewardFormModal } from "./reward-form-modal";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
-const inputClass = "h-11.5! rounded-xs! [&_input]:text-caption-m";
+const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
 
 export function ProjectBasicInfoForm({
   initialView = "empty",
 }: {
   initialView?: BasicInfoPreview;
 }) {
-  const id = useId();
+  const router = useRouter();
   const [business, setBusiness] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -40,461 +45,368 @@ export function ProjectBasicInfoForm({
   const [rewards, setRewards] = useState<DemoReward[]>(() =>
     initialView.startsWith("list") ? demoRewards.map((reward) => ({ ...reward })) : [],
   );
-  const [draft, setDraft] = useState<RewardDraft | null>(() =>
+  const [editing, setEditing] = useState<DemoReward | "new" | null>(
+    initialView.includes("adding") ? "new" : null,
+  );
+  const [draft, setDraft] = useState<RewardDraft | null>(
     initialView.includes("adding") ? emptyReward() : null,
   );
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [rewardMessage, setRewardMessage] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [saved, setSaved] = useState(false);
   const nextId = useRef(3);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const rewardNameRef = useRef<HTMLInputElement>(null);
-  const addButtonRef = useRef<HTMLButtonElement>(null);
-  const noticeRef = useRef<HTMLParagraphElement>(null);
+  const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
+  const validation = basicInfoError({ business, title, category, subcategory, amount, rewards });
 
   function updateDraft(patch: Partial<RewardDraft>) {
     setDraft((current) => (current ? { ...current, ...patch } : current));
-    setError("");
-    setNotice("");
+    setRewardMessage("");
   }
-
   function openReward(reward?: DemoReward) {
+    setEditing(reward ?? "new");
     setDraft(reward ? { ...reward } : emptyReward());
-    setEditingId(reward?.id ?? null);
-    setError("");
-    setNotice("");
-    requestAnimationFrame(() => rewardNameRef.current?.focus());
+    setRewardMessage("");
   }
-
   function closeReward() {
+    setEditing(null);
     setDraft(null);
-    setEditingId(null);
-    setError("");
-    requestAnimationFrame(() => addButtonRef.current?.focus());
+    setRewardMessage("");
   }
-
-  function save() {
-    const message = draft ? rewardError(draft) : "";
-    if (message) {
-      setError(message);
-      rewardNameRef.current?.focus();
-      return;
-    }
-    if (draft) {
-      const rewardId = editingId ?? nextId.current;
-      setRewards((current) => upsertReward(current, draft, rewardId));
-      if (editingId === null) nextId.current += 1;
-      closeReward();
-      setNotice(
-        "리워드를 목업 목록에 반영했습니다. 기본 정보와 리워드는 서버에 저장되지 않습니다.",
-      );
-      return;
-    }
-    const basicError = !business
-      ? "사업자 유형을 선택해주세요."
-      : !title.trim()
-        ? "프로젝트 제목을 입력해주세요."
-        : !category
-          ? "프로젝트 카테고리를 선택해주세요."
-          : category === "홈 · 리빙" && !subcategory
-            ? "상세 카테고리를 선택해주세요."
-            : !positiveInteger(amount) || Number(amount) < 500_000
-              ? "목표 금액은 최소 500,000원 이상의 정수로 입력해주세요."
-              : !rewards.length
-                ? "리워드를 최소 1개 등록해주세요."
-                : "";
-    setError(basicError);
-    setNotice(
-      basicError ? "" : "목업 저장입니다. 실제 프로젝트를 생성하거나 서버에 저장하지 않습니다.",
-    );
-    requestAnimationFrame(() => noticeRef.current?.focus());
+  function saveReward() {
+    if (!draft) return;
+    const error = rewardError(draft);
+    if (error) return setRewardMessage(error);
+    const id = editing === "new" ? nextId.current++ : editing?.id;
+    if (id === undefined) return;
+    setRewards((current) => upsertReward(current, draft, id));
+    closeReward();
+  }
+  function saveBasicInfo() {
+    if (validation) return setFormMessage(validation);
+    setFormMessage("");
+    setSaved(true);
   }
 
   return (
-    <form
-      className="flex min-h-[calc(100vh-92px)] flex-col pt-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save();
-      }}
-      onChange={() => {
-        setNotice("");
-        setError("");
-      }}
-    >
-      <div className="mx-auto w-full max-w-198">
-        <p className="text-caption-strong flex flex-wrap gap-2 py-1">
-          내 프로젝트 <span aria-hidden>&gt;</span> 신규 생성하기 <span aria-hidden>&gt;</span> 기본
-          정보 등록
-        </p>
-        <h1 className="text-heading-l py-2">기본 정보 등록</h1>
-        <div className="mt-3 space-y-6">
-          <fieldset>
-            <legend className="text-body-strong mb-2">사업자 유형</legend>
-            <div className="grid grid-cols-3 gap-3">
-              {businessTypes.map((type) => (
-                <label key={type} className="cursor-pointer">
-                  <input
-                    className="peer sr-only"
-                    type="radio"
-                    name={`${id}-business`}
+    <>
+      <form
+        className="flex min-h-[calc(100vh-92px)] flex-col pt-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          saveBasicInfo();
+        }}
+        onChange={() => setFormMessage("")}
+      >
+        <div className="mx-auto w-full max-w-198">
+          <Breadcrumb items={breadcrumb} />
+          {/* breadcrumb 24 + 간격 4 + 제목(상하 8 포함) 52 = Figma page_header 80px */}
+          <h1 className="text-heading-l text-text-title mt-1 w-178 py-2">기본 정보 등록</h1>
+          <div className="mt-3 space-y-6">
+            <fieldset>
+              <legend className="text-title-s mb-2">사업자 유형</legend>
+              {/* Figma FL_S_PR_CREATE: 선택지는 28px 라디오를 기준으로 가로로 나열된다.
+                 카드처럼 늘리면 첫 번째 필드의 높이가 24px 커져 이후 섹션 전체가 밀린다. */}
+              <div className="flex flex-wrap gap-3">
+                {businessTypes.map((type) => (
+                  <Radio
+                    key={type}
+                    name="business"
                     value={type}
                     checked={business === type}
                     onChange={() => setBusiness(type)}
-                  />
-                  <span className="border-border-default text-caption-m peer-checked:border-border-primary peer-checked:bg-layer-surface-disabled peer-focus-visible:outline-border-primary flex h-11.5 items-center justify-center rounded-xs border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2">
+                    className="h-7"
+                  >
                     {type}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <label className="block space-y-2">
-            <span className="text-title-s font-medium">프로젝트 제목</span>
-            <Input
-              className={`${inputClass} bg-layer-surface-disabled border-transparent!`}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="프로젝트 제목을 입력해주세요"
-            />
-          </label>
-          <fieldset>
-            <legend className="text-body-strong mb-2">프로젝트 카테고리</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <CategoryDropdown
-                label="대분류"
-                placeholder="대분류를 선택하세요"
-                value={category}
-                options={mainCategories}
-                onChange={(value) => {
-                  setCategory(value);
-                  setSubcategory("");
-                  setError("");
-                  setNotice("");
-                }}
-              />
-              <CategoryDropdown
-                key={category}
-                label="상세 카테고리"
-                placeholder="상세"
-                disabled={category !== "홈 · 리빙"}
-                value={subcategory}
-                options={homeCategories}
-                onChange={(value) => {
-                  setSubcategory(value);
-                  setError("");
-                  setNotice("");
-                }}
-              />
-            </div>
-            {category && category !== "홈 · 리빙" && (
-              <p className="text-caption-s mt-2">이 대분류의 상세 목록은 연동 예정입니다.</p>
-            )}
-          </fieldset>
-          <div>
-            <label className="text-body-strong" htmlFor={`${id}-amount`}>
-              목표 금액
-            </label>
-            <p className="text-label-s mt-1" id={`${id}-amount-hint`}>
-              펀딩금은 선결제되며, 목표 금액을 달성하지 못할 경우 결제 금액이 자동으로 환불됩니다
-            </p>
-            <div className="mt-2 flex items-center gap-3">
+                  </Radio>
+                ))}
+              </div>
+            </fieldset>
+            <label className="block space-y-2">
+              <span className="text-title-s block">프로젝트 제목</span>
               <Input
-                id={`${id}-amount`}
-                aria-describedby={`${id}-amount-hint`}
-                className={`${inputClass} [&_input]:text-right`}
-                inputMode="numeric"
-                value={amount}
-                onChange={(event) => {
-                  if (/^\d*$/.test(event.target.value)) setAmount(event.target.value);
-                }}
-                placeholder="금액은 최소 500,000원 부터 입력 가능합니다"
-                endAdornment={<span className="text-caption-m">원</span>}
+                size="md"
+                shape="compact"
+                className="[&_input]:text-body-s"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="프로젝트 제목을 입력해주세요"
               />
-              <button
-                type="button"
-                className="text-caption-strong flex h-11.5 shrink-0 items-center gap-1 px-3"
-                onClick={() => {
-                  setAmount("");
-                  setNotice("");
-                }}
-              >
-                <Icon name="resetAmount" className="size-3" />
-                지우기
-              </button>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {amountSteps.map((step) => (
-                <Chip
-                  key={step}
-                  className="bg-layer-surface-disabled! border-border-default text-caption-s! h-6 border px-1!"
-                  onClick={() => {
-                    setAmount((value) => addAmount(value, step));
-                    setNotice("");
+            </label>
+            <fieldset>
+              <legend className="text-title-s mb-2">카테고리</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Dropdown
+                  size="lg"
+                  className="[&_button]:!text-body-s"
+                  aria-label="대분류"
+                  options={mainCategories.map((name) => ({ value: name, label: name }))}
+                  value={category}
+                  placeholder="대분류를 선택하세요"
+                  onValueChange={(value) => {
+                    setCategory(value);
+                    setSubcategory("");
                   }}
+                />
+                <Dropdown
+                  size="lg"
+                  className="[&_button]:!text-body-s"
+                  aria-label="상세 카테고리"
+                  disabled={!category}
+                  options={subcategoryOptions}
+                  value={subcategory}
+                  placeholder="상세 카테고리를 선택하세요"
+                  onValueChange={setSubcategory}
+                />
+              </div>
+            </fieldset>
+            <div>
+              <label className="text-title-s" htmlFor="amount">
+                목표 금액
+              </label>
+              <p className="text-caption-s text-text-default mt-1" id="amount-hint">
+                펀딩금은 선결제되며, 목표 금액을 달성하지 못할 경우 결제 금액이 자동으로 환불됩니다
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <Input
+                  id="amount"
+                  aria-describedby="amount-hint"
+                  size="md"
+                  shape="compact"
+                  className="[&_input]:text-body-s [&_input]:text-right"
+                  inputMode="numeric"
+                  value={amount}
+                  onChange={(event) =>
+                    /^\d*$/.test(event.target.value) && setAmount(event.target.value)
+                  }
+                  placeholder="금액은 최소 500,000원부터 입력 가능합니다"
+                  endAdornment={<span className="text-body-s">원</span>}
+                />
+                <TextButton
+                  variant="underline"
+                  showIcon={false}
+                  className="h-10 w-[68px] justify-center"
+                  onClick={() => setAmount("")}
                 >
-                  + {step.toLocaleString("ko-KR")}
-                </Chip>
-              ))}
+                  지우기 <Icon name="resetAmount" className="size-3.5" />
+                </TextButton>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {amountSteps.map((step) => (
+                  <Chip
+                    key={step}
+                    appearance="outline"
+                    size="md"
+                    onClick={() => setAmount((value) => addAmount(value, step))}
+                  >
+                    +{step.toLocaleString("ko-KR")}
+                  </Chip>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-        <section className="mt-11" aria-labelledby={`${id}-rewards`}>
-          <h2 id={`${id}-rewards`} className="text-heading-m">
-            리워드
-          </h2>
-          <p className="text-caption-m mt-1">
-            후원자에게 제공할 리워드를 등록해주세요. 최소 1개 이상 등록해야 다음 단계로 진행할 수
-            있어요
-          </p>
-          {rewards.length > 0 && (
-            <div className="border-border-default mt-6 overflow-x-auto rounded-xs border">
-              <table className="text-body-m w-full min-w-[790px] table-fixed text-left [&_td]:pr-7 [&_td]:pl-4 [&_td:last-child]:pr-4 [&_th]:pr-7 [&_th]:pl-4 [&_th:last-child]:pr-4">
-                <caption className="sr-only">등록된 리워드</caption>
-                <colgroup>
-                  <col className="w-[70px]" />
-                  <col className="w-[268px]" />
-                  <col className="w-[136px]" />
-                  <col className="w-[116px]" />
-                  <col className="w-[100px]" />
-                  <col className="w-[100px]" />
-                </colgroup>
-                <thead className="bg-border-default">
-                  <tr>
-                    {["No.", "리워드명", "가격", "수량", "얼리버드", "관리"].map((label) => (
-                      <th key={label} scope="col" className="px-4 py-2 font-medium">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rewards.map((reward, index) => (
-                    <tr key={reward.id}>
-                      <td className="px-4 py-3">{index + 1}</td>
-                      <td className="truncate py-3" title={reward.name}>
-                        {reward.name}
-                      </td>
-                      <td className="py-3 text-right whitespace-nowrap">
-                        {Number(reward.price).toLocaleString("ko-KR")}원
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {reward.limited ? `${reward.quantity}개` : "제한 없음"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {reward.earlyBird ? "적용" : "미적용"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <button
-                          type="button"
-                          disabled={draft !== null}
-                          aria-label={`${reward.name} 수정`}
-                          onClick={() => openReward(reward)}
+          <section className="mt-[45px]" aria-labelledby="rewards">
+            <h2 id="rewards" className="text-title-s text-text-title">
+              리워드
+            </h2>
+            <p className="text-caption-s text-text-default mt-1">
+              후원자에게 제공할 리워드를 등록해주세요. 최소 1개 이상 등록해야 다음 단계로 진행할 수
+              있어요
+            </p>
+            {rewards.length ? (
+              <div className="mt-2 flex w-full min-w-[792px] flex-col items-end gap-4">
+                <div className="border-w-xs border-border-default w-full overflow-hidden rounded-xs border">
+                  <table className="text-body-m w-full table-fixed text-left">
+                    <caption className="sr-only">등록된 리워드</caption>
+                    <thead className="bg-layer-bg block">
+                      <tr className="grid h-[42px] grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 px-2">
+                        {["No.", "리워드명", "가격", "수량", "할인", "관리"].map((label) => (
+                          <th key={label} scope="col" className="min-w-0 font-medium">
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="block">
+                      {rewards.map((reward, index) => (
+                        <tr
+                          key={reward.id}
+                          className="border-border-default grid h-11 grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 border-t px-2"
                         >
-                          수정
-                        </button>{" "}
-                        ·{" "}
-                        <button
-                          type="button"
-                          disabled={draft !== null}
-                          aria-label={`${reward.name} 삭제`}
-                          onClick={() => {
-                            setRewards((current) =>
-                              current.filter((item) => item.id !== reward.id),
-                            );
-                            setNotice("리워드를 목업 목록에서 삭제했습니다.");
-                          }}
-                        >
-                          삭제
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!draft && (
-                <button
-                  ref={addButtonRef}
+                          <td className="text-center font-semibold">{index + 1}</td>
+                          <td className="min-w-0 truncate" title={reward.name}>
+                            {reward.name}
+                          </td>
+                          <td className="min-w-0">
+                            {reward.discount ? (
+                              <div className="flex min-w-0 items-center justify-end gap-2">
+                                <s
+                                  className="text-caption-s text-text-secondary max-w-[45%] min-w-0 truncate whitespace-nowrap"
+                                  title={`${Number(reward.price).toLocaleString("ko-KR")}원`}
+                                >
+                                  {Number(reward.price).toLocaleString("ko-KR")}원
+                                </s>
+                                <span
+                                  className="min-w-0 truncate text-right whitespace-nowrap"
+                                  title={`${discountedPrice(reward).toLocaleString("ko-KR")}원`}
+                                >
+                                  {discountedPrice(reward).toLocaleString("ko-KR")}원
+                                </span>
+                              </div>
+                            ) : (
+                              <span
+                                className="block truncate text-right whitespace-nowrap"
+                                title={`${Number(reward.price).toLocaleString("ko-KR")}원`}
+                              >
+                                {Number(reward.price).toLocaleString("ko-KR")}원
+                              </span>
+                            )}
+                          </td>
+                          <td
+                            className="min-w-0 truncate"
+                            title={reward.limited ? `${reward.quantity}개` : "제한 없음"}
+                          >
+                            {reward.limited ? `${reward.quantity}개` : "제한 없음"}
+                          </td>
+                          <td>{reward.discount ? "적용" : "-"}</td>
+                          <td className="flex h-10 items-center gap-2 whitespace-nowrap">
+                            <TextButton
+                              variant="underline"
+                              showIcon={false}
+                              className="text-caption-s h-10 px-2"
+                              onClick={() => openReward(reward)}
+                              aria-label={`${reward.name} 수정`}
+                            >
+                              수정
+                            </TextButton>
+                            <span aria-hidden className="mx-1">
+                              ·
+                            </span>
+                            <TextButton
+                              variant="underline"
+                              showIcon={false}
+                              className="text-caption-s h-10 px-2"
+                              onClick={() =>
+                                setRewards((current) =>
+                                  current.filter((item) => item.id !== reward.id),
+                                )
+                              }
+                              aria-label={`${reward.name} 삭제`}
+                            >
+                              삭제
+                            </TextButton>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Button
                   type="button"
-                  className={`${secondaryButtonClasses} h-11.5 w-full gap-2`}
+                  variant="secondary"
+                  appearance="cta"
+                  size="md"
+                  className="text-body-s! w-[106px] gap-1 font-medium"
                   onClick={() => openReward()}
                 >
-                  리워드 추가하기 <Icon name="plusSquare" className="size-4" />
-                </button>
-              )}
-            </div>
-          )}
-          {!rewards.length && !draft && (
-            <div className="bg-layer-surface-disabled border-border-default mt-6 flex h-57.5 flex-col items-center justify-center rounded-xs border border-dashed">
-              <div className="relative size-14">
-                <Icon name="gift" className="absolute top-2.5 left-2.5 size-9" />
-                <Icon name="plusCircle" className="absolute top-0 right-0 size-4" />
+                  추가 <Icon name="plus" className="size-4" />
+                </Button>
               </div>
-              <p className="text-caption-m mt-2 text-center">
-                등록된 리워드가 없습니다
-                <br />
-                리워드를 등록해주세요
-              </p>
-              <Button
-                ref={addButtonRef}
-                size="md"
-                className="text-caption-m! mt-2 w-45"
-                onClick={() => openReward()}
-              >
-                리워드 추가
-              </Button>
-            </div>
-          )}
-          {draft && (
-            <div className="border-border-default mt-6 rounded-xs border p-4">
-              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-body-strong">
-                  {editingId === null ? "리워드 추가하기" : "리워드 수정하기"}
-                </h3>
-                <button
+            ) : (
+              <div className="bg-layer-bg border-w-xs border-border-default mt-2 flex h-[238px] flex-col items-center justify-center rounded-sm border border-dashed">
+                <div className="relative size-14">
+                  <Icon name="gift" className="absolute top-2.5 left-2.5 size-9" />
+                  <Icon name="plusCircle" className="absolute top-0 right-0 size-4" />
+                </div>
+                <p className="text-body-s text-text-secondary mt-2 text-center font-medium">
+                  등록된 리워드가 없습니다
+                  <br />
+                  리워드를 등록해주세요
+                </p>
+                <Button
                   type="button"
-                  aria-label="리워드 작성 취소"
-                  className="flex size-6 items-center justify-center"
-                  onClick={closeReward}
+                  size="md"
+                  className="text-body-s! mt-3 h-10! w-[204px] font-medium"
+                  onClick={() => openReward()}
                 >
-                  <Icon name="closeSmall" className="size-4" />
-                </button>
+                  리워드 추가
+                </Button>
               </div>
-              <div className="space-y-6">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="space-y-2">
-                    <span className="text-caption-m">리워드 명</span>
-                    <Input
-                      ref={rewardNameRef}
-                      className={inputClass}
-                      value={draft.name}
-                      onChange={(event) => updateDraft({ name: event.target.value })}
-                      placeholder="리워드 이름을 입력해주세요"
-                    />
-                  </label>
-                  <div className="space-y-2">
-                    <p className="text-caption-m">이미지</p>
-                    <div className="flex gap-3">
-                      <Input
-                        aria-label="리워드 이미지"
-                        className={`${inputClass} bg-layer-surface-disabled`}
-                        readOnly
-                        placeholder="이미지를 첨부해주세요"
-                      />
-                      <button
-                        type="button"
-                        disabled
-                        title="이미지 업로드는 연동 예정입니다."
-                        className={`${secondaryButtonClasses} h-11.5 w-20 shrink-0`}
-                      >
-                        찾아 보기
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <label className="block space-y-2">
-                  <span className="text-caption-m">리워드 설명</span>
-                  <Textarea
-                    rows={1}
-                    className="h-11.5! py-3!"
-                    value={draft.description}
-                    onChange={(event) => updateDraft({ description: event.target.value })}
-                    placeholder="리워드에 대한 설명을 입력해주세요"
-                  />
-                </label>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="space-y-2">
-                    <span className="text-caption-m">가격</span>
-                    <Input
-                      className={inputClass}
-                      inputMode="numeric"
-                      value={draft.price}
-                      onChange={(event) => updateDraft({ price: event.target.value })}
-                      placeholder="리워드 가격을 입력해주세요"
-                    />
-                  </label>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor={`${id}-quantity`} className="text-caption-m">
-                        수량
-                      </label>
-                      <Checkbox
-                        shape="square"
-                        checked={draft.limited}
-                        onChange={(event) => updateDraft({ limited: event.target.checked })}
-                        className="[&>span:last-child]:text-caption-strong flex-row-reverse"
-                      >
-                        수량 제한
-                      </Checkbox>
-                    </div>
-                    <Input
-                      id={`${id}-quantity`}
-                      className={inputClass}
-                      inputMode="numeric"
-                      disabled={!draft.limited}
-                      value={draft.quantity}
-                      onChange={(event) => updateDraft({ quantity: event.target.value })}
-                      placeholder={draft.limited ? "리워드 수량을 입력해주세요" : "제한 없음"}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Checkbox
-                    shape="square"
-                    checked={draft.earlyBird}
-                    onChange={(event) => updateDraft({ earlyBird: event.target.checked })}
-                    className="w-full items-start px-4 py-2"
-                  >
-                    <span className="text-body-emphasis">리워드 혜택 설정 · 얼리버드</span>
-                    <span className="text-caption-m ml-2">
-                      선착순 후원자에게 별도 할인 가격 · 한정 수량으로 제공해요
-                    </span>
-                  </Checkbox>
-                  <Checkbox
-                    shape="square"
-                    checked={draft.options}
-                    onChange={(event) => updateDraft({ options: event.target.checked })}
-                    className="w-full items-start px-4 py-2"
-                  >
-                    <span className="text-body-emphasis">옵션 설정</span>
-                    <span className="text-caption-m ml-2">
-                      색상·사이즈처럼 후원자가 고를 수 있는 옵션이 있다면 켜주세요
-                    </span>
-                  </Checkbox>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-      <div className="mt-auto pt-16 pb-3">
-        <div className="flex justify-end gap-6">
-          <button
-            type="button"
-            className={`${secondaryButtonClasses} h-11.5 w-45`}
-            onClick={() => {
-              setError("");
-              setNotice(
-                "목업 임시저장입니다. 새로고침하면 입력이 초기화되며 서버에 저장되지 않습니다.",
-              );
-            }}
-          >
-            <span className="text-body-strong">임시저장</span>
-          </button>
-          <Button type="submit" appearance="cta" className="w-45">
-            저장
-          </Button>
+            )}
+          </section>
         </div>
-        <p
-          ref={noticeRef}
-          tabIndex={-1}
-          role={error ? "alert" : "status"}
-          className="text-caption-s mt-3 min-h-5"
-        >
-          {error ||
-            notice ||
-            "목업 화면 · 입력은 현재 화면에서만 유지됩니다. 실제 생성·저장·업로드는 하지 않습니다."}
-        </p>
-      </div>
-    </form>
+        {/* 리워드 영역 끝(961)부터 Figma 하단 액션 시작점(994)까지 33px */}
+        <div className="mx-auto mt-[34px] w-full max-w-198 pb-7">
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              className="text-body-strong! w-[186px]"
+              onClick={() =>
+                setFormMessage("목업 임시저장입니다. 새로고침하면 입력이 초기화됩니다.")
+              }
+            >
+              임시저장
+            </Button>
+            <Button
+              type="submit"
+              appearance="cta"
+              size="lg"
+              className="w-[186px]"
+              disabled={Boolean(validation)}
+            >
+              저장
+            </Button>
+          </div>
+          {formMessage && (
+            <p role="alert" className="text-caption-s text-text-secondary mt-3">
+              {formMessage}
+            </p>
+          )}
+        </div>
+      </form>
+      <RewardFormModal
+        draft={draft}
+        editing={editing !== null && editing !== "new"}
+        error={rewardMessage}
+        onClose={closeReward}
+        onSave={saveReward}
+        onUpdate={updateDraft}
+      />
+      <Modal
+        open={saved}
+        onClose={() => setSaved(false)}
+        size="m"
+        title="기본정보가 저장되었습니다"
+      >
+        <div className="mt-6 text-center">
+          <p className="text-body-m">이어서 펀딩 스토리를 작성하시겠어요?</p>
+          <div className="mt-8 flex justify-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              className="text-body-strong! w-[186px]"
+              onClick={() => setSaved(false)}
+            >
+              다음에
+            </Button>
+            <Button
+              type="button"
+              appearance="cta"
+              size="lg"
+              className="w-[186px]"
+              onClick={() => {
+                setSaved(false);
+                // 프로젝트 생성 API가 아직 없어, 현재 작성 플로우를 대표하는 목업 초안 ID로 이동한다.
+                router.push("/seller/projects/draft-project?tab=story");
+              }}
+            >
+              펀딩 스토리 작성
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
