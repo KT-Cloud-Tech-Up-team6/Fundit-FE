@@ -150,6 +150,7 @@ export function BuyerProjectDetail({
   preview = false,
   storyContent,
   rewardSummary,
+  rewardSelection,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
@@ -160,6 +161,7 @@ export function BuyerProjectDetail({
   preview?: boolean;
   storyContent?: ReactNode;
   rewardSummary?: ReactNode;
+  rewardSelection?: ReactNode;
 }) {
   const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
@@ -231,10 +233,10 @@ export function BuyerProjectDetail({
     <div
       className={
         styles.screen +
-        " bg-layer-surface-default text-text-default mx-auto w-full max-w-[390px] min-w-0 " +
+        " bg-layer-surface-default text-text-default mx-auto w-full min-w-0 " +
         (preview
-          ? styles.preview
-          : `${styles.desktop} min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))] min-[1200px]:max-w-none min-[1200px]:pb-0`)
+          ? `${styles.preview} max-w-[390px]`
+          : `${styles.desktop} min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`)
       }
     >
       {!preview && <BuyerDesktopHeader />}
@@ -275,7 +277,12 @@ export function BuyerProjectDetail({
               aria-label="진행 중 라이브 시청"
               className="absolute top-5 left-5 flex flex-col gap-1"
             >
-              <Badge variant="neutral" size="md" shape="rounded" className={styles.liveBadge}>
+              <Badge
+                variant="neutral"
+                size="sm"
+                shape="rounded"
+                className={`${styles.liveBadge} ${preview ? "" : "min-[1200px]:text-caption-s min-[1200px]:h-[26px] min-[1200px]:font-medium"}`}
+              >
                 <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
                 LIVE
               </Badge>
@@ -345,8 +352,13 @@ export function BuyerProjectDetail({
               )}
             </section>
           </section>
+          {!preview && rewardSelection && (
+            <div className="hidden min-[1200px]:block">{rewardSelection}</div>
+          )}
           {!preview && footer}
-          {!preview && <div className="hidden min-[1200px]:block">{rewardSummary}</div>}
+          {!preview && !rewardSelection && (
+            <div className="hidden min-[1200px]:block">{rewardSummary}</div>
+          )}
         </aside>
         <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
           {tabs.map(([value, label]) =>

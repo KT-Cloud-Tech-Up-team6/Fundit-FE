@@ -25,6 +25,32 @@ export const BeforeStart: Story = {
   },
 };
 export const Broadcasting: Story = { args: { initialView: "live" } };
+export const UnavailableQuestionCard: Story = {
+  args: { initialView: "live" },
+  play: async ({ canvasElement }) => {
+    const manager = within(canvasElement).getByRole("region", { name: "AI 라이브 매니저" });
+    const canvas = within(manager);
+    const title = "F25 'Ultra'와 'ACE' 모델의 가장 큰 차이점은 무엇인가요?";
+    const question = canvas.getByRole("button", { name: `${title} 추천 답변 생성 불가` });
+    expect(question.closest("li")).toHaveClass("border-border-accent-warning");
+    const count = canvas.getByRole("button", { name: `${title} 질문 전체 보기 6건` });
+    expect(count).toHaveClass("bg-status-warning", "text-text-warning");
+    await userEvent.click(count);
+    expect(canvas.getByRole("list", { name: "질문 원문 목록" }).children).toHaveLength(6);
+    await userEvent.click(canvas.getByRole("button", { name: "돌아가기" }));
+    await userEvent.click(canvas.getByRole("button", { name: `${title} 추천 답변 생성 불가` }));
+    expect(canvas.getByText(/상품 정보가 부족해/)).toBeVisible();
+    expect(canvas.queryByRole("button", { name: "채팅 보내기" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "답변 완료 처리" }));
+    expect(canvas.getByRole("button", { name: title }).closest("li")).toHaveClass(
+      "bg-layer-surface-disabled",
+    );
+    expect(canvas.getByRole("button", { name: title }).closest("li")).not.toHaveClass(
+      "border-border-accent-warning",
+    );
+    expect(canvas.getByRole("button", { name: "집계된 Q&A 보기 (2)" })).toBeVisible();
+  },
+};
 export const AggregatedAnswers: Story = { args: { initialView: "aggregated" } };
 export const AllQuestions: Story = { args: { initialView: "originals" } };
 export const SuggestedAnswer: Story = { args: { initialView: "answer" } };

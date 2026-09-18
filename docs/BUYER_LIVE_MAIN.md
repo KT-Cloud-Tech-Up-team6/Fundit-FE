@@ -13,7 +13,7 @@
 
 - 앱 `/live`, `/live/upcoming`.
 - Storybook `Features/BuyerLive/Main`의 Default, NoFollowing, NotificationToggle, SearchAndNavigation, UpcomingNoFollowing.
-- 1200px 미만은 기존 390px 모바일 원본 기준으로 중앙 정렬하고, 1200px 이상은 아래 데스크톱 원본을 적용한다.
+- 1200px 미만은 모바일 원본의 STRETCH 기준으로 화면과 하단 내비게이션에 가용 폭을 사용하고, 1200px 이상은 아래 데스크톱 원본을 적용한다.
 - 기기 상태바·홈 인디케이터는 복제하지 않으며 하단 메뉴에 safe area를 적용한다.
 
 ## 변경 사항

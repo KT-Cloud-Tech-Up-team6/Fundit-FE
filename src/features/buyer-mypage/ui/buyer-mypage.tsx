@@ -40,7 +40,11 @@ const menuGroups = [
 
 export function BuyerMyPage() {
   return (
-    <BuyerAccountScreen title="마이페이지" backHref="/" className="flex w-full flex-col">
+    <BuyerAccountScreen
+      title="마이페이지"
+      backHref="/"
+      className="flex w-full flex-col max-[1200px]:max-w-none"
+    >
       <div className="px-5 pb-6">
         <div className="flex items-center justify-between gap-2 py-3">
           <Link

@@ -332,7 +332,7 @@ export function BuyerLiveMain({
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:max-w-none min-[1200px]:pb-0`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`}
     >
       <BuyerDesktopHeader />
       <div className="min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:h-[138px] min-[1200px]:max-w-300 min-[1200px]:items-center min-[1200px]:justify-center min-[1200px]:gap-10">
@@ -601,7 +601,7 @@ export function BuyerLiveMain({
         activeHref="/live"
         aria-label="LIVE 화면 하단 메뉴"
         flat
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2 min-[1200px]:hidden"
+        className="fixed bottom-0 left-1/2 z-20 w-full -translate-x-1/2 min-[1200px]:hidden"
       />
     </div>
   );
