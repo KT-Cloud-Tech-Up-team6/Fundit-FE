@@ -149,44 +149,47 @@ export function BuyerFulfillmentSummary({
       </div>
       {/* Figma FL_B_MY_DLVR_1: 데스크톱은 793px 고정 콘텐츠 열, 현재 단계 기록을 펼쳐 둔다. */}
       <main className="bg-layer-surface-default hidden min-h-[calc(100dvh-70px)] min-[1200px]:block">
-        <div className="mx-auto w-full max-w-[793px] pt-4 pb-16">
-          <nav aria-label="현재 위치" className="text-label-m text-text-secondary flex gap-2">
+        <div className="mx-auto w-full max-w-[793px] pt-3 pb-16">
+          <nav
+            aria-label="현재 위치"
+            className="text-label-m text-text-secondary flex h-6 items-center gap-2 font-medium"
+          >
             <span>마이페이지</span>
-            <span aria-hidden>›</span>
+            <span aria-hidden>&gt;</span>
             <span>펀딩내역</span>
-            <span aria-hidden>›</span>
+            <span aria-hidden>&gt;</span>
             <span>제작·배송 현황</span>
           </nav>
-          <h1 className="text-heading-l text-text-default mt-4">제작·배송 현황</h1>
-          <section className="mt-4">
-            <div className="flex h-[29px] items-center justify-between gap-3">
+          <h1 className="text-heading-l text-text-title mt-1 py-2">제작·배송 현황</h1>
+          <section>
+            <div className="flex h-10 items-center justify-between gap-3">
               <p className="text-body-l text-text-default">{statusCopy}</p>
               <Link
                 href={`/my/fundings/${fundingId}/fulfillment/history`}
-                className="text-body-s text-text-secondary px-2 underline"
+                className="text-caption-s text-text-secondary flex h-10 items-center px-2 font-medium underline"
               >
                 자세히 보기
               </Link>
             </div>
-            <div className="mt-1.5">
+            <div className="mt-2">
               <BuyerStageStepper state={state.stages} showStatusBadge showExpectedStartTooltip />
             </div>
-            <div className="mt-10">
+            <div className="mt-8">
               {currentStage.expectedEndDate && currentStage.status === "active" && (
-                <p className="text-title-s text-text-default">
+                <p className="text-body-strong text-text-default">
                   {stageLabel(current)} 완료 예정일{" "}
                   {formatShippingDate(currentStage.expectedEndDate)}
                 </p>
               )}
               {currentStage.startDate && (
-                <p className="text-body-s text-text-secondary mt-1 font-medium">
+                <p className="text-body-s text-text-secondary font-medium">
                   {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
                 </p>
               )}
             </div>
           </section>
           <section className="border-border-default mt-5 overflow-hidden rounded-xs border">
-            <h2 className="text-title-s text-text-default border-border-default flex h-[58px] items-center border-b px-3">
+            <h2 className="text-body-strong text-text-default border-border-default flex h-[58px] items-center border-b px-3">
               {current === "production" ? "제작" : stageLabel(current)}{" "}
               <span className="text-body-s text-text-secondary ml-3 font-normal">
                 {currentStage.startDate &&

@@ -205,19 +205,22 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
         </ul>
       </div>
       <main className="bg-layer-surface-default hidden min-h-[calc(100dvh-70px)] min-[1200px]:block">
-        <div className="mx-auto w-full max-w-[793px] pt-4 pb-16">
-          <nav aria-label="현재 위치" className="text-label-m text-text-secondary flex gap-2">
+        <div className="mx-auto w-full max-w-[793px] pt-3 pb-16">
+          <nav
+            aria-label="현재 위치"
+            className="text-label-m text-text-secondary flex h-6 items-center gap-2 font-medium"
+          >
             <span>마이페이지</span>
-            <span aria-hidden>›</span>
+            <span aria-hidden>&gt;</span>
             <span>펀딩내역</span>
-            <span aria-hidden>›</span>
+            <span aria-hidden>&gt;</span>
             <span>제작·배송 현황</span>
-            <span aria-hidden>›</span>
+            <span aria-hidden>&gt;</span>
             <span>전체보기</span>
           </nav>
-          <h1 className="text-heading-l text-text-default mt-4">제작·배송 현황</h1>
-          <section className="mt-4">
-            <p className="text-body-l text-text-default h-[29px]">
+          <h1 className="text-heading-l text-text-title mt-1 py-2">제작·배송 현황</h1>
+          <section>
+            <p className="text-body-l text-text-default">
               {currentStage.status === "active" ? (
                 <>
                   현재 <strong className="font-semibold">{currentLabel}</strong> 중 이에요
@@ -230,23 +233,23 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
                 <>제작·배송이 완료됐어요</>
               )}
             </p>
-            <div className="mt-1.5">
+            <div className="mt-2">
               <BuyerStageStepper state={state.stages} showStatusBadge showExpectedStartTooltip />
             </div>
-            <div className="mt-10">
+            <div className="mt-8">
               {currentStage.expectedEndDate && currentStage.status === "active" && (
-                <p className="text-title-s text-text-default">
+                <p className="text-body-strong text-text-default">
                   {currentLabel} 완료 예정일 {formatShippingDate(currentStage.expectedEndDate)}
                 </p>
               )}
               {currentStage.startDate && (
-                <p className="text-body-s text-text-secondary mt-1 font-medium">
+                <p className="text-body-s text-text-secondary font-medium">
                   {formatShippingDate(currentStage.startDate)} {currentLabel} 시작
                 </p>
               )}
             </div>
           </section>
-          <div className="mt-5 flex flex-col gap-4">
+          <div className="mt-8 flex flex-col gap-4">
             {desktopStages.map((value) => {
               const label = fulfillmentStages.find((stage) => stage.value === value)!.label;
               const stage = state.stages[value];
@@ -277,7 +280,7 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
                     className="border-border-default flex min-h-[58px] w-full cursor-pointer items-center justify-between gap-4 border-b px-3 py-3 text-left"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <h2 className="text-title-s text-text-default shrink-0">{heading}</h2>
+                      <h2 className="text-body-strong text-text-default shrink-0">{heading}</h2>
                       {badge && stage.status === "done" && (
                         <Badge shape="rounded" variant="info">
                           {badge}
