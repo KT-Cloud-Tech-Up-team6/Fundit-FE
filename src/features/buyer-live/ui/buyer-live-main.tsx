@@ -77,7 +77,7 @@ function StatusBadge({
   return (
     <Badge
       shape="rounded"
-      variant={live ? "primaryLive" : "neutral"}
+      variant="neutral"
       className={live ? styles.liveBadge : ranking ? styles.rankingBadge : styles.viewerBadge}
     >
       <LiveAsset name={scheduled ? "alarm" : live ? "live-navigation" : "viewers"} />
