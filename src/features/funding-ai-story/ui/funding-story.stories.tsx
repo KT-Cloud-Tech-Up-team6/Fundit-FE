@@ -65,27 +65,67 @@ export const InputHeightLimit: Story = {
     await userEvent.paste(Array.from({ length: 30 }, (_, i) => `제품 설명 ${i + 1}`).join("\n"));
     await waitFor(() => {
       expect(input.getBoundingClientRect().height).toBe(160);
-      expect(input.closest("form")?.getBoundingClientRect().height).toBe(178);
+      expect(input.parentElement?.getBoundingClientRect().height).toBe(178);
       expect(input.scrollHeight).toBeGreaterThan(input.clientHeight);
     });
     await userEvent.click(canvas.getByRole("button", { name: "메시지 보내기" }));
     await waitFor(() => {
       expect(input).toHaveValue("");
-      expect(input.getBoundingClientRect().height).toBe(24);
+      expect(input.getBoundingClientRect().height).toBe(28);
     });
   },
 };
 export const Questions: Story = {
   args: { stage: "questions" },
   play: async ({ canvasElement }) => {
-    expectCta(await within(canvasElement).findByRole("button", { name: "해당 사항 없음" }));
+    const canvas = within(canvasElement);
+    const skip = await canvas.findByRole("button", { name: "해당 사항 없음" });
+    expect(getComputedStyle(skip).fontSize).toBe("12px");
+    expect(skip.getBoundingClientRect().height).toBe(26);
+    await userEvent.click(skip);
+    const buttons = canvas.getAllByRole("button", { name: "해당 사항 없음" });
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]).toBeDisabled();
+    expect(buttons[1]).toBeEnabled();
+    for (const button of buttons) {
+      expect(getComputedStyle(button).borderColor).toBe("rgb(221, 222, 226)");
+      expect(getComputedStyle(button).backgroundColor).toBe("rgb(255, 255, 255)");
+    }
+    expect(canvas.getByText("2/3")).toBeVisible();
+    expect(canvas.getAllByText("사용자 메시지")).toHaveLength(2);
   },
 };
-export const Summarizing: Story = { args: { stage: "summarizing", pauseDemo: true } };
+export const Summarizing: Story = {
+  args: { stage: "summarizing", pauseDemo: true },
+  play: async ({ canvasElement }) => {
+    const dialog = within(await within(canvasElement).findByRole("dialog"));
+    expect(dialog.getByRole("status")).toHaveTextContent("요약 중 …");
+    expect(dialog.getByRole("status")).toBeVisible();
+    expect(dialog.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(dialog.getByRole("status")).toHaveAttribute("aria-atomic", "true");
+    expect(dialog.getByRole("textbox", { name: "스토리 메시지" })).toBeDisabled();
+  },
+};
+export const SummaryRevisionStatus: Story = {
+  args: { stage: "summary", pauseDemo: true },
+  play: async ({ canvasElement }) => {
+    const dialog = within(await within(canvasElement).findByRole("dialog"));
+    const input = dialog.getByRole("textbox", { name: "스토리 메시지" });
+    await userEvent.type(input, "추천 대상을 1인 가구로 수정해주세요.");
+    await userEvent.click(dialog.getByRole("button", { name: "메시지 보내기" }));
+    expect(dialog.getByRole("log")).toHaveTextContent("추천 대상을 1인 가구로 수정해주세요.");
+    expect(dialog.getByRole("status")).toHaveTextContent("요약 중 …");
+    expect(dialog.getByRole("status")).toBeVisible();
+    expect(within(dialog.getByRole("log")).queryByRole("status")).not.toBeInTheDocument();
+    expect(input).toBeDisabled();
+  },
+};
 export const Summary: Story = {
   args: { stage: "summary" },
   play: async ({ canvasElement }) => {
-    expectCta(await within(canvasElement).findByRole("button", { name: "그대로 생성하기" }));
+    const button = await within(canvasElement).findByRole("button", { name: "그대로 생성하기" });
+    expect(getComputedStyle(button).fontSize).toBe("12px");
+    expect(button.getBoundingClientRect().height).toBe(26);
   },
 };
 export const Generating: Story = { args: { stage: "generating", pauseDemo: true } };
@@ -94,9 +134,16 @@ export const Result: Story = {
   args: { stage: "result" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    for (const name of ["이전으로", "재생성", "불러오기"]) {
-      expectCta(await canvas.findByRole("button", { name }));
+    for (const name of ["이전으로", "불러오기"]) {
+      const button = await canvas.findByRole("button", { name });
+      expect(getComputedStyle(button).fontSize).toBe("14px");
+      expect(getComputedStyle(button).fontWeight).toBe("500");
+      expect(button.getBoundingClientRect().height).toBe(40);
     }
+    expect(getComputedStyle(canvas.getByRole("button", { name: "재생성" })).fontSize).toBe("13px");
+    expect(
+      getComputedStyle(canvas.getByRole("button", { name: "재생성" })).textDecorationLine,
+    ).toBe("none");
   },
 };
 export const Editor: Story = {
