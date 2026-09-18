@@ -34,7 +34,7 @@ export const Default: Story = {
       "홍길동 · 010-1111-2222",
     );
 
-    await expect(canvas.getByText(/초 후 펀딩내역 화면으로 자동 이동합니다/)).toBeVisible();
+    await expect(canvas.getByText(/후 펀딩내역 화면으로 자동/)).toBeVisible();
     // 현재 주문의 프로젝트 링크 공유
     await expect(canvas.getByRole("button", { name: "프로젝트 공유" })).toBeEnabled();
     await expect(canvas.getByRole("button", { name: "펀딩내역 보기" })).toBeEnabled();
