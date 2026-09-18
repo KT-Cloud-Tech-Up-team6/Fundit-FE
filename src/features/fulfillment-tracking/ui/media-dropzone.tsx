@@ -46,8 +46,9 @@ function noticeOf(accepted: MediaItem[], rejected: MediaItem[], ignored: number)
  * ponytail: 업로드 서버가 없어 실제 전송은 없고 objectURL로 미리보기만 만든다.
  * 업로드 API가 생기면 여기서 전송하고 반환 URL을 MediaItem.url에 넣는다(thumbnail-upload와 같은 방침).
  *
- * ponytail: objectURL 해제는 "삭제"와 "한도 초과로 버린 항목"에서만 한다. 언마운트 시 남은 첨부까지
- * 해제하면 이미 등록된 기록의 썸네일이 깨진다 — URL의 수명이 이 컴포넌트보다 길다.
+ * ponytail: objectURL 해제는 "한도 초과로 버린 항목"에서만 한다 — 그 URL만 이 함수가 만들고
+ * 아무 데도 넘기지 않아 확실히 주인이다. 목록에 올라간 항목은 수정 폼이 기존 기록과 같은 URL을
+ * 공유하므로(저장 안 한 삭제 → 취소 시 기록 썸네일이 깨진다) 해제하지 않는다.
  * 목업이라 누수는 페이지 수명으로 한정된다. 업로드 API가 생기면 objectURL 자체가 사라진다.
  */
 export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps) {
@@ -91,7 +92,6 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
   }
 
   function remove(item: MediaItem) {
-    if (item.url) URL.revokeObjectURL(item.url);
     onChange(removeMedia(media, item.id));
     setNotice(`${item.name} 첨부를 삭제했어요.`);
   }

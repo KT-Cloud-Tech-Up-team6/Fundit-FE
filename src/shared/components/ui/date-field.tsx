@@ -75,11 +75,21 @@ export function DateField({
     if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }
 
+  /* 패널 안의 날짜 버튼이 사라지면 포커스가 body로 떨어진다. 키보드 탐색이 이어지게 트리거로 돌린다. */
+  function close() {
+    setOpen(false);
+    trigger.current?.focus();
+  }
+
   function handlePanelKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Escape") return;
     event.preventDefault();
-    setOpen(false);
+    close();
   }
+
+  /* defaultMonth를 주지 않으면 DayPicker가 이번 달을 연다 — 지난달 기록을 수정할 때
+     선택한 날짜가 보이지 않는다. */
+  const selectedDate = parseValue(value);
 
   return (
     <div
@@ -112,11 +122,12 @@ export function DateField({
         >
           <Calendar
             mode="single"
+            defaultMonth={selectedDate}
             onSelect={(date) => {
               if (date) onChange(toValue(date));
-              setOpen(false);
+              close();
             }}
-            selected={parseValue(value)}
+            selected={selectedDate}
           />
         </div>
       )}

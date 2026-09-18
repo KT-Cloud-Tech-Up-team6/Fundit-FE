@@ -75,7 +75,9 @@ export function FulfillmentBoard({
   const [delayOpen, setDelayOpen] = useState(false);
   const [editing, setEditing] = useState<FulfillmentRecord | null>(null);
   const [notice, setNotice] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  /* 같은 문구를 연달아 알려도 매번 새 객체를 넣어 아래 타이머가 다시 시작되게 한다
+     — 문자열 그대로면 React가 같은 값이라 보고 effect를 건너뛰어 두 번째 토스트가 일찍 닫힌다. */
+  const [toast, setToast] = useState<{ text: string } | null>(null);
 
   /* Figma "과정이 등록되었다는 토스트가 뜨고 사라집니다"(interaction_spec 1319:40700). */
   useEffect(() => {
@@ -99,7 +101,7 @@ export function FulfillmentBoard({
 
   function notify(message: string) {
     setNotice(message);
-    setToast(message);
+    setToast({ text: message });
   }
 
   function handleComplete() {
@@ -223,7 +225,7 @@ export function FulfillmentBoard({
       <p aria-live="polite" className="sr-only">
         {notice}
       </p>
-      {toast && <Toast className="fixed top-16 left-1/2 z-50 -translate-x-1/2">{toast}</Toast>}
+      {toast && <Toast className="fixed top-16 left-1/2 z-50 -translate-x-1/2">{toast.text}</Toast>}
 
       <DelayReasonModal
         onClose={() => setDelayOpen(false)}

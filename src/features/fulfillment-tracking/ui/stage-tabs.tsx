@@ -21,7 +21,8 @@ type StageTabsProps = {
  *
  * ponytail: 생김새는 탭이지만 role="tab"은 쓰지 않는다 — 화살표 키 이동(roving tabindex) 없이
  * ARIA tab 역할만 붙이면 스크린리더가 "탭 목록"이라 안내하고도 화살표 키가 안 먹어 오히려
- * 혼란을 준다. `aria-current="step"` + 개별 aria-label만으로 충분히 접근 가능하다.
+ * 혼란을 준다. `aria-current` + 개별 aria-label만으로 충분히 접근 가능하다.
+ * 값은 "step"이 아니라 "true"다 — 잠긴 단계를 미리 볼 때도 눌리므로, 선택된 항목이라는 뜻만 남긴다.
  */
 export function StageTabs({ state, selected, onSelect }: StageTabsProps) {
   return (
@@ -32,7 +33,7 @@ export function StageTabs({ state, selected, onSelect }: StageTabsProps) {
 
         return (
           <button
-            aria-current={active ? "step" : undefined}
+            aria-current={active ? "true" : undefined}
             aria-label={`${label} 단계, ${stageStatusLabel[status]}, 기록 ${records.length}건`}
             className={[
               "bg-layer-surface-default flex h-[46px] w-[122px] shrink-0 items-center justify-center gap-2 whitespace-nowrap",
