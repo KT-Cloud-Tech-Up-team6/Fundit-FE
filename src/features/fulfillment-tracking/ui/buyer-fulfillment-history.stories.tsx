@@ -6,11 +6,25 @@ import { BuyerFulfillmentHistory } from "./buyer-fulfillment-history";
 /* 단계별 테스트의 날짜를 Figma 기준일로 고정한다. */
 const today = "2026-09-28";
 
+/** 두 레이아웃이 DOM에 함께 있어 텍스트 쿼리는 모바일 트리로 좁힌다(role 쿼리는 숨겨진 쪽을 무시). */
+const mobile = (root: HTMLElement) =>
+  within(root.querySelector<HTMLElement>('[data-layout="mobile"]')!);
+
 const meta = {
   title: "Features/Fulfillment Tracking/Buyer History",
   component: BuyerFulfillmentHistory,
   args: { fundingId: "demo-funding" },
-  parameters: { layout: "fullscreen" },
+  parameters: {
+    layout: "fullscreen",
+    // 모바일 트리가 기본 — 데스크톱 트리는 min-[1200px]에서만 보인다.
+    viewport: {
+      defaultViewport: "figma390",
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">
@@ -28,11 +42,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("예상 발송일", { exact: false })).toBeVisible();
+    await expect(mobile(canvasElement).getByText("예상 발송일", { exact: false })).toBeVisible();
 
     const production = canvas.getByRole("button", { name: /생산/ });
     await expect(production).toHaveAttribute("aria-expanded", "true");
-    await expect(canvas.getByText(/생산 준비 완료, 원자재 검수/)).toBeVisible();
+    await expect(mobile(canvasElement).getByText(/생산 준비 완료, 원자재 검수/)).toBeVisible();
 
     const inspection = canvas.getByRole("button", { name: /검수/ });
     await expect(inspection).toHaveAttribute("aria-expanded", "false");
@@ -49,7 +63,7 @@ export const FutureStageExpanded: Story = {
       "aria-expanded",
       "false",
     );
-    await expect(canvas.getByText(/^예상 시작일/)).toBeVisible();
+    await expect(mobile(canvasElement).getByText(/^예상 시작일/)).toBeVisible();
   },
 };
 
@@ -59,8 +73,10 @@ export const DoneStageExpanded: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: /생산/ }));
     await userEvent.click(canvas.getByRole("button", { name: /제작 착수/ }));
-    await expect(canvas.queryByText("업데이트")).not.toBeInTheDocument();
-    await expect(canvas.getByText(/제작 착수 확정, 생산팀 및 발주 정보/)).toBeVisible();
+    await expect(mobile(canvasElement).queryByText("업데이트")).not.toBeInTheDocument();
+    await expect(
+      mobile(canvasElement).getByText(/제작 착수 확정, 생산팀 및 발주 정보/),
+    ).toBeVisible();
   },
 };
 
@@ -80,6 +96,18 @@ export const NotStarted: Story = {
     const canvas = within(canvasElement);
     const prep = canvas.getByRole("button", { name: /제작 착수/ });
     await expect(prep).toHaveAttribute("aria-expanded", "true");
-    await expect(canvas.getByText("아직 등록된 기록이 없어요.")).toBeVisible();
+    await expect(mobile(canvasElement).getByText("아직 등록된 기록이 없어요.")).toBeVisible();
+  },
+};
+
+/** 1200px 이상 — 현재 단계 문구와 카드 아코디언이 보이고, 라이트박스는 한 번만 열린다. */
+export const Desktop: Story = {
+  args: { fundingId: "demo-funding" },
+  parameters: { viewport: { defaultViewport: "desktop" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { level: 1, name: "제작·배송 현황" })).toBeVisible();
+    await userEvent.click(canvas.getAllByRole("button", { name: /크게 보기$/ })[0]);
+    await expect(canvas.getAllByRole("dialog")).toHaveLength(1);
   },
 };

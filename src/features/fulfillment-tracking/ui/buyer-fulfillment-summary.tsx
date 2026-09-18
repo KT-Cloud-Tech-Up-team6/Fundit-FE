@@ -19,6 +19,7 @@ import { BuyerStageStepper } from "./buyer-stage-stepper";
 import { BuyerStaleBanner } from "./buyer-stale-banner";
 import { BuyerTimeline } from "./buyer-timeline";
 import { MediaLightbox } from "./media-lightbox";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 
 /* ponytail: 서버 계약 전이라(docs/OPEN_DECISIONS.md P1 — 5단계 ↔ 배송/배송완료 enum 미확정)
    상태는 목업 + useState로만 들고 있다. 라이트박스·타임라인 펼침 외 상호작용은 없고
@@ -50,82 +51,160 @@ export function BuyerFulfillmentSummary({
     ? daysSinceLastRecord(currentStage.records, today)
     : null;
 
+  const statusCopy =
+    currentStage.status === "active" ? (
+      <>
+        현재 <strong className="font-semibold">{stageLabel(current)}</strong> 중 이에요
+      </>
+    ) : currentStage.status === "todo" ? (
+      <>
+        <strong className="font-semibold">{stageLabel(current)}</strong> 시작 전이에요
+      </>
+    ) : (
+      <>제작·배송이 완료됐어요</>
+    );
+
   return (
-    <div className="bg-layer-bg mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(32px+env(safe-area-inset-bottom))]">
-      <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
-        <Link
-          href={`/my/fundings/${fundingId}`}
-          aria-label="뒤로"
-          className="flex size-10 shrink-0 items-center px-1"
-        >
-          <Image src="/images/fulfillment/arrow-left.svg" width={20} height={20} alt="" />
-        </Link>
-        <h1 className="text-title-s text-text-title min-w-0 flex-1 truncate text-center leading-[1.42]">
-          {product.projectTitle}
-        </h1>
-        <span aria-hidden className="size-10 shrink-0" />
-      </header>
-
-      <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
-        <div className="flex min-h-10 items-center justify-between gap-3">
-          {currentStage.status === "active" ? (
-            <p className="text-body-l text-text-default">
-              현재 <span className="text-title-s">{stageLabel(current)}</span> 중 이에요
-            </p>
-          ) : currentStage.status === "todo" ? (
-            <p className="text-body-l text-text-default">
-              <span className="text-title-s">{stageLabel(current)}</span> 시작 전이에요
-            </p>
-          ) : (
-            <p className="text-title-s text-text-default">제작·배송이 완료됐어요</p>
-          )}
-
+    <>
+      <BuyerDesktopHeader />
+      {/* 1199px 이하에서는 기존 소비자 모바일 정보 구조를 유지한다. */}
+      <div
+        data-layout="mobile"
+        className="bg-layer-bg mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(32px+env(safe-area-inset-bottom))] min-[1200px]:hidden"
+      >
+        <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
           <Link
-            href={`/my/fundings/${fundingId}/fulfillment/history`}
-            aria-label="세부 진행 기록 더보기"
-            className="text-caption-s text-text-secondary flex h-10 shrink-0 items-center px-2 font-medium underline"
+            href={`/my/fundings/${fundingId}`}
+            aria-label="뒤로"
+            className="flex size-10 shrink-0 items-center px-1"
           >
-            더보기
+            <Image src="/images/fulfillment/arrow-left.svg" width={20} height={20} alt="" />
           </Link>
-        </div>
+          <h1 className="text-title-s text-text-title min-w-0 flex-1 truncate text-center leading-[1.42]">
+            {product.projectTitle}
+          </h1>
+          <span aria-hidden className="size-10 shrink-0" />
+        </header>
 
-        <BuyerStageStepper state={state.stages} />
+        <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
+          <div className="flex min-h-10 items-center justify-between gap-3">
+            {currentStage.status === "active" ? (
+              <p className="text-body-l text-text-default">
+                현재 <span className="text-title-s">{stageLabel(current)}</span> 중 이에요
+              </p>
+            ) : currentStage.status === "todo" ? (
+              <p className="text-body-l text-text-default">
+                <span className="text-title-s">{stageLabel(current)}</span> 시작 전이에요
+              </p>
+            ) : (
+              <p className="text-title-s text-text-default">제작·배송이 완료됐어요</p>
+            )}
 
-        <div className="flex flex-col">
-          {currentStage.startDate && currentStage.status === "active" && (
-            <p className="text-body-s text-text-secondary leading-[1.42] font-medium">
-              {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
-            </p>
-          )}
-          {currentStage.startDate && currentStage.status === "todo" && (
-            <p className="text-body-strong text-text-default">
-              {stageLabel(current)} 시작 예정일 {formatShippingDate(currentStage.startDate)}
-            </p>
-          )}
-          {currentStage.expectedEndDate && currentStage.status === "active" && (
-            <p className="text-body-strong text-text-default">
-              {stageLabel(current)} 완료 예정일 {formatShippingDate(currentStage.expectedEndDate)}
-            </p>
-          )}
-        </div>
-      </section>
+            <Link
+              href={`/my/fundings/${fundingId}/fulfillment/history`}
+              aria-label="세부 진행 기록 더보기"
+              className="text-caption-s text-text-secondary flex h-10 shrink-0 items-center px-2 font-medium underline"
+            >
+              더보기
+            </Link>
+          </div>
 
-      <section className="bg-layer-surface-default mt-3">
-        <h2 className="text-title-s text-text-default px-5 pt-4 leading-[1.42]">세부 진행 기록</h2>
-        <div className="flex flex-col gap-2.5 px-5 py-4">
-          <p className="text-body-strong text-text-default">{stageLabel(current)}</p>
-          {/* Figma 프레임에는 없지만 이슈 #70 P2(미갱신 안내) 요구로 현재 단계가
+          <BuyerStageStepper state={state.stages} />
+
+          <div className="flex flex-col">
+            {currentStage.startDate && currentStage.status === "active" && (
+              <p className="text-body-s text-text-secondary leading-[1.42] font-medium">
+                {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
+              </p>
+            )}
+            {currentStage.startDate && currentStage.status === "todo" && (
+              <p className="text-body-strong text-text-default">
+                {stageLabel(current)} 시작 예정일 {formatShippingDate(currentStage.startDate)}
+              </p>
+            )}
+            {currentStage.expectedEndDate && currentStage.status === "active" && (
+              <p className="text-body-strong text-text-default">
+                {stageLabel(current)} 완료 예정일 {formatShippingDate(currentStage.expectedEndDate)}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="bg-layer-surface-default mt-3">
+          <h2 className="text-title-s text-text-default px-5 pt-4 leading-[1.42]">
+            세부 진행 기록
+          </h2>
+          <div className="flex flex-col gap-2.5 px-5 py-4">
+            <p className="text-body-strong text-text-default">{stageLabel(current)}</p>
+            {/* Figma 프레임에는 없지만 이슈 #70 P2(미갱신 안내) 요구로 현재 단계가
               7일 이상 갱신되지 않으면 구매자용 읽기 전용 안내를 노출한다. */}
-          {staleDays !== null && <BuyerStaleBanner days={staleDays} />}
-          <BuyerTimeline
-            records={currentStage.records}
-            onSelectMedia={setPreview}
-            collapsibleItems
-          />
+            {staleDays !== null && <BuyerStaleBanner days={staleDays} />}
+            <BuyerTimeline
+              records={currentStage.records}
+              onSelectMedia={setPreview}
+              collapsibleItems
+            />
+          </div>
+        </section>
+      </div>
+      {/* Figma FL_B_MY_DLVR_1: 데스크톱은 793px 고정 콘텐츠 열, 현재 단계 기록을 펼쳐 둔다. */}
+      <main className="bg-layer-surface-default hidden min-h-[calc(100dvh-70px)] min-[1200px]:block">
+        <div className="mx-auto w-full max-w-[793px] pt-4 pb-16">
+          <nav aria-label="현재 위치" className="text-label-m text-text-secondary flex gap-2">
+            <span>마이페이지</span>
+            <span aria-hidden>›</span>
+            <span>펀딩내역</span>
+            <span aria-hidden>›</span>
+            <span>제작·배송 현황</span>
+          </nav>
+          <h1 className="text-heading-l text-text-default mt-4">제작·배송 현황</h1>
+          <section className="mt-4">
+            <div className="flex h-[29px] items-center justify-between gap-3">
+              <p className="text-body-l text-text-default">{statusCopy}</p>
+              <Link
+                href={`/my/fundings/${fundingId}/fulfillment/history`}
+                className="text-body-s text-text-secondary px-2 underline"
+              >
+                자세히 보기
+              </Link>
+            </div>
+            <div className="mt-1.5">
+              <BuyerStageStepper state={state.stages} showStatusBadge showExpectedStartTooltip />
+            </div>
+            <div className="mt-10">
+              {currentStage.expectedEndDate && currentStage.status === "active" && (
+                <p className="text-title-s text-text-default">
+                  {stageLabel(current)} 완료 예정일{" "}
+                  {formatShippingDate(currentStage.expectedEndDate)}
+                </p>
+              )}
+              {currentStage.startDate && (
+                <p className="text-body-s text-text-secondary mt-1 font-medium">
+                  {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
+                </p>
+              )}
+            </div>
+          </section>
+          <section className="border-border-default mt-5 overflow-hidden rounded-xs border">
+            <h2 className="text-title-s text-text-default border-border-default flex h-[58px] items-center border-b px-3">
+              {current === "production" ? "제작" : stageLabel(current)}{" "}
+              <span className="text-body-s text-text-secondary ml-3 font-normal">
+                {currentStage.startDate &&
+                  `${formatShippingDate(currentStage.startDate)} ${stageLabel(current)} 시작`}
+              </span>
+            </h2>
+            <div className="bg-layer-bg px-6 py-4">
+              {staleDays !== null && <BuyerStaleBanner days={staleDays} />}
+              <BuyerTimeline
+                records={currentStage.records}
+                onSelectMedia={setPreview}
+                variant="desktop"
+              />
+            </div>
+          </section>
         </div>
-      </section>
-
+      </main>
       <MediaLightbox media={preview} onClose={() => setPreview(null)} />
-    </div>
+    </>
   );
 }
