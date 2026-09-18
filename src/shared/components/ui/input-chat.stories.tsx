@@ -41,6 +41,15 @@ export const Default: Story = {};
 export const Active: Story = { args: { value: "입력한 메시지입니다." } };
 export const Disabled: Story = { args: { disabled: true } };
 export const WithoutAttachment: Story = { args: { onAttach: undefined } };
+export const StoryInput: Story = {
+  args: { appearance: "story", attachDisabled: true, onAttach: undefined },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.getByRole("button", { name: "파일 첨부" })).toBeDisabled();
+    await userEvent.type(canvas.getByRole("textbox", { name: "메시지" }), "작성한 답변");
+    expect(canvas.getByRole("button", { name: "메시지 보내기" })).toBeEnabled();
+  },
+};
 export const Multiline: Story = {
   args: { rows: 3, value: "여러 줄 메시지입니다.\n줄바꿈을 유지합니다." },
 };

@@ -1,0 +1,29 @@
+.loading {
+  background: var(--blue-50);
+}
+
+:global([data-theme="dark"]) .loading {
+  background: var(--layer-bg);
+}
+
+.loadingLogo {
+  /* Figma 두 variant의 위치·회전·시간을 반영한다. SLOW의 내부 spring 계수는
+     노출되지 않아 easing은 CSS ease-out으로 근사한다. */
+  transform-origin: 59.5898px 1.0015px;
+  animation: story-logo 833.415ms cubic-bezier(0, 0, 0.58, 1) infinite alternate;
+}
+
+@keyframes story-logo {
+  from {
+    transform: translate(0, 0) rotate(0);
+  }
+  to {
+    transform: translate(-2.5903px, 12.9731px) rotate(-46.5743deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingLogo {
+    animation: none;
+  }
+}
