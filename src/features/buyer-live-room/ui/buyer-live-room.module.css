@@ -378,3 +378,10 @@
 .questionCount {
   color: var(--text-secondary);
 }
+
+@media (width < 1200px) {
+  .room,
+  .questions {
+    max-width: none;
+  }
+}

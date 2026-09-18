@@ -70,7 +70,7 @@ export function BuyerFulfillmentSummary({
       {/* 1199px 이하에서는 기존 소비자 모바일 정보 구조를 유지한다. */}
       <div
         data-layout="mobile"
-        className="bg-layer-bg mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(32px+env(safe-area-inset-bottom))] min-[1200px]:hidden"
+        className="bg-layer-bg min-h-dvh w-full min-w-0 pb-[calc(32px+env(safe-area-inset-bottom))] min-[1200px]:hidden"
       >
         <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
           <Link
