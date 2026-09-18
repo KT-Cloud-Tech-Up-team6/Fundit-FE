@@ -42,6 +42,29 @@ jobs:
       - name: Test
         run: pnpm test
 
+  verify-image:
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      IMAGE: fundit-frontend:pr-${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build --platform linux/amd64 --tag "$IMAGE" .
+
+      - name: Verify container
+        run: |
+          container_id=$(docker run --detach --publish 127.0.0.1:3000:3000 "$IMAGE")
+          trap 'docker logs "$container_id"; docker rm --force "$container_id"' EXIT
+          curl --fail --silent --show-error --max-time 10 --retry 10 --retry-delay 2 --retry-all-errors --retry-max-time 30 http://127.0.0.1:3000/ --output /dev/null
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/logo.svg --output /dev/null
+
   publish-image:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
