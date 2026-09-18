@@ -26,7 +26,12 @@ Docker가 없는 환경에서 `pnpm build`와 standalone 서버 실행은 일부
 
 ## GitHub Actions
 
-기존 `validate` 작업은 PR과 `main` push에서 포맷·린트·타입·빌드·테스트를 실행한다. `publish-image` 작업은 `main` push이면서 `validate`가 성공한 경우에만 실행된다. PR에서는 이미지 업로드 작업 전체가 생략된다.
+기존 `validate` 작업은 PR과 `main` push에서 포맷·린트·타입·빌드·테스트를 실행한다. 성공 후 이벤트에 따라 다음 작업을 실행한다.
+
+- PR에서는 `verify-image`가 `linux/amd64` 이미지 빌드와 컨테이너의 `/`, `/logo.svg` 응답을 확인한다. PR과 대상 브랜치를 합친 테스트 커밋으로 검증하며, `contents: read` 권한만 사용한다. AWS 인증과 ECR 업로드는 실행하지 않는다.
+- `main` push에서는 기존 `publish-image`가 아래 순서로 실행되고 `verify-image`는 생략된다. PR에서는 `publish-image`가 생략된다.
+
+`verify-image`는 실패를 PR 검사 결과로 보고한다. 브랜치 보호의 필수 검사 등록은 별도 설정이며, 이 워크플로 변경으로 자동 등록되지는 않는다.
 
 1. `linux/amd64` Docker 이미지를 빌드한다.
 2. 컨테이너를 실행해 `/`와 `/logo.svg` 응답을 확인하고 종료한다. 이 검사는 운영 헬스체크 정책이 아닌 CI의 기동 확인이다.
