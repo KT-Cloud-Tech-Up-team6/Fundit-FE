@@ -1,14 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
 import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
-import { Modal } from "@/shared/components/ui/modal";
 import { Radio } from "@/shared/components/ui/radio";
 import { TextButton } from "@/shared/components/ui/text-button";
 import {
@@ -36,7 +34,6 @@ export function ProjectBasicInfoForm({
 }: {
   initialView?: BasicInfoPreview;
 }) {
-  const router = useRouter();
   const [business, setBusiness] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -53,7 +50,6 @@ export function ProjectBasicInfoForm({
   );
   const [rewardMessage, setRewardMessage] = useState("");
   const [formMessage, setFormMessage] = useState("");
-  const [saved, setSaved] = useState(false);
   const nextId = useRef(3);
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const validation = basicInfoError({ business, title, category, subcategory, amount, rewards });
@@ -79,12 +75,12 @@ export function ProjectBasicInfoForm({
     const id = editing === "new" ? nextId.current++ : editing?.id;
     if (id === undefined) return;
     setRewards((current) => upsertReward(current, draft, id));
+    setFormMessage("");
     closeReward();
   }
   function saveBasicInfo() {
     if (validation) return setFormMessage(validation);
-    setFormMessage("");
-    setSaved(true);
+    setFormMessage("목업 저장입니다. 실제 프로젝트를 생성하거나 다음 단계로 이동하지 않습니다.");
   }
 
   return (
@@ -145,6 +141,7 @@ export function ProjectBasicInfoForm({
                   onValueChange={(value) => {
                     setCategory(value);
                     setSubcategory("");
+                    setFormMessage("");
                   }}
                 />
                 <Dropdown
@@ -155,7 +152,10 @@ export function ProjectBasicInfoForm({
                   options={subcategoryOptions}
                   value={subcategory}
                   placeholder="상세 카테고리를 선택하세요"
-                  onValueChange={setSubcategory}
+                  onValueChange={(value) => {
+                    setSubcategory(value);
+                    setFormMessage("");
+                  }}
                 />
               </div>
             </fieldset>
@@ -185,7 +185,10 @@ export function ProjectBasicInfoForm({
                   variant="underline"
                   showIcon={false}
                   className="h-10 w-[68px] justify-center"
-                  onClick={() => setAmount("")}
+                  onClick={() => {
+                    setAmount("");
+                    setFormMessage("");
+                  }}
                 >
                   지우기 <Icon name="resetAmount" className="size-3.5" />
                 </TextButton>
@@ -196,7 +199,10 @@ export function ProjectBasicInfoForm({
                     key={step}
                     appearance="outline"
                     size="md"
-                    onClick={() => setAmount((value) => addAmount(value, step))}
+                    onClick={() => {
+                      setAmount((value) => addAmount(value, step));
+                      setFormMessage("");
+                    }}
                   >
                     +{step.toLocaleString("ko-KR")}
                   </Chip>
@@ -285,11 +291,12 @@ export function ProjectBasicInfoForm({
                               variant="underline"
                               showIcon={false}
                               className="text-caption-s h-10 px-2"
-                              onClick={() =>
+                              onClick={() => {
                                 setRewards((current) =>
                                   current.filter((item) => item.id !== reward.id),
-                                )
-                              }
+                                );
+                                setFormMessage("");
+                              }}
                               aria-label={`${reward.name} 삭제`}
                             >
                               삭제
@@ -373,40 +380,6 @@ export function ProjectBasicInfoForm({
         onSave={saveReward}
         onUpdate={updateDraft}
       />
-      <Modal
-        open={saved}
-        onClose={() => setSaved(false)}
-        size="m"
-        title="기본정보가 저장되었습니다"
-      >
-        <div className="mt-6 text-center">
-          <p className="text-body-m">이어서 펀딩 스토리를 작성하시겠어요?</p>
-          <div className="mt-8 flex justify-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="text-body-strong! w-[186px]"
-              onClick={() => setSaved(false)}
-            >
-              다음에
-            </Button>
-            <Button
-              type="button"
-              appearance="cta"
-              size="lg"
-              className="w-[186px]"
-              onClick={() => {
-                setSaved(false);
-                // 프로젝트 생성 API가 아직 없어, 현재 작성 플로우를 대표하는 목업 초안 ID로 이동한다.
-                router.push("/seller/projects/draft-project?tab=story");
-              }}
-            >
-              펀딩 스토리 작성
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }

@@ -119,7 +119,12 @@ export function RewardFormModal({
               <Checkbox
                 shape="square"
                 checked={draft.limited}
-                onChange={(event) => onUpdate({ limited: event.target.checked })}
+                onChange={(event) =>
+                  onUpdate({
+                    limited: event.target.checked,
+                    quantity: event.target.checked ? draft.quantity : "",
+                  })
+                }
                 className="[&>span:first-of-type]:m-1"
               >
                 수량 제한
