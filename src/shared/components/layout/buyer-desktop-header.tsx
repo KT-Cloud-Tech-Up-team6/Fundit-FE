@@ -6,7 +6,7 @@ import { HeaderWeb } from "./header-web";
 import { Icon } from "../ui/icon";
 import { setCategoryReturnPath } from "@/shared/lib/category-return-path";
 
-export function BuyerDesktopHeader() {
+export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
   return (
     <HeaderWeb
       className="hidden min-[1200px]:block"
@@ -55,11 +55,11 @@ export function BuyerDesktopHeader() {
             <Icon name="profile" className="size-6" />
           </Link>
           <Link
-            href="/my"
+            href={exitHref ?? "/my"}
             className="bg-layer-surface-disabled text-body-s ml-3 flex h-10 items-center gap-2 rounded-xs px-3"
           >
-            참여자 센터
-            <Icon name="swap" className="size-4" />
+            {exitHref ? "나가기" : "참여자 센터"}
+            <Icon name={exitHref ? "close" : "swap"} className="size-4" />
           </Link>
         </>
       }
