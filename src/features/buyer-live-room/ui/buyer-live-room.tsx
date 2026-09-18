@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
-import { roomDemo, sampleMessages } from "../model/room-demo";
+import { roomDemo, roomQuestions, sampleMessages } from "../model/room-demo";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
@@ -466,15 +466,15 @@ export function BuyerLiveRoom({
             role="region"
             aria-label="Q&A 질문 목록"
           >
-            {Array.from({ length: 5 }, (_, index) => (
-              <article key={index}>
+            {roomQuestions.map((question) => (
+              <article key={question.title}>
                 <div className={styles.questionTitle}>
                   <RoomIcon name="question-filled" className="size-5" />
-                  <h3>로보락이 뭐예요?</h3>
+                  <h3>{question.title}</h3>
                 </div>
-                <p className={styles.questionCount}>질문 {index === 0 ? 12 : 11}건</p>
+                <p className={styles.questionCount}>질문 {question.count}건</p>
                 <div className={styles.answer}>
-                  <p>무선 청소기 입니다.</p>
+                  <p>{question.answer}</p>
                   <p>판매자 · 1분 전</p>
                 </div>
               </article>

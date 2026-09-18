@@ -77,6 +77,10 @@ export const DoneStageExpanded: Story = {
     await expect(
       mobile(canvasElement).getByText(/제작 착수 확정, 생산팀 및 발주 정보/),
     ).toBeVisible();
+    const delayedRecord = mobile(canvasElement).getByText("09월 12일").closest("li")!;
+    await expect(within(delayedRecord).getByText("지연", { exact: true })).toBeVisible();
+    const normalRecord = mobile(canvasElement).getByText("09월 15일").closest("li")!;
+    await expect(within(normalRecord).queryByText("지연", { exact: true })).not.toBeInTheDocument();
   },
 };
 

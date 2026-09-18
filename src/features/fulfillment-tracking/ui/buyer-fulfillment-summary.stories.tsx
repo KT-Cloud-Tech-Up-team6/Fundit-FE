@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
+import { demoFundingDetail } from "@/features/funding-history/model/funding-history";
 import { demoBuyerFulfillmentState } from "../model/fulfillment-demo";
 import type { BuyerFulfillmentState } from "../model/fulfillment-demo";
 import { BuyerFulfillmentSummary } from "./buyer-fulfillment-summary";
@@ -51,7 +52,9 @@ export const Default: Story = {
   args: { today },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: /진짜싹싹/ })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { name: demoFundingDetail("demo-funding").projectTitle }),
+    ).toBeVisible();
 
     const currentStep = canvas.getByRole("listitem", { name: "생산 단계, 진행 중" });
     await expect(currentStep).toHaveAttribute("aria-current", "step");
@@ -140,8 +143,14 @@ export const NotStarted: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
-    await expect(mobile(canvasElement).getByText("제작 착수 시작 전이에요")).toBeVisible();
-    await expect(mobile(canvasElement).queryByText(/제작 착수 중 이에요/)).not.toBeInTheDocument();
+    const canvas = mobile(canvasElement);
+    await expect(
+      canvas.getByText(
+        (_, element) =>
+          element?.tagName === "P" && element.textContent === "제작 착수 시작 전이에요",
+      ),
+    ).toBeVisible();
+    await expect(canvas.queryByText(/제작 착수 중 이에요/)).not.toBeInTheDocument();
   },
 };
 
@@ -168,7 +177,7 @@ export const ExpandedPhotoRecord: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "09월 21일 기록 펼치기" }));
     await userEvent.click(canvas.getByRole("button", { name: "material-1.jpg 사진 크게 보기" }));
     await expect(canvas.getByRole("dialog", { name: "material-1.jpg" })).toBeVisible();
-    await userEvent.keyboard("{Escape}");
+    await userEvent.click(canvas.getByRole("button", { name: "material-1.jpg 닫기" }));
     await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
     await expect(canvas.getByRole("button", { name: "09월 21일 기록 접기" })).toHaveAttribute(
       "aria-expanded",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { RewardSheet } from "./reward-sheet";
@@ -9,12 +9,22 @@ type FundingCtaProps = {
   projectId: string;
   className?: string;
   more?: boolean;
+  desktopFormId?: string;
 };
 
 /* IA(FL_B_PY_RWRD)에서 리워드 선택은 바텀시트이고 프로젝트 상세의 "펀딩하기"로 열린다.
    상세 화면 본문은 이번 범위가 아니라, 이 트리거만 페이지에 얹는다(Issue #56). */
-export function FundingCta({ projectId, className, more = false }: FundingCtaProps) {
+export function FundingCta({ projectId, className, more = false, desktopFormId }: FundingCtaProps) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!desktopFormId) return;
+    const desktop = window.matchMedia("(min-width: 1200px)");
+    const closeMobileSheet = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", closeMobileSheet);
+    return () => desktop.removeEventListener("change", closeMobileSheet);
+  }, [desktopFormId]);
 
   return (
     <>
@@ -30,7 +40,19 @@ export function FundingCta({ projectId, className, more = false }: FundingCtaPro
           더보기
         </button>
       ) : (
-        <Button className={className} onClick={() => setOpen(true)}>
+        <Button
+          className={`${className ?? ""} ${desktopFormId ? "min-[1200px]:hidden" : ""}`}
+          onClick={() => setOpen(true)}
+        >
+          펀딩하기
+        </Button>
+      )}
+      {desktopFormId && (
+        <Button
+          type="submit"
+          form={desktopFormId}
+          className={`${className ?? ""} max-[1200px]:hidden`}
+        >
           펀딩하기
         </Button>
       )}

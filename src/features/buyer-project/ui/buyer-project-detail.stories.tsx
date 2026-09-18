@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { RewardSummaryList } from "@/features/reward-selection/ui/reward-summary-list";
+import { RewardSheet } from "@/features/reward-selection/ui/reward-sheet";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import styles from "./buyer-project-detail.module.css";
@@ -113,5 +114,42 @@ export const FundingSelection: Story = {
     await userEvent.click(within(dialog).getByRole("button", { name: "리워드 선택 닫기" }));
     await waitFor(() => expect(dialog).not.toBeVisible());
     expect(trigger).toHaveFocus();
+  },
+};
+
+export const DesktopRewards: Story = {
+  args: {
+    rewardSelection: <RewardSheet projectId="demo-project" inlineFormId="desktop-rewards" />,
+    fundingAction: (
+      <FundingCta
+        projectId="demo-project"
+        desktopFormId="desktop-rewards"
+        className={styles.funding}
+      />
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    if (!window.matchMedia("(min-width: 1200px)").matches) return;
+    const canvas = within(canvasElement);
+    const form = within(canvas.getByRole("form", { name: "웹 리워드 선택" }));
+    await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
+    expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    await userEvent.click(form.getByRole("button", { name: /가장 먼저 만나는 스타터 세트/ }));
+    await userEvent.click(
+      form.getByRole("button", { name: "가장 먼저 만나는 스타터 세트 수량 늘리기" }),
+    );
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("398,000원");
+    await userEvent.click(form.getByRole("button", { name: "리워드" }));
+    await userEvent.click(
+      within(form.getByRole("group", { name: "리워드 목록" })).getByRole("button", {
+        name: /스탠다드 세트/,
+      }),
+    );
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("617,000원");
+    expect(
+      within(form.getByRole("group", { name: "선택한 리워드" })).getAllByRole("heading")[0],
+    ).toHaveTextContent("스탠다드 세트");
+    await userEvent.click(form.getByRole("button", { name: "스탠다드 세트 삭제" }));
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("398,000원");
   },
 };
