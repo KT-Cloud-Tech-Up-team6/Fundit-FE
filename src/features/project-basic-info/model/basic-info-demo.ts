@@ -1,7 +1,16 @@
-export const businessTypes = ["일반", "개인 사업자", "법인 사업자"] as const;
-export const mainCategories = ["테크 · 가전", "홈 · 리빙", "뷰티", "패션", "도서"] as const;
-export const homeCategories = ["침실", "욕실", "주방", "인테리어", "청소 · 세탁"] as const;
-export const amountSteps = [100_000, 500_000, 1_000_000, 5_000_000, 10_000_000];
+import { buyerCategories } from "@/entities/category/model/category-mock";
+
+export const businessTypes = ["일반 사업자", "개인 사업자", "법인 사업자"] as const;
+export const mainCategories = buyerCategories.map((category) => category.name);
+export const subcategoriesByMain = Object.fromEntries(
+  buyerCategories.map((category) => [
+    category.name,
+    // 화면에는 같은 임시명("소분류 명")이 반복될 수 있어도, Dropdown의 value/key는
+    // 고유한 slug를 써야 빠른 카테고리 전환 때 React key 충돌이 나지 않는다.
+    category.subcategories.map((item) => ({ value: item.slug, label: item.name })),
+  ]),
+);
+export const amountSteps = [100_000, 500_000, 1_000_000, 5_000_000];
 
 export type RewardDraft = {
   name: string;
@@ -9,7 +18,10 @@ export type RewardDraft = {
   price: string;
   quantity: string;
   limited: boolean;
-  earlyBird: boolean;
+  discount: boolean;
+  discountValue: string;
+  discountUnit: "won" | "percent";
+  imageName: string;
   options: boolean;
 };
 export type DemoReward = RewardDraft & { id: number };
@@ -21,7 +33,10 @@ export function emptyReward(): RewardDraft {
     price: "",
     quantity: "",
     limited: false,
-    earlyBird: false,
+    discount: false,
+    discountValue: "",
+    discountUnit: "won",
+    imageName: "",
     options: false,
   };
 }
@@ -30,11 +45,13 @@ export const demoRewards: DemoReward[] = [
   {
     ...emptyReward(),
     id: 1,
-    name: "얼리버드 패키지",
+    name: "할인 패키지",
     price: "29000",
     quantity: "100",
     limited: true,
-    earlyBird: true,
+    discount: true,
+    discountValue: "5000",
+    imageName: "reward-package.jpg",
   },
   { ...emptyReward(), id: 2, name: "기본 패키지", price: "39000" },
 ];
@@ -48,6 +65,58 @@ export function rewardError(reward: RewardDraft) {
   if (!positiveInteger(reward.price)) return "리워드 가격을 양의 정수로 입력해주세요.";
   if (reward.limited && !positiveInteger(reward.quantity))
     return "제한 수량을 양의 정수로 입력해주세요.";
+  if (reward.discount) {
+    if (!positiveInteger(reward.discountValue)) return "할인 값을 입력해주세요.";
+    if (reward.discountUnit === "won" && Number(reward.discountValue) >= Number(reward.price))
+      return "할인 금액은 리워드 가격보다 작아야 합니다.";
+    if (reward.discountUnit === "percent" && Number(reward.discountValue) > 100)
+      return "할인율은 1~100%로 입력해주세요.";
+  }
+  return "";
+}
+
+export function convertDiscount(
+  value: string,
+  from: "won" | "percent",
+  to: "won" | "percent",
+  price: string,
+) {
+  if (!positiveInteger(value) || !positiveInteger(price) || from === to) return value;
+  const amount = Number(value);
+  const base = Number(price);
+  return from === "won"
+    ? String(Math.round((amount / base) * 100))
+    : String(Math.round((base * amount) / 100));
+}
+
+export function discountedPrice(
+  reward: Pick<RewardDraft, "price" | "discount" | "discountValue" | "discountUnit">,
+) {
+  const price = Number(reward.price);
+  if (!reward.discount || !positiveInteger(reward.discountValue) || !Number.isSafeInteger(price))
+    return price;
+  const discount =
+    reward.discountUnit === "won"
+      ? Number(reward.discountValue)
+      : Math.round((price * Number(reward.discountValue)) / 100);
+  return Math.max(0, price - discount);
+}
+
+export function basicInfoError(input: {
+  business: string;
+  title: string;
+  category: string;
+  subcategory: string;
+  amount: string;
+  rewards: readonly DemoReward[];
+}) {
+  if (!input.business) return "사업자 유형을 선택해주세요.";
+  if (!input.title.trim()) return "프로젝트 제목을 입력해주세요.";
+  if (!input.category) return "프로젝트 카테고리를 선택해주세요.";
+  if (!input.subcategory) return "상세 카테고리를 선택해주세요.";
+  if (!positiveInteger(input.amount) || Number(input.amount) < 500_000)
+    return "목표 금액은 최소 500,000원 이상의 정수로 입력해주세요.";
+  if (!input.rewards.length) return "리워드를 최소 1개 등록해주세요.";
   return "";
 }
 
