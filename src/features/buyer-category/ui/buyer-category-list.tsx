@@ -11,7 +11,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(54px+env(safe-area-inset-bottom))]`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:max-w-[390px]`}
     >
       <header className="flex items-center gap-4 px-5 py-2">
         <form action="/search" role="search" className="min-w-0 flex-1">
@@ -110,7 +110,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
         compact
         activeHref="/categories"
         aria-label="카테고리 화면 하단 메뉴"
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+        className="fixed bottom-0 left-1/2 z-20 w-full -translate-x-1/2 min-[1200px]:max-w-[390px]"
       />
     </div>
   );

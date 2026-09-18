@@ -365,18 +365,6 @@
   color: var(--text-primary-live);
 }
 
-@font-face {
-  font-family: "Gmarket Sans";
-  src: url("/fonts/GmarketSansMedium.woff2") format("woff2");
-  font-weight: 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Gmarket Sans";
-  src: url("/fonts/GmarketSansBold.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
 .caption {
   font-family: "Gmarket Sans", sans-serif;
   font-weight: 500;
@@ -413,4 +401,10 @@
 }
 .chapters[data-dragging="true"] {
   cursor: grabbing;
+}
+
+@media (width < 1200px) {
+  .screen {
+    max-width: none;
+  }
 }
