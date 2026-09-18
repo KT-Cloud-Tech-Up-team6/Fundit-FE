@@ -23,7 +23,7 @@
 
 - 앱 `/live/demo-live`. 기존 메인의 라이브 카드도 `/live/[liveId]`로 진입한다.
 - Storybook `Features/BuyerLive/Room`. Default, ExpandedChat, Questions, ExpandedQuestions, QuestionNavigation, MessageInput, BlockedMessage.
-- 390px 기준이며 큰 화면은 중앙 정렬한다. OS 상태바·홈 인디케이터·키보드는 복제하지 않는다. 브라우저의 실제 키보드와 VisualViewport 높이를 사용하고 하단 safe area를 적용한다.
+- 1200px 미만은 모바일 원본의 STRETCH 기준으로 가용 폭을 사용한다. 1200px 이상은 웹 확장 #156 병합 전까지 기존 390px 중앙 정렬을 유지한다. OS 상태바·홈 인디케이터·키보드는 복제하지 않는다. 브라우저의 실제 키보드와 VisualViewport 높이를 사용하고 하단 safe area를 적용한다.
 
 ## 구현 경계
 

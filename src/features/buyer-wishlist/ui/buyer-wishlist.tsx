@@ -38,7 +38,7 @@ export function BuyerWishlist({
   const [sellers, setSellers] = useState(initialEmpty ? [] : wishlistSellers);
   const count = tab === "projects" ? projects.length : sellers.length;
   return (
-    <BuyerAccountScreen title="관심 목록" className="w-full">
+    <BuyerAccountScreen title="관심 목록" className="w-full max-[1200px]:max-w-none">
       <TabList
         aria-label="관심 목록 종류"
         selectedIndex={tab === "projects" ? 0 : 1}

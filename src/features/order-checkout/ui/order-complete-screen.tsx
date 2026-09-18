@@ -68,9 +68,9 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    /* 다른 구매자 화면처럼 390px 컬럼을 사용한다. */
+    /* 모바일은 가용 폭을 사용하고 별도 웹 원본은 후속 작업에서 적용한다. */
     <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
+      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full flex-col min-[1200px]:max-w-[390px]">
         <CheckoutTopBar />
 
         <div className="flex flex-1 flex-col items-center gap-8 px-5 pt-12 pb-8">

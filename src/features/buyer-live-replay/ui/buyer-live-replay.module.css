@@ -414,3 +414,9 @@
 .chapters[data-dragging="true"] {
   cursor: grabbing;
 }
+
+@media (width < 1200px) {
+  .screen {
+    max-width: none;
+  }
+}

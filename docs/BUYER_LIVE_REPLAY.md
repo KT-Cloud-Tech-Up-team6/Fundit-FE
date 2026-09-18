@@ -15,7 +15,7 @@
 - `/live/demo-live?mode=replay`에서 채팅·구간 탐색을 전환한다.
 - `/live/demo-live?mode=replay&view=clip`에서 숏 클립을 확인한다. 별도 URL 경로를 만들지 않고 다시보기의 표시 쿼리로 구분한다.
 - Storybook `Features/BuyerLive/Replay`의 Default, Chapters, Clip.
-- `/live/demo-live`는 기존 실시간 화면이다. 새로운 화면도 전용 헤더만 사용하고 OS 상태바·홈 인디케이터는 복제하지 않는다. 넓은 화면은 390px 중앙 정렬한다.
+- `/live/demo-live`는 기존 실시간 화면이다. 새로운 화면도 전용 헤더만 사용하고 OS 상태바·홈 인디케이터는 복제하지 않는다. 1200px 미만은 모바일 원본의 STRETCH 기준으로 가용 폭을 사용한다. 1200px 이상은 웹 확장 #156 병합 전까지 기존 390px 중앙 정렬을 유지한다.
 
 ## 원본 상태와 목업 경계
 

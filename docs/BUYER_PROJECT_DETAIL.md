@@ -12,7 +12,7 @@
 - `/projects/demo-project`에서 리워드 정보를 확인한다. 기존 canonical 쿼리 `?tab=story`를 유지한다.
 - `/projects/demo-project?tab=live-proof`에서 다시보기·숏 클립·LIVE Q&A를 확인한다.
 - Storybook `Features/BuyerProject/Detail`의 Default, LiveCheck, InformationTip, FundingSelection에서 상태와 동작을 확인한다.
-- 1200px 미만은 기존 390px 원본 기준으로 중앙 정렬하고, 1200px 이상은 아래 데스크톱 확장을 적용한다. 기기 상태바·홈 인디케이터는 복제하지 않는다.
+- 1200px 미만은 모바일 원본의 STRETCH 기준으로 화면과 하단 CTA에 가용 폭을 사용하고, 1200px 이상은 아래 데스크톱 확장을 적용한다. 기기 상태바·홈 인디케이터는 복제하지 않는다.
 
 ## 구현 범위
 
