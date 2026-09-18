@@ -38,6 +38,12 @@ function omitProps<T extends object, const Keys extends readonly (keyof T)[]>(
   >;
 }
 
+function omitEventHandlers<T extends object>(props: T): T {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => !key.startsWith("on")),
+  ) as T;
+}
+
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-layer-surface-primary text-text-inverse enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary",
@@ -122,17 +128,29 @@ export function Button(props: ButtonProps) {
     ]);
 
     if (disabled) {
+      const disabledProps = omitEventHandlers(
+        omitProps(linkProps, [
+          "download",
+          "onNavigate",
+          "ping",
+          "prefetch",
+          "ref",
+          "rel",
+          "replace",
+          "scroll",
+          "target",
+          "transitionTypes",
+        ]),
+      ) as ComponentPropsWithRef<"span">;
+
       return (
-        <Link
-          {...linkProps}
-          href={href}
+        <span
+          {...disabledProps}
           aria-disabled="true"
-          tabIndex={-1}
           className={classNames}
-          onClick={(event) => event.preventDefault()}
         >
           {props.children}
-        </Link>
+        </span>
       );
     }
 

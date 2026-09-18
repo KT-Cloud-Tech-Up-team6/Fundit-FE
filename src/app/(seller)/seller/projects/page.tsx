@@ -16,18 +16,30 @@ const statuses = [
 ] as const;
 
 type Status = SellerProjectStatus;
+type SearchParam = string | string[] | undefined;
+
+function getSingleSearchParam(value: SearchParam) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export default async function SellerProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string; search?: string }>;
+  searchParams: Promise<{
+    status?: SearchParam;
+    page?: SearchParam;
+    search?: SearchParam;
+  }>;
 }) {
   const params = await searchParams;
-  const status = sellerProjectStatuses.includes(params.status as Status)
-    ? (params.status as Status)
+  const statusParam = getSingleSearchParam(params.status);
+  const searchParam = getSingleSearchParam(params.search);
+  const pageParam = getSingleSearchParam(params.page);
+  const status = sellerProjectStatuses.includes(statusParam as Status)
+    ? (statusParam as Status)
     : "active";
-  const search = params.search?.trim() ?? "";
-  const parsedPage = Number(params.page);
+  const search = searchParam?.trim() ?? "";
+  const parsedPage = Number(pageParam);
   const result = getSellerProjectList({
     status,
     search,
