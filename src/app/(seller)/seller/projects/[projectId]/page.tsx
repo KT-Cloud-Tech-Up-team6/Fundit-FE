@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import {
   ProjectSidebar,
   projectEditTabs,
@@ -5,6 +6,8 @@ import {
 } from "@/entities/project/ui/project-sidebar";
 import { FulfillmentBoard } from "@/features/fulfillment-tracking/ui/fulfillment-board";
 import { FundingStatusBoard } from "@/features/funding-status/ui/funding-status-board";
+import { getFundingDemo } from "@/features/funding-status/model/funding-demo";
+import { Pagination } from "@/shared/components/ui/pagination";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
@@ -34,6 +37,31 @@ export default async function SellerProjectPage({
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;
+
+  if (activeTab === "funding") {
+    const funding = getFundingDemo(projectId);
+    if (!funding) notFound();
+
+    return (
+      <>
+        <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
+          <ProjectSidebar
+            activeTab={activeTab}
+            projectId={projectId}
+            projectName={funding.summary.title}
+            tabs={projectManageTabs}
+            className="self-start! lg:mt-9 [&_li>a]:h-9 [&_li>a]:font-medium [&_p]:line-clamp-2 [&_p]:h-12"
+          />
+          <FundingStatusBoard {...funding} />
+        </div>
+        <Pagination
+          currentPage={1}
+          totalPages={1}
+          buildHref={() => `/seller/projects/${projectId}?tab=funding`}
+        />
+      </>
+    );
+  }
 
   if (editTabs.has(activeTab)) {
     return (
@@ -84,8 +112,6 @@ export default async function SellerProjectPage({
         />
         {activeTab === "fulfillment" ? (
           <FulfillmentBoard projectId={projectId} />
-        ) : activeTab === "funding" ? (
-          <FundingStatusBoard />
         ) : (
           <PagePlaceholder
             eyebrow="Seller · Project"
