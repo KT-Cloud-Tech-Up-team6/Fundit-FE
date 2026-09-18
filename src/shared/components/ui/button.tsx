@@ -1,15 +1,46 @@
+import Link from "next/link";
 import type { ComponentPropsWithRef } from "react";
 
 type ButtonVariant = "primary" | "primaryLive" | "secondary";
 type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
 type ButtonAppearance = "default" | "cta";
 
-type ButtonProps = ComponentPropsWithRef<"button"> & {
+type ButtonStyleProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   appearance?: ButtonAppearance;
   shape?: "default" | "pill";
 };
+
+type NativeButtonProps = ComponentPropsWithRef<"button"> & ButtonStyleProps & { href?: never };
+
+type LinkButtonProps = Omit<ComponentPropsWithRef<typeof Link>, "href"> &
+  ButtonStyleProps & {
+    /** 버튼 모양을 유지한 페이지 이동. 중첩 interactive 요소를 만들지 않는다. */
+    href: string;
+    disabled?: boolean;
+  };
+
+type ButtonProps = NativeButtonProps | LinkButtonProps;
+
+function isLinkButton(props: ButtonProps): props is LinkButtonProps {
+  return typeof props.href === "string";
+}
+
+function omitProps<T extends object, const Keys extends readonly (keyof T)[]>(
+  props: T,
+  keys: Keys,
+): Omit<T, Keys[number]> {
+  const omittedKeys = new Set<PropertyKey>(keys);
+  return Object.fromEntries(Object.entries(props).filter(([key]) => !omittedKeys.has(key))) as Omit<
+    T,
+    Keys[number]
+  >;
+}
+
+function omitEventHandlers<T extends object>(props: T): T {
+  return Object.fromEntries(Object.entries(props).filter(([key]) => !key.startsWith("on"))) as T;
+}
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -54,31 +85,87 @@ export const secondaryButtonClasses = [
   "disabled:text-text-disabled disabled:cursor-not-allowed",
 ].join(" ");
 
-export function Button({
-  className,
-  variant = "primary",
-  size = "lg",
-  appearance = "default",
-  shape = "default",
-  type = "button",
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={[
-        "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
-        shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
-        "focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:text-text-disabled disabled:cursor-not-allowed",
-        disabledBgByVariant[variant],
-        variantClasses[variant],
-        appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      {...props}
-    />
-  );
+export function Button(props: ButtonProps) {
+  const {
+    className,
+    variant = "primary",
+    size = "lg",
+    appearance = "default",
+    shape = "default",
+  } = props;
+  const disabled = props.disabled ?? false;
+  const classNames = [
+    "inline-flex items-center justify-center py-1 whitespace-nowrap transition-colors",
+    shape === "pill" ? "rounded-full px-4" : "rounded-xs px-2",
+    "focus-visible:outline-2 focus-visible:outline-offset-2",
+    "disabled:text-text-disabled disabled:cursor-not-allowed",
+    disabledBgByVariant[variant],
+    variantClasses[variant],
+    appearance === "cta" ? ctaSizeClasses[size] : sizeClasses[size],
+    isLinkButton(props) &&
+      disabled &&
+      (variant === "secondary"
+        ? "bg-layer-surface-disabled text-text-disabled cursor-not-allowed"
+        : "bg-layer-surface-primary-disabled text-text-disabled cursor-not-allowed"),
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  if (isLinkButton(props)) {
+    const { href, children } = props;
+    const linkProps = omitProps(props, [
+      "href",
+      "children",
+      "className",
+      "variant",
+      "size",
+      "appearance",
+      "shape",
+      "disabled",
+    ]);
+
+    if (disabled) {
+      const disabledProps = omitEventHandlers(
+        omitProps(linkProps, [
+          "download",
+          "onNavigate",
+          "ping",
+          "prefetch",
+          "ref",
+          "rel",
+          "replace",
+          "scroll",
+          "tabIndex",
+          "target",
+          "transitionTypes",
+        ]),
+      ) as ComponentPropsWithRef<"span">;
+
+      return (
+        <span {...disabledProps} aria-disabled="true" className={classNames}>
+          {props.children}
+        </span>
+      );
+    }
+
+    return (
+      <Link {...linkProps} href={href} className={classNames}>
+        {children}
+      </Link>
+    );
+  }
+
+  const { type = "button" } = props;
+  const buttonProps = omitProps(props, [
+    "className",
+    "variant",
+    "size",
+    "appearance",
+    "shape",
+    "disabled",
+    "type",
+  ]);
+
+  return <button type={type} className={classNames} disabled={disabled} {...buttonProps} />;
 }
