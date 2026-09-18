@@ -292,6 +292,7 @@ export function demoBuyerFulfillmentState(today: string = "2026-09-28"): BuyerFu
             id: "prep-2",
             date: daysBefore(today, 16),
             text: "원부자재 입고 지연에 따른 생산 일정 조정 협의",
+            delayed: true,
             media: [],
           },
           {
