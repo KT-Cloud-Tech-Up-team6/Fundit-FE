@@ -64,7 +64,7 @@ jobs:
         run: |
           container_id=$(docker run --detach --publish 127.0.0.1:3000:3000 "$ECR_REPOSITORY:$IMAGE_TAG")
           trap 'docker logs "$container_id"; docker rm --force "$container_id"' EXIT
-          curl --fail --silent --show-error --max-time 10 --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/ --output /dev/null
+          curl --fail --silent --show-error --max-time 10 --retry 10 --retry-delay 2 --retry-all-errors --retry-max-time 30 http://127.0.0.1:3000/ --output /dev/null
           curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/logo.svg --output /dev/null
 
       - name: Configure AWS credentials
