@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -41,3 +41,70 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  verify-image:
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      IMAGE: fundit-frontend:pr-${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build --platform linux/amd64 --tag "$IMAGE" .
+
+      - name: Verify container
+        run: |
+          container_id=$(docker run --detach --publish 127.0.0.1:3000:3000 "$IMAGE")
+          trap 'docker logs "$container_id"; docker rm --force "$container_id"' EXIT
+          curl --fail --silent --show-error --max-time 10 --retry 10 --retry-delay 2 --retry-all-errors --retry-max-time 30 http://127.0.0.1:3000/ --output /dev/null
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/logo.svg --output /dev/null
+
+  publish-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ECR_REPOSITORY: fundit-frontend
+      IMAGE_TAG: sha-${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build --platform linux/amd64 --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
+
+      - name: Verify container
+        run: |
+          container_id=$(docker run --detach --publish 127.0.0.1:3000:3000 "$ECR_REPOSITORY:$IMAGE_TAG")
+          trap 'docker logs "$container_id"; docker rm --force "$container_id"' EXIT
+          curl --fail --silent --show-error --max-time 10 --retry 10 --retry-delay 2 --retry-all-errors --retry-max-time 30 http://127.0.0.1:3000/ --output /dev/null
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/logo.svg --output /dev/null
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::899957568205:role/fundit-frontend-ci-role
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          image_uri="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$image_uri"
+          docker push "$image_uri"
+          printf 'Image: `%s`\nPlatform: `linux/amd64`\nCommit: `%s`\n' "$image_uri" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
