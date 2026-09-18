@@ -9,7 +9,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
-      <div className="bg-layer-bg p-6">
+      <div className="bg-layer-surface-default p-6">
         <Story />
       </div>
     ),
@@ -31,13 +31,15 @@ export const Default: Story = {
     await expect(bar).toHaveAttribute("aria-valuetext", "목표 대비 128% 달성");
     await expect(canvas.getByText("128")).toBeVisible();
     await expect(canvas.getAllByRole("row")).toHaveLength(demoRewardRows().length + 1);
+    await expect(canvas.getByRole("button", { name: "PDF 다운로드" })).toBeDisabled();
+    await expect(canvas.getByText("목표 달성")).toBeVisible();
   },
 };
 
 /** 목표를 아직 못 채운 상태 — 막대와 수치가 같은 값을 가리킨다. */
 export const InProgress: Story = {
   args: {
-    summary: { ...demoFundingSummary(), raisedAmount: 3_200_000, dday: "D-12" },
+    summary: { ...demoFundingSummary(), raisedAmount: 640_000, dday: "D-12" },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -45,6 +47,7 @@ export const InProgress: Story = {
     await expect(bar).toHaveAttribute("aria-valuenow", "64");
     await expect(bar).toHaveAttribute("aria-valuetext", "목표 대비 64% 달성");
     await expect(canvas.getByText("D-12")).toBeVisible();
+    await expect(canvas.queryByText("목표 달성")).not.toBeInTheDocument();
   },
 };
 
@@ -52,5 +55,17 @@ export const InProgress: Story = {
 export const Ended: Story = {
   args: {
     summary: { ...demoFundingSummary(), dday: "종료" },
+  },
+};
+
+export const UnavailableDetails: Story = {
+  args: {
+    summary: { ...demoFundingSummary(), wishlistCount: null, openAlertCount: null },
+    rewards: [],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("리워드 현황을 확인할 수 없습니다.")).toBeVisible();
+    await expect(canvas.getAllByLabelText("정보 없음")).toHaveLength(2);
   },
 };
