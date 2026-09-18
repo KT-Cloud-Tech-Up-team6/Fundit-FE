@@ -6,6 +6,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## Design Source
 
+- 구매자 라이브 시청·다시보기·숏 클립의 데스크톱 확장은 [Figma `1525:43622`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1525-43622)와 #156 기준이다. 기존 `/live/[liveId]`, `?mode=replay`, `?mode=replay&view=clip`을 유지하며 1200px 이상에서 3열 UI를 표시한다. 원본 지시와 승인된 다시보기 로컬 채팅·세로 타임라인 처리는 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md#데스크톱-확장-156), [BUYER_LIVE_REPLAY.md](./BUYER_LIVE_REPLAY.md#데스크톱-확장-156)에 기록한다.
+
 - 구매자 LIVE 목록·프로젝트 상세의 1200px 이상 데스크톱 확장은 [Figma `1419:48997`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1419-48997)와 #154 기준이다. 텍스트·박스 지시 및 구현·미연동 범위는 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md#데스크톱-확장-154), [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md#데스크톱-확장-154)에 기록한다. 기존 구매자 URL과 모바일 흐름을 유지한다.
 
 - 판매자 펀딩 관리는 [최신 Figma `1328:48252`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1328-48252)와 [Issue #150](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/150)을 기준으로 합니다. 화면 `1328:48253`, 요약 `1328:48257`, 참여 현황 `1328:48313`, 리워드 표 `1328:48370`, 화면 정의 `1328:48379`, 이력 `1328:49904`와 섹션 전체 이미지를 확인했습니다. 섹션 내부 `interaction_spec`·개발자 주석·prototype reaction은 검사 결과 없습니다.
