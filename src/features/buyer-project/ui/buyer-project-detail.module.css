@@ -219,7 +219,7 @@
 
 .liveBadge {
   --status-info: var(--blue-500);
-  --text-secondary: var(--text-static-white);
+  color: var(--text-static-white);
   width: fit-content;
 }
 .fundingNumbers > div:first-child p {
