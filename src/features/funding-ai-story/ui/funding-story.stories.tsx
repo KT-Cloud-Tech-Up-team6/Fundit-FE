@@ -116,20 +116,17 @@ export const Editor: Story = {
 export const IntegratedEditor: Story = {
   render: () => (
     <div className="mx-auto max-w-198 p-5">
-      <ProjectStoryForm />
+      <ProjectStoryForm projectId="demo-story" />
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    for (const name of [
-      "썸네일 이미지 파일 선택",
-      "AI로 펀딩 스토리 작성",
-      "미리보기",
-      "임시저장",
-      "저장",
-    ]) {
+    for (const name of ["썸네일 이미지 파일 선택", "미리보기", "임시저장", "저장"]) {
       expectCta(canvas.getByRole("button", { name }));
     }
+    const aiStyle = getComputedStyle(canvas.getByRole("button", { name: "AI로 펀딩 스토리 작성" }));
+    expect(aiStyle.fontSize).toBe("14px");
+    expect(aiStyle.fontWeight).toBe("500");
     await userEvent.click(canvas.getByRole("button", { name: "AI로 펀딩 스토리 작성" }));
     expect(await canvas.findByRole("log", { name: "스토리 작성 대화" })).toBeVisible();
   },

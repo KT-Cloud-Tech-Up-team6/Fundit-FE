@@ -51,12 +51,12 @@ export default async function SellerProjectPage({
           tabs={projectEditTabs}
           className={
             activeTab === "story"
-              ? "self-start! lg:mt-9 [&_li]:min-h-9 [&_li]:font-bold [&_li>a]:h-9 [&_li>a]:font-bold [&_p]:line-clamp-2 [&_p]:h-12"
+              ? "self-start! lg:mt-9 [&_li]:min-h-9 [&_li]:font-medium [&_li>a]:h-9 [&_li>a]:font-medium [&_p]:line-clamp-2 [&_p]:h-12"
               : undefined
           }
         />
         {activeTab === "story" ? (
-          <ProjectStoryForm key={projectId} />
+          <ProjectStoryForm key={projectId} projectId={projectId} />
         ) : (
           <PagePlaceholder
             eyebrow="Seller · Project"

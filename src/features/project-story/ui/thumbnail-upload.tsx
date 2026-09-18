@@ -4,9 +4,8 @@ import { useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { InputButton } from "@/shared/components/ui/input-button";
 
-/* ponytail: 업로드 서버가 없어 실제로 올리진 못하고, 선택한 파일명만 화면에 반영한다.
-   업로드 API가 생기면 여기서 실제로 전송하고 반환된 URL을 저장하도록 바꾼다. */
-export function ThumbnailUpload() {
+/* 파일은 서버에 업로드하지 않고 이름 표시와 로컬 미리보기에 사용한다. */
+export function ThumbnailUpload({ onFileChange }: { onFileChange: (file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -20,7 +19,7 @@ export function ThumbnailUpload() {
           placeholder: "이미지를 첨부해주세요",
           shape: "compact",
           className:
-            "bg-layer-surface-disabled border-transparent [&_input]:text-body-s [&_input]:text-text-secondary [&_input]:font-bold [&_input]:placeholder:text-body-s",
+            "bg-layer-surface-disabled border-transparent [&_input]:text-body-s [&_input]:leading-[1.42] [&_input]:text-text-secondary [&_input]:placeholder:text-body-s",
         }}
         button={
           <Button
@@ -45,7 +44,10 @@ export function ThumbnailUpload() {
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
-          if (file) setFileName(file.name);
+          if (file) {
+            setFileName(file.name);
+            onFileChange(file);
+          }
         }}
       />
     </>

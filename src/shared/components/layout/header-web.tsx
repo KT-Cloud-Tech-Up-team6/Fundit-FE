@@ -14,14 +14,17 @@ type HeaderWebProps = {
 export function HeaderWeb({ actions, className, logo, nav }: HeaderWebProps) {
   return (
     <header
-      className={["border-border-default bg-layer-surface-default h-[70px] border-b", className]
+      className={[
+        "border-border-default bg-layer-surface-default min-h-[70px] border-b sm:h-[70px]",
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="max-w-content mx-auto flex h-full w-full items-center gap-2 px-5 md:gap-4 xl:px-0">
+      <div className="max-w-content mx-auto flex h-full min-h-[70px] w-full flex-wrap items-center gap-2 px-5 py-3 sm:flex-nowrap sm:py-0 md:gap-4 xl:px-0">
         {logo}
         {/* 로고와 완전히 가운데 정렬하지 않고 메뉴를 살짝 아래로 내린다. */}
-        {nav && <div className="pt-1.5">{nav}</div>}
+        {nav && <div className="order-last w-full pt-1.5 sm:order-none sm:w-auto">{nav}</div>}
         {actions && <div className="ml-auto flex items-center gap-2 md:gap-3">{actions}</div>}
       </div>
     </header>
