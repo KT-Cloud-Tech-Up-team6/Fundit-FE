@@ -1,6 +1,6 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 
-type InputSize = "sm" | "md";
+type InputSize = "xs" | "sm" | "md";
 type InputShape = "compact" | "default";
 
 /* 네이티브 `size`(문자 수)는 쓰지 않는다. SearchField와 같이 디자인 사양의 크기 이름으로 덮는다. */
@@ -15,16 +15,19 @@ type InputProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
 /* sm은 발송정보 표의 `td_tracking_number`(180×30) 사양이다. 표 행에 들어가야 해서
    md(52px)로는 행이 과하게 높아진다. md는 폼 화면의 기존 사양이라 그대로 둔다. */
 const sizeClasses: Record<InputSize, string> = {
+  xs: "h-8",
   sm: "h-9",
   md: "h-13",
 };
 
 const textClasses: Record<InputSize, string> = {
+  xs: "text-body-s placeholder:text-body-s",
   sm: "text-body-s placeholder:text-body-s",
   md: "text-body-m placeholder:text-body-m disabled:text-body-s disabled:leading-[1.42] disabled:placeholder:text-body-s",
 };
 
 const paddingClasses: Record<InputSize, { bare: string; adorned: string }> = {
+  xs: { bare: "px-2", adorned: "gap-1 pr-1 pl-2" },
   sm: { bare: "px-3", adorned: "gap-1 pr-1 pl-3" },
   md: { bare: "px-4", adorned: "gap-2 pr-2 pl-4" },
 };
@@ -57,7 +60,7 @@ export function Input({
     >
       {startAdornment ? (
         <span
-          className={`flex ${size === "sm" ? "size-6" : "size-7"} shrink-0 items-center justify-center`}
+          className={`flex ${size === "md" ? "size-7" : "size-6"} shrink-0 items-center justify-center`}
         >
           {startAdornment}
         </span>
@@ -76,7 +79,7 @@ export function Input({
       />
       {endAdornment ? (
         <span
-          className={`flex ${size === "sm" ? "size-6" : "size-7"} shrink-0 items-center justify-center`}
+          className={`flex ${size === "md" ? "size-7" : "size-6"} shrink-0 items-center justify-center`}
         >
           {endAdornment}
         </span>
