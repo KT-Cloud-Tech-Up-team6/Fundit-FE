@@ -45,7 +45,6 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [bulkCourier, setBulkCourier] = useState<Courier | "">("");
-  const [notice, setNotice] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -80,9 +79,8 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
     setSelected(allSelected ? new Set() : new Set(selectable.map((shipment) => shipment.id)));
   }
 
-  /** API 저장 전에도 사용자가 완료 결과를 확인할 수 있게 화면 상태와 토스트를 함께 갱신한다. */
+  /** API 저장 전에도 사용자가 완료 결과를 Toast로 확인할 수 있게 한다. */
   function showFeedback(message: string) {
-    setNotice(message);
     setToastMessage(message);
     if (toastTimer.current !== null) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMessage(""), 3000);
@@ -221,10 +219,6 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
           shipments={visible}
         />
       </div>
-
-      <p aria-live="polite" className="sr-only">
-        {notice}
-      </p>
 
       {toastMessage ? (
         <Toast className="shadow-light-m fixed bottom-6 left-1/2 z-30 -translate-x-1/2">
