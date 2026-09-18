@@ -50,7 +50,11 @@ export function BuyerTimeline({
           return (
             <li key={record.id} className="flex flex-col gap-2">
               <div className="flex h-6 items-center gap-[11px]">
-                <p className="text-body-s text-text-secondary font-medium">
+                <p
+                  className={`text-body-s font-medium ${
+                    isLatest && showLatestBadge ? "text-text-default" : "text-text-secondary"
+                  }`}
+                >
                   {formatRecordDate(record.date)}
                 </p>
                 {isLatest && showLatestBadge && (
