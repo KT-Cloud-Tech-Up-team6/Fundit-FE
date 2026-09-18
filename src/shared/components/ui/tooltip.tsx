@@ -51,7 +51,11 @@ export function Tooltip({
       {isHorizontal ? null : (
         <span
           aria-hidden
-          className={`${inverse ? "border-t-layer-surface-primary" : "border-t-layer-bg"} border-x-4 border-t-4 border-x-transparent`}
+          className={`${
+            inverse
+              ? "border-t-layer-surface-primary border-x-[5.5px] border-t-[9px]"
+              : "border-t-layer-bg border-x-4 border-t-4"
+          } border-x-transparent`}
         />
       )}
     </div>
