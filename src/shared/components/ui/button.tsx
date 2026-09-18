@@ -39,9 +39,7 @@ function omitProps<T extends object, const Keys extends readonly (keyof T)[]>(
 }
 
 function omitEventHandlers<T extends object>(props: T): T {
-  return Object.fromEntries(
-    Object.entries(props).filter(([key]) => !key.startsWith("on")),
-  ) as T;
+  return Object.fromEntries(Object.entries(props).filter(([key]) => !key.startsWith("on"))) as T;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -144,11 +142,7 @@ export function Button(props: ButtonProps) {
       ) as ComponentPropsWithRef<"span">;
 
       return (
-        <span
-          {...disabledProps}
-          aria-disabled="true"
-          className={classNames}
-        >
+        <span {...disabledProps} aria-disabled="true" className={classNames}>
           {props.children}
         </span>
       );
