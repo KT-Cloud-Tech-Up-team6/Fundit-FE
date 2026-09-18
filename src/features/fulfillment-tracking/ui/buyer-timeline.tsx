@@ -21,6 +21,8 @@ type BuyerTimelineProps = {
    */
   collapsibleItems?: boolean;
   showLatestBadge?: boolean;
+  /** 데스크톱 제작·배송 현황의 카드형 기록 목록. */
+  variant?: "default" | "desktop";
 };
 
 const mediaKindLabel = { image: "사진", video: "동영상" } as const;
@@ -30,6 +32,7 @@ export function BuyerTimeline({
   onSelectMedia,
   collapsibleItems = false,
   showLatestBadge = true,
+  variant = "default",
 }: BuyerTimelineProps) {
   const sorted = sortRecordsByDateDesc(records);
   const latestId = latestRecordId(records);
@@ -37,6 +40,61 @@ export function BuyerTimeline({
 
   if (sorted.length === 0) {
     return <p className="text-body-s text-text-secondary">아직 등록된 기록이 없어요.</p>;
+  }
+
+  if (variant === "desktop") {
+    return (
+      <ol className="flex flex-col gap-4">
+        {sorted.map((record) => {
+          const isLatest = record.id === latestId;
+          return (
+            <li key={record.id} className="flex flex-col gap-2">
+              <div className="flex h-6 items-center gap-[11px]">
+                <p className="text-body-s text-text-secondary font-medium">
+                  {formatRecordDate(record.date)}
+                </p>
+                {isLatest && showLatestBadge && (
+                  <Badge shape="rounded" variant="success">
+                    업데이트
+                  </Badge>
+                )}
+                {record.delayed && (
+                  <Badge shape="rounded" variant="warning">
+                    지연
+                  </Badge>
+                )}
+              </div>
+              <div className="border-border-default bg-layer-surface-default shadow-light-s w-fit max-w-full rounded-sm border px-4 py-3">
+                <p className="text-body-s text-text-default leading-[1.42] whitespace-pre-wrap">
+                  {record.text}
+                </p>
+                {record.media.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-3">
+                    {record.media.map((media) => (
+                      <li key={media.id}>
+                        <button
+                          type="button"
+                          aria-label={`${media.name} ${mediaKindLabel[media.kind]} 크게 보기`}
+                          onClick={() => onSelectMedia(media)}
+                          className="bg-layer-surface-disabled relative flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-xs"
+                        >
+                          {media.url && media.kind === "image" ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- API 제공 URL도 그대로 렌더할 수 있다.
+                            <img src={media.url} alt="" className="size-full object-cover" />
+                          ) : media.kind === "video" ? (
+                            <Icon name="play" className="text-text-secondary size-6" />
+                          ) : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    );
   }
 
   return (
