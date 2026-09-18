@@ -95,7 +95,7 @@ export function BuyerSearch({
   }
 
   return (
-    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh w-full max-w-[390px] pb-[env(safe-area-inset-bottom)] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
+    <main className="bg-layer-surface-default text-text-default [&_a:focus-visible]:outline-border-primary [&_button:focus-visible]:outline-border-primary [&_select:focus-visible]:outline-border-primary mx-auto min-h-dvh w-full pb-[env(safe-area-inset-bottom)] min-[1200px]:max-w-[390px] [&_a:focus-visible]:outline-2 [&_a:focus-visible]:-outline-offset-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:-outline-offset-2 [&_select:focus-visible]:outline-2 [&_select:focus-visible]:-outline-offset-2">
       <h1 className="sr-only">통합 검색</h1>
       <form
         role="search"
