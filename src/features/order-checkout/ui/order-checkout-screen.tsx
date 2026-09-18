@@ -148,7 +148,7 @@ export function OrderCheckoutScreen({
   }
   return (
     <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
+      <div className="mx-auto flex min-h-dvh w-full flex-col min-[1200px]:max-w-[390px]">
         <CheckoutTopBar title="결제" />
         <div className="flex flex-1 flex-col gap-3 pb-8">
           <ShippingAddressSection
