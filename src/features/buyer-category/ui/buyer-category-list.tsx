@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  buyerCategories,
-  getBuyerCategory,
-} from "@/features/buyer-category/model/buyer-category-mock";
+import { buyerCategories, getBuyerCategory } from "@/entities/category/model/category-mock";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";

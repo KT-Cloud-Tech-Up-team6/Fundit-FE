@@ -1,4 +1,4 @@
-import { getBuyerCategory } from "@/features/buyer-category/model/buyer-category-mock";
+import { getBuyerCategory } from "@/entities/category/model/category-mock";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
 export default async function CategorySubcategoryPage({
