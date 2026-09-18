@@ -31,12 +31,12 @@
 
 .viewerBadge {
   --status-info: var(--blue-100);
-  --text-secondary: var(--blue-500);
+  color: var(--text-static-primary-live);
 }
 
 .liveBadge {
   --status-info: var(--blue-500);
-  --text-secondary: var(--text-static-white);
+  color: var(--text-static-white);
 }
 
 @media (min-width: 1200px) {

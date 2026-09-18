@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { demoShippingAddress } from "../model/checkout-demo";
 
 import { OrderCheckoutScreen } from "./order-checkout-screen";
 
@@ -47,6 +48,10 @@ export const Default: Story = {
     await userEvent.paste("3,000.00");
     await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("");
     await expect(finalAmount()).toHaveTextContent("199,000원");
+
+    expect(canvas.queryByRole("checkbox", { name: "전체 동의합니다" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "199,000원 결제하기" }));
+    expect(canvas.getByRole("alert")).toHaveTextContent("결제 수단을 선택해주세요.");
   },
 };
 
@@ -69,5 +74,31 @@ export const PaymentAttemptWithoutAddress: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: /결제하기$/ }));
     await expect(canvas.getByRole("alert")).toHaveTextContent("배송지를 입력해주세요");
+  },
+};
+
+export const PaymentWithoutConsent: Story = {
+  args: {
+    initialForm: {
+      address: demoShippingAddress(),
+      couponId: null,
+      points: "",
+      method: "toss_pay",
+      card: "",
+      installment: "일시불",
+    },
+    onComplete: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const pay = canvas.getByRole("button", { name: "199,000원 결제하기" });
+    expect(pay).toBeEnabled();
+    expect(canvas.queryByRole("checkbox")).not.toBeInTheDocument();
+    await userEvent.dblClick(pay);
+    expect(args.onComplete).toHaveBeenCalledTimes(1);
+    expect(args.onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "toss_pay" }),
+      199000,
+    );
   },
 };

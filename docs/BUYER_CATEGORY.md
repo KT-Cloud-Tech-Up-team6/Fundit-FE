@@ -2,8 +2,10 @@
 
 ## Design Source
 
-- [테크·가전 1114:24119](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1114-24119), [홈·리빙 1114:24178](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1114-24178).
-- 1114:24233은 4초 자동 스냅 배너, 1114:24234는 기본 14px Regular·선택 Medium을 지정한다.
+- 현재 표시되는 `1249:23502`와 작업 히스토리 `1249:24505`를 기준으로 한다. 숨겨진 `1114:23315`는 현재 원본으로 사용하지 않는다.
+
+- [테크·가전 1249:24306](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1249-24306), [홈·리빙 1249:24365](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1249-24365).
+- 1249:24420은 4초 자동 스냅 배너, 1249:24421는 기본 14px Regular·선택 Medium을 지정한다.
 
 ## 구현 범위
 
