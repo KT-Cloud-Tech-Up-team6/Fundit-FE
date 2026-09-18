@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-type SelectSize = "sm" | "md";
+type SelectSize = "xs" | "sm" | "md";
 type SelectShape = "compact" | "default";
 
 /* 네이티브 `size`(보이는 항목 수)는 쓰지 않는다. SearchField와 같이 디자인 사양의 크기 이름으로 덮는다. */
@@ -14,16 +14,19 @@ type SelectProps = Omit<ComponentPropsWithoutRef<"select">, "size"> & {
    36px 컨트롤 줄에 서고, 표 안에 들어가야 해서 md(52px)로는 행이 과하게 높아진다.
    md는 폼 화면(회원가입·LIVE 생성)의 기존 사양이라 그대로 둔다. */
 const sizeClasses: Record<SelectSize, string> = {
+  xs: "h-8",
   sm: "h-9",
   md: "h-13",
 };
 
 const textClasses: Record<SelectSize, string> = {
+  xs: "text-body-s pr-7 pl-2",
   sm: "text-body-s pr-8 pl-3",
   md: "text-body-m pr-10 pl-4",
 };
 
 const caretClasses: Record<SelectSize, string> = {
+  xs: "right-2",
   sm: "right-3",
   md: "right-4",
 };

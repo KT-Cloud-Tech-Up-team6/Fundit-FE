@@ -19,8 +19,8 @@ type ShippingTableProps = {
    table-fixed로 두면 내용 길이와 무관하게 이 비율이 유지된다. */
 const columnWidths = ["w-10", "w-25", "w-14", "w-41", "w-30", "w-41", "w-45", "w-15"];
 
-const headerClasses = "text-body-s text-text-default px-2 py-3 text-left font-normal";
-const cellClasses = "text-body-s text-text-default px-2 py-0.5 align-middle";
+const headerClasses = "text-body-m text-text-default h-10 px-2 text-left font-normal";
+const cellClasses = "text-body-s text-text-default h-10 px-2 py-1 align-middle";
 
 export function ShippingTable({
   shipments,
@@ -46,12 +46,11 @@ export function ShippingTable({
     /* 열이 8개라 좁은 화면에서는 표만 가로로 넘긴다. 페이지 자체는 가로 스크롤되지 않게 한다. */
     <div className="border-w-xs border-border-default overflow-x-auto rounded-xs">
       <table className="w-full min-w-[940px] table-fixed border-collapse">
-        <thead className="bg-layer-surface-disabled">
+        <thead className="bg-layer-bg">
           <tr>
             <th scope="col" className={`${headerClasses} ${columnWidths[0]}`}>
               <Checkbox
                 aria-label="발송 대기 주문 전체 선택"
-                shape="circle"
                 checked={allSelected}
                 disabled={selectable.length === 0}
                 indeterminate={selectedCount > 0 && !allSelected}
@@ -88,14 +87,13 @@ export function ShippingTable({
             return (
               <tr
                 key={shipment.id}
-                className={`border-border-default border-t ${
+                className={`border-border-default h-[50px] border-t ${
                   selected.has(shipment.id) ? "bg-layer-surface-disabled" : ""
                 }`}
               >
                 <td className={cellClasses}>
                   <Checkbox
                     aria-label={`주문 ${shipment.orderNo} 선택`}
-                    shape="circle"
                     checked={selected.has(shipment.id)}
                     disabled={shipped}
                     onChange={() => onToggle(shipment.id)}
@@ -117,7 +115,7 @@ export function ShippingTable({
                     onChange={(event) =>
                       onChange(shipment.id, { courier: event.target.value as Courier | "" })
                     }
-                    size="sm"
+                    size="xs"
                     value={shipment.courier}
                   >
                     <option value="">배송사를 선택하세요</option>
@@ -136,14 +134,14 @@ export function ShippingTable({
                     disabled={shipped}
                     inputMode="numeric"
                     onChange={(event) => onChange(shipment.id, { trackingNo: event.target.value })}
-                    placeholder="운송장 번호를 입력해주세요"
-                    size="sm"
+                    placeholder="운송장 번호를 입력하세요"
+                    size="xs"
                     value={shipment.trackingNo}
                   />
                 </td>
                 <td className={cellClasses}>
                   <button
-                    className="bg-layer-surface-disabled text-label-m text-text-default enabled:hover:bg-layer-surface-disabled-hover focus-visible:outline-border-primary disabled:text-text-disabled flex h-7 w-full items-center justify-center rounded-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
+                    className="bg-layer-surface-disabled text-label-m text-text-default enabled:hover:bg-layer-surface-disabled-hover focus-visible:outline-border-primary disabled:text-text-disabled flex h-8 w-full items-center justify-center rounded-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
                     disabled={!canShip(shipment)}
                     onClick={() => onShip(shipment.id)}
                     type="button"

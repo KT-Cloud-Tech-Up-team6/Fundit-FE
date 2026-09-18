@@ -123,7 +123,7 @@ export function markShipped(
 const addresses = ["서울특별시 땡땡구", "경기도 성남시 분당구", "부산광역시 해운대구"];
 const supporters = ["홍길동", "김수한무", "닉네임임임", "세글자", "네글자하", "다섯글자다"];
 
-/** 목업 목록. 발송 완료가 섞여 있어야 탭·상태 분기를 다 볼 수 있다. */
+/** 기능 테스트·상태 탭용 목업. 발송 완료 건을 섞어 상태별 분기를 유지한다. */
 export function demoShipments(): Shipment[] {
   return Array.from({ length: 8 }, (_, index) => {
     const shipped = index === 1 || index === 4;
@@ -140,4 +140,17 @@ export function demoShipments(): Shipment[] {
       status: shipped ? "shipped" : "pending",
     };
   });
+}
+
+/** Figma 기본 프레임의 7개 발송 대기 행. API 연결 전 화면 기본값으로만 쓴다. */
+export function figmaShippingShipments(): Shipment[] {
+  return demoShipments()
+    .slice(0, 7)
+    .map((shipment, index) => ({
+      ...shipment,
+      orderNo: `FD0000 - ${String(index).padStart(6, "0")}`,
+      courier: "",
+      trackingNo: "",
+      status: "pending" as const,
+    }));
 }

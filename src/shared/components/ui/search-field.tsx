@@ -4,6 +4,7 @@ import { useImperativeHandle, useRef, useState } from "react";
 import type { ChangeEvent, ComponentPropsWithRef } from "react";
 
 type SearchFieldProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
+  appearance?: "filled" | "outlined";
   clearLabel?: string;
   onClear?: () => void;
   size?: "sm" | "md" | "lg";
@@ -29,6 +30,7 @@ const textSizeClasses = {
 } as const;
 
 export function SearchField({
+  appearance = "outlined",
   className,
   clearLabel = "검색어 지우기",
   defaultValue,
@@ -61,7 +63,12 @@ export function SearchField({
     <div
       className={[
         "flex w-full items-center gap-1 overflow-hidden py-1 pr-1",
-        fieldSizeClasses[size],
+        /* Figma의 판매자 발송 관리 인스턴스(1328:47318)는 기본 검색 필드와 달리
+           46px 회색 면·pill 반경·좌 8/우 16px 여백을 사용한다. 크기와 외형을
+           분리해 다른 화면의 outline 검색 필드를 바꾸지 않는다. */
+        appearance === "filled" &&
+          "bg-layer-surface-disabled focus-within:outline-border-primary h-[46px] rounded-full pr-4 pl-2 focus-within:outline-2 focus-within:outline-offset-[-2px]",
+        appearance === "outlined" && fieldSizeClasses[size],
         disabled && "bg-layer-surface-disabled border-transparent",
         className,
       ]

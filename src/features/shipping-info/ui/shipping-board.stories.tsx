@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
-import { demoShipments } from "../model/shipping-demo";
+import { demoShipments, figmaShippingShipments } from "../model/shipping-demo";
 import { ShippingBoard } from "./shipping-board";
 
 const meta = {
@@ -20,7 +20,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 기본 목록 — 발송 대기 6건과 발송 완료 2건이 섞여 있다. */
+/** 기본 목록 — Figma 기본 화면과 같은 발송 대기 7건이다. */
 export const Default: Story = {};
 
 /** 발송 완료만 있는 목록 — 전체 선택 체크박스가 비활성이다. */
@@ -43,7 +43,7 @@ export const AllShipped: Story = {
 export const ShipOneRow: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const orderNo = demoShipments()[0].orderNo;
+    const orderNo = figmaShippingShipments()[0].orderNo;
     const row = canvas.getByLabelText(`주문 ${orderNo} 선택`).closest("tr")!;
     const cells = within(row);
     const ship = cells.getByRole("button", { name: "발송 처리" });
@@ -64,7 +64,7 @@ export const ShipOneRow: Story = {
 export const BulkSelection: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const orderNo = demoShipments()[0].orderNo;
+    const orderNo = figmaShippingShipments()[0].orderNo;
 
     await expect(canvas.queryByLabelText("선택한 주문의 택배사")).not.toBeInTheDocument();
     await userEvent.click(canvas.getByLabelText(`주문 ${orderNo} 선택`));
