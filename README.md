@@ -146,6 +146,8 @@ pnpm dev
 
 ## 환경변수
 
+Docker 이미지 빌드와 AWS ECR 업로드는 [컨테이너 배포 문서](./docs/CONTAINER_DEPLOYMENT.md)를 확인하세요.
+
 현재 초기 구조 실행에는 환경변수가 필요하지 않습니다. 향후 API, LIVE, 결제 계약이 확정되면 `.env.example`에 변수 이름만 추가하고 실제 비밀값은 로컬 환경 또는 배포 플랫폼의 Secret으로 관리합니다.
 
 ```bash
