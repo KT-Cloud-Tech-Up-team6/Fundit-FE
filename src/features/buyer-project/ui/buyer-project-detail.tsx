@@ -376,7 +376,6 @@ export function BuyerProjectDetail({
                   src="/images/buyer-project/story.png"
                   alt="CleanForge 무선 청소기 상품 소개 예시"
                   fill
-                  sizes="(max-width: 390px) 112vw, 436px"
                   unoptimized
                 />
               </div>
