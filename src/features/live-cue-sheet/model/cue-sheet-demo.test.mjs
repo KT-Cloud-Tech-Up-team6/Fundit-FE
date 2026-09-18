@@ -36,7 +36,7 @@ test("미입력 답변과 리워드는 임의의 상품 사실로 채우지 않�
 });
 
 test("전용 URL의 기본 데모와 명시적인 리워드도 지원한다", () => {
-  assert.match(createDemoScenes(10, [])[0].script, new RegExp(demoProject.title));
+  assert.ok(createDemoScenes(10, [])[0].script.includes(demoProject.title));
   const scenes = createDemoScenes(1, [], { ...project, reward: "데일리 백 단품" });
   assert.match(scenes[4].script, /데일리 백 단품/);
   assert.equal(

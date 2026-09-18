@@ -24,11 +24,11 @@
   grid-template-columns: 196px minmax(0, 596px);
   gap: 20px;
   max-width: 812px;
-  margin: 56px auto 20px;
+  margin: 32px auto 0;
 }
 
 .panel {
-  height: 418px;
+  height: 468px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xs);
 }
@@ -75,5 +75,25 @@
 
   .panel {
     height: 380px;
+  }
+}
+
+.loading {
+  background: var(--blue-50);
+}
+.loadingLogo {
+  animation: cue-logo 834ms ease-in-out infinite alternate;
+}
+@keyframes cue-logo {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(39deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loadingLogo {
+    animation: none;
   }
 }
