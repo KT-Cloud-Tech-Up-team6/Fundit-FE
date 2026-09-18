@@ -7,7 +7,6 @@ import {
   demoCoupons,
   demoOrderItem,
   demoPaymentSummary,
-  demoTerms,
   emptyShippingAddress,
   finalPaymentAmount,
   formatWon,
@@ -15,7 +14,6 @@ import {
   isShippingAddressComplete,
   maxPointUsage,
   parsePointInput,
-  requiredTermsMet,
   totalDiscount,
   totalOrderAmount,
 } from "./checkout-demo.ts";
@@ -130,15 +128,4 @@ test("배송지는 배송 요청 사항 외 필수 항목이 모두 채워져야
   assert.equal(isShippingAddressComplete({ ...filled, detailAddress: "   " }), false);
   // 우편번호 찾기 전이면 미완성
   assert.equal(isShippingAddressComplete({ ...filled, zipCode: "", baseAddress: "" }), false);
-});
-
-test("필수 약관이 전부 동의돼야 requiredTermsMet 이 true", () => {
-  const terms = demoTerms();
-  const requiredIds = terms.filter((term) => term.required).map((term) => term.id);
-
-  assert.equal(requiredTermsMet(terms, []), false);
-  assert.equal(requiredTermsMet(terms, requiredIds.slice(0, 2)), false);
-  assert.equal(requiredTermsMet(terms, requiredIds), true);
-  // 선택 약관은 조건에 영향을 주지 않는다.
-  assert.equal(requiredTermsMet(terms, [...requiredIds, "news"]), true);
 });

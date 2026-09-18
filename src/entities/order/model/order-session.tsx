@@ -26,7 +26,6 @@ export type CheckoutForm = {
   method: "credit_card" | "toss_pay" | null;
   card: string;
   installment: string;
-  agreedIds: string[];
 };
 
 export type OrderReceipt = {

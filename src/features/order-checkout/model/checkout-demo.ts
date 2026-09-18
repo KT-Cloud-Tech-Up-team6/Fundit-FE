@@ -50,8 +50,6 @@ export type PaymentSummary = {
   pointDiscount: number;
 };
 
-export type TermsItem = { id: string; label: string; required: boolean };
-
 /** 5000000 → "5,000,000원"
    ponytail: reward-selection·entities/project에도 같은 한 줄이 있다. 세 번째 사본이라
    shared로 뺄 만하지만 이 PR 범위 밖이다. */
@@ -110,12 +108,6 @@ export function parsePointInput(raw: string): number | null {
   const cleaned = raw.replace(/,/g, "").trim();
   if (cleaned === "") return 0;
   return /^\d+$/.test(cleaned) ? Number(cleaned) : null;
-}
-
-/** 필수 약관이 모두 동의됐는지. "전체 동의합니다" 체크 여부와 같은 조건이다. */
-export function requiredTermsMet(terms: TermsItem[], agreedIds: readonly string[]): boolean {
-  const agreed = new Set(agreedIds);
-  return terms.filter((term) => term.required).every((term) => agreed.has(term.id));
 }
 
 /** 배송지 입력값이 전부 빈 시작 상태. */
@@ -217,15 +209,6 @@ export function demoPaymentSummary(): PaymentSummary {
     couponDiscount: 0,
     pointDiscount: 0,
   };
-}
-
-export function demoTerms(): TermsItem[] {
-  return [
-    { id: "purchase", label: "구매조건 및 결제대행 서비스 동의 (필수)", required: true },
-    { id: "privacy-third-party", label: "개인정보 제3자 제공 동의 (필수)", required: true },
-    { id: "liability", label: "책임 규정 동의 (필수)", required: true },
-    { id: "news", label: "펀딩 관련 새 소식 알림 동의 (선택)", required: false },
-  ];
 }
 
 /** 적립금 섹션 "보유 N원" 표시용 목업. */

@@ -3,11 +3,9 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { CheckoutForm } from "@/entities/order/model/order-session";
-import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import {
   DEMO_POINT_BALANCE,
   clampPointUsage,
@@ -16,13 +14,11 @@ import {
   demoOrderItem,
   demoPaymentSummary,
   demoShippingAddress,
-  demoTerms,
   finalPaymentAmount,
   formatWon,
   maxPointUsage,
   isCouponUsable,
   parsePointInput,
-  requiredTermsMet,
   totalDiscount,
   totalOrderAmount,
 } from "../model/checkout-demo";
@@ -32,20 +28,17 @@ import type {
   PaymentSummary,
   ShippingAddress,
   ShippingSectionState,
-  TermsItem,
 } from "../model/checkout-demo";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { CouponSheet } from "./coupon-sheet";
 import { ShippingAddressSection } from "./shipping-address-section";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { PaymentMethodSection } from "./payment-method-section";
-import styles from "./checkout-sheet.module.css";
 
 const SHIPPING_SECTION_ID = "checkout-shipping-address";
 const DEMO_ORDER_ITEM = demoOrderItem();
 const DEMO_ADDRESS = demoShippingAddress();
 const DEMO_SUMMARY = demoPaymentSummary();
-const DEMO_TERMS = demoTerms();
 const DEMO_COUPONS = demoCoupons();
 
 type OrderCheckoutScreenProps = {
@@ -54,7 +47,6 @@ type OrderCheckoutScreenProps = {
   items?: OrderItem[];
   address?: ShippingAddress;
   summary?: PaymentSummary;
-  terms?: TermsItem[];
   coupons?: Coupon[];
   initialForm?: CheckoutForm | null;
   onFormChange?: (form: CheckoutForm) => void;
@@ -67,7 +59,6 @@ export function OrderCheckoutScreen({
   items,
   address = DEMO_ADDRESS,
   summary = DEMO_SUMMARY,
-  terms = DEMO_TERMS,
   coupons = DEMO_COUPONS,
   initialForm,
   onFormChange,
@@ -82,14 +73,12 @@ export function OrderCheckoutScreen({
         method: null,
         card: "",
         installment: "일시불",
-        agreedIds: [],
       },
   );
   const [addressWarning, setAddressWarning] = useState(false);
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
   const [methodWarning, setMethodWarning] = useState("");
-  const [viewTerm, setViewTerm] = useState<TermsItem | null>(null);
   const paying = useRef(false);
   useEffect(() => {
     onFormChange?.(form);
@@ -97,8 +86,6 @@ export function OrderCheckoutScreen({
   function update(change: Partial<CheckoutForm>) {
     setForm((prev) => ({ ...prev, ...change }));
   }
-  const requiredIds = terms.filter((term) => term.required).map((term) => term.id);
-  const isAllAgreed = requiredTermsMet(terms, form.agreedIds);
   const orderAmount = Math.max(0, summary.fundingAmount - (summary.earlyBirdDiscount ?? 0));
   const selectedCoupon =
     coupons.find((coupon) => coupon.id === form.couponId && isCouponUsable(coupon, orderAmount)) ??
@@ -126,7 +113,7 @@ export function OrderCheckoutScreen({
       });
   }
   function handlePay() {
-    if (!isAllAgreed || paying.current) return;
+    if (paying.current) return;
     if (!form.address) {
       setAddressWarning(true);
       document
@@ -147,85 +134,85 @@ export function OrderCheckoutScreen({
     }
   }
   return (
-    <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
-        <CheckoutTopBar title="결제" />
-        <div className="flex flex-1 flex-col gap-3 pb-8">
-          <ShippingAddressSection
-            id={SHIPPING_SECTION_ID}
-            state={shippingState}
-            address={form.address ?? address}
-            onChangeAddress={() => setAddressSheetOpen(true)}
-            onAddAddress={() => setAddressSheetOpen(true)}
-          />
-          <section className="bg-layer-surface-default flex flex-col">
-            {(items ?? [orderItem]).map((item, index) => (
-              <OrderItemSection key={index} item={item} />
-            ))}
-            <div className="px-5 pb-4">
-              <Button
-                type="button"
-                variant="secondary"
-                appearance="cta"
-                size="md"
-                className="w-full"
-                onClick={() => setCouponSheetOpen(true)}
-              >
-                {selectedCoupon ? "쿠폰 변경" : "쿠폰 적용"}
-              </Button>
-              {selectedCoupon && <p className="text-body-s mt-2">{selectedCoupon.name} 사용중</p>}
-            </div>
-            <PointUsageSection
-              value={usedPoints ? String(usedPoints) : ""}
-              onChange={handlePointInput}
-              balance={DEMO_POINT_BALANCE}
-              maxUsable={maxPointUsage(couponSummary)}
-            />
-          </section>
-          <div>
-            <PaymentMethodSection
-              form={form}
-              onChange={(change) => {
-                update(change);
-                setMethodWarning("");
-              }}
-            />
-            {methodWarning && (
-              <p
-                role="alert"
-                className="text-text-warning bg-layer-surface-default px-5 pb-4 text-[14px]"
-              >
-                {methodWarning}
-              </p>
-            )}
-          </div>
-          <PaymentSummarySection summary={effectiveSummary} />
-          <TermsAgreementSection
-            terms={terms}
-            agreedIds={form.agreedIds}
-            isAllAgreed={isAllAgreed}
-            onToggleAll={() =>
-              update({
-                agreedIds: isAllAgreed
-                  ? form.agreedIds.filter((id) => !requiredIds.includes(id))
-                  : [...new Set([...form.agreedIds, ...requiredIds])],
-              })
-            }
-            onToggleTerm={(id) =>
-              update({
-                agreedIds: form.agreedIds.includes(id)
-                  ? form.agreedIds.filter((value) => value !== id)
-                  : [...form.agreedIds, id],
-              })
-            }
-            onViewTerm={setViewTerm}
-          />
+    <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-dvh w-full">
+      <BuyerDesktopHeader />
+      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300">
+        <div className="min-[1200px]:hidden">
+          <CheckoutTopBar title="결제" />
         </div>
-        <div className="bg-layer-surface-default sticky bottom-0 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
+        <div className="flex flex-1 flex-col gap-3 pb-8 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,746px)_386px] min-[1200px]:items-start min-[1200px]:gap-10 min-[1200px]:pt-8 min-[1200px]:pb-16">
+          <div className="flex min-w-0 flex-col gap-3">
+            <ShippingAddressSection
+              id={SHIPPING_SECTION_ID}
+              state={shippingState}
+              address={form.address ?? address}
+              onChangeAddress={() => setAddressSheetOpen(true)}
+              onAddAddress={() => setAddressSheetOpen(true)}
+            />
+            <section className="bg-layer-surface-default flex flex-col">
+              {(items ?? [orderItem]).map((item, index) => (
+                <OrderItemSection key={index} item={item} />
+              ))}
+              <div className="px-5 pb-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  appearance="cta"
+                  size="md"
+                  className="w-full"
+                  onClick={() => setCouponSheetOpen(true)}
+                >
+                  {selectedCoupon ? "쿠폰 변경" : "쿠폰 적용"}
+                </Button>
+                {selectedCoupon && <p className="text-body-s mt-2">{selectedCoupon.name} 사용중</p>}
+              </div>
+              <PointUsageSection
+                value={usedPoints ? String(usedPoints) : ""}
+                onChange={handlePointInput}
+                balance={DEMO_POINT_BALANCE}
+                maxUsable={maxPointUsage(couponSummary)}
+              />
+            </section>
+            <div>
+              <PaymentMethodSection
+                form={form}
+                onChange={(change) => {
+                  update(change);
+                  setMethodWarning("");
+                }}
+              />
+              {methodWarning && (
+                <p
+                  role="alert"
+                  className="text-text-warning bg-layer-surface-default px-5 pb-4 text-[14px]"
+                >
+                  {methodWarning}
+                </p>
+              )}
+            </div>
+            <div className="min-[1200px]:hidden">
+              <PaymentSummarySection summary={effectiveSummary} />
+            </div>
+          </div>
+          <aside className="hidden min-[1200px]:sticky min-[1200px]:top-6 min-[1200px]:block">
+            <div className="border-border-default bg-layer-surface-default overflow-hidden rounded-xs border">
+              <PaymentSummarySection summary={effectiveSummary} />
+              <div className="border-border-default border-t px-5 py-5">
+                <p className="text-caption-s text-text-secondary mb-3 text-center">
+                  실제 결제가 발생하지 않는 데모입니다.
+                </p>
+                <Button className="w-full" appearance="cta" size="xl" onClick={handlePay}>
+                  {formatWon(finalPaymentAmount(effectiveSummary))} 결제하기
+                </Button>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div className="bg-layer-surface-default sticky bottom-0 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))] min-[1200px]:hidden">
           <p className="text-caption-s text-text-secondary mb-2 text-center">
             실제 결제가 발생하지 않는 데모입니다.
           </p>
-          <Button className="w-full" appearance="cta" disabled={!isAllAgreed} onClick={handlePay}>
+          <Button className="w-full" appearance="cta" onClick={handlePay}>
             {formatWon(finalPaymentAmount(effectiveSummary))} 결제하기
           </Button>
         </div>
@@ -251,16 +238,6 @@ export function OrderCheckoutScreen({
           setCouponSheetOpen(false);
         }}
       />
-      <BottomSheet
-        open={viewTerm !== null}
-        onClose={() => setViewTerm(null)}
-        title={viewTerm?.label ?? "약관"}
-        className={styles.sheet}
-      >
-        <p className="text-body-s py-4">
-          약관 전문은 준비 중입니다. 현재 화면은 실제 결제와 약관 동의가 이루어지지 않는 데모입니다.
-        </p>
-      </BottomSheet>
     </div>
   );
 }
@@ -419,63 +396,5 @@ function SummaryRow({
       <dt className={`${size} ${tone}`}>{label}</dt>
       <dd className={`${size} ${tone}`}>{value}</dd>
     </div>
-  );
-}
-
-function TermsAgreementSection({
-  terms,
-  agreedIds,
-  isAllAgreed,
-  onToggleTerm,
-  onToggleAll,
-  onViewTerm,
-}: {
-  terms: TermsItem[];
-  agreedIds: string[];
-  isAllAgreed: boolean;
-  onToggleTerm: (id: string) => void;
-  onToggleAll: () => void;
-  onViewTerm: (term: TermsItem) => void;
-}) {
-  return (
-    <section
-      aria-labelledby="checkout-terms-title"
-      className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4"
-    >
-      <p id="checkout-terms-title" className="text-caption-s text-text-default">
-        주문 내용을 확인하였으며, 아래 내용에 모두 동의합니다.
-      </p>
-
-      <Checkbox shape="square" checked={isAllAgreed} onChange={onToggleAll}>
-        전체 동의합니다
-      </Checkbox>
-
-      <div className="flex flex-col gap-3">
-        {terms.map((term) => (
-          <div
-            key={term.id}
-            className={`flex items-center justify-between gap-2 ${term.required ? "pl-4" : ""}`}
-          >
-            <Checkbox
-              shape="square"
-              checked={agreedIds.includes(term.id)}
-              onChange={() => onToggleTerm(term.id)}
-            >
-              <span className="text-caption-s">{term.label}</span>
-            </Checkbox>
-            {
-              <button
-                type="button"
-                aria-label={`${term.label} 전문 보기`}
-                onClick={() => onViewTerm(term)}
-                className="focus-visible:outline-border-primary flex size-7 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                <Icon name="next" className="size-3" />
-              </button>
-            }
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }

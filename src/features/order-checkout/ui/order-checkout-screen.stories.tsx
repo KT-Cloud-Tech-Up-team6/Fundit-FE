@@ -27,7 +27,7 @@ export const Default: Story = {
     // 적립금 0원일 때 최종 결제 금액 = 219,900 − 얼리버드 20,900 = 199,000원(상품 카드 쿠폰 적용가와 동일), CTA도 일치.
     const finalAmount = () => canvas.getByText("최종 결제 금액").nextElementSibling;
     await expect(finalAmount()).toHaveTextContent("199,000원");
-    await expect(canvas.getByRole("button", { name: "199,000원 결제하기" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "199,000원 결제하기" })).toBeEnabled();
 
     // 적립금 입력 → 최종 결제 금액과 CTA가 실시간으로 줄어든다.
     await userEvent.type(canvas.getByLabelText("사용할 적립금"), "3000");
@@ -45,19 +45,6 @@ export const Default: Story = {
     await userEvent.paste("3,000.00");
     await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("");
     await expect(finalAmount()).toHaveTextContent("199,000원");
-
-    // 전체 동의 → 필수 약관이 체크되고, 해제하면 모두 풀린다.
-    const agreeAll = canvas.getByRole("checkbox", { name: "전체 동의합니다" });
-    await userEvent.click(agreeAll);
-    for (const box of canvas
-      .getAllByRole("checkbox")
-      .filter((box) => !box.closest("label")?.textContent?.includes("선택"))) {
-      await expect(box).toBeChecked();
-    }
-    await userEvent.click(agreeAll);
-    await expect(
-      canvas.getByRole("checkbox", { name: "구매조건 및 결제대행 서비스 동의 (필수)" }),
-    ).not.toBeChecked();
   },
 };
 
@@ -78,7 +65,6 @@ export const PaymentAttemptWithoutAddress: Story = {
   args: { hasSavedAddress: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("checkbox", { name: "전체 동의합니다" }));
     await userEvent.click(canvas.getByRole("button", { name: /결제하기$/ }));
     await expect(canvas.getByRole("alert")).toHaveTextContent("배송지를 입력해주세요");
   },

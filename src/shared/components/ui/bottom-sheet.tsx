@@ -10,6 +10,8 @@ type BottomSheetBaseProps = Omit<
   "children" | "onClose" | "open" | "title"
 > & {
   children: ReactNode;
+  /** 결제처럼 모바일 시트가 넓은 화면에서는 중앙 다이얼로그가 되는 흐름에 사용한다. */
+  desktopModal?: boolean;
   onClose: () => void;
   open: boolean;
   /* 스크롤에서 빠지고 시트 하단에 고정되는 영역. 총액·CTA처럼 항상 보여야 하는 것에 쓴다.
@@ -31,6 +33,7 @@ type BottomSheetProps = BottomSheetBaseProps &
 export function BottomSheet({
   children,
   className,
+  desktopModal = false,
   footer,
   onClose,
   open,
@@ -55,6 +58,8 @@ export function BottomSheet({
         /* 화면 컬럼(390px, AuthShell·주문서 등)과 같은 폭. 그보다 넓은 화면에서만 가운데 정렬한다. */
         "bg-layer-surface-default mx-auto mt-auto mb-0 max-h-[90dvh] w-full max-w-[390px] p-0",
         "backdrop:bg-layer-overlay rounded-t-md",
+        desktopModal &&
+          "min-[1200px]:m-auto min-[1200px]:max-h-[calc(100dvh-80px)] min-[1200px]:w-147 min-[1200px]:max-w-[calc(100vw-80px)] min-[1200px]:rounded-sm",
         className,
       ]
         .filter(Boolean)
