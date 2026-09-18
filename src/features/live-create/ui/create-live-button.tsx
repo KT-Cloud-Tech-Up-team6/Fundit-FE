@@ -358,7 +358,7 @@ export function CreateLiveButton() {
               <div className="relative mt-auto flex shrink-0 items-center gap-3 pt-12">
                 {savedCueSheet && (
                   <span
-                    role="tooltip"
+                    role="status"
                     className="bg-layer-surface-primary text-text-inverse text-caption-s absolute top-3 left-8 rounded-xs px-2 py-1"
                   >
                     저장된 큐시트가 있어요!

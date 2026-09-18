@@ -183,6 +183,9 @@ export function LiveConsole({
         tabIndex={-1}
         aria-label={`LIVE 콘솔 ${liveId}`}
       >
+        <p role="status" className={notice ? "text-body-s mx-auto max-w-300 pt-4" : "sr-only"}>
+          {notice}
+        </p>
         <div className={styles.grid}>
           <QuestionManager
             state={state}
@@ -315,9 +318,6 @@ export function LiveConsole({
         </div>
         <footer className="sr-only">
           <p>LIVE 화면 목업 · {liveId} · 예시 질문·답변과 큐시트이며 새로고침 시 초기화됩니다.</p>
-          <p role="status" className="mt-1 min-h-5">
-            {notice}
-          </p>
           {state.publishedIds.length > 0 && (
             <p>목업 LIVE 체크 {state.publishedIds.length}건 생성됨 · 실제 게시되지 않습니다.</p>
           )}

@@ -226,7 +226,7 @@ export function CueSheetEditor({
             진행 개요
             <textarea
               ref={outlineRef}
-              className="text-text-primary-live mt-2 block min-h-24 w-full rounded-xs p-1 focus:outline-none"
+              className="text-text-primary-live focus-visible:outline-border-primary-live mt-2 block min-h-24 w-full rounded-xs p-1 focus-visible:outline-2 focus-visible:outline-offset-2"
               value={selected.outline}
               onChange={(event) => updateScene(selected.id, { outline: event.target.value })}
             />

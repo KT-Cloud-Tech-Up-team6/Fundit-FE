@@ -54,7 +54,7 @@ export const ProjectToSavedCueSheet: Story = {
     await expect(dialog.getByRole("textbox", { name: "소개 문구" })).toHaveValue(
       "가방 전용 소개 문구",
     );
-    await expect(dialog.getByRole("tooltip")).toHaveTextContent("저장된 큐시트가 있어요!");
+    await expect(dialog.getByRole("status")).toHaveTextContent("저장된 큐시트가 있어요!");
     await expect(dialog.getByRole("button", { name: "LIVE 시작" })).toBeDisabled();
     await userEvent.click(dialog.getByRole("button", { name: "AI 큐시트 생성" }));
     dialog = within(await canvas.findByRole("dialog", { name: "AI 큐시트 생성" }));

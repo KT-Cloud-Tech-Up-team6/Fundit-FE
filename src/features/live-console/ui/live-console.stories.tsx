@@ -13,7 +13,17 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const BeforeStart: Story = { args: { initialView: "ready" } };
+export const BeforeStart: Story = {
+  args: { initialView: "ready" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "스트림 상태 확인" }));
+    const status = canvas.getByRole("status");
+    await expect(status).toHaveTextContent("스트리밍 서버에 연결되어 있지 않습니다.");
+    await expect(status).toBeVisible();
+    expect(status.getBoundingClientRect().height).toBeGreaterThan(1);
+  },
+};
 export const Broadcasting: Story = { args: { initialView: "live" } };
 export const AggregatedAnswers: Story = { args: { initialView: "aggregated" } };
 export const AllQuestions: Story = { args: { initialView: "originals" } };
