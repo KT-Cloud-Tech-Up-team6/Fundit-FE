@@ -67,7 +67,7 @@ export function PaymentResultRoute() {
 
 function MissingSelection({ href, result = false }: { href: string; result?: boolean }) {
   return (
-    <main className="bg-layer-surface-default mx-auto min-h-dvh w-full max-w-[390px]">
+    <main className="bg-layer-surface-default mx-auto min-h-dvh w-full min-[1200px]:max-w-[390px]">
       <CheckoutTopBar />
       <div className="space-y-4 px-5 py-16 text-center">
         <p>{result ? "확인할 데모 주문이 없습니다." : "리워드를 먼저 선택해주세요."}</p>

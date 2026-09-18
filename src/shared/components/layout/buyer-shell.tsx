@@ -16,9 +16,9 @@ const logo = (
 
 export function BuyerShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
+    <div className="min-h-screen pb-20 min-[1200px]:pb-0">
       {/* mobile: Figma header/header_mobile(default) */}
-      <header className="border-border-default bg-layer-surface-default/95 sticky top-0 z-20 border-b px-4 py-3 backdrop-blur md:hidden">
+      <header className="border-border-default bg-layer-surface-default/95 sticky top-0 z-20 border-b px-4 py-3 backdrop-blur min-[1200px]:hidden">
         <div className="flex items-center justify-between gap-4">
           {logo}
           <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
       </header>
       {/* PC: 판매자 화면과 공유하는 Figma header/header_web */}
       <HeaderWeb
-        className="sticky top-0 z-20 hidden md:block"
+        className="sticky top-0 z-20 hidden min-[1200px]:block"
         logo={logo}
         nav={
           <nav aria-label="구매자 주요 메뉴" className="flex items-center gap-5">
@@ -61,7 +61,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
         }
       />
       <main>{children}</main>
-      <BuyerBottomNavigation className="fixed inset-x-0 bottom-0 z-20 md:hidden" />
+      <BuyerBottomNavigation className="fixed inset-x-0 bottom-0 z-20 min-[1200px]:hidden" />
     </div>
   );
 }
