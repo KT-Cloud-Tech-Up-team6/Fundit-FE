@@ -10,8 +10,11 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useRef, useState } from "react";
 import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
+import { StoryIcon } from "@/features/funding-ai-story/ui/story-icon";
+import { Button } from "@/shared/components/ui/button";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
+import { StoryImageGroup } from "../model/image-layout";
+import styles from "./story-editor.module.css";
 
 /* ponytail: #38(펀딩 AI 스토리 챗봇) 목업 결과는 일반 텍스트라 문단(\n\n)·줄바꿈(\n)만 있다.
    Tiptap에 그대로 setContent하면 개행이 사라져서 <p>/<br>로 변환해 붙인다. */
@@ -78,6 +81,7 @@ const extensions = [
   TextStyle,
   Color,
   Image.configure({ inline: true, allowBase64: true }),
+  StoryImageGroup,
   Youtube.configure({ nocookie: true }),
   Video,
   Placeholder.configure({ placeholder: "프로젝트를 소개하는 내용을 자유롭게 작성해주세요." }),
@@ -121,17 +125,11 @@ const formatButtons: FormatButton[] = [
     isActive: (editor) => editor.isActive({ textAlign: "right" }),
     onClick: (editor) => editor.chain().focus().setTextAlign("right").run(),
   },
-  {
-    icon: "insertQuote",
-    label: "인용구 삽입",
-    isActive: (editor) => editor.isActive("blockquote"),
-    onClick: (editor) => editor.chain().focus().toggleBlockquote().run(),
-  },
 ];
 
 const toolbarButtonClasses = (active: boolean) =>
   [
-    "flex size-7 items-center justify-center rounded-xs",
+    "flex size-5 shrink-0 items-center justify-center rounded-xs disabled:cursor-not-allowed disabled:text-text-disabled",
     "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
     active
       ? "bg-layer-surface-primary text-text-inverse"
@@ -159,6 +157,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
+  const [imageLayoutNotice, setImageLayoutNotice] = useState("");
   /* shouldRerenderOnTransaction을 명시적으로 true로 안 주면(기본값 취급 시) 이 설치 버전의
      useEditor가 트랜잭션마다 재렌더링을 트리거하지 않는다 — 굵게/기울임을 눌러도 버튼의
      isActive 표시가 안 바뀌던 원인이 이거였다. */
@@ -213,19 +212,29 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
   };
 
   return (
-    <div className="border-w-xs border-border-default mt-8 rounded-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 p-4">
-        <span className="text-title-s font-semibold">프로젝트 소개</span>
-        <button
-          type="button"
+    <div className="border-w-xs border-border-default mt-4 rounded-xs">
+      <div className="flex min-h-[53px] flex-wrap items-center justify-between gap-2 px-4 py-2">
+        <span className="text-title-s font-bold">프로젝트 소개</span>
+        <Button
+          size="sm"
+          aria-label="AI로 펀딩 스토리 작성"
           onClick={() => setAiModalOpen(true)}
-          className={`${secondaryButtonClasses} text-body-strong! h-9 px-4`}
+          className="text-body-s h-9 w-[153px] gap-1 font-bold"
         >
-          AI로 펀딩 스토리 작성
-        </button>
+          펀딩 스토리 AI
+          <span
+            aria-hidden
+            className="inline-block size-4 shrink-0 bg-current"
+            style={{ mask: "url(/icons/project-story/ai-edit.svg) center / contain no-repeat" }}
+          />
+        </Button>
       </div>
 
-      <div className="border-border-default flex flex-wrap items-center gap-3 border-y px-4 py-2">
+      <div
+        role="group"
+        aria-label="본문 서식"
+        className="border-border-default flex flex-wrap items-center gap-3 border-y px-4 py-[7px]"
+      >
         {formatButtons.map(({ icon, label, isActive, onClick }) => (
           <button
             key={icon}
@@ -236,9 +245,11 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
             onClick={() => editor && onClick(editor)}
             className={toolbarButtonClasses(editor ? isActive(editor) : false)}
           >
-            <Icon name={icon} className="size-4" />
+            <Icon name={icon} className="size-5" />
           </button>
         ))}
+
+        <span aria-hidden className="bg-border-default h-5 w-px" />
 
         <button
           type="button"
@@ -247,7 +258,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
           onClick={() => imageInputRef.current?.click()}
           className={toolbarButtonClasses(false)}
         >
-          <Icon name="insertImage" className="size-4" />
+          <Icon name="insertImage" className="size-5" />
         </button>
         <input
           ref={imageInputRef}
@@ -269,7 +280,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
             }}
             className={`${toolbarButtonClasses(false)} list-none [&::-webkit-details-marker]:hidden ${editor ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
           >
-            <Icon name="insertVideo" className="size-4" />
+            <Icon name="insertVideo" className="size-5" />
           </summary>
           <div className="border-w-xs border-border-default bg-layer-surface-default shadow-light-s absolute top-full left-0 z-10 mt-1 flex w-32 flex-col overflow-hidden rounded-xs">
             <button
@@ -303,11 +314,22 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
         <button
           type="button"
           disabled={!editor}
+          aria-label="인용구 삽입"
+          aria-pressed={editor ? editor.isActive("blockquote") : false}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          className={toolbarButtonClasses(editor ? editor.isActive("blockquote") : false)}
+        >
+          <Icon name="insertQuote" className="size-5" />
+        </button>
+
+        <button
+          type="button"
+          disabled={!editor}
           aria-label="글자 색상"
           onClick={() => colorInputRef.current?.click()}
           className={toolbarButtonClasses(false)}
         >
-          <Icon name="colorPalette" className="size-4" />
+          <Icon name="colorPalette" className="size-5" />
         </button>
         <input
           ref={colorInputRef}
@@ -315,11 +337,42 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
           className="hidden"
           onChange={(event) => editor?.chain().focus().setColor(event.target.value).run()}
         />
+        {(
+          [
+            { name: "layout-vertical", label: "이미지 세로 정렬", layout: "vertical" },
+            { name: "layout-horizontal", label: "이미지 가로 정렬", layout: "horizontal" },
+          ] as const
+        ).map(({ name, label, layout }) => (
+          <button
+            key={name}
+            type="button"
+            disabled={!editor?.can().setStoryImageLayout(layout)}
+            aria-label={label}
+            aria-pressed={editor?.isActive("storyImageGroup", { layout }) ?? false}
+            title={`${label}. 연속된 이미지 2개 이상을 드래그하거나 Shift+방향키로 선택하세요.`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              const applied = editor?.chain().focus().setStoryImageLayout(layout).run();
+              setImageLayoutNotice(applied ? "" : "이미지가 모두 불러와진 뒤 다시 정렬해주세요.");
+            }}
+            className={toolbarButtonClasses(
+              editor?.isActive("storyImageGroup", { layout }) ?? false,
+            )}
+          >
+            <StoryIcon name={name} className="size-5" />
+          </button>
+        ))}
       </div>
+
+      {imageLayoutNotice && (
+        <p role="status" className="text-body-s px-4 py-2">
+          {imageLayoutNotice}
+        </p>
+      )}
 
       <EditorContent
         editor={editor}
-        className="text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap]:h-100 [&_.tiptap]:overflow-y-auto [&_.tiptap]:p-4 [&_.tiptap]:outline-none [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs"
+        className={`${styles.editor} text-body-m [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap:focus-visible]:ring-border-primary [&_p.is-editor-empty]:text-body-s [&_.tiptap]:h-[432px] [&_.tiptap]:overflow-y-auto [&_.tiptap]:px-4 [&_.tiptap]:py-3 [&_.tiptap]:outline-none [&_.tiptap:focus-visible]:ring-2 [&_.tiptap:focus-visible]:ring-inset [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_p.is-editor-empty]:font-bold [&_video]:max-w-full [&_video]:rounded-xs`}
       />
 
       {isAiModalOpen && (

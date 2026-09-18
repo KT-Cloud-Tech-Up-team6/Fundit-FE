@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
-import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
+import { FormField } from "@/shared/components/ui/form-field";
+import { Input } from "@/shared/components/ui/input";
+import { TextButton } from "@/shared/components/ui/text-button";
 import { StoryEditor } from "./story-editor";
 import { ThumbnailUpload } from "./thumbnail-upload";
 
@@ -12,58 +15,79 @@ export function ProjectStoryForm() {
   const [title, setTitle] = useState("");
 
   return (
-    <div className="min-w-0 flex-1">
-      <Breadcrumb items={breadcrumb} />
+    <div className="w-full min-w-0 lg:max-w-[792px]">
+      <header className="flex h-20 flex-col justify-center gap-4">
+        <Breadcrumb items={breadcrumb} />
+        <h1 className="text-heading-l">스토리 작성</h1>
+      </header>
 
-      <h1 className="text-heading-l mt-3">스토리 작성</h1>
-
-      <div className="mt-5 flex flex-col gap-6 sm:flex-row">
-        <div className="flex-1">
-          <label htmlFor="project-title" className="text-title-s">
-            프로젝트 제목
-          </label>
-          <input
+      <div className="mt-3 grid gap-6 sm:grid-cols-2">
+        <FormField
+          htmlFor="project-title"
+          label="프로젝트 제목"
+          className="min-w-0 [&_label]:leading-[26px] [&_label]:font-bold"
+          action={
+            <TextButton
+              showIcon={false}
+              disabled
+              title="제목 수정 방식이 확정되면 제공됩니다."
+              className="disabled:text-text-disabled cursor-not-allowed font-bold"
+            >
+              수정
+            </TextButton>
+          }
+        >
+          <Input
             id="project-title"
+            shape="compact"
             placeholder="프로젝트 제목을 입력해주세요"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="text-body-s placeholder:text-text-disabled bg-layer-surface-disabled mt-2 h-10 w-full rounded-xs px-4 outline-none"
+            className="[&_input]:font-semibold"
           />
-        </div>
+        </FormField>
 
-        <div className="flex-1">
-          <span className="text-title-s">썸네일 이미지</span>
+        <FormField
+          htmlFor="story-thumbnail-name"
+          label="썸네일 이미지"
+          className="min-w-0 [&_label]:leading-[26px] [&_label]:font-bold"
+        >
           <ThumbnailUpload />
-        </div>
+        </FormField>
       </div>
 
       <StoryEditor projectTitle={title} />
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        {/* ponytail: 6팀_IA_v1.2.xlsx 판매자 IA #36은 미리보기를 "(후순위)"로 표시하고
-           FL_S_PR_PREV를 모달로 정의한다. docs/ROUTING.md엔 이미 /seller/projects/[projectId]/preview
-           페이지 라우트가 있어 모달 vs 페이지가 어긋난다 — 임의로 고르지 않고 비활성으로 둔다.
-           우선순위·라우팅이 정해지면 그때 하나로 정리한다. Figma는 비활성 상태를 표현하지 않고
+      <div className="mt-16 flex flex-wrap items-center justify-between gap-3 pb-1.5">
+        {/* 판매자 IA PDF 4페이지는 FL_S_PR_PREV를 후순위 모달로 정의한다.
+           구매자 상세 형태로 보여주고 닫으면 작성 화면으로 돌아온다. 이번 디자인 반영 범위에서는
+           비활성을 유지한다. 기존 /preview 페이지 라우트와의 통합은 후속 구현에서 정리한다.
+           Figma는 비활성 상태를 표현하지 않고
            항상 활성 색으로 그려서, disabled 대신 aria-disabled로 눌리지 않게만 막고 색은 그대로 둔다. */}
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="lg"
+          appearance="cta"
           aria-disabled="true"
-          className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 cursor-not-allowed font-semibold!`}
+          tabIndex={-1}
+          title="미리보기는 준비 중입니다."
+          className="w-[186px] cursor-not-allowed"
         >
           미리보기
-        </button>
-        {/* ponytail: 임시저장·저장은 저장 API가 없어 disabled로 막는다. 입력값은 title
-           state·Tiptap 에디터·ThumbnailUpload에 남아있지만 서버로 보낼 수단이 없다.
-           API가 생기면 실제 저장 동작을 연결한다. */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
+        </Button>
+        {/* 소개 저장 API 명세는 docs/API_CONTRACT.md에 있다. 편집기 콘텐츠 변환·업로드·저장
+           연동은 미구현이므로 임시저장·저장은 비활성으로 유지한다. */}
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-96">
+          <Button
+            variant="secondary"
+            size="lg"
+            appearance="cta"
             disabled
-            className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 font-semibold!`}
+            title="저장 기능은 준비 중입니다."
           >
             임시저장
-          </button>
-          <Button disabled size="lg" appearance="cta" className="w-45">
+          </Button>
+          <Button disabled size="lg" appearance="cta" title="저장 기능은 준비 중입니다.">
             저장
           </Button>
         </div>
