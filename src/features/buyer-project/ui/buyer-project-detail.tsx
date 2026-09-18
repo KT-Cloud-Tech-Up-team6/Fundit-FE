@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/shared/components/ui/badge";
-import { projectDemo, replayDemos } from "../model/project-demo";
+import { projectDemo, replayDemos, clipDemos, questionDemos } from "../model/project-demo";
 import { Tooltip } from "@/shared/components/ui/tooltip";
 import styles from "./buyer-project-detail.module.css";
 
@@ -92,10 +93,11 @@ function Information({ label, disabled = false }: { label: string; disabled?: bo
 function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
   const carouselDrag = useHorizontalDrag();
   const title = clips ? "숏 클립" : "종료된 라이브";
+  const videos = clips ? clipDemos : replayDemos;
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
-        {title} <small>3건</small>
+        {title} <small>{videos.length}건</small>
       </h3>
       <div
         {...carouselDrag}
@@ -104,7 +106,7 @@ function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string 
         role="region"
         aria-label={`${title} 목록`}
       >
-        {replayDemos.map((video, index) => (
+        {videos.map((video, index) => (
           <article key={index}>
             <Link
               href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
@@ -120,7 +122,7 @@ function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string 
                 />
                 {clips && (
                   <Badge variant="live" className="relative">
-                    {index === 1 ? "하이라이트" : "시연 영상"}
+                    {index === 0 || index === 2 ? "시연 영상" : "하이라이트"}
                   </Badge>
                 )}
               </span>
@@ -147,6 +149,7 @@ export function BuyerProjectDetail({
   hasLive = true,
   preview = false,
   storyContent,
+  rewardSummary,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
@@ -156,6 +159,7 @@ export function BuyerProjectDetail({
   hasLive?: boolean;
   preview?: boolean;
   storyContent?: ReactNode;
+  rewardSummary?: ReactNode;
 }) {
   const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
@@ -196,15 +200,45 @@ export function BuyerProjectDetail({
       announce("링크를 복사하지 못했습니다. 주소창의 링크를 복사해주세요.");
     }
   }
+  const footer = (
+    <footer className={`${styles.footer} border-border-default border-t`}>
+      <button
+        type="button"
+        aria-label="프로젝트 찜"
+        aria-pressed={liked}
+        disabled={preview}
+        onClick={() => setLiked(!liked)}
+      >
+        <DetailIcon name="heart" className="size-6" />
+        <span className={preview ? "" : "min-[1200px]:hidden"}>9999+</span>
+        {!preview && <span className="hidden min-[1200px]:inline">2.4천+</span>}
+      </button>
+      {!preview && (
+        <button
+          type="button"
+          aria-label="프로젝트 공유"
+          onClick={share}
+          className="hidden min-[1200px]:flex min-[1200px]:w-11 min-[1200px]:shrink-0 min-[1200px]:flex-col min-[1200px]:items-center"
+        >
+          <DetailIcon name="share" className="size-6" />
+          <span className="text-body-s">공유</span>
+        </button>
+      )}
+      {fundingAction}
+    </footer>
+  );
   return (
     <div
       className={
         styles.screen +
         " bg-layer-surface-default text-text-default mx-auto w-full max-w-[390px] min-w-0 " +
-        (preview ? styles.preview : "min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))]")
+        (preview
+          ? styles.preview
+          : `${styles.desktop} min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))] min-[1200px]:max-w-none min-[1200px]:pb-0`)
       }
     >
-      <header className={styles.header}>
+      {!preview && <BuyerDesktopHeader />}
+      <header className={`${styles.header} ${preview ? "" : "min-[1200px]:hidden"}`}>
         {preview ? (
           <button type="button" disabled aria-label="라이브 목록으로 돌아가기">
             <DetailIcon name="arrow-left" className="size-5" />
@@ -219,14 +253,14 @@ export function BuyerProjectDetail({
           <DetailIcon name="share" className="size-6" />
         </button>
       </header>
-      <Content>
-        <div className="bg-layer-bg relative aspect-[390/292] overflow-hidden">
+      <Content className={styles.layout} data-tab={activeTab}>
+        <div className={`${styles.hero} bg-layer-bg relative aspect-[390/292] overflow-hidden`}>
           {project.image ? (
             <Image
               src={project.image}
               alt={preview ? `${project.title} 썸네일` : ""}
               fill
-              sizes="390px"
+              sizes="(min-width: 1200px) 714px, 390px"
               unoptimized={preview}
               className={preview ? "object-cover" : styles.heroImage}
             />
@@ -241,7 +275,7 @@ export function BuyerProjectDetail({
               aria-label="진행 중 라이브 시청"
               className="absolute top-5 left-5 flex flex-col gap-1"
             >
-              <Badge variant="neutral" shape="rounded" className={styles.liveBadge}>
+              <Badge variant="neutral" size="md" shape="rounded" className={styles.liveBadge}>
                 <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
                 LIVE
               </Badge>
@@ -256,50 +290,56 @@ export function BuyerProjectDetail({
             </Badge>
           )}
         </div>
-        <section className="px-5 py-4" aria-label="프로젝트 정보">
-          <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
-          <h1 className="text-title-m">{project.title}</h1>
-          <div className={styles.fundingNumbers}>
-            <div>
-              <p>
-                <strong>{project.rate}</strong> <span>% 달성</span>
-              </p>
-              <Badge variant="neutral">D-28</Badge>
+        <aside className={styles.summaryColumn}>
+          <section className={styles.projectInfo + " px-5 py-4"} aria-label="프로젝트 정보">
+            <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
+            <h1 className="text-title-m">{project.title}</h1>
+            <div className={styles.fundingNumbers}>
+              <div>
+                <p>
+                  <strong>{project.rate}</strong> <span>% 달성</span>
+                </p>
+                <Badge variant="accent" size="md">
+                  D-28
+                </Badge>
+              </div>
+              <div>
+                <p>
+                  <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
+                </p>
+                <span className={styles.participants}>100명 참여</span>
+              </div>
             </div>
-            <div>
-              <p>
-                <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
-              </p>
-              <span className={styles.participants}>100명 참여</span>
-            </div>
-          </div>
-          <section
-            className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
-            aria-label="AI 프로젝트 요약"
-          >
-            <div className="flex items-center gap-1">
-              <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
-              <h2 className="text-label-l">AI 프로젝트 요약</h2>
-              <Information label="AI 프로젝트 요약 안내" disabled={preview} />
-            </div>
-            {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
-              (title, i) => (
-                <div className="text-caption-s" key={i}>
-                  <h3 className="flex items-center gap-1 font-medium">
-                    <Image
-                      src="/images/buyer-project/summary-check.svg"
-                      width={12}
-                      height={12}
-                      alt=""
-                    />
-                    {title}
-                  </h3>
-                  <p className="pl-4">상세 내용</p>
-                </div>
-              ),
-            )}
+            <section
+              className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
+              aria-label="AI 프로젝트 요약"
+            >
+              <div className="flex items-center gap-1">
+                <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
+                <h2 className="text-label-l">AI 프로젝트 요약</h2>
+                <Information label="AI 프로젝트 요약 안내" disabled={preview} />
+              </div>
+              {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
+                (title, i) => (
+                  <div className="text-caption-s" key={i}>
+                    <h3 className="flex items-center gap-1 font-medium">
+                      <Image
+                        src="/images/buyer-project/summary-check.svg"
+                        width={12}
+                        height={12}
+                        alt=""
+                      />
+                      {title}
+                    </h3>
+                    <p className="pl-4">상세 내용</p>
+                  </div>
+                ),
+              )}
+            </section>
           </section>
-        </section>
+          {!preview && footer}
+          {!preview && <div className="hidden min-[1200px]:block">{rewardSummary}</div>}
+        </aside>
         <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
           {tabs.map(([value, label]) =>
             preview ? (
@@ -347,7 +387,7 @@ export function BuyerProjectDetail({
             <section aria-label="LIVE 다시 보기" className="flex min-w-0 flex-col gap-3">
               <h2>
                 <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
-                LIVE 다시 보기 <small>3건</small>
+                LIVE 다시 보기 <small>{replayDemos.length + clipDemos.length}건</small>
               </h2>
               <VideoList liveId={liveId} />
               <VideoList clips liveId={liveId} />
@@ -356,17 +396,21 @@ export function BuyerProjectDetail({
               <div className="-mb-3 flex items-center gap-1">
                 <h2>
                   <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
-                  LIVE Q&amp;A <small>5건</small>
+                  LIVE Q&amp;A <small>{questionDemos.length}건</small>
                 </h2>
                 <Information label="LIVE Q&A 안내" />
               </div>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <article key={n}>
-                  <h3>로보락이 뭐예요?</h3>
-                  <p className="text-caption-s text-text-secondary block">12건 · 09.07</p>
+              {questionDemos.map((question) => (
+                <article key={question.title}>
+                  <h3>{question.title}</h3>
+                  <p className="text-caption-s text-text-secondary block">
+                    {question.count}건 · {question.date}
+                  </p>
                   <div className="border-border-default text-body-s mt-2 flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
-                    <p>무선 청소기 입니다.</p>
-                    <p className="text-caption-s text-text-secondary block">판매자 · 09.07</p>
+                    <p>{question.answer}</p>
+                    <p className="text-caption-s text-text-secondary block">
+                      판매자 · {question.answeredAt}
+                    </p>
                   </div>
                 </article>
               ))}
@@ -374,19 +418,8 @@ export function BuyerProjectDetail({
           </div>
         )}
       </Content>
-      <footer className={`${styles.footer} border-border-default border-t`}>
-        <button
-          type="button"
-          aria-label="프로젝트 찜"
-          aria-pressed={liked}
-          disabled={preview}
-          onClick={() => setLiked(!liked)}
-        >
-          <DetailIcon name="heart" className="size-6" />
-          <span>9999+</span>
-        </button>
-        {fundingAction}
-      </footer>
+      {preview && footer}
+
       <p role="status" className={notice ? styles.notice : "sr-only"}>
         {notice}
       </p>
