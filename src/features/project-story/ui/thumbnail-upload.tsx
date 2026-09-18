@@ -1,32 +1,42 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
+import { InputButton } from "@/shared/components/ui/input-button";
 
-/* ponytail: 업로드 서버가 없어 실제로 올리진 못하고, 선택한 파일명만 화면에 반영한다.
-   업로드 API가 생기면 여기서 실제로 전송하고 반환된 URL을 저장하도록 바꾼다. */
-export function ThumbnailUpload() {
+/* 파일은 서버에 업로드하지 않고 이름 표시와 로컬 미리보기에 사용한다. */
+export function ThumbnailUpload({ onFileChange }: { onFileChange: (file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
   return (
-    <div className="mt-2 flex gap-2">
-      <div
-        aria-live="polite"
-        className="text-body-s bg-layer-surface-disabled text-text-default flex h-10 flex-1 items-center overflow-hidden rounded-xs px-4"
-      >
-        <span className={fileName ? "truncate" : "text-text-disabled truncate"}>
-          {fileName ?? "이미지를 첨부해주세요"}
-        </span>
-      </div>
-      <button
-        type="button"
-        aria-label="썸네일 이미지 파일 선택"
-        onClick={() => inputRef.current?.click()}
-        className={`${secondaryButtonClasses} text-body-strong! h-10 w-20 shrink-0`}
-      >
-        찾아 보기
-      </button>
+    <>
+      <InputButton
+        inputProps={{
+          id: "story-thumbnail-name",
+          readOnly: true,
+          value: fileName ?? "",
+          placeholder: "이미지를 첨부해주세요",
+          shape: "compact",
+          className:
+            "bg-layer-surface-disabled border-transparent [&_input]:text-body-s [&_input]:leading-[1.42] [&_input]:text-text-secondary [&_input]:placeholder:text-body-s",
+        }}
+        button={
+          <Button
+            variant="secondary"
+            size="xl"
+            appearance="cta"
+            aria-label="썸네일 이미지 파일 선택"
+            onClick={() => inputRef.current?.click()}
+            className="w-18"
+          >
+            찾아보기
+          </Button>
+        }
+      />
+      <span className="sr-only" aria-live="polite">
+        {fileName}
+      </span>
       <input
         ref={inputRef}
         type="file"
@@ -34,9 +44,12 @@ export function ThumbnailUpload() {
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
-          if (file) setFileName(file.name);
+          if (file) {
+            setFileName(file.name);
+            onFileChange(file);
+          }
         }}
       />
-    </div>
+    </>
   );
 }
