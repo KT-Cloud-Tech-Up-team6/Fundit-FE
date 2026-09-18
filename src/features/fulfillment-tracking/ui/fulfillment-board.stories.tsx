@@ -83,11 +83,11 @@ export const Stale: Story = {
   args: { today: "2026-09-04", initialState: demoFulfillmentState("2026-08-27") },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("마지막 업데이트 후 11일이 지났어요.")).toBeVisible();
+    await expect(canvas.getByText(/마지막 업데이트 후 11일이 지났어요/)).toBeVisible();
   },
 };
 
-/** 모든 단계가 끝난 상태 — 마지막 단계가 선택되고 `이 단계 완료`가 비활성이다. */
+/** 모든 단계가 끝난 상태 — 마지막 단계가 선택되고 `단계 완료`가 비활성이다. */
 export const AllDone: Story = {
   args: {
     today,
@@ -97,7 +97,7 @@ export const AllDone: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: "완료된 단계" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "단계 완료" })).toBeDisabled();
   },
 };
 
@@ -119,6 +119,26 @@ export const ComposeRecord: Story = {
   },
 };
 
+/** 기존 기록을 `수정`하면 새 기록을 더하지 않고 그 자리에서 바꾸고 `수정 됨` 배지가 붙는다. */
+export const EditRecord: Story = {
+  args: { today },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const before = canvas.getAllByText("수정").length;
+
+    await userEvent.click(canvas.getAllByRole("button", { name: "수정" })[0]);
+    const input = canvas.getByRole("textbox", { name: "진행 내용" });
+    await userEvent.clear(input);
+    await userEvent.type(input, "부자재 입고 지연을 반영해 일정을 다시 잡았어요.");
+    await userEvent.click(canvas.getByRole("button", { name: "등록" }));
+
+    await expect(canvas.getByText("부자재 입고 지연을 반영해 일정을 다시 잡았어요.")).toBeVisible();
+    await expect(canvas.getByText("수정 됨")).toBeVisible();
+    // 기록 수는 그대로다 — 새로 추가된 게 아니라 있던 기록이 바뀐 것이다.
+    await expect(canvas.getAllByText("수정")).toHaveLength(before);
+  },
+};
+
 /** `지연 사유 등록`을 누르면 사유·상세·예상 완료일을 받는 모달이 열린다. */
 export const DelayReason: Story = {
   args: { today },
@@ -129,7 +149,7 @@ export const DelayReason: Story = {
     const dialog = within(canvas.getByRole("dialog", { name: "지연 사유 등록" }));
     await userEvent.selectOptions(dialog.getByLabelText("지연 사유"), "재고 부족");
     await userEvent.type(dialog.getByLabelText("상세 사유"), "부자재 입고가 밀렸어요.");
-    await userEvent.click(dialog.getByRole("button", { name: "저장" }));
+    await userEvent.click(dialog.getByRole("button", { name: "등록" }));
 
     await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
   },

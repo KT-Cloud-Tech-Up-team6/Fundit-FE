@@ -35,7 +35,8 @@ export function Calendar({ classNames, components, locale = ko, ...props }: Cale
         day: "size-9 p-0 text-center align-middle",
         day_button:
           "text-body-m flex size-9 items-center justify-center rounded-full hover:bg-layer-surface-disabled focus-visible:outline-border-primary focus-visible:outline-2",
-        today: "[&>button]:font-bold",
+        today:
+          "[&>button]:font-bold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-border-default",
         selected:
           props.mode === "range"
             ? ""
