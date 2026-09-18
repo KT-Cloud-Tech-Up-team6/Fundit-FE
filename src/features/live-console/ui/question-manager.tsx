@@ -277,28 +277,39 @@ export function QuestionManager({
                           {complete ? "답변 완료" : "미 답변 질문"}({questions.length})
                         </h4>
                         <ul className="space-y-2">
-                          {questions.map((q) => (
-                            <li
-                              key={q.id}
-                              className={`border-border-default flex overflow-hidden rounded-xs border ${complete ? "bg-layer-surface-disabled" : ""}`}
-                            >
-                              <button
-                                type="button"
-                                className="text-body-s min-w-0 flex-1 px-3 py-2 text-left"
-                                onClick={() => onView({ kind: "answer", questionId: q.id })}
+                          {questions.map((q) => {
+                            const unavailable = !complete && q.suggestion === null;
+                            return (
+                              <li
+                                key={q.id}
+                                className={`flex overflow-hidden rounded-xs border ${unavailable ? "border-border-accent-warning text-text-warning" : "border-border-default"} ${complete ? "bg-layer-surface-disabled" : ""}`}
                               >
-                                <QuestionTitle question={q} />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`${q.title} 질문 전체 보기 ${q.originals.length}건`}
-                                className={`${complete ? "bg-layer-surface-primary-disabled" : "bg-layer-surface-primary text-text-inverse"} text-caption-s w-13 shrink-0 underline`}
-                                onClick={() => onView({ kind: "originals", questionId: q.id })}
-                              >
-                                {q.originals.length}건
-                              </button>
-                            </li>
-                          ))}
+                                <button
+                                  type="button"
+                                  className="text-body-s flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
+                                  onClick={() => onView({ kind: "answer", questionId: q.id })}
+                                >
+                                  <span className="min-w-0 flex-1">
+                                    <QuestionTitle question={q} />
+                                  </span>
+                                  {unavailable && (
+                                    <>
+                                      <Icon name="warning" className="h-3.5 w-5 shrink-0" />
+                                      <span className="sr-only">추천 답변 생성 불가</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`${q.title} 질문 전체 보기 ${q.originals.length}건`}
+                                  className={`${complete ? "bg-layer-surface-primary-disabled" : unavailable ? "bg-status-warning text-text-warning" : "bg-layer-surface-primary text-text-inverse"} text-caption-s w-13 shrink-0 underline`}
+                                  onClick={() => onView({ kind: "originals", questionId: q.id })}
+                                >
+                                  {q.originals.length}건
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     );
