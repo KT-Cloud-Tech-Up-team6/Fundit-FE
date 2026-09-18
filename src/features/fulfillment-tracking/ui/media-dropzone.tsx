@@ -11,8 +11,10 @@ import {
   removeMedia,
 } from "../model/fulfillment-demo";
 import type { MediaItem } from "../model/fulfillment-demo";
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
+
+const browseButtonClasses =
+  "bg-layer-surface-primary text-text-inverse flex h-7 shrink-0 items-center justify-center rounded-xs px-3 text-caption-s whitespace-nowrap";
 
 type MediaDropzoneProps = {
   media: MediaItem[];
@@ -102,23 +104,23 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
 
   const browseButton = (
     <button
-      className={`${secondaryButtonClasses} h-9 shrink-0 px-3`}
+      className={browseButtonClasses}
       onClick={(event) => {
         event.stopPropagation();
         inputRef.current?.click();
       }}
       type="button"
     >
-      찾아 보기
+      찾아보기
     </button>
   );
 
   return (
-    /* ponytail: 영역 전체를 클릭 대상으로 두되 키보드 경로는 "찾아 보기" 버튼이 담당한다.
+    /* ponytail: 영역 전체를 클릭 대상으로 두되 키보드 경로는 "찾아보기" 버튼이 담당한다.
        div를 button으로 만들면 안에 든 삭제·미리보기 버튼이 중첩돼 못 쓴다. */
     <div
       className={[
-        "bg-layer-surface-disabled flex flex-col gap-2 rounded-xs border-2 border-dashed p-4",
+        "bg-layer-bg border-w-xs flex flex-col gap-3 rounded-sm border-dashed px-4 py-6",
         dragging ? "border-border-primary" : "border-border-default",
       ].join(" ")}
       onClick={() => inputRef.current?.click()}
@@ -130,9 +132,9 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
       onDrop={handleDrop}
     >
       {media.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-6 text-center">
-          {/* ponytail: Icon에 업로드 아이콘이 없어 텍스트 안내만 둔다. 아이콘이 추가되면 여기에 넣는다. */}
-          <p className="text-caption-s text-text-secondary">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Icon className="text-text-secondary size-9" name="uploadFile" />
+          <p className="text-body-s text-text-secondary">
             제작 진행 상황을 보여주는 사진(최대 {maxImages}장)·동영상(최대 {maxVideos}개)을
             드래그하거나 클릭하여 첨부해 주세요.
           </p>
@@ -140,7 +142,7 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
         </div>
       ) : (
         <>
-          <p className="text-caption-s text-text-secondary">
+          <p className="text-caption-strong text-text-secondary">
             사진·동영상을 추가하려면 드래그하거나 클릭해 주세요.
           </p>
           <ul className="flex flex-wrap gap-2">
@@ -148,7 +150,7 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
               <li className="relative" key={item.id}>
                 <button
                   aria-label={`${item.name} 미리보기`}
-                  className="border-w-xs border-border-default bg-layer-surface-default focus-visible:outline-border-primary flex size-16 items-center justify-center overflow-hidden rounded-xs focus-visible:outline-2"
+                  className="border-w-xs border-border-default bg-layer-surface-default focus-visible:outline-border-primary flex size-14 items-center justify-center overflow-hidden rounded-xs focus-visible:outline-2"
                   onClick={(event) => {
                     event.stopPropagation();
                     onPreview(item);
@@ -166,21 +168,28 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
                 </button>
                 <button
                   aria-label={`${item.name} 첨부 삭제`}
-                  className="bg-layer-surface-primary text-text-inverse focus-visible:outline-border-primary absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full focus-visible:outline-2"
+                  className="focus-visible:outline-border-primary absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full focus-visible:outline-2"
                   onClick={(event) => {
                     event.stopPropagation();
                     remove(item);
                   }}
                   type="button"
                 >
-                  <Icon className="size-3" name="close" />
+                  {/* Figma "cancel_circle_filled"은 진한 원 배경 + 흰 X 2색 자산이라
+                      Icon의 mask 렌더링(단색만 지원)을 쓰면 X가 사라진다. 원색 그대로 쓰려 img로 둔다. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 장식 아이콘, 최적화 대상 아님 */}
+                  <img alt="" className="size-3.5" src="/icons/cancel_circle_filled.svg" />
                 </button>
               </li>
             ))}
           </ul>
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-[11px]">
             <p className="text-caption-s text-text-secondary">
-              사진 {counts.image}/{maxImages} · 동영상 {counts.video}/{maxVideos}
+              사진 {counts.image}/{maxImages}
+            </p>
+            <p className="text-caption-s text-text-secondary">·</p>
+            <p className="text-caption-s text-text-secondary">
+              동영상 {counts.video}/{maxVideos}
             </p>
             {browseButton}
           </div>

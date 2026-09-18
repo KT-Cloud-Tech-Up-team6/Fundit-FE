@@ -39,6 +39,8 @@ export type FulfillmentRecord = {
   media: MediaItem[];
   /** 구매자 화면(FL_B_MY_DLVR)의 `지연` 표기용. 판매자 화면은 이 값을 읽지 않는다. */
   delayed?: boolean;
+  /** 등록 후 내용을 고쳤을 때의 `수정 됨` 표기용(Figma 1319:41075 등). */
+  edited?: boolean;
 };
 
 export type StageState = {
@@ -237,11 +239,18 @@ export function demoFulfillmentState(today: string = todayValue()): FulfillmentS
         },
         {
           id: "prep-2",
+          date: daysBefore(today, 6),
+          text: "원부자재 입고가 지연되어 일정을 다시 조정했어요.",
+          delayed: true,
+          media: [],
+        },
+        {
+          id: "prep-3",
           date: daysBefore(today, 3),
           text: "부자재 입고가 끝나 다음 주부터 본생산에 들어갑니다.",
           media: [
-            { id: "prep-2-a", kind: "image", name: "parts-1.jpg", url: null },
-            { id: "prep-2-b", kind: "video", name: "line-check.mp4", url: null },
+            { id: "prep-3-a", kind: "image", name: "parts-1.jpg", url: null },
+            { id: "prep-3-b", kind: "video", name: "line-check.mp4", url: null },
           ],
         },
       ],
