@@ -74,6 +74,7 @@ export function PaymentMethodSection({
                 <button
                   type="button"
                   onClick={() => setSheet("installment")}
+                  disabled={!form.card}
                   className={`text-body-s flex h-9 w-full items-center justify-between rounded-xs border border-[#ededed] px-3 ${form.card ? "text-text-default" : "text-text-secondary"}`}
                   aria-label="할부 선택"
                 >

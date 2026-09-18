@@ -133,6 +133,7 @@ export function ShippingAddressSheet({
                   ref={searchButton}
                   type="button"
                   onClick={() => setSearching(true)}
+                  size="xl"
                   className="w-25 shrink-0 px-2 text-[14px]!"
                 >
                   우편번호 찾기

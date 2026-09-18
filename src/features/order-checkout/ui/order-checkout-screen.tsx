@@ -321,7 +321,8 @@ function PointUsageSection({
         <Button
           type="button"
           variant="secondary"
-          className="h-13 shrink-0 px-2 text-[14px]!"
+          size="xl"
+          className="shrink-0 px-2 text-[14px]!"
           onClick={() => onChange(String(Math.min(balance, maxUsable)))}
         >
           전체 사용
@@ -337,11 +338,10 @@ function PointUsageSection({
 
 function PaymentSummarySection({ summary }: { summary: PaymentSummary }) {
   return (
-    <section aria-labelledby="checkout-summary-title" className="flex flex-col">
+    /* 모바일·데스크탑 두 벌이 항상 DOM에 있어 id가 중복되므로 aria-label로 이름을 준다. */
+    <section aria-label="결제 금액" className="flex flex-col">
       <div className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
-        <h2 id="checkout-summary-title" className="text-title-s text-text-default">
-          결제 금액
-        </h2>
+        <h2 className="text-title-s text-text-default">결제 금액</h2>
         <div className="flex flex-col gap-3">
           <dl className="flex flex-col gap-1.5">
             <SummaryRow label="총 주문 금액" value={formatWon(totalOrderAmount(summary))} strong />
