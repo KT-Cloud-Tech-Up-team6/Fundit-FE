@@ -105,7 +105,7 @@ http://scripts.sil.org/OFL
   --text-warning: var(--red);
   --text-success: var(--green);
   --text-error: var(--orange);
-  --text-info: var(--grey-grey);
+  --text-info: var(--grey-medium-grey);
 
   --border-default: var(--charcoal-200);
   --border-primary: var(--charcoal-900);
@@ -119,11 +119,12 @@ http://scripts.sil.org/OFL
   --status-success: var(--bright-green);
   --status-error: var(--bright-orange);
   --status-info: var(--grey-bright-grey);
+  --status-accent: var(--blue-50);
 
   /* static_* 와 Elevation/dim(모달 딤)은 두 모드에서 값이 같다. */
   --text-static-white: #ffffff;
   --text-static-black: var(--grey-black);
-  --text-static-primary-live: var(--blue-200);
+  --text-static-primary-live: var(--blue-500);
   --layer-overlay: var(--alpha-60);
 
   /* Figma: Foundations/scroll_bar */
@@ -150,6 +151,7 @@ http://scripts.sil.org/OFL
   --text-disabled: var(--charcoal-500);
   --text-inverse: var(--charcoal-900);
   --text-primary-live: var(--blue-200);
+  --text-info: #aeb0be;
 
   --border-default: var(--charcoal-700);
   --border-primary: var(--charcoal-200);
@@ -207,6 +209,7 @@ http://scripts.sil.org/OFL
   --color-status-success: var(--status-success);
   --color-status-error: var(--status-error);
   --color-status-info: var(--status-info);
+  --color-status-accent: var(--status-accent);
 }
 
 /* mode와 무관한 토큰. static을 쓰면 사용 여부와 관계없이
