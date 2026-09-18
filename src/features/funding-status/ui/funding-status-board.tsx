@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import { Badge } from "@/shared/components/ui/badge";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { Button } from "@/shared/components/ui/button";
@@ -107,7 +107,11 @@ export function FundingStatusBoard({
             <Badge variant="neutral" size="md" shape="rounded">
               {summary.dday}
             </Badge>
-            {summary.goalAmount > 0 && summary.raisedAmount >= summary.goalAmount ? (
+            {summary.closedBadge ? (
+              <Badge variant={summary.closedBadge.variant} size="md" shape="rounded">
+                {summary.closedBadge.label}
+              </Badge>
+            ) : summary.goalAmount > 0 && summary.raisedAmount >= summary.goalAmount ? (
               <Badge variant="success" size="md" shape="rounded">
                 목표 달성
               </Badge>

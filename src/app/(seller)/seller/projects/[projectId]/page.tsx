@@ -65,15 +65,26 @@ export default async function SellerProjectPage({
 
   if (editTabs.has(activeTab)) {
     return (
-      <div className="mt-10 flex flex-col gap-6 lg:flex-row lg:gap-10">
+      <div
+        className={
+          activeTab === "story"
+            ? "mt-3 flex flex-col items-start gap-6 lg:flex-row"
+            : "mt-10 flex flex-col gap-6 lg:flex-row lg:gap-10"
+        }
+      >
         <ProjectSidebar
           activeTab={activeTab}
           projectId={projectId}
           projectName={projectName}
           tabs={projectEditTabs}
+          className={
+            activeTab === "story"
+              ? "self-start! lg:mt-9 [&_li]:min-h-9 [&_li]:font-medium [&_li>a]:h-9 [&_li>a]:font-medium [&_p]:line-clamp-2 [&_p]:h-12"
+              : undefined
+          }
         />
         {activeTab === "story" ? (
-          <ProjectStoryForm />
+          <ProjectStoryForm key={projectId} projectId={projectId} />
         ) : (
           <PagePlaceholder
             eyebrow="Seller · Project"

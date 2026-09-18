@@ -28,17 +28,15 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
   소분류명을 누르면 `/categories/[slug]/[subcategorySlug]`(소분류 결과 목록)로 이동하며, 이 화면은 아직 `PagePlaceholder`다. 실제 진입 slug·카테고리 체계는 여전히 목업이다.
 
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
-- 판매자 라이브 진행 콘솔은 [공유 Figma의 판매자_라이브 진행 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=310-5061)을 기준으로 합니다. 관련 작업은 [Issue #36](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/36)입니다.
-- `/seller/live/demo-live/console`에서 시작 전 → 목업 방송 시작 → 질문·답변·채팅 → 종료 → LIVE 체크 선택 흐름을 확인할 수 있습니다. 상태별 화면은 Storybook `Features/LiveConsole/Console`에서 확인합니다.
-- 콘솔은 전용 헤더를 위해 `(live-console)` 그룹에 두며 일반 `SellerShell`을 사용하지 않습니다. URL은 바뀌지 않습니다. 인증·소유권 가드는 아직 구현하지 않았습니다.
-- 실제 송출·카메라·마이크·AI·API·실시간 채팅·영구 저장은 포함하지 않습니다. 설정·리허설은 미구현으로 비활성화하고, LIVE 체크 생성은 로컬 결과만 표시합니다.
-- 질문·답변·큐시트는 예시입니다. 기존 큐시트 편집 화면과 데이터 전달은 아직 연결하지 않았습니다. 목업 시작 시 예시 답변을 채우고, 전송한 답변은 완료 목록과 채팅에 반영합니다. 목록 건수는 실제 목업 데이터에서 계산합니다.
-- 콘솔 상태는 기능 내부에서만 유지하며 새로고침·페이지 이동·`liveId` 변경 시 초기화합니다. 질문 상세·모달·입력값을 URL 또는 브라우저 저장소에 복사하지 않습니다.
-- 판매자 AI 큐시트는 [공유 Figma의 판매자_AI큐시트 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=415-9981)을 기준으로 합니다.
-- 구현 범위는 지정 영역의 질문·요약·유형 선택·생성 상태·결과 편집·저장 후 LIVE 생성 화면입니다. 관련 작업은 [Issue #32](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/32)입니다.
-- `/seller/live`에서 라이브 생성하기로 진입하거나 `/seller/live/demo-live/cue-sheet`에서 질문 화면을 바로 확인할 수 있습니다.
-- AI 생성과 목록은 목업입니다. 저장은 현재 화면의 메모리 상태에만 유지되며 새로고침이나 페이지 이동 시 초기화됩니다. 실제 AI·API·송출·권한 검증은 포함하지 않습니다.
-- 방송 시간은 최대 10분이며, 구간 추가 시 선택 구간의 시간을 둘로 나누어 전체 시간을 유지합니다. 제목·순서·진행 개요·대사를 수정할 수 있습니다. 건너뛴 질문은 목업 생성 시 예시 내용으로 대체합니다.
+- 판매자 LIVE 생성·AI 큐시트·진행 콘솔은 [최신 판매자 LIVE 진행 플로우 `1230:15609`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1230-15609)와 #146 기준입니다. 기존 #36 콘솔·#32 큐시트 목업을 확장했습니다.
+- 화면 정의, 작업 이력 `1230:24887`, 섹션의 관련 텍스트·화살표·제품 설명 이미지 및 프로토타입을 확인했습니다. 별도 `interaction_spec` 노드와 개발자 annotation은 없습니다. 로고 `1230:19148/19153`의 834ms 왕복 회전, 큐시트 장면 전환, 개요 접기·펼치기의 prototype reaction을 확인했습니다.
+- `/seller/live`는 진행중 빈 화면 `1230:16296`과 생성 모달 `1230:16309`~`1230:16736`을 반영합니다. 카테고리 hover·선택 상태를 유지하고, 프로젝트 선택·300자 소개·확인·취소·AI 큐시트 저장 후 복귀·저장 툴팁을 제공합니다. 목록·수치는 목업에서 계산하며 Figma의 준비중 1·완료 4를 실제 데이터인 것처럼 고정하지 않습니다.
+- 지시문 `1230:19039`에 따라 예약하지 않으면 날짜·시각을 현재 로컬 시간으로 표시하고 비활성화합니다. 모달을 열거나 예약을 해제할 때 갱신합니다. 예약 입력은 로컬 상태이며 서버 예약·임시저장·불러오기는 연동 대기입니다.
+- AI 큐시트 `1230:17354`~`1256:26837`은 대화·요약·유형·최대 10분 설정·생성 중·편집 화면을 제공합니다. 새 대화는 하단으로 스크롤하고(`1230:17616`), 편집 진입 시 개요 필드에 포커스합니다. 저장하면 생성 확인 화면으로 복귀하고 저장 툴팁을 표시합니다(`1256:26879`, `1256:26786`). 구간 추가·순서·제목·개요·대사를 수정하며, 전체 시간은 유지합니다. 로컬 생성은 입력값을 템플릿에 반영하며 실제 AI 분석·추천은 아닙니다.
+- `/seller/live/demo-live/console`은 송출 전 화면 `1299:32829`입니다. 전용 `(live-console)` 라우트에서 공통 `SellerShell`을 사용합니다. 2026-09-18 사용자 결정으로 최신 Figma에 없는 시작·종료·리허설·설정 조작은 추가하지 않았고, 생성 모달의 LIVE 시작도 비활성화했습니다. 송출 중·종료·LIVE 체크 상태는 Storybook `Features/LiveConsole/Console`에서 검증하며 실제 URL로의 상태 전환은 보류입니다.
+- 송출 중 `1299:32857`~`1299:34047`은 원본 포스터, 큐시트 개요 접기·펼치기, 질문 원문, 수정 가능한 답변, 채팅 전송, 별도 답변 완료 처리, 집계 Q&A를 제공합니다. 질문은 목업 원문 수 내림차순이며 실제 질문 수집·AI 집계·자동 답변·주기 갱신은 연동 대기입니다. 수동 완료만으로 답변·채팅을 만들지 않습니다. `1299:33921`의 키워드는 Medium 14px, 나머지는 Regular 14px입니다. 답변 근거 영역의 ‘정보 이미지, 글 (없을 시 생략)’은 구현 지시로 해석해 문구 자체를 UI에 표시하지 않고, 근거 이미지가 있는 질문에만 해당 이미지를 표시합니다.
+- 종료 모달·LIVE 체크 `1299:32969`~`1299:33587`은 질문 선택·전체 선택·보낸 답변·원문 탐색과 최하단 스크롤(`1299:34164`)을 제공합니다. 원문 보기에서 돌아와도 선택은 유지됩니다. 실제로 보낸 답변만 로컬 게시 대상으로 선택하며, 서버 게시 없이 로컬 결과만 남깁니다.
+- 실제 송출·카메라·마이크·AI·API·실시간 채팅·인증·소유권 검증·영구 저장은 포함하지 않습니다. 큐시트와 콘솔 간 데이터 전달도 송출 진입과 함께 연동 대기입니다. 새로고침·페이지 이동·ID 변경 시 목업 상태는 초기화됩니다. 디자인 예시의 질문·답변에는 서로 다른 내용이 있으므로 제품의 실제 성능으로 사용하지 않습니다.
 - 구매자 제작·배송 현황은 [공유 Figma의 제작·배송 현황 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1132-21822)을 기준으로 하며 관련 작업은 [Issue #70](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/70), 최신 디자인 반영은 [Issue #135](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/135)입니다. `/my/fundings/[fundingId]/fulfillment`(요약)와 `.../fulfillment/history`(전체 이력)는 판매자와 같은 `fulfillment-tracking` 슬라이스를 확장한 조회 목업입니다. 자체 프로젝트명 헤더를 가진 `(buyer-fulfillment)` 그룹으로, 전역 네비게이션과 OS 상태바·홈 인디케이터를 그리지 않습니다.
   - 원본 화면은 1165:15459·15545·15644·15707입니다. 현재 단계 오른쪽 더보기는 전체 이력으로 이동하며 처음에는 진행 중인 단계만 펼칩니다(1165:15801). 각 단계는 독립 토글이고, 생산을 닫고 배송 또는 제작 착수를 펼친 원본 상태를 재현할 수 있습니다.
   - 기록은 날짜 최신순으로 정렬합니다(1165:15797). 요약은 최신 기록을 항상 펼치고 과거 기록은 개별 토글합니다. 전체 이력은 선택한 단계의 모든 기록을 줄 수 제한 없이 표시합니다. 완료 단계에는 업데이트 배지를 표시하지 않습니다.
@@ -122,26 +120,30 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 판매자
 
-| URL                                                  | 화면                    | 접근 조건               | 상태                                   |
-| ---------------------------------------------------- | ----------------------- | ----------------------- | -------------------------------------- |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                            |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                            |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                            |
-| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                            |
-| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                            |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                            |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                            |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                            |
-| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                            |
+| URL                                                  | 화면                    | 접근 조건               | 상태                                             |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------ |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                      |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                      |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                      |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`funding`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                                      |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                      |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                      |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                      |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                      |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.
 
 ## 쿼리 규칙
 
-판매자 프로젝트의 `story` 탭은 [AI 스토리 목업](./FUNDING_AI_STORY.md)을 제공합니다. 다른 작성·운영 탭은 기존 placeholder를 유지합니다. AI 대화·생성 결과·본문 미리보기는 편집기 내부 모달이며 별도 URL을 만들지 않습니다.
+판매자 프로젝트의 `story` 탭은 `ProjectStoryForm`의 Tiptap 편집기와 [AI 스토리 목업](./FUNDING_AI_STORY.md)을 제공합니다. 화면은 [스토리 작성 Figma 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1242-24173)의 최신 제목·썸네일·본문 화면(`1403:37562`, `1403:37609`, `1403:37656`), 파일 선택 안내(`1403:37773`), 아이콘 선택·호버 설명(`1403:37788`)을 기준으로 합니다. 썸네일은 단일 파일을 선택하며 이름 표시와 로컬 미리보기에 사용합니다. 본문 이미지·영상은 기존 로컬 임베드를 유지합니다. 프로젝트 ID 변경 시 작성 상태를 초기화합니다. 제목 입력은 가능하지만 별도 수정 버튼은 동작 정의 확인 전까지 비활성입니다.
+
+이미지 세로·가로 정렬 버튼은 최신 디자인과 사용자 확인에 따라 제거했습니다. 기존 이미지 묶음의 표현을 잃지 않도록 `storyImageGroup` 확장은 편집기와 미리보기에서 유지합니다. 툴바 아이콘은 상태 설명의 16px 크기를 적용하며 기본 회색에서 선택·호버 시 검정으로 바뀝니다.
+
+미리보기는 최신 Figma 화면(`1403:37702`, 모달 `1403:37752`)과 판매자 IA PDF 4페이지의 모달 정의를 반영합니다. 공용 `Modal`의 996px 폭과 672px 높이를 사용하고 작은 화면에서는 뷰포트에 맞춰 축소합니다. 원본의 모달 내부는 자리표시자이며, 사용자에게 전달된 상세페이지 미리보기 요구에 따라 기존 `BuyerProjectDetail`을 재사용합니다. 현재 작성한 제목·썸네일·본문을 상세페이지에 반영하고, 나머지 정보는 기존 예시 데이터임을 안내합니다. 편집기와 동일한 Tiptap 확장을 사용해 서식·이미지·영상을 유지하며, 닫기·Esc·배경 클릭으로 작성 화면에 복귀하고 다시 열면 최신 내용을 반영합니다. URL 이동은 없으며 기존 `/preview` placeholder는 사용하지 않습니다. 미리보기의 뒤로가기·탭 이동·공유·찜·후원 버튼은 비활성화하고, 하단 후원 영역은 모달 내부에 배치합니다. 실제 구매자 페이지의 기존 동작은 유지합니다. 임시저장·저장 CTA도 IA에 정의되어 있고 [소개 저장 API 명세](./API_CONTRACT.md#52-작성-흐름주요-경로)가 있지만, 콘텐츠 변환·업로드·실제 저장 연동 및 두 CTA의 세부 조건은 구현되지 않았습니다. 준비중 프로젝트의 탭 제한, AI 결과 복사하기와 재생성 시 입력 초기화는 IA와 현재 목업 사이의 남은 차이이며 이번 작업에서 변경하지 않습니다. AI 대화·생성 결과는 기존 편집기 내부 모달입니다.
 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.

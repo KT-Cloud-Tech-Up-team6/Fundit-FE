@@ -57,3 +57,17 @@ test("다른 프로젝트에 청소기 상세 통계를 복제하지 않는다",
   assert.equal(getFundingDemo("unknown-project"), undefined);
   assert.equal(getFundingDemo("encore-pouch"), undefined);
 });
+
+test("종료 프로젝트는 금액과 관계없이 목록의 기존 상태 배지를 유지한다", () => {
+  for (const id of ["minimal-keyboard", "daily-sunglasses", "woven-watch-band"]) {
+    const project = getSellerProject(id);
+    const { summary } = getFundingDemo(id);
+    assert.equal(summary.dday, "종료");
+    assert.deepEqual(summary.closedBadge, project.badges[0]);
+  }
+  const { summary } = getFundingDemo("minimal-keyboard");
+  assert.ok(summary.raisedAmount > summary.goalAmount);
+  assert.equal(summary.closedBadge.label, "펀딩 실패");
+  assert.equal(getFundingDemo("vacuum-cleaner").summary.closedBadge, null);
+  assert.equal(getFundingDemo("steam-sterilizer").summary.closedBadge, null);
+});

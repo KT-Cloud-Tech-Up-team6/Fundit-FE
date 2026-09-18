@@ -17,6 +17,7 @@ export type CueSheetProject = {
   currentAmount: number;
   goalAmount: number;
   reward?: string;
+  image?: string;
 };
 
 export type SavedCueSheet = {
@@ -27,8 +28,9 @@ export type SavedCueSheet = {
 };
 
 export const demoProject: CueSheetProject = {
-  title: "로보락 F25",
-  category: "가전",
+  title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
+  image: "/images/seller-live/project.png",
+  category: "테크·가전",
   period: "2026.07.01 - 2026.08.12",
   participantCount: 132,
   currentAmount: 6_400_000,
@@ -39,17 +41,24 @@ export const demoProject: CueSheetProject = {
 };
 
 export const demoQuestions = [
-  { label: "개발 동기", question: "제품을 만들게 된 계기와 해결하고 싶은 불편함을 알려주세요." },
-  { label: "제작 과정", question: "제품을 개발하면서 겪은 과정이나 기억에 남는 이야기가 있나요?" },
-  { label: "예상 어려움", question: "제작이나 배송 과정에서 예상되는 어려움을 알려주세요." },
+  { label: "제품 설명", question: "라이브 진행 상품에 대해 간단하게 설명해주세요" },
+  {
+    label: "개발 동기·제작 과정",
+    question: "제품 개발 동기, 제작 과정·예상 리스크와 리워드 가격, 발송 예정일을 알려주세요.",
+  },
+  {
+    label: "예상 어려움·리워드",
+    question:
+      "개발 과정에서의 문제를 어떻게 해결했는지와, 예상 리스크·리워드 가격·발송 예정일도 알려주세요.",
+  },
   { label: "시연 항목", question: "방송에서 직접 보여줄 수 있는 제품 시연은 무엇인가요?" },
   { label: "발송 일정·캠페인", question: "제품 발송 일정과 캠페인 진행 현황을 알려주세요." },
 ];
 
 export const demoAnswers = [
-  "기존에는 물걸레 청소기와 진공청소기를 따로 사용해야 하는 번거로움을 해결하기 위해 두 기능을 하나로 합쳤습니다.",
-  "개발 과정에서 물통 위치로 인해 무게중심을 잡는 데 어려움이 있었습니다.",
-  "부품 수급 문제로 발송이 2주 정도 걸릴 수 있습니다.",
+  "물걸레 청소랑 진공청소가 한번에 되는 무선청소기예요. 흡입력도 세고 자동으로 걸레도 세척해줘요.",
+  "기존에는 물걸레 청소기와 진공청소기를 따로 써야 해서 하나로 합쳤어요. 개발할 때 물통 위치 때문에 무게중심을 잡는 게 힘들었어요.",
+  "부품 수급 문제로 발송이 2주 정도 걸릴 수도 있어요. 본체 단품 구성이고 가격은 69만9천원이에요.",
   "가구 밑 청소 시연과 자동세척 스테이션의 세척 과정을 보여드릴 수 있어요.",
   "결제 완료 후 2주 이내 순차 발송 예정이에요. 캠페인은 15일 중 3일차이고 달성률은 42%예요.",
 ];
@@ -74,8 +83,8 @@ export function createDemoScenes(
     answers[index] || "입력하지 않은 내용입니다. 방송 전에 확인해주세요.";
   const details = [
     `안녕하세요. 오늘 소개할 제품은 ${project.title}입니다.`,
-    project.description,
-    `${answer(0)}\n${answer(1)}`,
+    answers[0] || project.description,
+    answer(1),
     answer(3),
     `${project.reward || "리워드 정보는 입력하지 않았습니다."}\n${answer(4)}`,
     answer(2),

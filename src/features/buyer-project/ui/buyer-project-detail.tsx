@@ -42,7 +42,7 @@ function DetailIcon({
   );
 }
 
-function Information({ label }: { label: string }) {
+function Information({ label, disabled = false }: { label: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const tooltip = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -62,6 +62,7 @@ function Information({ label }: { label: string }) {
     <span className={styles.information}>
       <button
         type="button"
+        disabled={disabled}
         aria-label={label}
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
@@ -144,6 +145,8 @@ export function BuyerProjectDetail({
   project = projectDemo,
   liveId = "demo-live",
   hasLive = true,
+  preview = false,
+  storyContent,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
@@ -151,7 +154,10 @@ export function BuyerProjectDetail({
   project?: typeof projectDemo;
   liveId?: string;
   hasLive?: boolean;
+  preview?: boolean;
+  storyContent?: ReactNode;
 }) {
+  const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
   const [notice, setNotice] = useState("");
@@ -194,21 +200,41 @@ export function BuyerProjectDetail({
     <div
       className={
         styles.screen +
-        " bg-layer-surface-default text-text-default mx-auto min-h-dvh w-full max-w-[390px] min-w-0 pb-[calc(63px+env(safe-area-inset-bottom))]"
+        " bg-layer-surface-default text-text-default mx-auto w-full max-w-[390px] min-w-0 " +
+        (preview ? styles.preview : "min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))]")
       }
     >
       <header className={styles.header}>
-        <Link href="/live" aria-label="라이브 목록으로 돌아가기">
-          <DetailIcon name="arrow-left" className="size-5" />
-        </Link>
+        {preview ? (
+          <button type="button" disabled aria-label="라이브 목록으로 돌아가기">
+            <DetailIcon name="arrow-left" className="size-5" />
+          </button>
+        ) : (
+          <Link href="/live" aria-label="라이브 목록으로 돌아가기">
+            <DetailIcon name="arrow-left" className="size-5" />
+          </Link>
+        )}
         <span>상세페이지</span>
-        <button type="button" aria-label="프로젝트 공유" onClick={share}>
+        <button type="button" aria-label="프로젝트 공유" onClick={share} disabled={preview}>
           <DetailIcon name="share" className="size-6" />
         </button>
       </header>
-      <main>
+      <Content>
         <div className="bg-layer-bg relative aspect-[390/292] overflow-hidden">
-          <Image src={project.image} alt="" fill sizes="390px" className={styles.heroImage} />
+          {project.image ? (
+            <Image
+              src={project.image}
+              alt={preview ? `${project.title} 썸네일` : ""}
+              fill
+              sizes="390px"
+              unoptimized={preview}
+              className={preview ? "object-cover" : styles.heroImage}
+            />
+          ) : (
+            <p className="text-body-s text-text-secondary flex h-full items-center justify-center">
+              등록된 썸네일 이미지가 없습니다.
+            </p>
+          )}
           {hasLive && (
             <Link
               href={`/live/${encodeURIComponent(liveId)}`}
@@ -224,9 +250,11 @@ export function BuyerProjectDetail({
               </div>
             </Link>
           )}
-          <Badge variant="neutral" className="absolute right-5 bottom-5">
-            1/3
-          </Badge>
+          {(!preview || project.image) && (
+            <Badge variant="neutral" className="absolute right-5 bottom-5">
+              {preview ? "1/1" : "1/3"}
+            </Badge>
+          )}
         </div>
         <section className="px-5 py-4" aria-label="프로젝트 정보">
           <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
@@ -252,7 +280,7 @@ export function BuyerProjectDetail({
             <div className="flex items-center gap-1">
               <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
               <h2 className="text-label-l">AI 프로젝트 요약</h2>
-              <Information label="AI 프로젝트 요약 안내" />
+              <Information label="AI 프로젝트 요약 안내" disabled={preview} />
             </div>
             {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
               (title, i) => (
@@ -273,31 +301,46 @@ export function BuyerProjectDetail({
           </section>
         </section>
         <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
-          {tabs.map(([value, label]) => (
-            <Link
-              scroll={false}
-              className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
-              key={value}
-              ref={value === activeTab ? selectedTab : undefined}
-              href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
-              aria-current={value === activeTab ? "page" : undefined}
-            >
-              {label}
-              {value !== "story" && value !== "refund-policy" && <small>000</small>}
-            </Link>
-          ))}
+          {tabs.map(([value, label]) =>
+            preview ? (
+              <button
+                key={value}
+                type="button"
+                disabled
+                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                aria-current={value === activeTab ? "page" : undefined}
+              >
+                {label}
+                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+              </button>
+            ) : (
+              <Link
+                scroll={false}
+                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                key={value}
+                ref={value === activeTab ? selectedTab : undefined}
+                href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
+                aria-current={value === activeTab ? "page" : undefined}
+              >
+                {label}
+                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+              </Link>
+            ),
+          )}
         </nav>
         {activeTab === "story" ? (
           <section className={styles.story + " relative mx-5 mt-4 mb-8"} aria-label="상품 소개">
-            <div className={styles.storyImage}>
-              <Image
-                src="/images/buyer-project/story.png"
-                alt="CleanForge 무선 청소기 상품 소개 예시"
-                fill
-                sizes="(max-width: 390px) 112vw, 436px"
-                unoptimized
-              />
-            </div>
+            {storyContent ?? (
+              <div className={styles.storyImage}>
+                <Image
+                  src="/images/buyer-project/story.png"
+                  alt="CleanForge 무선 청소기 상품 소개 예시"
+                  fill
+                  sizes="(max-width: 390px) 112vw, 436px"
+                  unoptimized
+                />
+              </div>
+            )}
           </section>
         ) : (
           <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
@@ -330,12 +373,13 @@ export function BuyerProjectDetail({
             </section>
           </div>
         )}
-      </main>
+      </Content>
       <footer className={`${styles.footer} border-border-default border-t`}>
         <button
           type="button"
           aria-label="프로젝트 찜"
           aria-pressed={liked}
+          disabled={preview}
           onClick={() => setLiked(!liked)}
         >
           <DetailIcon name="heart" className="size-6" />

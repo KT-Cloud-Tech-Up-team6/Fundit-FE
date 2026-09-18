@@ -5,7 +5,7 @@ type BreadcrumbProps = {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav aria-label="이동 경로" className="text-label-m text-text-secondary">
+    <nav aria-label="이동 경로" className="text-label-m text-text-secondary flex h-6 items-center">
       <ol className="flex items-center gap-2">
         {items.map((crumb, index) => {
           const isCurrent = index === items.length - 1;

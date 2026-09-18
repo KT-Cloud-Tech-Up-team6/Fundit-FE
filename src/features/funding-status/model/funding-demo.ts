@@ -1,4 +1,5 @@
 import { getSellerProject } from "@/entities/project/model/seller-project-demo";
+import type { SellerProjectBadge } from "@/entities/project/model/seller-project";
 
 /* 펀딩 관리 현황(FL_S_FD_STATUS)의 화면 데이터와 순수 헬퍼.
    ponytail: 펀딩 집계 API가 없어(docs/OPEN_DECISIONS.md P1) 값은 목업 상수다.
@@ -18,6 +19,7 @@ export type FundingSummary = {
   openAlertCount: number | null;
   /** 남은 기간 배지 문구. 펀딩 상태 enum이 미확정(P1)이라 문자열 그대로 둔다. */
   dday: string;
+  closedBadge: SellerProjectBadge | null;
 };
 
 export type RewardStatusRow = {
@@ -72,6 +74,7 @@ export function getFundingDemo(projectId: string) {
     wishlistCount: hasDetails ? 132 : null,
     openAlertCount: hasDetails ? 132 : null,
     dday: project.status === "closed" ? "종료" : project.badges[0].label,
+    closedBadge: project.status === "closed" ? project.badges[0] : null,
   };
   return {
     summary,

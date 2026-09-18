@@ -15,11 +15,12 @@ const project = {
 test("선택한 프로젝트와 소개를 사용하고 다른 상품 정보를 섞지 않는다", () => {
   const scenes = createDemoScenes(
     5,
-    ["개발 배경", "제작 과정", "예상 어려움", "가방 시연", "발송 안내"],
+    ["직접 입력한 제품 설명", "개발 배경과 제작 과정", "예상 어려움", "가방 시연", "발송 안내"],
     project,
   );
   assert.match(scenes[0].script, /친환경 데일리 백/);
-  assert.equal(scenes[1].script, project.description);
+  assert.equal(scenes[1].script, "직접 입력한 제품 설명");
+  assert.equal(scenes[2].script, "개발 배경과 제작 과정");
   assert.match(scenes[3].script, /가방 시연/);
   assert.doesNotMatch(JSON.stringify(scenes), /로보락|699,000|물걸레/);
   assert.equal(
@@ -30,13 +31,14 @@ test("선택한 프로젝트와 소개를 사용하고 다른 상품 정보를 �
 
 test("미입력 답변과 리워드는 임의의 상품 사실로 채우지 않는다", () => {
   const scenes = createDemoScenes(10, [], project);
+  assert.equal(scenes[1].script, project.description);
   assert.match(scenes[2].script, /입력하지 않은/);
   assert.match(scenes[4].script, /리워드 정보는 입력하지 않았습니다/);
   assert.doesNotMatch(JSON.stringify(scenes), /로보락|699,000|2주/);
 });
 
 test("전용 URL의 기본 데모와 명시적인 리워드도 지원한다", () => {
-  assert.match(createDemoScenes(10, [])[0].script, new RegExp(demoProject.title));
+  assert.ok(createDemoScenes(10, [])[0].script.includes(demoProject.title));
   const scenes = createDemoScenes(1, [], { ...project, reward: "데일리 백 단품" });
   assert.match(scenes[4].script, /데일리 백 단품/);
   assert.equal(

@@ -3,6 +3,7 @@ import Image from "next/image";
 
 type ChatDialogueProps = ComponentPropsWithoutRef<"div"> & {
   sender: "ai" | "user";
+  appearance?: "default" | "story";
   size?: "sm" | "md";
   avatar?: ReactNode;
   progress?: string;
@@ -12,6 +13,7 @@ type ChatDialogueProps = ComponentPropsWithoutRef<"div"> & {
 
 export function ChatDialogue({
   sender,
+  appearance = "default",
   size = "sm",
   avatar,
   progress,
@@ -22,11 +24,12 @@ export function ChatDialogue({
   ...props
 }: ChatDialogueProps) {
   const isUser = sender === "user";
+  const isStory = appearance === "story";
   return (
     <div
       className={[
         "flex w-full items-start gap-2",
-        isUser ? "justify-end pl-10" : "pr-10",
+        isUser ? "justify-end pl-10" : isStory ? "pr-0" : "pr-10",
         className,
       ]
         .filter(Boolean)
@@ -42,7 +45,7 @@ export function ChatDialogue({
       <div
         className={[
           "flex min-w-0 flex-col items-start gap-2",
-          size === "sm" ? "max-w-[484px]" : "max-w-[509px]",
+          isStory ? "max-w-[440px]" : size === "sm" ? "max-w-[484px]" : "max-w-[509px]",
           !isUser && "pt-2",
         ]
           .filter(Boolean)
@@ -50,20 +53,27 @@ export function ChatDialogue({
       >
         <div
           className={[
-            "text-body-m flex max-w-full flex-col gap-1 rounded-t-md rounded-bl-md px-4 break-words whitespace-pre-wrap",
-            isUser
-              ? "border border-[#959595] bg-[#ffffff] text-[#000000]"
-              : "rounded-tl-none rounded-br-md bg-[#959595] text-[#ffffff]",
+            "flex max-w-full flex-col gap-1 rounded-t-md rounded-bl-md px-4 break-words whitespace-pre-wrap",
+            isStory
+              ? `text-body-s leading-[1.42] font-medium ${isUser ? "bg-layer-surface-primary text-text-inverse" : "bg-layer-surface-default text-text-default shadow-light-s rounded-tl-none rounded-br-md"}`
+              : `text-body-m ${isUser ? "border border-[#959595] bg-[#ffffff] text-[#000000]" : "rounded-tl-none rounded-br-md bg-[#959595] text-[#ffffff]"}`,
             size === "sm" ? "py-3" : isUser ? "pt-2 pb-3" : "py-2",
           ].join(" ")}
         >
           <div className="min-w-0">{children}</div>
           {!isUser && progress && (
-            <span className="text-label-s self-end font-medium">{progress}</span>
+            <span
+              className={`${isStory ? "text-text-secondary text-[11px] leading-[1.3]" : "text-label-s"} self-end font-medium`}
+            >
+              {progress}
+            </span>
           )}
         </div>
         {!isUser && status && (
-          <div className="text-caption-s text-[#000000]" role="status">
+          <div
+            className={`text-caption-s ${isStory ? "text-text-secondary" : "text-[#000000]"}`}
+            role="status"
+          >
             {status}
           </div>
         )}

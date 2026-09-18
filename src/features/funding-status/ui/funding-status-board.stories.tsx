@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
-import { demoFundingSummary, demoRewardRows } from "../model/funding-demo";
+import { demoFundingSummary, demoRewardRows, getFundingDemo } from "../model/funding-demo";
 import { FundingStatusBoard } from "./funding-status-board";
 
 const meta = {
@@ -51,10 +51,18 @@ export const InProgress: Story = {
   },
 };
 
-/** 펀딩이 끝난 상태 — 남은 기간 배지 문구만 바뀐다. */
+/** 펀딩이 끝난 상태 — 금액보다 기존 프로젝트의 상태 배지를 우선한다. */
 export const Ended: Story = {
-  args: {
-    summary: { ...demoFundingSummary(), dday: "종료" },
+  args: getFundingDemo("minimal-keyboard"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("종료", { exact: true })).toBeVisible();
+    await expect(canvas.getByText("펀딩 실패")).toBeVisible();
+    await expect(canvas.queryByText("목표 달성")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      "목표 대비 228% 달성",
+    );
   },
 };
 
