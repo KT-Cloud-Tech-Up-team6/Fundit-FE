@@ -134,9 +134,10 @@ export function OrderCheckoutScreen({
     }
   }
   return (
+    /* 모바일은 #165대로 가용 폭을 쓰고, 데스크톱은 라이브·상세와 같은 헤더와 1200px 그리드를 쓴다. */
     <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-dvh w-full">
       <BuyerDesktopHeader />
-      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300">
+      <div className="mx-auto flex min-h-dvh w-full flex-col min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300">
         <div className="min-[1200px]:hidden">
           <CheckoutTopBar title="결제" />
         </div>

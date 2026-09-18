@@ -52,3 +52,9 @@
     padding: 12px 24px 24px;
   }
 }
+
+@media (width < 1200px) {
+  .sheet {
+    max-width: none;
+  }
+}

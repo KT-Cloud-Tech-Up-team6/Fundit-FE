@@ -69,10 +69,10 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    /* 모바일은 기존 390px 컬럼, 데스크톱은 라이브·상세와 같은 헤더와 넓은 여백을 쓴다. */
+    /* 모바일은 #165대로 가용 폭을 쓰고, 데스크톱은 라이브·상세와 같은 헤더와 넓은 여백을 쓴다. */
     <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-dvh w-full">
       <BuyerDesktopHeader />
-      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full max-w-[390px] flex-col min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-none">
+      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full flex-col min-[1200px]:min-h-[calc(100dvh-70px)]">
         <div className="min-[1200px]:hidden">
           <CheckoutTopBar />
         </div>
