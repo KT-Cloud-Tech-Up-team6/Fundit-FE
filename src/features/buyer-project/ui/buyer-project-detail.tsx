@@ -306,7 +306,15 @@ export function BuyerProjectDetail({
                 <p>
                   <strong>{project.rate}</strong> <span>% 달성</span>
                 </p>
-                <Badge variant="accent" size="md">
+                <Badge
+                  variant="accent"
+                  size="md"
+                  className={
+                    preview
+                      ? undefined
+                      : "max-[1200px]:bg-status-info max-[1200px]:text-text-info max-[1200px]:text-label-m max-[1200px]:h-6 max-[1200px]:font-semibold"
+                  }
+                >
                   D-28
                 </Badge>
               </div>
