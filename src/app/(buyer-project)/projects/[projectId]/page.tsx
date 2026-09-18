@@ -1,4 +1,4 @@
-import { RewardSummaryList } from "@/features/reward-selection/ui/reward-summary-list";
+import { RewardSheet } from "@/features/reward-selection/ui/reward-sheet";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { ProjectTabs } from "@/features/project-tabs/ui/project-tabs";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
@@ -51,8 +51,16 @@ export default async function ProjectDetailPage({
         }
         liveId={connection?.liveId}
         hasLive={searchProject ? false : (connection?.hasLive ?? true)}
-        rewardSummary={<RewardSummaryList />}
-        fundingAction={<FundingCta projectId={projectId} className={styles.funding} />}
+        rewardSelection={
+          <RewardSheet projectId={projectId} inlineFormId={`rewards-${projectId}`} />
+        }
+        fundingAction={
+          <FundingCta
+            projectId={projectId}
+            className={styles.funding}
+            desktopFormId={`rewards-${projectId}`}
+          />
+        }
       />
     );
   }

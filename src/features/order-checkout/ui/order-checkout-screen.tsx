@@ -3,10 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { CheckoutForm } from "@/entities/order/model/order-session";
-import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
 import {
   DEMO_POINT_BALANCE,
@@ -16,13 +13,11 @@ import {
   demoOrderItem,
   demoPaymentSummary,
   demoShippingAddress,
-  demoTerms,
   finalPaymentAmount,
   formatWon,
   maxPointUsage,
   isCouponUsable,
   parsePointInput,
-  requiredTermsMet,
   totalDiscount,
   totalOrderAmount,
 } from "../model/checkout-demo";
@@ -32,20 +27,17 @@ import type {
   PaymentSummary,
   ShippingAddress,
   ShippingSectionState,
-  TermsItem,
 } from "../model/checkout-demo";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { CouponSheet } from "./coupon-sheet";
 import { ShippingAddressSection } from "./shipping-address-section";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { PaymentMethodSection } from "./payment-method-section";
-import styles from "./checkout-sheet.module.css";
 
 const SHIPPING_SECTION_ID = "checkout-shipping-address";
 const DEMO_ORDER_ITEM = demoOrderItem();
 const DEMO_ADDRESS = demoShippingAddress();
 const DEMO_SUMMARY = demoPaymentSummary();
-const DEMO_TERMS = demoTerms();
 const DEMO_COUPONS = demoCoupons();
 
 type OrderCheckoutScreenProps = {
@@ -54,7 +46,6 @@ type OrderCheckoutScreenProps = {
   items?: OrderItem[];
   address?: ShippingAddress;
   summary?: PaymentSummary;
-  terms?: TermsItem[];
   coupons?: Coupon[];
   initialForm?: CheckoutForm | null;
   onFormChange?: (form: CheckoutForm) => void;
@@ -67,7 +58,6 @@ export function OrderCheckoutScreen({
   items,
   address = DEMO_ADDRESS,
   summary = DEMO_SUMMARY,
-  terms = DEMO_TERMS,
   coupons = DEMO_COUPONS,
   initialForm,
   onFormChange,
@@ -89,7 +79,6 @@ export function OrderCheckoutScreen({
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
   const [methodWarning, setMethodWarning] = useState("");
-  const [viewTerm, setViewTerm] = useState<TermsItem | null>(null);
   const paying = useRef(false);
   useEffect(() => {
     onFormChange?.(form);
@@ -97,8 +86,6 @@ export function OrderCheckoutScreen({
   function update(change: Partial<CheckoutForm>) {
     setForm((prev) => ({ ...prev, ...change }));
   }
-  const requiredIds = terms.filter((term) => term.required).map((term) => term.id);
-  const isAllAgreed = requiredTermsMet(terms, form.agreedIds);
   const orderAmount = Math.max(0, summary.fundingAmount - (summary.earlyBirdDiscount ?? 0));
   const selectedCoupon =
     coupons.find((coupon) => coupon.id === form.couponId && isCouponUsable(coupon, orderAmount)) ??
@@ -126,7 +113,7 @@ export function OrderCheckoutScreen({
       });
   }
   function handlePay() {
-    if (!isAllAgreed || paying.current) return;
+    if (paying.current) return;
     if (!form.address) {
       setAddressWarning(true);
       document
@@ -148,7 +135,7 @@ export function OrderCheckoutScreen({
   }
   return (
     <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
+      <div className="mx-auto flex min-h-dvh w-full flex-col min-[1200px]:max-w-[390px]">
         <CheckoutTopBar title="결제" />
         <div className="flex flex-1 flex-col gap-3 pb-8">
           <ShippingAddressSection
@@ -200,32 +187,12 @@ export function OrderCheckoutScreen({
             )}
           </div>
           <PaymentSummarySection summary={effectiveSummary} />
-          <TermsAgreementSection
-            terms={terms}
-            agreedIds={form.agreedIds}
-            isAllAgreed={isAllAgreed}
-            onToggleAll={() =>
-              update({
-                agreedIds: isAllAgreed
-                  ? form.agreedIds.filter((id) => !requiredIds.includes(id))
-                  : [...new Set([...form.agreedIds, ...requiredIds])],
-              })
-            }
-            onToggleTerm={(id) =>
-              update({
-                agreedIds: form.agreedIds.includes(id)
-                  ? form.agreedIds.filter((value) => value !== id)
-                  : [...form.agreedIds, id],
-              })
-            }
-            onViewTerm={setViewTerm}
-          />
         </div>
         <div className="bg-layer-surface-default sticky bottom-0 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
           <p className="text-caption-s text-text-secondary mb-2 text-center">
             실제 결제가 발생하지 않는 데모입니다.
           </p>
-          <Button className="w-full" appearance="cta" disabled={!isAllAgreed} onClick={handlePay}>
+          <Button className="w-full" appearance="cta" onClick={handlePay}>
             {formatWon(finalPaymentAmount(effectiveSummary))} 결제하기
           </Button>
         </div>
@@ -251,16 +218,6 @@ export function OrderCheckoutScreen({
           setCouponSheetOpen(false);
         }}
       />
-      <BottomSheet
-        open={viewTerm !== null}
-        onClose={() => setViewTerm(null)}
-        title={viewTerm?.label ?? "약관"}
-        className={styles.sheet}
-      >
-        <p className="text-body-s py-4">
-          약관 전문은 준비 중입니다. 현재 화면은 실제 결제와 약관 동의가 이루어지지 않는 데모입니다.
-        </p>
-      </BottomSheet>
     </div>
   );
 }
@@ -419,63 +376,5 @@ function SummaryRow({
       <dt className={`${size} ${tone}`}>{label}</dt>
       <dd className={`${size} ${tone}`}>{value}</dd>
     </div>
-  );
-}
-
-function TermsAgreementSection({
-  terms,
-  agreedIds,
-  isAllAgreed,
-  onToggleTerm,
-  onToggleAll,
-  onViewTerm,
-}: {
-  terms: TermsItem[];
-  agreedIds: string[];
-  isAllAgreed: boolean;
-  onToggleTerm: (id: string) => void;
-  onToggleAll: () => void;
-  onViewTerm: (term: TermsItem) => void;
-}) {
-  return (
-    <section
-      aria-labelledby="checkout-terms-title"
-      className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4"
-    >
-      <p id="checkout-terms-title" className="text-caption-s text-text-default">
-        주문 내용을 확인하였으며, 아래 내용에 모두 동의합니다.
-      </p>
-
-      <Checkbox shape="square" checked={isAllAgreed} onChange={onToggleAll}>
-        전체 동의합니다
-      </Checkbox>
-
-      <div className="flex flex-col gap-3">
-        {terms.map((term) => (
-          <div
-            key={term.id}
-            className={`flex items-center justify-between gap-2 ${term.required ? "pl-4" : ""}`}
-          >
-            <Checkbox
-              shape="square"
-              checked={agreedIds.includes(term.id)}
-              onChange={() => onToggleTerm(term.id)}
-            >
-              <span className="text-caption-s">{term.label}</span>
-            </Checkbox>
-            {
-              <button
-                type="button"
-                aria-label={`${term.label} 전문 보기`}
-                onClick={() => onViewTerm(term)}
-                className="focus-visible:outline-border-primary flex size-7 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                <Icon name="next" className="size-3" />
-              </button>
-            }
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
