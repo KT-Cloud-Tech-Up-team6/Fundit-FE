@@ -35,6 +35,8 @@ export const CustomAvatar: Story = {
   },
 };
 export const Medium: Story = { args: { size: "md" } };
+export const StoryAssistant: Story = { args: { appearance: "story", progress: "1/3" } };
+export const StoryUser: Story = { args: { appearance: "story", sender: "user" } };
 export const WithActions: Story = {
   args: {
     status: "요약 중…",

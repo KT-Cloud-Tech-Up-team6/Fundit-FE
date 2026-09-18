@@ -51,10 +51,13 @@ export function Modal({
       {...props}
     >
       <div className="flex h-full flex-col p-6">
-        <div className="flex h-9 shrink-0 items-center">
+        <div className="flex min-h-9 shrink-0 items-center">
           {/* 오른쪽 닫기 버튼과 같은 크기의 자리를 왼쪽에도 둬야 제목이 가운데 온다. */}
           <span aria-hidden className="size-9 shrink-0" />
-          <h2 className="text-heading-m text-text-title min-w-0 flex-1 text-center" id={titleId}>
+          <h2
+            className="text-heading-m text-text-title min-w-0 flex-1 text-center break-words"
+            id={titleId}
+          >
             {title}
           </h2>
           <button
