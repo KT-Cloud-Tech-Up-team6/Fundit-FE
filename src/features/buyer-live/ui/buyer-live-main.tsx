@@ -20,6 +20,7 @@ import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import styles from "./buyer-live-main.module.css";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 function scheduledTitle(id: string) {
   return getLiveDemo(id, true).title;
@@ -86,14 +87,18 @@ function StatusBadge({
   );
 }
 
+/* href 대신 pending을 주면 전체보기를 비활성으로 남긴다.
+   신규·순위·팔로우·알림함은 화면 원본이 없어 목적지가 미정이다. */
 function Section({
   title,
   href,
+  pending = false,
   children,
   className = "",
 }: {
   title: string;
   href?: string;
+  pending?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -104,10 +109,16 @@ function Section({
     >
       <div className="flex h-7 items-center justify-between gap-2">
         <h2 className="text-title-m text-text-title min-[1200px]:text-heading-l">{title}</h2>
-        {href && (
-          <TextLink href={href} aria-label={title + " 전체보기"}>
+        {pending ? (
+          <PendingDestination label={title + " 전체보기"} className={textButtonNavigationClasses}>
             전체보기
-          </TextLink>
+          </PendingDestination>
+        ) : (
+          href && (
+            <TextLink href={href} aria-label={title + " 전체보기"}>
+              전체보기
+            </TextLink>
+          )
         )}
       </div>
       {children}
@@ -340,13 +351,12 @@ export function BuyerLiveMain({
           <form action="/live/search" role="search" className="min-w-0 flex-1">
             <SearchField name="q" aria-label="라이브 검색" placeholder="검색어를 입력해주세요" />
           </form>
-          <Link
-            href="/my/notifications"
-            aria-label="알림함"
+          <PendingDestination
+            label="알림함"
             className="flex size-10 shrink-0 items-center justify-center min-[1200px]:hidden"
           >
             <Icon name="bell" className="size-6" />
-          </Link>
+          </PendingDestination>
         </header>
         <TabList mode="nav" aria-label="라이브 탐색" className="w-full min-[1200px]:w-[390px]">
           <Tab
@@ -492,19 +502,18 @@ export function BuyerLiveMain({
                 더 보러 가기
               </button>
             ) : (
-              <TextLink href="/live/rank" aria-label="실시간 순위 전체보기" className="mx-auto">
+              <PendingDestination
+                label="실시간 순위 전체보기"
+                className={textButtonNavigationClasses + " mx-auto"}
+              >
                 더 보러 가기
-              </TextLink>
+              </PendingDestination>
             )}
           </Section>
         </div>
         <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 pb-10 min-[1200px]:contents">
           {!upcoming && hasFollowing && (
-            <Section
-              className="min-[1200px]:order-3"
-              title="팔로우한 판매자"
-              href="/live/following"
-            >
+            <Section className="min-[1200px]:order-3" title="팔로우한 판매자" pending>
               <div
                 {...followingDrag}
                 tabIndex={0}
@@ -519,11 +528,7 @@ export function BuyerLiveMain({
             </Section>
           )}
           {upcoming && (
-            <Section
-              className="min-[1200px]:order-4"
-              title="알림 신청한 라이브"
-              href="/my/notifications"
-            >
+            <Section className="min-[1200px]:order-4" title="알림 신청한 라이브" pending>
               <div
                 ref={subscriptionList}
                 className="flex flex-col gap-3 min-[1200px]:grid min-[1200px]:grid-cols-3 min-[1200px]:gap-6"

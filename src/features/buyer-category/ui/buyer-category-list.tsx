@@ -5,6 +5,7 @@ import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { CategoryBannerCarousel } from "./category-banner-carousel";
 import styles from "./buyer-category-list.module.css";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 export function BuyerCategoryList({ slug }: { slug: string }) {
   const selectedCategory = getBuyerCategory(slug);
@@ -22,13 +23,12 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
             placeholder="검색어를 입력해주세요"
           />
         </form>
-        <Link
-          href="/my/notifications"
-          aria-label="알림함"
+        <PendingDestination
+          label="알림함"
           className="flex h-10 w-6 shrink-0 items-center justify-center"
         >
           <Icon name="bell" className="size-6" />
-        </Link>
+        </PendingDestination>
       </header>
 
       <main>

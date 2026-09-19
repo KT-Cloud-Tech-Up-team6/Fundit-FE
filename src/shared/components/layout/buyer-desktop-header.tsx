@@ -5,6 +5,7 @@ import Link from "next/link";
 import { HeaderWeb } from "./header-web";
 import { Icon } from "../ui/icon";
 import { setCategoryReturnPath } from "@/shared/lib/category-return-path";
+import { PendingDestination } from "../ui/pending-destination";
 
 export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
   return (
@@ -40,13 +41,9 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
           >
             <Image src="/icons/buyer-live-room/heart.svg" width={24} height={24} alt="" />
           </Link>
-          <Link
-            href="/my/notifications"
-            aria-label="알림함"
-            className="flex size-9 items-center justify-center"
-          >
+          <PendingDestination label="알림함" className="flex size-9 items-center justify-center">
             <Icon name="bell" className="size-6" />
-          </Link>
+          </PendingDestination>
           <Link
             href="/my"
             aria-label="마이페이지"
