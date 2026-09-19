@@ -18,10 +18,12 @@ const iconFiles = {
   avatar: "avatar",
   bell: "ringing_bell",
   bold: "bold",
+  calendar: "calendar",
   chat: "chat",
   close: "remove_cancel",
   colorPalette: "color_palette",
   funding: "funding",
+  linkChain: "link_chain",
   insertImage: "insert_image",
   insertQuote: "insert_quote",
   insertVideo: "insert_video",
@@ -36,6 +38,8 @@ const iconFiles = {
   settings: "cog_setting",
   stream: "stream",
   swap: "refresh",
+  transferVan: "transfer_van",
+  uploadFile: "upload_file",
   viewers: "viewers",
   warning: "warning",
   stagePrep: "fulfillment/stage-prep",
@@ -43,6 +47,7 @@ const iconFiles = {
   stageInspection: "fulfillment/stage-inspection",
   stageRelease: "fulfillment/stage-release",
   stageDelivery: "fulfillment/stage-delivery",
+  tooltipTail: "tooltip-tail",
 } as const;
 
 export type IconName = keyof typeof iconFiles;

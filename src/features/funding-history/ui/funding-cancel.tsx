@@ -15,20 +15,36 @@ import {
   cancelReasons,
   canSubmitCancel,
   removeCancelPhoto,
+  returnReasonsByType,
+  returnShippingFee,
+  returnTypes,
   type CancelPhoto,
+  type ReturnType,
 } from "../model/funding-cancel";
 import { demoFundingDetail, formatWon } from "../model/funding-history";
 
-/* ponytail: 참여 취소 제출 API가 없어(docs/OPEN_DECISIONS.md P0 환불) 확인 모달에서
-   "취소"를 누르면 목록으로 돌아가는 것으로 갈음한다. API가 생기면 여기서 서버에 제출한다. */
+/* ponytail: 참여 취소·반품/교환 제출 API가 없어(docs/OPEN_DECISIONS.md P0 환불) 확인 모달에서
+   버튼을 누르면 목록으로 돌아가는 것으로 갈음한다. API가 생기면 여기서 서버에 제출한다. */
 
-export function FundingCancel({ fundingId }: { fundingId: string }) {
+export function FundingCancel({
+  fundingId,
+  variant = "cancel",
+  initialReturnType = "",
+  initialReason = "",
+}: {
+  fundingId: string;
+  variant?: "cancel" | "return";
+  initialReturnType?: ReturnType | "";
+  initialReason?: string;
+}) {
   const router = useRouter();
   const titleId = useId();
+  const isReturn = variant === "return";
   const detail = demoFundingDetail(fundingId);
-  const refund = calculateRefund(detail.amount);
+  const refund = calculateRefund(detail.amount, isReturn ? returnShippingFee : 0);
 
-  const [reason, setReason] = useState("");
+  const [returnType, setReturnType] = useState<ReturnType | "">(initialReturnType);
+  const [reason, setReason] = useState(initialReason);
   const [detailText, setDetailText] = useState("");
   const [photos, setPhotos] = useState<CancelPhoto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -36,6 +52,13 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
   const photosRef = useRef<CancelPhoto[]>([]);
 
   const canSubmit = canSubmitCancel(reason);
+  const requestLabel = isReturn ? `${returnType || "반품/교환"} 신청` : "취소 신청";
+  const confirmationTitle = isReturn
+    ? `${returnType || "반품/교환"}을 신청할까요?`
+    : "펀딩을 취소할까요?";
+  const confirmationDescription = isReturn
+    ? "신청 내용을 확인 후 처리해 드립니다"
+    : "취소 신청 시 결제 금액이 환불됩니다";
 
   useEffect(
     () => () => {
@@ -68,7 +91,7 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
     setPhotos(next);
   }
 
-  function handleConfirmCancel() {
+  function handleConfirmSubmit() {
     setConfirmOpen(false);
     router.push("/my/fundings");
   }
@@ -83,7 +106,9 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
         >
           <Icon name="arrowLeft" className="text-text-default size-5" />
         </Link>
-        <h1 className="text-title-s text-text-default flex-1 text-center">참여 취소</h1>
+        <h1 className="text-title-s text-text-default flex-1 text-center">
+          {isReturn ? "펀딩 반품/교환" : "펀딩 취소"}
+        </h1>
         <Link
           href="/my/notifications"
           aria-label="알림"
@@ -95,9 +120,8 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
 
       <div className="flex flex-1 flex-col gap-2">
         <section className="bg-layer-surface-default flex gap-3 px-5 py-4">
-          <div className="bg-layer-surface-disabled text-caption-m text-text-secondary flex size-20 shrink-0 items-center justify-center rounded-xs">
-            IMG
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={detail.imageSrc} alt="" className="size-20 shrink-0 rounded-xs object-cover" />
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="flex flex-col gap-1">
               <p className="text-body-m text-text-default truncate">{detail.projectTitle}</p>
@@ -113,21 +137,65 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
 
         <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
           <div className="flex flex-col gap-4">
-            <h2 className="text-title-s text-text-default">취소 사유</h2>
+            <h2 className="text-title-s text-text-default">{isReturn ? "사유" : "취소 사유"}</h2>
             <div className="flex flex-col gap-2">
-              <Select value={reason} onChange={(event) => setReason(event.target.value)}>
-                <option value="" disabled hidden>
-                  취소사유를 선택해주세요
-                </option>
-                {cancelReasons.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
+              {isReturn && (
+                <div className="flex w-full gap-2">
+                  <Select
+                    aria-label="유형"
+                    className="!w-[88px] shrink-0"
+                    value={returnType}
+                    onChange={(event) => {
+                      setReturnType(event.target.value as ReturnType);
+                      setReason("");
+                    }}
+                  >
+                    <option value="" disabled hidden>
+                      유형 선택
+                    </option>
+                    {returnTypes.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    aria-label="사유"
+                    className="!w-auto min-w-0 flex-1"
+                    value={reason}
+                    disabled={!returnType}
+                    onChange={(event) => setReason(event.target.value)}
+                  >
+                    <option value="" disabled hidden>
+                      사유를 선택해주세요
+                    </option>
+                    {returnReasonsByType[returnType || "반품"].map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {!isReturn && (
+                <Select
+                  aria-label="취소 사유"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                >
+                  <option value="" disabled hidden>
+                    취소 사유를 선택해주세요
                   </option>
-                ))}
-              </Select>
+                  {cancelReasons.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </Select>
+              )}
               <Textarea
                 className="h-[222px]"
-                placeholder="취소사유를 입력해주세요 (100자 이내)"
+                placeholder="내용을 입력해주세요 (선택)"
                 maxLength={cancelDetailMaxLength}
                 value={detailText}
                 onChange={(event) => setDetailText(event.target.value)}
@@ -135,71 +203,79 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <h2 className="text-title-s text-text-default">사진 첨부 (선택)</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                aria-label="사진 첨부"
-                onClick={() => fileInputRef.current?.click()}
-                className="border-text-secondary flex size-20 items-center justify-center rounded-xs border border-dashed"
-              >
-                <Icon name="plusSquare" className="text-text-secondary size-3.5" />
-              </button>
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative size-20 shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다. */}
-                  <img
-                    src={photo.url}
-                    alt=""
-                    className="border-border-default size-full rounded-xs border object-cover"
-                  />
-                  <button
-                    type="button"
-                    aria-label={`${photo.name} 첨부 삭제`}
-                    onClick={() => handleRemovePhoto(photo.id)}
-                    className="bg-layer-surface-primary text-text-inverse absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full"
-                  >
-                    <Icon name="closeSmall" className="size-3" />
-                  </button>
-                </div>
-              ))}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(event) => {
-                  handleFiles(event.target.files);
-                  event.target.value = "";
-                }}
-              />
+          {isReturn && (
+            <div className="flex flex-col gap-3">
+              <h2 className="text-title-s text-text-default">사진 첨부 (선택)</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="사진 첨부"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-text-secondary flex size-20 items-center justify-center rounded-xs border border-dashed"
+                >
+                  <Icon name="plusSquare" className="text-text-secondary size-3.5" />
+                </button>
+                {photos.map((photo) => (
+                  <div key={photo.id} className="relative size-20 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다. */}
+                    <img
+                      src={photo.url}
+                      alt=""
+                      className="border-border-default size-full rounded-xs border object-cover"
+                    />
+                    <button
+                      type="button"
+                      aria-label={`${photo.name} 첨부 삭제`}
+                      onClick={() => handleRemovePhoto(photo.id)}
+                      className="bg-layer-surface-primary text-text-inverse absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full"
+                    >
+                      <Icon name="closeSmall" className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => {
+                    handleFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
           <h2 className="text-title-s text-text-default">환불 정보</h2>
           <dl className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <dt className="text-body-m text-text-default">실 환불 금액</dt>
-              <dd className="text-body-strong text-text-default flex-1 text-right">
-                {formatWon(refund.actualRefundAmount)}
-              </dd>
-            </div>
-            <div className="flex items-center gap-2">
               <dt className="text-body-m text-text-default">적립금 환불 금액</dt>
               <dd className="text-body-strong text-text-default flex-1 text-right">
                 {formatWon(refund.pointRefundAmount)}
               </dd>
             </div>
+            {isReturn && (
+              <div className="flex items-center gap-2">
+                <dt className="text-body-m text-text-default">배송비</dt>
+                <dd className="text-body-strong text-text-default flex-1 text-right">
+                  -{formatWon(refund.shippingFee)}
+                </dd>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <dt className="text-body-m text-text-default">취소 수수료</dt>
               <dd className="text-body-strong text-text-default flex-1 text-right">
-                {refund.cancelFee > 0
-                  ? `-${formatWon(refund.cancelFee)}`
-                  : formatWon(refund.cancelFee)}
+                -{formatWon(refund.cancelFee)}
+              </dd>
+            </div>
+            <div className="flex items-center gap-2">
+              <dt className="text-body-m text-text-default">실 환불 금액</dt>
+              <dd className="text-body-strong text-text-default flex-1 text-right">
+                {formatWon(refund.actualRefundAmount)}
               </dd>
             </div>
           </dl>
@@ -213,7 +289,7 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
           disabled={!canSubmit}
           onClick={() => setConfirmOpen(true)}
         >
-          저장
+          {requestLabel}
         </Button>
       </div>
 
@@ -224,19 +300,22 @@ export function FundingCancel({ fundingId }: { fundingId: string }) {
         className="bg-layer-surface-default backdrop:bg-layer-overlay m-auto w-[350px] max-w-[calc(100vw-40px)] rounded-xs p-6"
       >
         <div className="flex flex-col items-center gap-8">
-          <p id={titleId} className="text-title-s text-text-default text-center">
-            정말 취소하시겠습니까?
-          </p>
+          <div className="flex flex-col items-center gap-2">
+            <p id={titleId} className="text-title-s text-text-default text-center">
+              {confirmationTitle}
+            </p>
+            <p className="text-body-m text-text-secondary text-center">{confirmationDescription}</p>
+          </div>
           <div className="flex w-full gap-3">
             <button
               type="button"
               className={`${secondaryButtonClasses} h-[46px] flex-1`}
               onClick={() => setConfirmOpen(false)}
             >
-              아니요
+              닫기
             </button>
-            <Button className="flex-1" appearance="cta" onClick={handleConfirmCancel}>
-              취소
+            <Button className="flex-1" appearance="cta" onClick={handleConfirmSubmit}>
+              {requestLabel}
             </Button>
           </div>
         </div>

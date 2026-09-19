@@ -70,21 +70,31 @@ async function request<T>(path: string, options: ApiRequestOptions, retried: boo
 
 /* 어느 한 호출자의 AbortSignal에 묶으면, 그 호출자가 취소될 때 같이 기다리던 다른
    요청들의 refresh까지 함께 끊긴다. refresh 자체는 누구의 취소와도 무관하게 끝까지 간다. */
-async function refreshOnce(): Promise<string> {
+export async function refreshOnce(): Promise<string> {
   if (!refreshPromise) {
+    const revision = authTokenStore.getRevision();
     refreshPromise = fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
       method: "POST",
       credentials: "include",
     })
       .then((response) => parseResponse<{ accessToken: string }>(response))
       .then(({ accessToken }) => {
+        if (authTokenStore.getRevision() !== revision) {
+          throw new DOMException("Session changed", "AbortError");
+        }
         authTokenStore.set(accessToken);
         return accessToken;
       })
       .catch((error: unknown) => {
         /* 네트워크 오류·타임아웃·5xx까지 세션 실패로 취급하면 일시적 장애로 강제 로그아웃된다.
            Refresh Token 자체가 무효하다고 서버가 확인한 401에서만 지운다. */
-        if (error instanceof ApiError && error.status === 401) authTokenStore.clear();
+        if (
+          authTokenStore.getRevision() === revision &&
+          error instanceof ApiError &&
+          error.status === 401
+        ) {
+          authTokenStore.clear();
+        }
         throw error;
       })
       .finally(() => {

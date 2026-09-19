@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const NoticeDismiss: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
+    await userEvent.click(canvas.getByRole("button", { name: "리워드 5개 이상 더보기" }));
     expect(canvas.getByRole("status")).toHaveTextContent("연결된 프로젝트 정보가 없는 목업");
     await waitFor(() => expect(canvas.getByRole("status")).toBeEmptyDOMElement(), {
       timeout: 5000,
@@ -48,7 +48,7 @@ export const ExpandedChat: Story = {
     const chat = canvas.getByRole("log", { name: "라이브 채팅 메시지" });
     expect(chat.getBoundingClientRect().height).toBe(280);
     await userEvent.click(chat);
-    expect(chat.getBoundingClientRect().height).toBe(120);
+    expect(chat.getBoundingClientRect().height).toBe(156);
     const toggle = canvas.getByRole("button", { name: "채팅 확대" });
     toggle.focus();
     await userEvent.keyboard("{Enter}");
@@ -65,7 +65,7 @@ export const Questions: Story = {
     const canvas = within(canvasElement);
     const dialog = await canvas.findByRole("dialog");
     expect(dialog).toHaveAccessibleName("Q&A");
-    expect(within(dialog).getAllByRole("article")).toHaveLength(4);
+    expect(within(dialog).getAllByRole("article")).toHaveLength(5);
   },
 };
 
@@ -90,7 +90,7 @@ export const QuestionNavigation: Story = {
     const dialog = await canvas.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: "Q&A 확대" }));
     expect(dialog.getBoundingClientRect().top).toBe(64);
-    await userEvent.keyboard("{Escape}");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Q&A 닫기" }));
     expect(dialog).not.toBeVisible();
     expect(trigger).toHaveFocus();
   },

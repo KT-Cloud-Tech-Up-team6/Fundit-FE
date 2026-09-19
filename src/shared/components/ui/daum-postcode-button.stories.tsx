@@ -32,6 +32,9 @@ export const Ready: Story = {
               }) => void;
             },
           ) {}
+          embed() {
+            this.open();
+          }
           open() {
             this.options.oncomplete({
               zonecode: "06099",

@@ -1,11 +1,3 @@
-/* 공유 구매자 디자인이 확정되기 전까지 FL_B_LV_MAIN의 회색 배색만 이 화면에 한정한다. */
-.screen {
-  --layer-surface-default: #fff;
-  --layer-surface-disabled: #ededed;
-  --border-default: #d9d9d9;
-  --text-default: #000;
-}
-
 .screen a:focus-visible,
 .screen button:focus-visible,
 .screen [tabindex]:focus-visible {
@@ -13,91 +5,60 @@
   outline-offset: -2px;
 }
 
-.search {
-  height: 46px;
-  border-color: #dddee2;
+.navigation {
+  --layer-surface-disabled: var(--layer-surface-default);
+  height: calc(54px + env(safe-area-inset-bottom));
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.search input {
-  font-size: 14px;
-  line-height: 1.42;
+.navigation a {
+  color: var(--text-secondary);
 }
 
-.tabs {
-  width: 100%;
+.navigation a[aria-current="page"] {
+  color: var(--text-default);
 }
 
-.tab {
-  width: 50%;
-  color: #bababa;
+.navigation a[aria-current="page"]::after {
+  display: none;
 }
 
-.tab[aria-current="page"] {
-  color: #959595;
-  border-color: #959595;
+.navigation a[aria-current="page"] > span {
+  mask-image: url("/images/buyer-live/c4001.svg") !important;
 }
 
-.notificationButton {
-  background: #fff;
+.viewerBadge {
+  --status-info: var(--blue-100);
+  color: var(--text-static-primary-live);
 }
 
-.notificationButton[aria-pressed="true"] {
-  background: #000;
-  color: #fff;
-  border-color: #000;
+.liveBadge {
+  --status-info: var(--blue-500);
+  color: var(--text-static-white);
 }
 
-.cardTitle {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.42;
-  height: 40px;
+@media (min-width: 1200px) {
+  .liveBadge {
+    background-color: var(--layer-surface-primary-live);
+    color: var(--text-static-white);
+  }
 }
 
-.more {
-  color: #959595;
-  padding: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.42;
+.rankingBadge,
+.reasonBadge {
+  --text-secondary: var(--text-info);
 }
 
 .carousel {
-  --scrollbar-thumb: transparent;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
 }
-
-.carousel[data-scrolling="true"] {
-  --scrollbar-thumb: #959595;
+.carousel::-webkit-scrollbar {
+  display: none;
 }
-
-@supports selector(::-webkit-scrollbar) {
-  .carousel {
-    scrollbar-width: auto;
-    scrollbar-color: auto;
-  }
-
-  .carousel::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .carousel::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .carousel::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: 9999px;
-  }
-
-  .carousel::-webkit-scrollbar-button {
-    display: none;
-    width: 0;
-    height: 0;
-  }
+.carousel[data-dragging="true"] {
+  cursor: grabbing;
 }

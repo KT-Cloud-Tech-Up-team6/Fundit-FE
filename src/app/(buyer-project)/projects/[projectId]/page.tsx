@@ -1,9 +1,13 @@
+import { RewardSheet } from "@/features/reward-selection/ui/reward-sheet";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { ProjectTabs } from "@/features/project-tabs/ui/project-tabs";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 import { BuyerShell } from "@/shared/components/layout/buyer-shell";
 import { BuyerProjectDetail } from "@/features/buyer-project/ui/buyer-project-detail";
 import styles from "@/features/buyer-project/ui/buyer-project-detail.module.css";
+import { getProjectDemoConnection } from "@/features/buyer-live/model/live-demo";
+import { projectDemo } from "@/features/buyer-project/model/project-demo";
+import { projectSearchDemo } from "@/entities/project/model/project-search-demo";
 
 const allowedTabs = new Set([
   "story",
@@ -24,6 +28,8 @@ export default async function ProjectDetailPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+  const connection = getProjectDemoConnection(projectId);
+  const searchProject = projectSearchDemo.find((project) => project.id === projectId);
 
   if (activeTab === "story" || activeTab === "live-proof") {
     return (
@@ -31,7 +37,30 @@ export default async function ProjectDetailPage({
         key={projectId}
         projectId={projectId}
         activeTab={activeTab}
-        fundingAction={<FundingCta projectId={projectId} className={styles.funding} />}
+        project={
+          connection
+            ? {
+                ...projectDemo,
+                title: connection.data.title,
+                seller: connection.data.seller,
+                image: connection.data.image,
+              }
+            : searchProject
+              ? { ...projectDemo, ...searchProject }
+              : projectDemo
+        }
+        liveId={connection?.liveId}
+        hasLive={searchProject ? false : (connection?.hasLive ?? true)}
+        rewardSelection={
+          <RewardSheet projectId={projectId} inlineFormId={`rewards-${projectId}`} />
+        }
+        fundingAction={
+          <FundingCta
+            projectId={projectId}
+            className={styles.funding}
+            desktopFormId={`rewards-${projectId}`}
+          />
+        }
       />
     );
   }

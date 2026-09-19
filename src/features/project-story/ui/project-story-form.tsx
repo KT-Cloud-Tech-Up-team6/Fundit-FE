@@ -1,89 +1,110 @@
 "use client";
 
-import { useState } from "react";
-import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
+import type { Editor, JSONContent } from "@tiptap/core";
+import { useEffect, useState } from "react";
+import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { Button } from "@/shared/components/ui/button";
+import { FormField } from "@/shared/components/ui/form-field";
+import { Input } from "@/shared/components/ui/input";
+import { TextButton } from "@/shared/components/ui/text-button";
 import { StoryEditor } from "./story-editor";
+import { StoryPreview } from "./story-preview";
 import { ThumbnailUpload } from "./thumbnail-upload";
 
 const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록", "스토리 작성"];
 
-export function ProjectStoryForm() {
+export function ProjectStoryForm({ projectId }: { projectId: string }) {
   const [title, setTitle] = useState("");
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [previewContent, setPreviewContent] = useState<JSONContent | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (thumbnailUrl) URL.revokeObjectURL(thumbnailUrl);
+    };
+  }, [thumbnailUrl]);
 
   return (
-    <div className="min-w-0 flex-1">
-      <nav aria-label="이동 경로" className="text-label-m text-text-secondary">
-        <ol className="flex items-center gap-2">
-          {breadcrumb.map((crumb, index) => {
-            const isCurrent = index === breadcrumb.length - 1;
-            return (
-              <li key={crumb} className="flex items-center gap-2">
-                {index > 0 && <span aria-hidden>{">"}</span>}
-                <span
-                  aria-current={isCurrent ? "page" : undefined}
-                  className={isCurrent ? "text-text-default" : undefined}
-                >
-                  {crumb}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
+    <div className="w-full min-w-0 lg:max-w-[792px]">
+      <header className="flex h-20 flex-col justify-center gap-4">
+        <Breadcrumb items={breadcrumb} />
+        <h1 className="text-heading-l">스토리 작성</h1>
+      </header>
 
-      <h1 className="text-heading-l mt-3">스토리 작성</h1>
-
-      <div className="mt-5 flex flex-col gap-6 sm:flex-row">
-        <div className="flex-1">
-          <label htmlFor="project-title" className="text-title-s">
-            프로젝트 제목
-          </label>
-          <input
+      <div className="mt-3 grid gap-6 sm:grid-cols-2">
+        <FormField
+          htmlFor="project-title"
+          label="프로젝트 제목"
+          className="min-w-0 [&_label]:leading-[26px] [&_label]:font-medium"
+          action={
+            <TextButton
+              showIcon={false}
+              disabled
+              title="제목 수정 방식이 확정되면 제공됩니다."
+              className="disabled:text-text-disabled cursor-not-allowed font-bold"
+            >
+              수정
+            </TextButton>
+          }
+        >
+          <Input
             id="project-title"
+            shape="compact"
             placeholder="프로젝트 제목을 입력해주세요"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="text-body-s placeholder:text-text-disabled bg-layer-surface-disabled mt-2 h-10 w-full rounded-xs px-4 outline-none"
           />
-        </div>
+        </FormField>
 
-        <div className="flex-1">
-          <span className="text-title-s">썸네일 이미지</span>
-          <ThumbnailUpload />
-        </div>
+        <FormField
+          htmlFor="story-thumbnail-name"
+          label="썸네일 이미지"
+          className="min-w-0 [&_label]:leading-[26px] [&_label]:font-medium"
+        >
+          <ThumbnailUpload onFileChange={(file) => setThumbnailUrl(URL.createObjectURL(file))} />
+        </FormField>
       </div>
 
-      <StoryEditor projectTitle={title} />
+      <StoryEditor projectTitle={title} onReady={setEditor} />
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        {/* ponytail: 6팀_IA_v1.2.xlsx 판매자 IA #36은 미리보기를 "(후순위)"로 표시하고
-           FL_S_PR_PREV를 모달로 정의한다. docs/ROUTING.md엔 이미 /seller/projects/[projectId]/preview
-           페이지 라우트가 있어 모달 vs 페이지가 어긋난다 — 임의로 고르지 않고 비활성으로 둔다.
-           우선순위·라우팅이 정해지면 그때 하나로 정리한다. Figma는 비활성 상태를 표현하지 않고
-           항상 활성 색으로 그려서, disabled 대신 aria-disabled로 눌리지 않게만 막고 색은 그대로 둔다. */}
-        <button
-          type="button"
-          aria-disabled="true"
-          className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 cursor-not-allowed font-semibold!`}
+      <div className="mt-16 flex flex-wrap items-center justify-between gap-3 pb-1.5">
+        <Button
+          variant="secondary"
+          size="lg"
+          appearance="cta"
+          disabled={!editor}
+          onClick={() => editor && setPreviewContent(editor.getJSON())}
+          className="w-[186px]"
         >
           미리보기
-        </button>
-        {/* ponytail: 임시저장·저장은 저장 API가 없어 disabled로 막는다. 입력값은 title
-           state·Tiptap 에디터·ThumbnailUpload에 남아있지만 서버로 보낼 수단이 없다.
-           API가 생기면 실제 저장 동작을 연결한다. */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
+        </Button>
+        {/* 소개 저장 API 명세는 docs/API_CONTRACT.md에 있다. 편집기 콘텐츠 변환·업로드·저장
+           연동은 미구현이므로 임시저장·저장은 비활성으로 유지한다. */}
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-96">
+          <Button
+            variant="secondary"
+            size="lg"
+            appearance="cta"
             disabled
-            className={`${secondaryButtonClasses} text-body-strong! h-[46px] w-45 font-semibold!`}
+            title="저장 기능은 준비 중입니다."
           >
             임시저장
-          </button>
-          <Button disabled size="lg" appearance="cta" className="w-45">
+          </Button>
+          <Button disabled size="lg" appearance="cta" title="저장 기능은 준비 중입니다.">
             저장
           </Button>
         </div>
       </div>
+      {previewContent && (
+        <StoryPreview
+          content={previewContent}
+          projectId={projectId}
+          title={title}
+          thumbnailUrl={thumbnailUrl}
+          onClose={() => setPreviewContent(null)}
+        />
+      )}
     </div>
   );
 }

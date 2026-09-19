@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { useState } from "react";
+import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
 import { demoCoupons } from "../model/checkout-demo";
 import { CouponSheet } from "./coupon-sheet";
@@ -29,6 +30,7 @@ type Story = StoryObj<typeof meta>;
 export const List: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
 
     await expect(canvas.getByRole("heading", { name: "쿠폰 선택" })).toBeVisible();
     await expect(canvas.getByRole("radio", { name: "10,000원 할인 쿠폰" })).toBeChecked();
@@ -36,7 +38,7 @@ export const List: Story = {
 
     // 다른 쿠폰으로 바꾸고 저장 → 그 id 가 onApply 로 넘어간다.
     await userEvent.click(canvas.getByRole("radio", { name: "3,000원 할인 쿠폰" }));
-    await userEvent.click(canvas.getByRole("button", { name: "저장" }));
+    await userEvent.click(canvas.getByRole("button", { name: "적용" }));
     await expect(args.onApply).toHaveBeenCalledWith("flat-3000");
   },
 };
@@ -45,8 +47,9 @@ export const List: Story = {
 export const SelectNone: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
     await userEvent.click(canvas.getByRole("radio", { name: "사용하지 않음" }));
-    await userEvent.click(canvas.getByRole("button", { name: "저장" }));
+    await userEvent.click(canvas.getByRole("button", { name: "적용" }));
     await expect(args.onApply).toHaveBeenCalledWith(null);
   },
 };
@@ -56,7 +59,54 @@ export const Empty: Story = {
   args: { coupons: [] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
     await expect(canvas.getByText("사용가능한 쿠폰이 없습니다")).toBeVisible();
     await expect(canvas.queryByRole("radio")).toBeNull();
+  },
+};
+
+/** 최초에는 어떤 쿠폰도 선택하지 않고 적용을 비활성화한다. */
+export const Unselected: Story = {
+  args: { selectedId: undefined },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
+    for (const radio of canvas.getAllByRole("radio")) await expect(radio).not.toBeChecked();
+    await expect(canvas.getByRole("button", { name: "적용" })).toBeDisabled();
+  },
+};
+
+export const ReopenNone: Story = {
+  render: function ReopenCoupon(args) {
+    const [open, setOpen] = useState(true);
+    const [selectedId, setSelectedId] = useState<string | null | undefined>(undefined);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>쿠폰 다시 열기</button>
+        <CouponSheet
+          {...args}
+          open={open}
+          selectedId={selectedId}
+          onClose={() => setOpen(false)}
+          onApply={(id) => {
+            setSelectedId(id);
+            setOpen(false);
+          }}
+        />
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
+    await userEvent.click(canvas.getByRole("radio", { name: "사용하지 않음" }));
+    await userEvent.click(canvas.getByRole("button", { name: "적용" }));
+    await userEvent.click(canvas.getByRole("button", { name: "쿠폰 다시 열기" }));
+    await expect(canvas.getByRole("radio", { name: "사용하지 않음" })).toBeChecked();
+    await expect(canvas.getByRole("button", { name: "적용" })).toBeEnabled();
+    await userEvent.click(canvas.getByRole("radio", { name: "3,000원 할인 쿠폰" }));
+    await fireEvent(canvas.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    await userEvent.click(canvas.getByRole("button", { name: "쿠폰 다시 열기" }));
+    await expect(canvas.getByRole("radio", { name: "사용하지 않음" })).toBeChecked();
   },
 };

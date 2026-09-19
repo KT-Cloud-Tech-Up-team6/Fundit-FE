@@ -1,17 +1,14 @@
 "use client";
 
-import { mergeAttributes, Node } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
-import Image from "@tiptap/extension-image";
-import TextAlign from "@tiptap/extension-text-align";
-import { Color, TextStyle } from "@tiptap/extension-text-style";
-import Youtube from "@tiptap/extension-youtube";
+import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { useRef, useState } from "react";
 import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
-import { secondaryButtonClasses } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
+import { storyExtensions } from "../model/story-extensions";
+import styles from "./story-editor.module.css";
 
 /* ponytail: #38(펀딩 AI 스토리 챗봇) 목업 결과는 일반 텍스트라 문단(\n\n)·줄바꿈(\n)만 있다.
    Tiptap에 그대로 setContent하면 개행이 사라져서 <p>/<br>로 변환해 붙인다. */
@@ -23,23 +20,6 @@ const storyBodyToHtml = (body: string) =>
     .split("\n\n")
     .map((paragraph) => `<p>${paragraph.split("\n").map(escapeHtml).join("<br>")}</p>`)
     .join("");
-
-/* ponytail: mp4 등 직접 영상 파일 URL을 위한 공식 Tiptap 확장이 없어 최소 커스텀 노드로
-   직접 만든다. 업로드가 아니라 이미 어딘가에 호스팅된 URL을 받아 <video>로 재생만 한다. */
-const Video = Node.create({
-  name: "video",
-  group: "block",
-  atom: true,
-  addAttributes() {
-    return { src: { default: null } };
-  },
-  parseHTML() {
-    return [{ tag: "video[src]" }];
-  },
-  renderHTML({ HTMLAttributes }) {
-    return ["video", mergeAttributes(HTMLAttributes, { controls: "" })];
-  },
-});
 
 const YOUTUBE_HOSTS = new Set([
   "youtube.com",
@@ -73,13 +53,7 @@ const readFileAsDataUrl = (file: File, onLoaded: (dataUrl: string) => void) => {
 };
 
 const extensions = [
-  StarterKit,
-  TextAlign.configure({ types: ["paragraph"] }),
-  TextStyle,
-  Color,
-  Image.configure({ inline: true, allowBase64: true }),
-  Youtube.configure({ nocookie: true }),
-  Video,
+  ...storyExtensions,
   Placeholder.configure({ placeholder: "프로젝트를 소개하는 내용을 자유롭게 작성해주세요." }),
 ];
 
@@ -121,21 +95,13 @@ const formatButtons: FormatButton[] = [
     isActive: (editor) => editor.isActive({ textAlign: "right" }),
     onClick: (editor) => editor.chain().focus().setTextAlign("right").run(),
   },
-  {
-    icon: "insertQuote",
-    label: "인용구 삽입",
-    isActive: (editor) => editor.isActive("blockquote"),
-    onClick: (editor) => editor.chain().focus().toggleBlockquote().run(),
-  },
 ];
 
 const toolbarButtonClasses = (active: boolean) =>
   [
-    "flex size-7 items-center justify-center rounded-xs",
+    "flex size-4 shrink-0 items-center justify-center rounded-xs disabled:cursor-not-allowed disabled:text-text-disabled",
     "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
-    active
-      ? "bg-layer-surface-primary text-text-inverse"
-      : "text-text-secondary hover:bg-layer-surface-disabled",
+    active ? "text-text-default" : "text-text-secondary hover:text-text-default",
   ].join(" ");
 
 /* ponytail: AI로 펀딩 스토리 작성은 #38에서 구현된 FundingStoryModal(목업 챗봇 대화 → 생성 →
@@ -153,7 +119,13 @@ const toolbarButtonClasses = (active: boolean) =>
 
    URL이냐 파일이냐를 물어보는 선택 UI가 필요한데, 이 저장소엔 드롭다운/팝오버 컴포넌트가
    따로 없다. 새로 만들지 않고 네이티브 <details>/<summary>로 여닫는 작은 메뉴를 쓴다. */
-export function StoryEditor({ projectTitle }: { projectTitle: string }) {
+export function StoryEditor({
+  projectTitle,
+  onReady,
+}: {
+  projectTitle: string;
+  onReady: (editor: Editor) => void;
+}) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
@@ -166,6 +138,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
     extensions,
     immediatelyRender: false,
     shouldRerenderOnTransaction: true,
+    onCreate: ({ editor }) => onReady(editor),
     /* CSS ::before 플레이스홀더는 스크린리더에 노출되지 않는다. 접근 가능한 이름은
        aria-label로 따로 붙인다. */
     editorProps: { attributes: { "aria-label": "프로젝트 소개 내용" } },
@@ -213,19 +186,29 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
   };
 
   return (
-    <div className="border-w-xs border-border-default mt-8 rounded-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 p-4">
-        <span className="text-title-s font-semibold">프로젝트 소개</span>
-        <button
-          type="button"
+    <div className="border-w-xs border-border-default mt-4 rounded-xs">
+      <div className="flex min-h-[53px] flex-wrap items-center justify-between gap-2 px-4 py-2">
+        <span className="text-title-s leading-[1.42] font-medium">프로젝트 소개</span>
+        <Button
+          size="sm"
+          aria-label="AI로 펀딩 스토리 작성"
           onClick={() => setAiModalOpen(true)}
-          className={`${secondaryButtonClasses} text-body-strong! h-9 px-4`}
+          className="text-body-s h-9 w-[153px] gap-1 leading-[1.42] font-medium"
         >
-          AI로 펀딩 스토리 작성
-        </button>
+          펀딩 스토리 AI
+          <span
+            aria-hidden
+            className="inline-block size-4 shrink-0 bg-current"
+            style={{ mask: "url(/icons/project-story/ai-edit.svg) center / contain no-repeat" }}
+          />
+        </Button>
       </div>
 
-      <div className="border-border-default flex flex-wrap items-center gap-3 border-y px-4 py-2">
+      <div
+        role="group"
+        aria-label="본문 서식"
+        className="border-border-default flex flex-wrap items-center gap-3 border-y px-4 py-[7px]"
+      >
         {formatButtons.map(({ icon, label, isActive, onClick }) => (
           <button
             key={icon}
@@ -239,6 +222,8 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
             <Icon name={icon} className="size-4" />
           </button>
         ))}
+
+        <span aria-hidden className="bg-border-default h-5 w-px" />
 
         <button
           type="button"
@@ -303,6 +288,29 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
         <button
           type="button"
           disabled={!editor}
+          aria-label="인용구 삽입"
+          aria-pressed={editor ? editor.isActive("blockquote") : false}
+          onClick={() => {
+            if (!editor) return;
+            const chain = editor.chain().focus();
+            if (editor.state.selection instanceof AllSelection) {
+              // 영상 등 텍스트가 없는 노드를 제외한 유효한 텍스트 경계로 선택한다.
+              const { doc } = editor.state;
+              const start = TextSelection.findFrom(doc.resolve(0), 1, true);
+              const end = TextSelection.findFrom(doc.resolve(doc.content.size), -1, true);
+              if (!start || !end) return;
+              chain.setTextSelection({ from: start.from, to: end.to });
+            }
+            chain.toggleBlockquote().run();
+          }}
+          className={toolbarButtonClasses(editor ? editor.isActive("blockquote") : false)}
+        >
+          <Icon name="insertQuote" className="size-4" />
+        </button>
+
+        <button
+          type="button"
+          disabled={!editor}
           aria-label="글자 색상"
           onClick={() => colorInputRef.current?.click()}
           className={toolbarButtonClasses(false)}
@@ -319,7 +327,7 @@ export function StoryEditor({ projectTitle }: { projectTitle: string }) {
 
       <EditorContent
         editor={editor}
-        className="text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap]:h-100 [&_.tiptap]:overflow-y-auto [&_.tiptap]:p-4 [&_.tiptap]:outline-none [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs"
+        className={`${styles.editor} text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap:focus-visible]:ring-border-primary leading-[1.42] [&_.tiptap]:h-[432px] [&_.tiptap]:overflow-y-auto [&_.tiptap]:px-4 [&_.tiptap]:py-3 [&_.tiptap]:outline-none [&_.tiptap:focus-visible]:ring-2 [&_.tiptap:focus-visible]:ring-inset [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs`}
       />
 
       {isAiModalOpen && (

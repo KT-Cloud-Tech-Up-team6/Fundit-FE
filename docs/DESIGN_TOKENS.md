@@ -61,15 +61,15 @@ Tailwind v4는 설정 파일 없이 CSS `@theme` 블록에서 토큰과 유틸�
 
 정의 위치는 `src/app/globals.css` 한 파일로 시작한다. 200줄을 넘으면 `src/app/tokens.css`로 분리하고 `@import`한다.
 
-| 토큰 종류    | Tailwind 네임스페이스 | 생성되는 유틸리티            | 기본값 초기화                                          |
-| ------------ | --------------------- | ---------------------------- | ------------------------------------------------------ |
-| 색상         | `--color-*`           | `bg-*`, `text-*`, `border-*` | O — Tailwind 기본 팔레트 제거                          |
-| 타이포       | `--text-*`            | `text-*`                     | O                                                      |
-| Radius       | `--radius-*`          | `rounded-*`                  | O — 기본값과 이름이 겹치고 값이 다름                   |
-| Shadow       | `--shadow-*`          | `shadow-*`                   | O                                                      |
-| Border width | 없음                  | `border-*` 커스텀 유틸       | -                                                      |
-| Spacing      | `--spacing`           | `p-*`, `gap-*`, `m-*`        | X — 기본 4px 스케일 사용                               |
-| Breakpoint   | 없음                  | `md:`                        | X — Figma 768px과 Tailwind 기본 `md`가 일치. 6.11 참고 |
+| 토큰 종류    | Tailwind 네임스페이스 | 생성되는 유틸리티            | 기본값 초기화                                     |
+| ------------ | --------------------- | ---------------------------- | ------------------------------------------------- |
+| 색상         | `--color-*`           | `bg-*`, `text-*`, `border-*` | O — Tailwind 기본 팔레트 제거                     |
+| 타이포       | `--text-*`            | `text-*`                     | O                                                 |
+| Radius       | `--radius-*`          | `rounded-*`                  | O — 기본값과 이름이 겹치고 값이 다름              |
+| Shadow       | `--shadow-*`          | `shadow-*`                   | O                                                 |
+| Border width | 없음                  | `border-*` 커스텀 유틸       | -                                                 |
+| Spacing      | `--spacing`           | `p-*`, `gap-*`, `m-*`        | X — 기본 4px 스케일 사용                          |
+| Breakpoint   | 없음                  | `min-[1200px]:`              | X — 모바일 1199px 이하, 웹 1200px 이상. 6.11 참고 |
 
 `--color-*: initial;` 같은 초기화 한 줄로 Tailwind 기본 팔레트를 제거한다. 이렇게 하면 `bg-sky-500` 같은 비-디자인시스템 클래스가 컴파일 단계에서 죽어 실수를 조기에 잡는다.
 
@@ -149,14 +149,10 @@ Figma 레이어명(`green` / `bright_green` / `dark_green`)을 그대로 따라 
 | `--color-alpha-30` | `#0000004d` |
 | `--color-alpha-60` | `#00000099` |
 
-### 6.5a Primitive — External brand
+### 6.5a External brand
 
-| 토큰             | 값        | 용도                 |
-| ---------------- | --------- | -------------------- |
-| `--kakao-yellow` | `#fee500` | 카카오 인증 CTA 배경 |
-
-외부 브랜드의 고정 색은 일반 제품 CTA 색과 섞지 않는다. 화면에서는 Primitive를 직접 쓰지
-않고 `Layer/surface_kakao`로 승격한 Semantic을 사용한다.
+카카오 인증 CTA의 `#fee500`처럼 한 컴포넌트에서만 쓰는 외부 브랜드 색은 전역 제품 토큰으로
+승격하지 않고 해당 컴포넌트에 한정한다.
 
 ### 6.6 Semantic / Component
 
@@ -362,19 +358,19 @@ Tailwind에 border-width 네임스페이스가 없어 `@utility`로 직접 정�
 
 ### 6.11 Grid
 
-| 항목           | mobile     | desktop |
-| -------------- | ---------- | ------- |
-| 기준 프레임    | 390px      | 1440px  |
-| margin         | 20px       | -       |
-| gutter         | 24px       | 24px    |
-| column         | 4 (일부 3) | 12      |
-| column width   | -          | 70px    |
-| 콘텐츠 최대 폭 | 350px      | 1200px  |
-| 적용 상한      | ~768px     | ~1920px |
+| 항목           | mobile                                  | desktop |
+| -------------- | --------------------------------------- | ------- |
+| 기준 프레임    | 390px                                   | 1440px  |
+| margin         | 20px                                    | -       |
+| gutter         | 24px                                    | 24px    |
+| column         | 4 (일부 3)                              | 12      |
+| column width   | -                                       | 70px    |
+| 콘텐츠 기준 폭 | 350px (390px 원본 기준, 화면은 유동 폭) | 1200px  |
+| 적용 상한      | ~1199px                                 | ~1920px |
 
 `--container-content: 1200px` 하나만 토큰으로 만들고 나머지는 레이아웃 컴포넌트(`BuyerShell`, `SellerShell`)가 직접 소유한다. Grid는 값이 아니라 레이아웃 규칙이라 토큰화 효용이 낮다.
 
-브레이크포인트 768px은 Tailwind 기본 `md`(768px)와 일치하므로 별도 정의하지 않는다.
+화면 전환은 모바일 1199px 이하, 웹 1200px 이상으로 구분하며 `min-[1200px]:`를 사용한다. 별도 태블릿 디자인은 없다. `md:`와 `lg:`는 간격 등 기존 용도까지 일괄 변경하지 않는다. 모바일 화면의 외곽은 가용 폭을 사용하되 카드·미디어·미리보기의 명시적 치수는 유지한다. 별도 웹 원본이 아직 적용되지 않은 화면은 1200px 이상에서 기존 배치를 유지한다.
 
 ## 7. 다크 모드
 
@@ -395,8 +391,7 @@ Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모�
 | `layer-surface-disabled`           | `charcoal-100`     | `charcoal-700`        |
 | `layer-surface-primary`            | `charcoal-900`     | `charcoal-200`        |
 | `layer-surface-primary-live`       | `blue-500`         | 동일                  |
-| `layer-surface-kakao`              | `kakao-yellow`     | 동일                  |
-| `layer-surface-primary-disabled`   | `charcoal-300`     | `charcoal-700`        |
+| `layer-surface-primary-disabled`   | `charcoal-200`     | `charcoal-700`        |
 | `layer-surface-primary-hover`      | `charcoal-800`     | 동일                  |
 | `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |
 | `text-title`                       | `grey-black`       | `grey-white`          |

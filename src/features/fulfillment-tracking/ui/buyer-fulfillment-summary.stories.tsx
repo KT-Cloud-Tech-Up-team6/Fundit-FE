@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
+import { demoFundingDetail } from "@/features/funding-history/model/funding-history";
 import { demoBuyerFulfillmentState } from "../model/fulfillment-demo";
 import type { BuyerFulfillmentState } from "../model/fulfillment-demo";
 import { BuyerFulfillmentSummary } from "./buyer-fulfillment-summary";
 
-/* 목업 기록 날짜는 오늘 기준 상대값이라, 스토리는 기준일을 고정해 상태를 만든다. */
-const today = "2026-08-28";
+/* Figma 기준일로 목업과 날짜 의존 상태를 고정한다. */
+const today = "2026-09-28";
 
 /** 목업 기본 상태를 조금씩 바꿔 상태별 스토리를 만든다. */
 function stateWith(change: (state: BuyerFulfillmentState) => void): BuyerFulfillmentState {
@@ -14,11 +15,28 @@ function stateWith(change: (state: BuyerFulfillmentState) => void): BuyerFulfill
   return state;
 }
 
+/** 두 레이아웃이 DOM에 함께 있어 텍스트 쿼리는 모바일 트리로 좁힌다(role 쿼리는 숨겨진 쪽을 무시). */
+const mobile = (root: HTMLElement) =>
+  within(root.querySelector<HTMLElement>('[data-layout="mobile"]')!);
+
 const meta = {
   title: "Features/Fulfillment Tracking/Buyer Summary",
   component: BuyerFulfillmentSummary,
   args: { fundingId: "demo-funding" },
-  parameters: { layout: "fullscreen" },
+  parameters: {
+    layout: "fullscreen",
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  /* 모바일 트리가 기본 — 데스크톱 트리는 min-[1200px]에서만 보인다.
+     Storybook 10에서 기본 viewport는 parameters.viewport.defaultViewport가 아니라
+     globals.viewport.value로 지정한다(예전 방식은 무시된다). 어느 트리가 렌더되는지가
+     여기서 갈리므로 play 함수는 이 값에 의존한다. */
+  globals: { viewport: { value: "figma390" } },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">
@@ -37,7 +55,9 @@ export const Default: Story = {
   args: { today },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "제작·배송 현황" })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { name: demoFundingDetail("demo-funding").projectTitle }),
+    ).toBeVisible();
 
     const currentStep = canvas.getByRole("listitem", { name: "생산 단계, 진행 중" });
     await expect(currentStep).toHaveAttribute("aria-current", "step");
@@ -53,8 +73,7 @@ export const Default: Story = {
 export const Delayed: Story = {
   args: { today },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("지연")).toBeVisible();
+    await expect(mobile(canvasElement).getByText("지연")).toBeVisible();
   },
 };
 
@@ -62,10 +81,11 @@ export const Delayed: Story = {
 export const Stale: Story = {
   args: { today: "2026-09-20", initialState: demoBuyerFulfillmentState("2026-08-20") },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("업데이트 예정")).toBeVisible();
-    await expect(canvas.getByText(/마지막 업데이트 \d+일 전/)).toBeVisible();
-    await expect(canvas.queryByText("제작 진행 상황을 업데이트해주세요")).not.toBeInTheDocument();
+    await expect(mobile(canvasElement).getByText("업데이트 예정")).toBeVisible();
+    await expect(mobile(canvasElement).getByText(/마지막 업데이트 \d+일 전/)).toBeVisible();
+    await expect(
+      mobile(canvasElement).queryByText("제작 진행 상황을 업데이트해주세요"),
+    ).not.toBeInTheDocument();
   },
 };
 
@@ -78,8 +98,7 @@ export const EmptyStage: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("아직 등록된 기록이 없어요.")).toBeVisible();
+    await expect(mobile(canvasElement).getByText("아직 등록된 기록이 없어요.")).toBeVisible();
   },
 };
 
@@ -127,8 +146,13 @@ export const NotStarted: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("제작 착수 시작 전이에요")).toBeVisible();
+    const canvas = mobile(canvasElement);
+    await expect(
+      canvas.getByText(
+        (_, element) =>
+          element?.tagName === "P" && element.textContent === "제작 착수 시작 전이에요",
+      ),
+    ).toBeVisible();
     await expect(canvas.queryByText(/제작 착수 중이에요/)).not.toBeInTheDocument();
   },
 };
@@ -143,8 +167,58 @@ export const Completed: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
+    await expect(mobile(canvasElement).getByText("제작·배송이 완료됐어요")).toBeVisible();
+    await expect(mobile(canvasElement).queryByText(/완료 예정일/)).not.toBeInTheDocument();
+  },
+};
+
+/** Figma 1165:15459의 과거 사진 기록을 펼친 상태. */
+export const ExpandedPhotoRecord: Story = {
+  args: { today },
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("제작·배송이 완료됐어요")).toBeVisible();
-    await expect(canvas.queryByText(/완료 예정일/)).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "09월 21일 기록 펼치기" }));
+    await userEvent.click(canvas.getByRole("button", { name: "material-1.jpg 사진 크게 보기" }));
+    await expect(canvas.getByRole("dialog", { name: "material-1.jpg" })).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "material-1.jpg 닫기" }));
+    await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "09월 21일 기록 접기" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  },
+};
+
+/** 긴 기록을 펼치면 3줄을 초과해도 본문 전체를 읽을 수 있다. */
+export const LongRecord: Story = {
+  args: {
+    today,
+    initialState: stateWith((state) => {
+      state.stages.production.records[0].text =
+        "첫 번째 기록\n두 번째 기록\n세 번째 기록\n네 번째 기록\n마지막 기록";
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "09월 25일 기록 펼치기" }));
+    const text = mobile(canvasElement).getByText(/마지막 기록/);
+    await expect(text).toBeVisible();
+    await expect(getComputedStyle(text).webkitLineClamp).toBe("none");
+    await userEvent.click(canvas.getByRole("button", { name: "09월 25일 기록 접기" }));
+    await expect(getComputedStyle(mobile(canvasElement).getByText(/마지막 기록/)).whiteSpace).toBe(
+      "nowrap",
+    );
+  },
+};
+
+/** 1200px 이상 — 데스크톱 레이아웃이 보이고, 첨부 라이트박스도 열린다. */
+export const Desktop: Story = {
+  args: { today },
+  globals: { viewport: { value: "desktop" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { level: 1, name: "제작·배송 현황" })).toBeVisible();
+    await userEvent.click(canvas.getAllByRole("button", { name: /크게 보기$/ })[0]);
+    await expect(canvas.getByRole("dialog")).toBeVisible();
   },
 };

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { demoShippingAddress } from "../model/checkout-demo";
 
 import { OrderCheckoutScreen } from "./order-checkout-screen";
 
@@ -24,47 +25,42 @@ export const Default: Story = {
     await expect(canvas.getByRole("heading", { name: "홍길동", level: 2 })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "배송지 변경" })).toBeVisible();
 
-    // 적립금 0원일 때 최종 결제 금액 = 699,000 − 쿠폰 10,000 = 689,000원(상품 카드 쿠폰 적용가와 동일), CTA도 일치.
-    const finalAmount = () => canvas.getByText("최종 결제 금액").nextElementSibling;
-    await expect(finalAmount()).toHaveTextContent("689,000원");
-    await expect(canvas.getByRole("button", { name: "689,000원 결제하기" })).toBeEnabled();
+    // 적립금 0원일 때 최종 결제 금액 = 219,900 − 얼리버드 20,900 = 199,000원(상품 카드 쿠폰 적용가와 동일), CTA도 일치.
+    // 결제 금액 요약은 모바일/데스크탑 두 벌이 DOM에 있으므로, 보이는 쪽으로 범위를 좁힌다.
+    const summary = () => within(canvas.getByRole("region", { name: "결제 금액" }));
+    const finalAmount = () => summary().getByText("최종 결제 금액").nextElementSibling;
+    await expect(finalAmount()).toHaveTextContent("199,000원");
+    await expect(canvas.getByRole("button", { name: "199,000원 결제하기" })).toBeEnabled();
 
     // 적립금 입력 → 최종 결제 금액과 CTA가 실시간으로 줄어든다.
     await userEvent.type(canvas.getByLabelText("사용할 적립금"), "3000");
-    await expect(finalAmount()).toHaveTextContent("686,000원");
-    await expect(canvas.getByRole("button", { name: "686,000원 결제하기" })).toBeVisible();
+    await expect(finalAmount()).toHaveTextContent("196,000원");
+    await expect(canvas.getByRole("button", { name: "196,000원 결제하기" })).toBeVisible();
 
     // 보유 잔액(5,000)을 넘겨 입력하면 잔액까지만 반영된다.
     await userEvent.clear(canvas.getByLabelText("사용할 적립금"));
     await userEvent.type(canvas.getByLabelText("사용할 적립금"), "6000");
     await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("5000");
-    await expect(finalAmount()).toHaveTextContent("684,000원");
+    await expect(finalAmount()).toHaveTextContent("194,000원");
 
     // 부호·소수점이 섞인 값을 붙여넣어도 무시된다(값·금액 그대로).
     await userEvent.clear(canvas.getByLabelText("사용할 적립금"));
     await userEvent.paste("3,000.00");
     await expect(canvas.getByLabelText("사용할 적립금")).toHaveValue("");
-    await expect(finalAmount()).toHaveTextContent("689,000원");
+    await expect(finalAmount()).toHaveTextContent("199,000원");
 
-    // 전체 동의 → 개별 필수/선택 약관이 모두 체크되고, 해제하면 모두 풀린다.
-    const agreeAll = canvas.getByRole("checkbox", { name: "전체 동의합니다" });
-    await userEvent.click(agreeAll);
-    for (const box of canvas.getAllByRole("checkbox")) {
-      await expect(box).toBeChecked();
-    }
-    await userEvent.click(agreeAll);
-    await expect(
-      canvas.getByRole("checkbox", { name: "구매조건 및 결제대행 서비스 동의 (필수)" }),
-    ).not.toBeChecked();
+    expect(canvas.queryByRole("checkbox", { name: "전체 동의합니다" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "199,000원 결제하기" }));
+    expect(canvas.getByRole("alert")).toHaveTextContent("결제 수단을 선택해주세요.");
   },
 };
 
-/** 저장된 배송지가 없는 상태 — "신규 배송지 추가" 버튼 노출. */
+/** 저장된 배송지가 없는 상태 — "신규 배송지" 버튼 노출. */
 export const EmptyAddress: Story = {
   args: { hasSavedAddress: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: "신규 배송지 추가" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "신규 배송지" })).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "배송지 변경" })).toBeNull();
     // 아직 결제를 시도하지 않았으므로 경고는 없다.
     await expect(canvas.queryByRole("alert")).toBeNull();
@@ -78,5 +74,31 @@ export const PaymentAttemptWithoutAddress: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: /결제하기$/ }));
     await expect(canvas.getByRole("alert")).toHaveTextContent("배송지를 입력해주세요");
+  },
+};
+
+export const PaymentWithoutConsent: Story = {
+  args: {
+    initialForm: {
+      address: demoShippingAddress(),
+      couponId: null,
+      points: "",
+      method: "toss_pay",
+      card: "",
+      installment: "일시불",
+    },
+    onComplete: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const pay = canvas.getByRole("button", { name: "199,000원 결제하기" });
+    expect(pay).toBeEnabled();
+    expect(canvas.queryByRole("checkbox")).not.toBeInTheDocument();
+    await userEvent.dblClick(pay);
+    expect(args.onComplete).toHaveBeenCalledTimes(1);
+    expect(args.onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "toss_pay" }),
+      199000,
+    );
   },
 };

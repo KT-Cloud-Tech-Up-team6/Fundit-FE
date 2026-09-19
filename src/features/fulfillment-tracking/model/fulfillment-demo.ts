@@ -27,7 +27,7 @@ export type MediaItem = {
   id: string;
   kind: MediaKind;
   name: string;
-  /** objectURL. 업로드 서버가 없어 브라우저 밖에서는 null이다. */
+  /** 첨부 URL. 판매자 업로드는 objectURL, 구매자 목업은 Figma 정적 에셋을 쓴다. */
   url: string | null;
 };
 
@@ -39,6 +39,8 @@ export type FulfillmentRecord = {
   media: MediaItem[];
   /** 구매자 화면(FL_B_MY_DLVR)의 `지연` 표기용. 판매자 화면은 이 값을 읽지 않는다. */
   delayed?: boolean;
+  /** 등록 후 내용을 고쳤을 때의 `수정 됨` 표기용(Figma 1319:41075 등). */
+  edited?: boolean;
 };
 
 export type StageState = {
@@ -237,11 +239,18 @@ export function demoFulfillmentState(today: string = todayValue()): FulfillmentS
         },
         {
           id: "prep-2",
+          date: daysBefore(today, 6),
+          text: "원부자재 입고가 지연되어 일정을 다시 조정했어요.",
+          delayed: true,
+          media: [],
+        },
+        {
+          id: "prep-3",
           date: daysBefore(today, 3),
           text: "부자재 입고가 끝나 다음 주부터 본생산에 들어갑니다.",
           media: [
-            { id: "prep-2-a", kind: "image", name: "parts-1.jpg", url: null },
-            { id: "prep-2-b", kind: "video", name: "line-check.mp4", url: null },
+            { id: "prep-3-a", kind: "image", name: "parts-1.jpg", url: null },
+            { id: "prep-3-b", kind: "video", name: "line-check.mp4", url: null },
           ],
         },
       ],
@@ -256,21 +265,40 @@ export function demoFulfillmentState(today: string = todayValue()): FulfillmentS
 /**
  * 구매자 목업 상태(FL_B_MY_DLVR). `제작 착수`는 완료, `생산`이 진행 중이고 뒤 단계는 대기다.
  * `생산` 기록은 최신순 정렬 전 임의 순서로 넣어 `sortRecordsByDateDesc`가 실제로 동작하는지 확인한다.
- * 날짜는 오늘 기준 상대값이라 시간이 지나도 화면이 굳지 않는다.
+ * 기본 날짜는 Figma 예시(2026.09.28)로 고정하며, 테스트에서 기준일을 바꿀 수 있다.
  */
-export function demoBuyerFulfillmentState(today: string = todayValue()): BuyerFulfillmentState {
-  const productionStart = daysBefore(today, 12);
+export function demoBuyerFulfillmentState(today: string = "2026-09-28"): BuyerFulfillmentState {
+  const productionStart = daysBefore(today, 7);
   return {
     stages: {
       prep: {
         status: "done",
-        startDate: daysBefore(today, 20),
-        expectedEndDate: productionStart,
+        startDate: daysBefore(today, 18),
+        expectedEndDate: daysBefore(today, 10),
         records: [
+          {
+            id: "prep-4",
+            date: daysBefore(today, 10),
+            text: "전체 발주 물량 생산 완료 확인\n품질 인증서 및 검사 성적서 발급 완료\n배송 단계 이관 준비 완료",
+            media: [],
+          },
+          {
+            id: "prep-3",
+            date: daysBefore(today, 13),
+            text: "생산 중간 진행률 점검 및 발주처 컨펌 진행.\n중간 검수 결과 공유 및 일정 준수 여부 확인 완료.",
+            media: [],
+          },
+          {
+            id: "prep-2",
+            date: daysBefore(today, 16),
+            text: "원부자재 입고 지연에 따른 생산 일정 조정 협의",
+            delayed: true,
+            media: [],
+          },
           {
             id: "prep-1",
             date: daysBefore(today, 18),
-            text: "샘플 검토를 마치고 초도 물량 발주를 넣었어요.",
+            text: "제작 착수 확정, 생산팀 및 발주 정보 인수인계 완료",
             media: [],
           },
         ],
@@ -278,45 +306,65 @@ export function demoBuyerFulfillmentState(today: string = todayValue()): BuyerFu
       production: {
         status: "active",
         startDate: productionStart,
-        expectedEndDate: daysBefore(today, -8),
+        expectedEndDate: daysBefore(today, -4),
         records: [
           {
             id: "production-2",
-            date: daysBefore(today, 5),
-            text: "생산 라인 가동을 시작했고 초도물량 품질 검사를 예정하고 있어요.",
+            date: daysBefore(today, 3),
+            text: "부품 조립 라인 1차 통과, 외관 검사 진행 중\n크래치 및 마감 상태 확인 완료\n다음 공정(2차 조립)으로 이동 예정",
             media: [],
           },
           {
             id: "production-1",
-            date: daysBefore(today, 1),
-            text: "도장·건조 라인을 통과한 1차 완성품이 나왔어요. 다음 주 포장 자재가 입고되면 최종 조립에 들어갑니다. 진행 사진을 함께 올려요.",
+            date: today,
+            text: "2차 조립 라인 통과,\n중간 품질 검수 완료 불량률 0.3%로 기준치 이내 확인\n포장 공정으로 이동 준비 중",
             media: [
-              { id: "production-1-a", kind: "image", name: "line-1.jpg", url: null },
-              { id: "production-1-b", kind: "image", name: "line-2.jpg", url: null },
+              {
+                id: "production-1-a",
+                kind: "image",
+                name: "line-1.jpg",
+                url: "/images/fulfillment/assembly-line.png",
+              },
+              {
+                id: "production-1-b",
+                kind: "image",
+                name: "line-2.jpg",
+                url: "/images/fulfillment/quality-check.png",
+              },
             ],
           },
           {
             id: "production-4",
             date: productionStart,
-            text: "생산 준비를 마치고 원자재 검수를 진행하고 있어요.",
+            text: "생산 준비 완료, 원자재 검수중",
             media: [
-              { id: "production-4-a", kind: "image", name: "material-1.jpg", url: null },
-              { id: "production-4-b", kind: "image", name: "material-2.jpg", url: null },
+              {
+                id: "production-4-a",
+                kind: "image",
+                name: "material-1.jpg",
+                url: "/images/fulfillment/production-line.png",
+              },
+              {
+                id: "production-4-b",
+                kind: "image",
+                name: "material-2.jpg",
+                url: "/images/fulfillment/materials.png",
+              },
             ],
           },
           {
             id: "production-3",
-            date: daysBefore(today, 3),
-            text: "부자재 수급이 지연돼 생산 일정이 이틀 밀렸어요. 예상 완료일을 조정했습니다.",
+            date: daysBefore(today, 4),
+            text: "생산 라인 가동 시작, 초도물량 검사 지연\n원자재 입고가 반나절 늦어지며 검사 일정 조정",
             delayed: true,
             media: [],
           },
         ],
       },
-      inspection: { status: "todo", records: [], startDate: daysBefore(today, -8) },
-      release: { status: "todo", records: [], startDate: daysBefore(today, -14) },
-      delivery: { status: "todo", records: [], startDate: daysBefore(today, -20) },
+      inspection: { status: "todo", records: [], startDate: daysBefore(today, -4) },
+      release: { status: "todo", records: [], startDate: daysBefore(today, -11) },
+      delivery: { status: "todo", records: [], startDate: daysBefore(today, -14) },
     },
-    expectedShippingDate: daysBefore(today, -32),
+    expectedShippingDate: daysBefore(today, -14),
   };
 }

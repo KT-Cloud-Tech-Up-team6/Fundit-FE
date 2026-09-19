@@ -25,7 +25,8 @@ export function Checkbox({
   className,
   disabled,
   indeterminate = false,
-  shape = "circle",
+  /* Figma Check Box의 기본은 16px square다. 원형 선택은 Radio가 담당한다. */
+  shape = "square",
   ...props
 }: CheckboxProps) {
   /* checked와 indeterminate가 동시에 켜지면 두 표시가 겹친다. Tailwind 변형끼리는

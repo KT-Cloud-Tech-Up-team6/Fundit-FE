@@ -39,7 +39,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-export const Typing: Story = { args: { initialInput: "판매자" } };
+export const Typing: Story = { args: { initialInput: "무선 청소기" } };
 export const Projects: Story = { args: { query: { ...defaultSearch, q: "청소기" } } };
 export const Live: Story = { args: { query: { ...defaultSearch, q: "청소기", tab: "live" } } };
 export const Upcoming: Story = {
@@ -128,7 +128,7 @@ export const SearchFlow: Story = {
     await expect(canvas.getByRole("status")).toHaveTextContent("총 5개");
     await userEvent.click(canvas.getByRole("checkbox", { name: "종료 프로젝트 보기" }));
     await expect(canvas.getByRole("status")).toHaveTextContent("총 6개");
-    await userEvent.click(canvas.getByRole("tab", { name: "LIVE" }));
+    await userEvent.click(canvas.getByRole("tab", { name: /^LIVE/ }));
     await userEvent.click(canvas.getByRole("button", { name: "진행 예정" }));
     const notification = canvas.getAllByRole("button", { name: /시작 알림/ })[0];
     await userEvent.click(notification);

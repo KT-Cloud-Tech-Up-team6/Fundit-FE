@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { BottomSheet } from "./bottom-sheet";
 import { Button } from "./button";
@@ -14,6 +15,48 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+const nameCases = [
+  { title: undefined },
+  { title: null },
+  { title: false },
+  { title: true },
+  { title: "" },
+  { title: "   " },
+  { title: null, "aria-label": "직접 지정한 이름" },
+  { title: null, "aria-labelledby": "sheet-content-title" },
+  { title: "시트 제목" },
+];
+
+export const AccessibleName: Story = {
+  args: { title: undefined, children: null, onClose: () => {}, open: true },
+  render: function AccessibleNameStory() {
+    const [index, setIndex] = useState(0);
+    return (
+      <BottomSheet {...nameCases[index]} open onClose={() => {}}>
+        <p id="sheet-content-title">본문 제목</p>
+        <Button onClick={() => setIndex((value) => (value + 1) % nameCases.length)}>
+          다음 사례
+        </Button>
+      </BottomSheet>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const scenario of nameCases) {
+      const hasTitle = typeof scenario.title === "string" && scenario.title.trim() !== "";
+      const name =
+        scenario["aria-label"] ??
+        (scenario["aria-labelledby"] ? "본문 제목" : hasTitle ? scenario.title : "바텀 시트");
+      const dialog = await canvas.findByRole("dialog", { name });
+      await expect(dialog).toHaveAccessibleName(name);
+      if (!hasTitle) {
+        await expect(within(dialog).queryByRole("heading")).toBeNull();
+      }
+      await userEvent.click(within(dialog).getByRole("button", { name: "다음 사례" }));
+    }
+  },
+};
 
 export const Default: Story = {
   args: { "aria-label": "약관 동의", children: null, onClose: () => {}, open: false },
@@ -49,6 +92,15 @@ const terms = [
 /* footer는 스크롤에서 빠져 하단에 고정된다. 본문(리스트)만 스크롤하는지 확인한다. */
 export const FixedFooter: Story = {
   args: { "aria-label": "리워드 선택", children: null, onClose: () => {}, open: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dialog = await canvas.findByRole("dialog", { name: "리워드 선택" });
+    const footer = canvas.getByRole("button", { name: "펀딩하기" });
+    await expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      dialog.getBoundingClientRect().bottom,
+    );
+    await expect(dialog.scrollHeight).toBeLessThanOrEqual(dialog.clientHeight + 1);
+  },
   render: function FixedFooterStory() {
     const [open, setOpen] = useState(true);
 
@@ -56,7 +108,7 @@ export const FixedFooter: Story = {
       <div className="min-h-dvh p-5">
         <Button onClick={() => setOpen(true)}>시트 열기</Button>
         <BottomSheet
-          aria-label="리워드 선택"
+          title="리워드 선택"
           onClose={() => setOpen(false)}
           open={open}
           footer={
@@ -82,6 +134,36 @@ export const FixedFooter: Story = {
               </div>
             ))}
           </div>
+        </BottomSheet>
+      </div>
+    );
+  },
+};
+
+/* 내장 타이틀 바: title만 주면 헤더(제목+닫기)가 자동으로 생기고, onBack까지 주면
+   다단계 시트의 뒤로가기 버튼도 같이 뜬다. */
+export const WithTitleBar: Story = {
+  args: { children: null, onClose: () => {}, open: false, title: "리워드 선택" },
+  render: function WithTitleBarStory() {
+    const [open, setOpen] = useState(true);
+    const [detail, setDetail] = useState(false);
+
+    return (
+      <div className="min-h-dvh p-5">
+        <Button onClick={() => setOpen(true)}>시트 열기</Button>
+        <BottomSheet
+          onBack={detail ? () => setDetail(false) : undefined}
+          onClose={() => setOpen(false)}
+          open={open}
+          title={detail ? "리워드 상세" : "리워드 선택"}
+        >
+          {detail ? (
+            <p className="text-body-s text-text-default">뒤로가기를 누르면 목록으로 돌아갑니다.</p>
+          ) : (
+            <Button className="w-full" onClick={() => setDetail(true)}>
+              상세 보기
+            </Button>
+          )}
         </BottomSheet>
       </div>
     );

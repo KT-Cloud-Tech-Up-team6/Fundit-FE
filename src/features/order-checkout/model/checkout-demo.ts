@@ -1,19 +1,10 @@
 /* 주문서 화면(FL_B_PY_ORD)의 화면 데이터와 순수 계산 헬퍼.
    ponytail: 주문/결제 조회 API가 없어(docs/OPEN_DECISIONS.md P0 "결제") 값은 목업 상수다.
    API가 생기면 타입을 응답 스키마에 맞추고 계산·포맷 헬퍼는 그대로 재사용한다.
-   쿠폰·적립금 입력 반영과 실시간 재계산은 후속 이슈(Issue #58 제외 범위). */
+   쿠폰·적립금·리워드 할인은 현재 선택값으로 계산한다. */
 
-export type ShippingAddress = {
-  recipientName: string;
-  phone: string;
-  /** 우편번호 찾기(다음 우편번호 서비스)로 채워지는 값. */
-  zipCode: string;
-  /** 도로명 또는 지번 기본 주소. 우편번호 찾기로 채워진다. */
-  baseAddress: string;
-  detailAddress: string;
-  /** 배송 요청 사항 (선택). */
-  deliveryMemo?: string;
-};
+import type { ShippingAddress, OrderReceipt } from "@/entities/order/model/order-session";
+export type { ShippingAddress, OrderReceipt } from "@/entities/order/model/order-session";
 
 /** 배송지 섹션 표시 상태.
    saved=저장된 배송지, empty=배송지 없음, warning=미입력 + 결제 시도 후 강조. */
@@ -27,6 +18,9 @@ export type OrderItem = {
   meta: string[];
   /** 정가. 상품 카드의 쿠폰 적용가는 이 값 − 적용 쿠폰 할인으로 계산한다. */
   originalPrice: number;
+  price?: number;
+  image?: string;
+  option?: string;
 };
 
 export type PaymentMethod = "credit_card" | "toss_pay";
@@ -50,27 +44,10 @@ export type Coupon = {
 /** 결제 금액 요약. 할인액은 양수로 들고 표시할 때 부호를 붙인다. */
 export type PaymentSummary = {
   fundingAmount: number;
+  earlyBirdDiscount?: number;
   shippingFee: number;
   couponDiscount: number;
   pointDiscount: number;
-};
-
-export type TermsItem = { id: string; label: string; required: boolean };
-
-/** 주문 완료 화면(FL_B_PY_CMPL) 영수증. 결제 API 전까지 목업. */
-export type OrderReceipt = {
-  orderId: string;
-  /** "리워드 외 0건" */
-  itemSummary: string;
-  paidAmount: number;
-  /** 축약된 배송지 문자열. */
-  shippingAddress: string;
-  ordererName: string;
-  ordererPhone: string;
-  /** "리워드 참여가 확정됐습니다" 같은 안내 문구. */
-  completeMessage: string;
-  /** "2026.11.02" */
-  expectedShippingDate: string;
 };
 
 /** 5000000 → "5,000,000원"
@@ -87,7 +64,7 @@ export function totalOrderAmount(summary: PaymentSummary): number {
 
 /** 총 할인 금액 = 펀딩 쿠폰 + 보유 적립금 사용. */
 export function totalDiscount(summary: PaymentSummary): number {
-  return summary.couponDiscount + summary.pointDiscount;
+  return (summary.earlyBirdDiscount ?? 0) + summary.couponDiscount + summary.pointDiscount;
 }
 
 /** 최종 결제 금액 = 총 주문 금액 − 총 할인 금액. 음수면 0으로 막는다. */
@@ -97,16 +74,20 @@ export function finalPaymentAmount(summary: PaymentSummary): number {
 
 /** 이번 주문에서 적립금으로 상쇄 가능한 최대 금액 = 총 주문 − 쿠폰 할인. (최종 결제 금액이 음수가 되지 않도록) */
 export function maxPointUsage(summary: PaymentSummary): number {
-  return Math.max(0, totalOrderAmount(summary) - summary.couponDiscount);
+  return Math.max(
+    0,
+    totalOrderAmount(summary) - (summary.earlyBirdDiscount ?? 0) - summary.couponDiscount,
+  );
 }
 
 /** 쿠폰을 이 주문 금액에 적용했을 때 할인액. 최소 주문액 미달이면 0. */
 export function couponDiscountAmount(coupon: Coupon, orderAmount: number): number {
   if (orderAmount < coupon.minOrderAmount) return 0;
-  if (coupon.discount.type === "amount") return coupon.discount.amount;
+  if (coupon.discount.type === "amount") return Math.min(orderAmount, coupon.discount.amount);
   return Math.min(
     Math.floor((orderAmount * coupon.discount.percent) / 100),
     coupon.discount.maxAmount,
+    orderAmount,
   );
 }
 
@@ -127,12 +108,6 @@ export function parsePointInput(raw: string): number | null {
   const cleaned = raw.replace(/,/g, "").trim();
   if (cleaned === "") return 0;
   return /^\d+$/.test(cleaned) ? Number(cleaned) : null;
-}
-
-/** 필수 약관이 모두 동의됐는지. "전체 동의합니다" 체크 여부와 같은 조건이다. */
-export function requiredTermsMet(terms: TermsItem[], agreedIds: readonly string[]): boolean {
-  const agreed = new Set(agreedIds);
-  return terms.filter((term) => term.required).every((term) => agreed.has(term.id));
 }
 
 /** 배송지 입력값이 전부 빈 시작 상태. */
@@ -160,11 +135,13 @@ export function isShippingAddressComplete(address: ShippingAddress): boolean {
 
 export function demoOrderItem(): OrderItem {
   return {
-    projectTitle: "바닥 청소부터 걸레 건조까지 한 번에 관리하는 올인원 로봇청소기, 클린포지 R1",
-    rewardName: "얼리버드 클린포지 R1",
+    projectTitle: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
+    rewardName: "가장 먼저 만나는 스타터 세트",
     quantity: 1,
     meta: ["무료배송", "예상 발송일 2026.10.12"],
-    originalPrice: 699_000,
+    originalPrice: 219_900,
+    price: 199_000,
+    image: "/images/checkout/product.png",
   };
 }
 
@@ -208,8 +185,8 @@ export function demoCoupons(): Coupon[] {
   ];
 }
 
-/** 화면 진입 시 기본 선택 쿠폰 id. 목업: 이 주문에 쓸 수 있는 것 중 할인액이 가장 큰 것. */
-export const DEMO_SELECTED_COUPON_ID = "flat-10000";
+/** 쿠폰은 사용자가 직접 선택하기 전까지 적용하지 않는다. */
+export const DEMO_SELECTED_COUPON_ID = null;
 
 export function demoShippingAddress(): ShippingAddress {
   return {
@@ -219,29 +196,19 @@ export function demoShippingAddress(): ShippingAddress {
     baseAddress: "서울 강남구 학동로 343",
     /* 저장된 배송지는 isShippingAddressComplete 를 통과하는 완성 상태여야 한다
        (배송지 변경 시트가 이 값으로 열려 저장 버튼이 바로 활성). */
-    detailAddress: "5층 501호",
+    detailAddress: "현대 아파트 106동 1501호",
   };
 }
 
-/* couponDiscount·pointDiscount 는 화면에서 쿠폰 선택·적립금 입력으로 실시간으로 덮어쓴다.
-   기본값은 진입 시 상태(기본 선택 쿠폰 "10,000원 할인 쿠폰" 적용, 적립금 0)와 일치시킨다:
-   상품 카드 쿠폰 적용가 = 정가 699,000 − 10,000 = 689,000 = 최종 결제 금액. */
+/* 사용자 확인: 스타터 정가 219,900원, 판매가 199,000원, 무료배송. */
 export function demoPaymentSummary(): PaymentSummary {
   return {
-    fundingAmount: 699_000,
+    fundingAmount: 219_900,
+    earlyBirdDiscount: 20_900,
     shippingFee: 0,
-    couponDiscount: 10_000,
+    couponDiscount: 0,
     pointDiscount: 0,
   };
-}
-
-export function demoTerms(): TermsItem[] {
-  return [
-    { id: "purchase", label: "구매조건 및 결제대행 서비스 동의 (필수)", required: true },
-    { id: "privacy-third-party", label: "개인정보 제3자 제공 동의 (필수)", required: true },
-    { id: "liability", label: "책임 규정 동의 (필수)", required: true },
-    { id: "news", label: "펀딩 관련 새 소식 알림 동의 (선택)", required: false },
-  ];
 }
 
 /** 적립금 섹션 "보유 N원" 표시용 목업. */
@@ -250,9 +217,10 @@ export const DEMO_POINT_BALANCE = 5_000;
 /* FL_B_PY_CMPL 목업. 결제/주문 API가 없어 이 화면만의 독립 값(체크아웃 금액과 별개). */
 export function demoOrderReceipt(): OrderReceipt {
   return {
-    orderId: "FD20261108-000123",
-    itemSummary: "리워드 외 0건",
-    paidAmount: 39_000,
+    orderId: "DEMO-20260901-000123",
+    itemSummary: "가장 먼저 만나는 스타터 세트 X 1",
+    projectId: "demo",
+    paidAmount: 199_000,
     shippingAddress: "서울특별시 강남구 학동로 343",
     ordererName: "홍길동",
     ordererPhone: "010-1111-2222",
@@ -261,5 +229,5 @@ export function demoOrderReceipt(): OrderReceipt {
   };
 }
 
-/** 주문 완료 후 펀딩내역 화면으로 자동 이동하기까지의 초. Figma는 10초(IA는 3초 — 확인 필요). */
+/** 주문 완료 후 펀딩내역 화면으로 자동 이동하기까지의 초. 최신 Figma 1132:15066은 10초. */
 export const ORDER_COMPLETE_REDIRECT_SECONDS = 10;

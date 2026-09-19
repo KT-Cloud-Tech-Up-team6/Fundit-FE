@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { CategoryReturnPathGuard } from "./category-return-path-guard";
+import { OrderSessionProvider } from "@/entities/order/model/order-session";
 import { AuthProvider } from "./auth-provider";
 import { MswProvider } from "./msw-provider";
 import { QueryProvider } from "./query-provider";
@@ -17,7 +18,7 @@ export function AppProviders({ children, mswForceEnabled }: AppProvidersProps) {
       <QueryProvider>
         <AuthProvider>
           <CategoryReturnPathGuard />
-          {children}
+          <OrderSessionProvider>{children}</OrderSessionProvider>
         </AuthProvider>
       </QueryProvider>
     </MswProvider>

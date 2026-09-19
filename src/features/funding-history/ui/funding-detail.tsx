@@ -39,9 +39,12 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
           <p className="text-body-emphasis text-text-default">{detail.orderNumber}</p>
           <div className="flex flex-col gap-4">
             <div className="flex gap-3">
-              <div className="bg-layer-surface-disabled text-caption-m text-text-secondary flex size-[66px] shrink-0 items-center justify-center rounded-xs">
-                IMG
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={detail.imageSrc}
+                alt=""
+                className="size-16 shrink-0 rounded-xs object-cover"
+              />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <p className="text-body-m text-text-default">{detail.creatorName}</p>
                 <p className="text-body-emphasis text-text-default truncate">
@@ -49,7 +52,7 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
                 </p>
                 <p className="text-body-m text-text-default flex gap-1">
                   <span className="truncate">{detail.rewardOption}</span>
-                  <span aria-hidden>X</span>
+                  <span aria-hidden>·</span>
                   <span className="shrink-0">{detail.rewardQuantity}개</span>
                 </p>
               </div>
@@ -97,7 +100,7 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
         </section>
       </div>
 
-      <BuyerBottomNavigation activeHref="/my" />
+      <BuyerBottomNavigation compact activeHref="/my" className="sticky bottom-0 mt-auto" />
     </div>
   );
 }

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/shared/components/ui/icon";
 
 /* 결제 흐름 화면 공용 상단 바 (Figma top_app_bar).
-   뒤로가기는 arrow_up_line 을 -90° 돌린 좌향 화살표(꼬리 있음), 제목은 가운데. */
-export function CheckoutTopBar({ title = "프로젝트 제목" }: { title?: string }) {
+   뒤로가기는 Figma arrow_left, 제목은 가운데. */
+export function CheckoutTopBar({ title = "결제" }: { title?: string }) {
   const router = useRouter();
 
   return (
@@ -17,7 +17,7 @@ export function CheckoutTopBar({ title = "프로젝트 제목" }: { title?: stri
         onClick={() => router.back()}
         className="focus-visible:outline-border-primary flex size-10 shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        <Icon name="arrowUp" className="size-6 -rotate-90" />
+        <Icon name="arrowLeft" className="size-5" />
       </button>
       <h1 className="text-title-s text-text-default min-w-0 flex-1 truncate text-center">
         {title}

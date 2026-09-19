@@ -1,5 +1,5 @@
-import { ProjectBasicInfoForm } from "@/features/project-basic-info/ui/project-basic-info-form";
+import { ProjectCreateFlow } from "@/features/project-basic-info/ui/project-create-flow";
 
 export default function NewProjectPage() {
-  return <ProjectBasicInfoForm />;
+  return <ProjectCreateFlow />;
 }

@@ -11,7 +11,9 @@ type MswProviderProps = {
 };
 
 export function MswProvider({ children, forceEnabled = false }: MswProviderProps) {
-  const shouldStart = forceEnabled || process.env.NODE_ENV === "development";
+  const shouldStart =
+    forceEnabled ||
+    (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_MSW_ENABLED === "true");
   const [ready, setReady] = useState(!shouldStart);
 
   useEffect(() => {

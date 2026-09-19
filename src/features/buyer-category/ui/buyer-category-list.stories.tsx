@@ -26,9 +26,9 @@ export const Default: Story = {
       "aria-current",
       "page",
     );
-    expect(canvas.getAllByRole("link", { name: "소분류 명" })[0]).toHaveAttribute(
+    expect(canvas.getByRole("link", { name: "컴퓨터·노트북" })).toHaveAttribute(
       "href",
-      "/categories/tech-appliances/sub-1",
+      "/categories/tech-appliances/computers",
     );
   },
 };
@@ -36,3 +36,5 @@ export const Default: Story = {
 export const Travel: Story = {
   args: { slug: "travel" },
 };
+
+export const HomeLiving: Story = { args: { slug: "home-living" } };

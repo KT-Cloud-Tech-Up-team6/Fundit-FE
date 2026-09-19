@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import styles from "./checkout-sheet.module.css";
 import { useState } from "react";
 
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
@@ -13,13 +15,10 @@ type CouponSheetProps = {
   coupons: Coupon[];
   /** 사용 가능 여부 판정에 쓰는 이번 주문 금액(할인 전). */
   orderAmount: number;
-  /** 현재 적용된 쿠폰 id. null = 사용 안 함. */
-  selectedId: string | null;
+  /** 현재 적용된 쿠폰 id. undefined = 미선택, null = 사용하지 않음. */
+  selectedId?: string | null;
   onApply: (couponId: string | null) => void;
 };
-
-/* "사용하지 않음"을 라디오 값으로 다루기 위한 센티널. null 과 매핑한다. */
-const NONE = "__none__";
 
 /* 쿠폰 선택 바텀시트 (FL_B_PY_CPN). 라디오 단일 선택 → 저장 시 주문서 요약에 반영.
    최소 주문액 미달 쿠폰은 비활성(회색)으로 표시. */
@@ -31,37 +30,46 @@ export function CouponSheet({
   selectedId,
   onApply,
 }: CouponSheetProps) {
-  const [choice, setChoice] = useState<string>(selectedId ?? NONE);
+  const [choice, setChoice] = useState<string | null | undefined>(selectedId);
 
   /* 닫았다 다시 열면 현재 적용값으로 되돌린다. */
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setChoice(selectedId ?? NONE);
+    if (open) setChoice(selectedId);
   }
 
   function submit() {
-    onApply(choice === NONE ? null : choice);
+    if (choice !== undefined) onApply(choice);
   }
 
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
-      aria-labelledby="coupon-sheet-title"
+      title="쿠폰 선택"
+      className={styles.sheet}
+      desktopModal
       footer={
-        <Button className="w-full" appearance="cta" onClick={submit}>
-          저장
+        <Button
+          className="w-full disabled:bg-[#cdced4]!"
+          appearance="cta"
+          disabled={coupons.length > 0 && choice === undefined}
+          onClick={coupons.length ? submit : onClose}
+        >
+          {coupons.length ? "적용" : "닫기"}
         </Button>
       }
     >
-      <h2 id="coupon-sheet-title" className="text-title-s text-text-default mb-6 text-center">
-        쿠폰 선택
-      </h2>
-
       {coupons.length === 0 ? (
-        <div className="flex flex-col items-center gap-6 py-10">
-          <div className="bg-layer-surface-disabled size-28 rounded-md" aria-hidden />
+        <div className="flex flex-col items-center gap-10 py-10">
+          <Image
+            src="/images/checkout/coupon-empty.svg"
+            alt=""
+            width={112}
+            height={112}
+            className="size-28"
+          />
           <p className="text-title-s text-text-default">사용가능한 쿠폰이 없습니다</p>
         </div>
       ) : (
@@ -70,8 +78,8 @@ export function CouponSheet({
 
           <CouponRadio
             label="사용하지 않음"
-            checked={choice === NONE}
-            onSelect={() => setChoice(NONE)}
+            checked={choice === null}
+            onSelect={() => setChoice(null)}
           />
 
           {coupons.map((coupon) => {
@@ -145,15 +153,21 @@ function CouponRadio({
       </span>
 
       <span className={`flex min-w-0 flex-1 flex-col gap-1 ${tone}`}>
-        <span className="flex items-center gap-2">
-          <span className="text-body-m font-medium">{label}</span>
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-title-s leading-[1.42]">{label}</span>
           {badge && (
-            <span className="text-label-m bg-layer-surface-disabled text-text-default shrink-0 rounded-full px-2 py-1">
+            <span className="text-label-m bg-layer-surface-primary text-text-inverse shrink-0 rounded-full px-2 py-1">
               {badge}
             </span>
           )}
         </span>
-        {condition && <span className={`text-body-s ${subTone}`}>{condition}</span>}
+        {condition && (
+          <span
+            className={`text-body-s leading-[1.42] ${disabled ? "text-text-disabled" : "text-text-default"}`}
+          >
+            {condition}
+          </span>
+        )}
         {expiry && <span className={`text-caption-s ${subTone}`}>{expiry}</span>}
       </span>
     </label>

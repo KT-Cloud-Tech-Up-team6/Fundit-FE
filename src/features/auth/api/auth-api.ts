@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/api/client";
+import { apiRequest, refreshOnce } from "@/shared/api/client";
 
 import type {
   AuthResult,
@@ -80,11 +80,8 @@ export function linkSocial(
   });
 }
 
-export function refreshAccessToken(options?: RequestOptions) {
-  return apiRequest<{ accessToken: string }>("/api/v1/auth/token/refresh", {
-    ...signalOptions(options),
-    method: "POST",
-  });
+export async function refreshAccessToken() {
+  return { accessToken: await refreshOnce() };
 }
 
 export function getMe(options?: RequestOptions) {

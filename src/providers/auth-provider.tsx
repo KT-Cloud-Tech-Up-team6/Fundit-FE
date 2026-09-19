@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { accessToken } = await refreshAccessToken();
         if (restoreSupersededRef.current) return;
-        authTokenStore.set(accessToken);
         const user = await getMe();
         if (restoreSupersededRef.current) return;
         dispatch({ accessToken, type: "AUTHENTICATED" });

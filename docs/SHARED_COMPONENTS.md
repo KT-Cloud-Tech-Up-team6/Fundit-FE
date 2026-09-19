@@ -103,16 +103,47 @@ src/shared/components/
 
 ## 현재 공용 UI 인벤토리
 
-| 범주       | 컴포넌트                                     | 책임                                              |
-| ---------- | -------------------------------------------- | ------------------------------------------------- |
-| Action     | `Button`                                     | 기본·LIVE CTA의 크기, 상태와 네이티브 button 계약 |
-| Form       | `Input`, `SearchField`, `Select`, `Checkbox` | 입력 시맨틱, 오류·disabled 상태와 focus 표현      |
-| Navigation | `Tab`, `TabList`, `Pagination`               | 탭 위젯, URL 내비게이션과 페이지 이동             |
-| Feedback   | `Badge`, `Chip`, `ProgressBar`               | 상태·선택·진행률의 도메인 비의존 표현             |
-| Surface    | `Card`, `BottomSheet`                        | 콘텐츠 표면과 modal dialog 동작                   |
-| Media      | `Icon`                                       | 허용된 아이콘 이름과 색상 상속                    |
+| 범주       | 컴포넌트                                              | 책임                                                                 |
+| ---------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Action     | `Button`, `TextButton`                                | 기본·LIVE CTA와 보조 텍스트 액션의 크기, 상태와 네이티브 button 계약 |
+| Form       | `Input`, `SearchField`, `Select`, `Checkbox`, `Radio` | 입력 시맨틱, 오류·disabled 상태와 focus 표현                         |
+| Navigation | `Tab`, `TabList`, `Pagination`                        | 탭 위젯, URL 내비게이션과 페이지 이동                                |
+| Feedback   | `Badge`, `Chip`, `ProgressBar`, `Toast`               | 상태·선택·진행률·알림의 도메인 비의존 표현                           |
+| Surface    | `Card`, `BottomSheet`, `Tooltip`                      | 콘텐츠 표면, modal dialog와 컨텍스트 팝업 동작                       |
+| Media      | `Icon`, `Avatar`, `AspectRatio`                       | 허용된 아이콘 이름, 프로필 이미지와 비율 컨테이너                    |
 
 이 표는 컴포넌트 사용법의 정본이 아닙니다. 공개 props와 상태 예시는 각 Storybook 스토리를 기준으로 확인합니다.
+
+## Molecules 2차 디자인 반영
+
+디자인 기준은 [Fundit 디자인 시스템 유지보수 관리](https://www.figma.com/design/OJkMEDf2sY4Fkh0nSSNRXe?node-id=1-2)의 2026-09-14 내역과 Foundations입니다. 아래 컴포넌트는 디자인 시스템에 명시된 조합이므로 화면 적용에 앞서 공용으로 제공합니다. 기존 `ui` 디렉터리 구조를 유지합니다.
+
+| Figma 페이지      | 공개 컴포넌트      | 사용 계약                                                                            |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| chat              | `ChatDialogue`     | `sender`, 크기, 내용과 진행 표시. avatar·status·actions는 호출자 슬롯                |
+| dropdown          | `Dropdown`         | `lg` 52px, `sm` 32px, `xs` 30px. `value`/`onValueChange`로 제어하는 listbox          |
+| empty_state       | `EmptyState`       | 제목·부제·graphic·메시지·설명. graphic은 실제 화면의 에셋으로 전달                   |
+| footer            | `Footer`           | 선택적인 leading과 버튼 조합. 고정 위치·safe area는 화면 책임                        |
+| form_field        | `FormField`        | label·설명·action·입력 슬롯·오류 설명                                                |
+| input             | `Input`            | 기본 52px·radius 4px, 오류·비활성, endAdornment 슬롯                                 |
+| input_button      | `InputButton`      | 기존 Input과 버튼 슬롯의 조합. 조회·주소 검색은 호출자 책임                          |
+| input_chat        | `InputChat`        | 제어 textarea, 첨부·전송 콜백. Enter 전송, Shift+Enter 줄바꿈, IME 조합 중 전송 방지 |
+| list_item         | `ListItem`         | 텍스트·leading·trailing 조합. 이동은 Link로 감싸고 선택 컨트롤과 중첩하지 않음       |
+| pagination        | `Pagination`       | URL 페이지 이동, 숫자 목록·counter. 경계의 이전·다음은 링크를 만들지 않음            |
+| price_information | `PriceInformation` | 형식이 지정된 가격 문자열·원래 가격·설명. 할인 계산은 호출자 책임                    |
+| search_field      | `SearchField`      | `md` 46px·`lg` 52px, pill 형태, 입력·지우기·비활성                                   |
+
+- `Select`는 네이티브 select 계약을 유지합니다. Figma의 펼쳐진 옵션 메뉴가 필요한 곳에서 `Dropdown`을 사용합니다. 옵션 `value`는 목록 안에서 고유해야 합니다.
+- `Input`과 `SearchField`의 기존 36px `sm`은 판매자 와이어프레임 호환용으로 유지합니다. 기존 SearchField 기본 높이는 52px에서 46px로 변경되므로 52px이 필요한 사용처는 `size="lg"`를 지정합니다.
+- `FormField`의 `htmlFor`와 입력 `id`를 일치시키고, 설명·오류가 있으면 입력의 `aria-describedby`에 `<id>-description`, `<id>-error`를 연결합니다. 오류 입력에는 `error` 또는 `aria-invalid`를 함께 전달합니다.
+- `InputChat`의 전송 후 초기화, 업로드, 요청 중 disabled 상태는 호출자가 결정합니다. Input·SearchField·InputChat에는 label 또는 `aria-label`을 제공합니다.
+- `Footer`의 버튼은 기존 `Button appearance="cta"`를 재사용합니다. InputButton은 버튼 슬롯을 입력 높이에 맞춰 늘립니다.
+- Chat 색상은 Figma와 일치시키기로 확정했습니다. AI 말풍선은 `#959595`/흰색, 사용자 말풍선은 흰색/검정과 `#959595` 테두리를 사용하며 테마에 따라 바꾸지 않습니다. 상태 문구와 액션 예제도 Figma의 검정·흰색을 유지합니다. 해당 색상은 Chat에 한정된 명시적 예외이며 전역 semantic 토큰은 수정하지 않습니다. 좁은 화면에서는 고정 160px/188px 여백 대신 콘텐츠 폭에 맞춥니다.
+- Foundations의 18px Title 및 14px Body 행간 142%는 해당 Molecules의 `leading-[1.42]`로 반영했습니다. 전역 타이포·색상 및 Atoms는 수정하지 않습니다. Atoms #93의 Button·Checkbox·Radio를 조합하며, Footer 보조 액션은 Button secondary, ListItem 라디오 슬롯은 공용 Radio를 사용합니다. Chat의 기본 아바타는 Figma 전용 SVG를 유지합니다.
+- 통합 검색과 펀딩 내역 화면은 `SearchField size="lg"`로 기존 52px 높이를 유지합니다. Dropdown은 disabled 전환 시 열린 상태를 닫으며 재활성화만으로 열리지 않습니다. Chat은 커스텀 avatar 여부와 관계없이 숨김 텍스트로 AI·사용자 발신자를 제공합니다.
+- 아이콘은 해당 Molecules의 Figma SVG를 `public/icons/molecules`에 저장했습니다. `EmptyState`의 graphic placeholder와 Chat의 avatar는 교체 슬롯이며 서비스용 일러스트를 새로 만들지 않습니다.
+- 입력 focus outline은 키보드 접근성을 위해 제공합니다. Figma Footer의 고정 60px 안에 46px 버튼과 상하 8px 여백이 함께 지정되어 있어, 코드에서는 내용이 잘리지 않도록 최소 높이로 처리합니다.
+- Storybook 접근성 검사에서 기존 `text-secondary`/`text-disabled`의 회색 보조 텍스트와 `text-warning`의 오류 텍스트가 light 배경에서 대비 부족으로 보고됩니다. Dropdown placeholder, 원래 가격 및 입력 오류가 해당하며, Foundations 담당자와 토큰 조정 여부를 확인해야 합니다. 검사 설정에서 제외하지 않습니다.
 
 ## 변경 절차
 
@@ -135,3 +166,13 @@ src/shared/components/
 - semantic 디자인 토큰을 사용하고 light·dark 테마를 확인했습니다.
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm build`를 통과합니다.
 - UI나 Storybook 구성이 바뀌면 `pnpm build-storybook`을 추가로 확인합니다.
+
+## Organisms 공개 계약
+
+- `HeaderWeb`은 로고·메뉴·액션 슬롯을 제공하며 구매자·판매자 Shell에서 공유합니다. 구매자 데스크톱 검색은 `/search?q=...`로 제출합니다.
+- `BuyerBottomNavigation`은 현재 경로로 활성 탭을 결정하고 `activeHref`로 재정의할 수 있습니다. 카테고리 재선택 시 기존 복귀 경로를 유지합니다.
+- `Calendar`는 react-day-picker의 선택 모드·선택값·disabled 계약을 그대로 받으며 기본 locale은 한국어입니다. `classNames`와 `components`는 기본값에 병합합니다. 실제 화면 연결은 호출자가 담당합니다.
+- `Breadcrumb`은 텍스트 경로를 표시하고 마지막 항목에 `aria-current="page"`를 지정합니다.
+- `BottomSheet`는 `title`을 주면 제목과 닫기 버튼을 표시하며 `onBack`으로 뒤로가기를 추가합니다. 헤더가 없으면 `aria-label` 또는 `aria-labelledby`를 제공합니다. 제목·하단 영역은 고정하고 본문만 스크롤합니다.
+- `Modal`의 `size="m"`은 588px, `size="l"`은 996px이며 작은 화면에서는 좌우 여백을 남기도록 제한합니다.
+- Navigation의 outline/filled 아이콘 전환과 Calendar 실제 화면 연동은 #90의 제외 범위입니다.

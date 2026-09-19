@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  buyerCategories,
-  getBuyerCategory,
-} from "@/features/buyer-category/model/buyer-category-mock";
+import { buyerCategories, getBuyerCategory } from "@/entities/category/model/category-mock";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { SearchField } from "@/shared/components/ui/search-field";
@@ -14,35 +11,35 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full max-w-[390px] pb-[calc(76px+env(safe-area-inset-bottom))]`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:max-w-[390px]`}
     >
       <header className="flex items-center gap-4 px-5 py-2">
-        <div role="search" className="min-w-0 flex-1">
+        <form action="/search" role="search" className="min-w-0 flex-1">
           <SearchField
             size="md"
             aria-label="프로젝트 검색"
-            placeholder="place holder"
-            className={styles.search}
+            name="q"
+            placeholder="검색어를 입력해주세요"
           />
-        </div>
+        </form>
         <Link
           href="/my/notifications"
           aria-label="알림함"
           className="flex h-10 w-6 shrink-0 items-center justify-center"
         >
-          <Icon name="bell" className="h-3.5 w-6" />
+          <Icon name="bell" className="size-6" />
         </Link>
       </header>
 
       <main>
         <h1 className="sr-only">카테고리 탐색</h1>
-        <section aria-label="프로모션 배너" className="px-5">
+        <section aria-label="프로모션 배너" className="px-5 py-1">
           <CategoryBannerCarousel />
         </section>
 
-        <div className="flex gap-0 px-5 pt-4 pb-8">
+        <div className="flex gap-0 px-5 pt-2 pb-8">
           <nav aria-label="카테고리 목록" className="w-25 shrink-0">
-            <ul>
+            <ul className="space-y-3">
               {buyerCategories.map((category) => {
                 const selected = category.slug === selectedCategory.slug;
                 return (
@@ -62,9 +59,21 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
           </nav>
 
           <section aria-labelledby="selected-category-title" className="min-w-0 flex-1">
-            <div className="flex h-11 items-center justify-between pl-2">
+            <div className="flex h-9 items-center justify-between pl-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span aria-hidden className={`${styles.categoryIcon} size-6 shrink-0`} />
+                <span
+                  aria-hidden
+                  className={`size-5 shrink-0 ${["tech-appliances", "home-living"].includes(slug) ? "bg-current" : styles.categoryIcon}`}
+                  style={
+                    ["tech-appliances", "home-living"].includes(slug)
+                      ? {
+                          maskImage: `url(/icons/buyer-account/${slug === "tech-appliances" ? "fd593" : "d5cb8"}.svg)`,
+                          maskSize: "contain",
+                          maskRepeat: "no-repeat",
+                        }
+                      : undefined
+                  }
+                />
                 <h2
                   id="selected-category-title"
                   className="truncate text-[16px] leading-6 font-semibold"
@@ -81,7 +90,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
                 <Icon name="next" className="size-4" />
               </button>
             </div>
-            <ul className="grid grid-cols-2 gap-x-2">
+            <ul className="mt-2 grid grid-cols-2 gap-x-2 gap-y-2">
               {selectedCategory.subcategories.map((subcategory) => (
                 <li key={subcategory.slug} className={`${styles.subcategory} min-w-0 border-b`}>
                   <Link
@@ -98,9 +107,10 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
       </main>
 
       <BuyerBottomNavigation
+        compact
         activeHref="/categories"
         aria-label="카테고리 화면 하단 메뉴"
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+        className="fixed bottom-0 left-1/2 z-20 w-full -translate-x-1/2 min-[1200px]:max-w-[390px]"
       />
     </div>
   );

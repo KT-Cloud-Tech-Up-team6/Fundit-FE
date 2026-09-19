@@ -1,20 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { Button } from "@/shared/components/ui/button";
+import { roomDemo, roomQuestions, sampleMessages } from "../model/room-demo";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-room.module.css";
-
-const sampleMessages = [
-  "할인 있나요?",
-  "나도 이번에 무선 청소기 사볼까~",
-  "나도 이번에 무선 청소기 사볼까~",
-  "로보락이 뭐예요?",
-  "로보락이 뭐예요?",
-];
-const projectTitle =
-  "프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등 프로젝트 제목 로보락F25 등";
 
 function RoomIcon({
   name,
@@ -39,6 +33,9 @@ function RoomIcon({
 
 type BuyerLiveRoomProps = {
   liveId: string;
+  projectId?: string;
+  rewardAction?: ReactNode;
+  product?: typeof roomDemo;
   initialChatExpanded?: boolean;
   initialQuestions?: "closed" | "compact" | "expanded";
   initialMessage?: string;
@@ -46,6 +43,9 @@ type BuyerLiveRoomProps = {
 
 export function BuyerLiveRoom({
   liveId,
+  projectId,
+  rewardAction,
+  product = roomDemo,
   initialChatExpanded = false,
   initialQuestions = "closed",
   initialMessage = "",
@@ -162,8 +162,11 @@ export function BuyerLiveRoom({
 
   return (
     <div ref={root} className={styles.room}>
-      <header className={styles.header}>
-        <h1>라이브명(프로젝트 제목)</h1>
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <Image src={product.poster} alt="" fill sizes="566px" className={styles.poster} />
+      </div>
+      <header className={`${styles.header} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
+        <h1>{product.title}</h1>
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
         </button>
@@ -174,13 +177,21 @@ export function BuyerLiveRoom({
       <main className={styles.main}>
         <section aria-label="판매자와 라이브 현황" className={styles.seller}>
           <div className={styles.sellerRow}>
-            <span className={styles.avatar} aria-hidden />
-            <span>판매자</span>
-            <button type="button" aria-pressed={following} onClick={() => setFollowing(!following)}>
+            <Avatar size={32}>
+              <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
+            </Avatar>
+            <span className="[text-shadow:0_0_4px_rgba(0,0,0,0.3)]">{product.seller}</span>
+            <Button
+              size="sm"
+              variant={following ? "primary" : "secondary"}
+              className="text-body-s! ml-auto px-3"
+              aria-pressed={following}
+              onClick={() => setFollowing(!following)}
+            >
               {following ? "팔로잉" : "팔로우"}
-            </button>
+            </Button>
           </div>
-          <div className={styles.metrics}>
+          <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
             <span aria-label="펀딩 수치 목업">
               <Icon name="funding" className="inline-block size-3.5" />
               000,000
@@ -216,7 +227,7 @@ export function BuyerLiveRoom({
                   aria-live="polite"
                   aria-relevant="additions"
                   tabIndex={0}
-                  className={styles.chat}
+                  className={`${styles.chat} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}
                   data-expanded={chatExpanded}
                   onPointerDown={(event) => {
                     chatPointerStart.current =
@@ -247,23 +258,55 @@ export function BuyerLiveRoom({
                 </div>
               </div>
               <article className={styles.product}>
-                <span aria-hidden className={styles.productImage} />
-                <div>
-                  <h2>{projectTitle}</h2>
+                <div className="relative flex min-w-0 flex-1 gap-2 p-2">
+                  <div className="relative size-[74px] shrink-0">
+                    <Image
+                      src={product.productImage}
+                      alt=""
+                      fill
+                      sizes="74px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2>
+                      {projectId ? (
+                        <Link
+                          href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
+                          className="after:absolute after:inset-0"
+                          aria-label={`${product.title} 프로젝트 상세 보기`}
+                        >
+                          {product.title}
+                        </Link>
+                      ) : (
+                        product.title
+                      )}
+                    </h2>
+                    <p className="text-text-secondary mt-1 text-[12px] leading-[1.3] line-through">
+                      219,000원
+                    </p>
+                    <p className="text-[14px] leading-[1.3] font-semibold">199,000원</p>
+                  </div>
+                </div>
+                {rewardAction ?? (
                   <button
                     type="button"
+                    className="bg-layer-surface-primary text-text-static-white self-stretch px-3 text-[12px] leading-[1.3] font-semibold"
+                    aria-label="리워드 5개 이상 더보기"
                     onClick={() =>
                       setNotice(
-                        "연결된 프로젝트 정보가 없는 목업입니다. 펀딩 연결은 API 연동 후 제공됩니다.",
+                        "연결된 프로젝트 정보가 없는 목업입니다. 리워드 연결은 API 연동 후 제공됩니다.",
                       )
                     }
                   >
-                    펀딩하기
+                    5+
+                    <br />
+                    더보기
                   </button>
-                </div>
+                )}
               </article>
             </div>
-            <div className={styles.actions}>
+            <div className={`${styles.actions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
               <button type="button" aria-haspopup="dialog" onClick={() => setQuestions("compact")}>
                 <RoomIcon name="question" />
                 <span>Q&amp;A</span>
@@ -423,15 +466,15 @@ export function BuyerLiveRoom({
             role="region"
             aria-label="Q&A 질문 목록"
           >
-            {Array.from({ length: 4 }, (_, index) => (
-              <article key={index}>
+            {roomQuestions.map((question) => (
+              <article key={question.title}>
                 <div className={styles.questionTitle}>
                   <RoomIcon name="question-filled" className="size-5" />
-                  <h3>로보락이 뭐예요?</h3>
+                  <h3>{question.title}</h3>
                 </div>
-                <p className={styles.questionCount}>질문 12건</p>
+                <p className={styles.questionCount}>질문 {question.count}건</p>
                 <div className={styles.answer}>
-                  <p>무선 청소기 입니다.</p>
+                  <p>{question.answer}</p>
                   <p>판매자 · 1분 전</p>
                 </div>
               </article>

@@ -1,0 +1,90 @@
+.sheet {
+  transform: translateY(100%);
+  transition:
+    transform 240ms ease-out,
+    display 240ms allow-discrete,
+    overlay 240ms allow-discrete;
+}
+
+.sheet[open] {
+  transform: translateY(0);
+}
+
+.sheet::backdrop {
+  opacity: 0;
+  transition:
+    opacity 240ms ease-out,
+    display 240ms allow-discrete,
+    overlay 240ms allow-discrete;
+}
+
+.sheet[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .sheet[open] {
+    transform: translateY(100%);
+  }
+
+  .sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheet::backdrop {
+    transition: none;
+  }
+}
+
+.sheet > div {
+  min-height: min(336px, 90dvh);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sheet[data-expanded="true"] > div {
+  height: min(698px, 90dvh);
+}
+
+.sheet > div > div:first-child {
+  position: relative;
+  height: 56px;
+  padding: 8px 20px;
+}
+
+.sheet h2 {
+  text-align: center;
+  font-size: var(--text-title-s);
+  line-height: 1.42;
+}
+
+.sheet > div > div:first-child > button {
+  position: absolute;
+  right: 8px;
+  opacity: 0;
+}
+
+.sheet > div > div:first-child > button:focus-visible {
+  opacity: 1;
+}
+
+.sheet > div > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px 32px;
+  scrollbar-width: none;
+}
+
+.sheet > div > div:last-child {
+  border: 0;
+  padding: 24px 20px 8px;
+  box-shadow: 0 -4px 5px rgb(0 0 0 / 5%);
+}
+
+@media (width < 1200px) {
+  .sheet {
+    max-width: none;
+  }
+}

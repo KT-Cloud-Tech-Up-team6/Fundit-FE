@@ -22,6 +22,7 @@ export const Empty: Story = {
   args: { initial: null },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
     await expect(canvas.getByRole("heading", { name: "배송지 입력" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "우편번호 찾기" })).toBeInTheDocument();
     await expect(canvas.getByLabelText("우편번호")).toHaveAttribute("readonly");
@@ -43,6 +44,7 @@ export const PostcodeFound: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
     const save = canvas.getByRole("button", { name: "저장" });
 
     // 상세주소가 비어 저장 비활성

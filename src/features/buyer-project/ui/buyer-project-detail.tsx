@@ -1,9 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
+import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Icon } from "@/shared/components/ui/icon";
+import { Badge } from "@/shared/components/ui/badge";
+import { projectDemo, replayDemos, clipDemos, questionDemos } from "../model/project-demo";
+import { Tooltip } from "@/shared/components/ui/tooltip";
 import styles from "./buyer-project-detail.module.css";
 
 const tabs = [
@@ -39,9 +43,9 @@ function DetailIcon({
   );
 }
 
-function Information({ label }: { label: string }) {
+function Information({ label, disabled = false }: { label: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
-  const tooltip = useRef<HTMLSpanElement>(null);
+  const tooltip = useRef<HTMLDivElement>(null);
   const id = useId();
   useEffect(() => {
     if (!open) return;
@@ -59,6 +63,7 @@ function Information({ label }: { label: string }) {
     <span className={styles.information}>
       <button
         type="button"
+        disabled={disabled}
         aria-label={label}
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
@@ -71,44 +76,63 @@ function Information({ label }: { label: string }) {
         <DetailIcon name="info" className="h-3.5 w-4" />
       </button>
       {open && (
-        <span ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
-          <Image src="/icons/buyer-project/tooltip-tail.svg" width={8.925} height={21} alt="" />
-          <span className={styles.tooltipBody}>
-            <span>
-              본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+        <div ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
+          <Tooltip direction="horizontal">
+            <span className="flex flex-col gap-1">
+              <span>
+                본 상품 정보는 AI를 활용하여 작성된 후 판매자의 검토 및 수정을 거쳐 게시되었습니다.
+              </span>
             </span>
-            <span>
-              다만 일부 표현이나 정보에 오류가 있을 수 있으니, 정확한 사항은 구매 전 문의해 주시기
-              바랍니다.
-            </span>
-          </span>
-        </span>
+          </Tooltip>
+        </div>
       )}
     </span>
   );
 }
 
-function VideoList({ clips = false, onPlay }: { clips?: boolean; onPlay: () => void }) {
+function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
+  const carouselDrag = useHorizontalDrag();
   const title = clips ? "숏 클립" : "종료된 라이브";
+  const videos = clips ? clipDemos : replayDemos;
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
-        {title} <small>3건</small>
+        {title} <small>{videos.length}건</small>
       </h3>
-      <div className={styles.carousel} tabIndex={0} role="region" aria-label={`${title} 목록`}>
-        {[1, 2, 3].map((n) => (
-          <article key={n}>
-            <button
-              type="button"
-              onClick={onPlay}
-              aria-label={`${title} ${n} · (프로젝트 명 무선 청소기 입니다.) 재생`}
+      <div
+        {...carouselDrag}
+        className={styles.carousel}
+        tabIndex={0}
+        role="region"
+        aria-label={`${title} 목록`}
+      >
+        {videos.map((video, index) => (
+          <article key={index}>
+            <Link
+              href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
+              aria-label={`${title} ${index + 1} · ${clips ? "[제품명] AI 생성 제목" : video.title} 재생`}
             >
               <span className={styles.videoPoster}>
-                {clips && <span>{n === 2 ? "하이라이트" : "시연 영상"}</span>}
+                <Image
+                  src={clips ? projectDemo.image : projectDemo.poster}
+                  alt=""
+                  fill
+                  sizes="163px"
+                  className="object-cover"
+                />
+                {clips && (
+                  <Badge variant="live" className="relative">
+                    {index === 0 || index === 2 ? "시연 영상" : "하이라이트"}
+                  </Badge>
+                )}
               </span>
-              <span className={styles.videoTitle}>(프로젝트 명 무선 청소기 입니다.)</span>
-              <span className={styles.date}>09.07</span>
-            </button>
+              <span className="text-body-s mt-1 line-clamp-2 font-medium">
+                {clips ? "[제품명] AI 생성 제목" : video.title}
+              </span>
+              <span className="text-caption-s text-text-secondary block">
+                {clips ? "09.07" : video.date}
+              </span>
+            </Link>
           </article>
         ))}
       </div>
@@ -120,11 +144,27 @@ export function BuyerProjectDetail({
   projectId,
   activeTab,
   fundingAction,
+  project = projectDemo,
+  liveId = "demo-live",
+  hasLive = true,
+  preview = false,
+  storyContent,
+  rewardSummary,
+  rewardSelection,
 }: {
   projectId: string;
   activeTab: "story" | "live-proof";
   fundingAction: ReactNode;
+  project?: typeof projectDemo;
+  liveId?: string;
+  hasLive?: boolean;
+  preview?: boolean;
+  storyContent?: ReactNode;
+  rewardSummary?: ReactNode;
+  rewardSelection?: ReactNode;
 }) {
+  const Content = preview ? "div" : "main";
+  const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,141 +202,243 @@ export function BuyerProjectDetail({
       announce("링크를 복사하지 못했습니다. 주소창의 링크를 복사해주세요.");
     }
   }
+  const footer = (
+    <footer className={`${styles.footer} border-border-default border-t`}>
+      <button
+        type="button"
+        aria-label="프로젝트 찜"
+        aria-pressed={liked}
+        disabled={preview}
+        onClick={() => setLiked(!liked)}
+      >
+        <DetailIcon name="heart" className="size-6" />
+        <span className={preview ? "" : "min-[1200px]:hidden"}>9999+</span>
+        {!preview && <span className="hidden min-[1200px]:inline">2.4천+</span>}
+      </button>
+      {!preview && (
+        <button
+          type="button"
+          aria-label="프로젝트 공유"
+          onClick={share}
+          className="hidden min-[1200px]:flex min-[1200px]:w-11 min-[1200px]:shrink-0 min-[1200px]:flex-col min-[1200px]:items-center"
+        >
+          <DetailIcon name="share" className="size-6" />
+          <span className="text-body-s">공유</span>
+        </button>
+      )}
+      {fundingAction}
+    </footer>
+  );
   return (
-    <div className={styles.screen}>
-      <header className={styles.header}>
-        <Link href="/live" aria-label="라이브 목록으로 돌아가기">
-          <DetailIcon name="arrow-left" className="size-5" />
-        </Link>
+    <div
+      className={
+        styles.screen +
+        " bg-layer-surface-default text-text-default mx-auto w-full min-w-0 " +
+        (preview
+          ? `${styles.preview} max-w-[390px]`
+          : `${styles.desktop} min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`)
+      }
+    >
+      {!preview && <BuyerDesktopHeader />}
+      <header className={`${styles.header} ${preview ? "" : "min-[1200px]:hidden"}`}>
+        {preview ? (
+          <button type="button" disabled aria-label="라이브 목록으로 돌아가기">
+            <DetailIcon name="arrow-left" className="size-5" />
+          </button>
+        ) : (
+          <Link href="/live" aria-label="라이브 목록으로 돌아가기">
+            <DetailIcon name="arrow-left" className="size-5" />
+          </Link>
+        )}
         <span>상세페이지</span>
-        <button type="button" aria-label="프로젝트 공유" onClick={share}>
-          <DetailIcon name="share" className="h-3.5 w-6" />
+        <button type="button" aria-label="프로젝트 공유" onClick={share} disabled={preview}>
+          <DetailIcon name="share" className="size-6" />
         </button>
       </header>
-      <main>
-        <div className={styles.hero} role="img" aria-label="상품 이미지 목업 · 1/3">
-          <span className={styles.liveThumbnail}>
-            라이브
-            <br />
-            썸네일
-            <br />
-            -진행중일 시
-          </span>
-          <span className={styles.liveBadge}>
-            <Icon name="live" className="inline-block h-3.5 w-4" /> LIVE
-          </span>
-          <span className={styles.imageLabel}>상품 이미지</span>
-          <span className={styles.pagination}>1/3</span>
-        </div>
-        <section className={styles.summary} aria-label="프로젝트 정보">
-          <p className={styles.seller}>판매자 정보</p>
-          <h1>[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기</h1>
-          <div className={styles.fundingNumbers}>
-            <div>
-              <p>
-                <strong>10,000</strong> <span>% 달성</span>
-              </p>
-              <span className={styles.deadline}>D-28</span>
-            </div>
-            <div>
-              <p>
-                <b>2,000,000</b> <span className={styles.goal}>/10,000,000원</span>
-              </p>
-              <span className={styles.participants}>100명 참여</span>
-            </div>
-          </div>
-          <section className={styles.aiSummary} aria-label="AI 프로젝트 요약">
-            <div className={styles.aiHeading}>
-              <h2>AI 프로젝트 요약</h2>
-              <Information label="AI 프로젝트 요약 안내" />
-            </div>
-            {["프로젝트 요약", "프로젝트 요약", "라이브 요약(라이브 미 진행 시 생략)"].map(
-              (title, i) => (
-                <div className={styles.summaryItem} key={i}>
-                  <h3>
-                    <Image src="/icons/buyer-project/check.svg" width={12} height={12} alt="" />
-                    {title}
-                  </h3>
-                  <p>뭐시기저시기</p>
-                </div>
-              ),
-            )}
-          </section>
-        </section>
-        <nav className={styles.tabs} aria-label="프로젝트 상세 탭">
-          {tabs.map(([value, label]) => (
+      <Content className={styles.layout} data-tab={activeTab}>
+        <div className={`${styles.hero} bg-layer-bg relative aspect-[390/292] overflow-hidden`}>
+          {project.image ? (
+            <Image
+              src={project.image}
+              alt={preview ? `${project.title} 썸네일` : ""}
+              fill
+              sizes="(min-width: 1200px) 714px, 390px"
+              unoptimized={preview}
+              className={preview ? "object-cover" : styles.heroImage}
+            />
+          ) : (
+            <p className="text-body-s text-text-secondary flex h-full items-center justify-center">
+              등록된 썸네일 이미지가 없습니다.
+            </p>
+          )}
+          {hasLive && (
             <Link
-              key={value}
-              ref={value === activeTab ? selectedTab : undefined}
-              href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
-              scroll={false}
-              aria-current={value === activeTab ? "page" : undefined}
+              href={`/live/${encodeURIComponent(liveId)}`}
+              aria-label="진행 중 라이브 시청"
+              className="absolute top-5 left-5 flex flex-col gap-1"
             >
-              {label}
-              {value !== "story" && value !== "refund-policy" && <small>000</small>}
+              <Badge
+                variant="neutral"
+                size="sm"
+                shape="rounded"
+                className={`${styles.liveBadge} ${preview ? "" : "min-[1200px]:text-caption-s min-[1200px]:h-[26px] min-[1200px]:font-medium"}`}
+              >
+                <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
+                LIVE
+              </Badge>
+              <div className="border-border-default relative h-30 w-[90px] overflow-hidden rounded-xs border shadow-md">
+                <Image src={project.poster} alt="" fill sizes="90px" className="object-cover" />
+              </div>
             </Link>
-          ))}
+          )}
+          {(!preview || project.image) && (
+            <Badge variant="neutral" className="absolute right-5 bottom-5">
+              {preview ? "1/1" : "1/3"}
+            </Badge>
+          )}
+        </div>
+        <aside className={styles.summaryColumn}>
+          <section className={styles.projectInfo + " px-5 py-4"} aria-label="프로젝트 정보">
+            <p className="text-body-s text-text-secondary mb-1 font-medium">{project.seller}</p>
+            <h1 className="text-title-m">{project.title}</h1>
+            <div className={styles.fundingNumbers}>
+              <div>
+                <p>
+                  <strong>{project.rate}</strong> <span>% 달성</span>
+                </p>
+                <Badge
+                  variant="accent"
+                  size="md"
+                  className={
+                    preview
+                      ? undefined
+                      : "max-[1200px]:bg-status-info max-[1200px]:text-text-info max-[1200px]:text-label-m max-[1200px]:h-6 max-[1200px]:font-semibold"
+                  }
+                >
+                  D-28
+                </Badge>
+              </div>
+              <div>
+                <p>
+                  <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
+                </p>
+                <span className={styles.participants}>100명 참여</span>
+              </div>
+            </div>
+            <section
+              className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
+              aria-label="AI 프로젝트 요약"
+            >
+              <div className="flex items-center gap-1">
+                <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
+                <h2 className="text-label-l">AI 프로젝트 요약</h2>
+                <Information label="AI 프로젝트 요약 안내" disabled={preview} />
+              </div>
+              {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
+                (title, i) => (
+                  <div className="text-caption-s" key={i}>
+                    <h3 className="flex items-center gap-1 font-medium">
+                      <Image
+                        src="/images/buyer-project/summary-check.svg"
+                        width={12}
+                        height={12}
+                        alt=""
+                      />
+                      {title}
+                    </h3>
+                    <p className="pl-4">상세 내용</p>
+                  </div>
+                ),
+              )}
+            </section>
+          </section>
+          {!preview && rewardSelection && (
+            <div className="hidden min-[1200px]:block">{rewardSelection}</div>
+          )}
+          {!preview && footer}
+          {!preview && !rewardSelection && (
+            <div className="hidden min-[1200px]:block">{rewardSummary}</div>
+          )}
+        </aside>
+        <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
+          {tabs.map(([value, label]) =>
+            preview ? (
+              <button
+                key={value}
+                type="button"
+                disabled
+                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                aria-current={value === activeTab ? "page" : undefined}
+              >
+                {label}
+                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+              </button>
+            ) : (
+              <Link
+                scroll={false}
+                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                key={value}
+                ref={value === activeTab ? selectedTab : undefined}
+                href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
+                aria-current={value === activeTab ? "page" : undefined}
+              >
+                {label}
+                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+              </Link>
+            ),
+          )}
         </nav>
         {activeTab === "story" ? (
-          <section className={styles.story} aria-label="상품 소개">
-            <div className={styles.storyImage}>
-              <Image
-                src="/images/buyer-project/story.png"
-                alt="CleanForge 무선 청소기 상품 소개 예시"
-                fill
-                sizes="(max-width: 390px) 112vw, 436px"
-                unoptimized
-              />
-            </div>
-            <p>예시 이미지로, 자세한 결과물은 AI측의 솔루션에 따라 바뀔 것 같습니다</p>
+          <section className={styles.story + " relative mx-5 mt-4 mb-8"} aria-label="상품 소개">
+            {storyContent ?? (
+              <div className={styles.storyImage}>
+                <Image
+                  src="/images/buyer-project/story.png"
+                  alt="CleanForge 무선 청소기 상품 소개 예시"
+                  fill
+                  unoptimized
+                />
+              </div>
+            )}
           </section>
         ) : (
-          <div className={styles.liveContent}>
-            <section aria-label="LIVE 다시 보기" className={styles.replays}>
+          <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
+            <section aria-label="LIVE 다시 보기" className="flex min-w-0 flex-col gap-3">
               <h2>
-                <DetailIcon name="replay" className="size-3.5" />
-                LIVE 다시 보기 <small>3건</small>
+                <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
+                LIVE 다시 보기 <small>{replayDemos.length + clipDemos.length}건</small>
               </h2>
-              <VideoList onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")} />
-              <VideoList
-                clips
-                onPlay={() => announce("영상 재생은 아직 연결되지 않은 목업입니다.")}
-              />
+              <VideoList liveId={liveId} />
+              <VideoList clips liveId={liveId} />
             </section>
-            <section className={styles.questions} aria-label="LIVE Q&A">
-              <div className={styles.questionHeading}>
+            <section className="flex flex-col gap-6" aria-label="LIVE Q&A">
+              <div className="-mb-3 flex items-center gap-1">
                 <h2>
-                  <DetailIcon name="question-filled" className="h-3.5 w-5" />
-                  LIVE Q&amp;A <small>3건</small>
+                  <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
+                  LIVE Q&amp;A <small>{questionDemos.length}건</small>
                 </h2>
                 <Information label="LIVE Q&A 안내" />
               </div>
-              {[1, 2, 3].map((n) => (
-                <article key={n}>
-                  <h3>로보락이 뭐예요?</h3>
-                  <p className={styles.date}>12건 · 09.07</p>
-                  <div className={styles.answer}>
-                    <p>무선 청소기 입니다.</p>
-                    <p className={styles.date}>판매자 · 09.07</p>
+              {questionDemos.map((question) => (
+                <article key={question.title}>
+                  <h3>{question.title}</h3>
+                  <p className="text-caption-s text-text-secondary block">
+                    {question.count}건 · {question.date}
+                  </p>
+                  <div className="border-border-default text-body-s mt-2 flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
+                    <p>{question.answer}</p>
+                    <p className="text-caption-s text-text-secondary block">
+                      판매자 · {question.answeredAt}
+                    </p>
                   </div>
                 </article>
               ))}
             </section>
           </div>
         )}
-      </main>
-      <footer className={styles.footer}>
-        <button
-          type="button"
-          aria-label="프로젝트 찜"
-          aria-pressed={liked}
-          onClick={() => setLiked(!liked)}
-        >
-          <DetailIcon name="heart" className="h-3.5 w-6" />
-          <span>{activeTab === "live-proof" ? "9999+" : 9999 + Number(liked)}</span>
-        </button>
-        {fundingAction}
-      </footer>
+      </Content>
+      {preview && footer}
+
       <p role="status" className={notice ? styles.notice : "sr-only"}>
         {notice}
       </p>
