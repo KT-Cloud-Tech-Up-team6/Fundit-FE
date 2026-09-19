@@ -126,7 +126,7 @@ export async function findFundingProject(fundingId: string, signal?: AbortSignal
     const result = await apiRequest<{
       content: { orderId: string; projectId: string; projectTitle: string }[];
       hasNext: boolean;
-    }>(`/api/v2/orders?page=${page}&size=100`, { auth: true, signal });
+    }>(`/api/v1/orders?page=${page}&size=100`, { auth: true, signal });
     const order = result.content.find((item) => item.orderId === fundingId);
     if (order) return order;
     if (!result.hasNext) throw new Error("참여 내역에서 해당 주문을 찾을 수 없습니다.");

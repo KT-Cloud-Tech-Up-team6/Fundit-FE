@@ -13,11 +13,14 @@ import {
   dateInKorea,
 } from "../../../features/fulfillment-tracking/model/fulfillment-api-state.ts";
 
-test("주문 UUID 관계는 서버 목록의 다음 페이지까지 조회해 확인한다", async () => {
+test("주문 UUID 관계는 v1 목록의 다음 페이지까지 조회해 확인한다", async () => {
   const original = fetch,
     calls = [];
   globalThis.fetch = async (url) => {
     calls.push(url);
+    if (!url.startsWith("/api/v1/orders?")) {
+      return Response.json({ message: "없는 API 경로" }, { status: 404 });
+    }
     return Response.json(
       url.includes("page=0")
         ? { content: [{ orderId: "other", projectId: "other-project" }], hasNext: true }
@@ -29,7 +32,7 @@ test("주문 UUID 관계는 서버 목록의 다음 페이지까지 조회해 �
   };
   try {
     assert.equal((await findFundingProject("funding")).projectId, "server-project");
-    assert.equal(calls.length, 2);
+    assert.deepEqual(calls, ["/api/v1/orders?page=0&size=100", "/api/v1/orders?page=1&size=100"]);
     globalThis.fetch = async () => Response.json({ content: [], hasNext: false });
     await assert.rejects(findFundingProject("missing"), /찾을 수 없습니다/);
   } finally {
