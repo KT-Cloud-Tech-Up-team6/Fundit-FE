@@ -25,15 +25,18 @@ const meta = {
   args: { fundingId: "demo-funding" },
   parameters: {
     layout: "fullscreen",
-    // 모바일 트리가 기본 — 데스크톱 트리는 min-[1200px]에서만 보인다.
     viewport: {
-      defaultViewport: "figma390",
       options: {
         figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
         desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
       },
     },
   },
+  /* 모바일 트리가 기본 — 데스크톱 트리는 min-[1200px]에서만 보인다.
+     Storybook 10에서 기본 viewport는 parameters.viewport.defaultViewport가 아니라
+     globals.viewport.value로 지정한다(예전 방식은 무시된다). 어느 트리가 렌더되는지가
+     여기서 갈리므로 play 함수는 이 값에 의존한다. */
+  globals: { viewport: { value: "figma390" } },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">
@@ -211,7 +214,7 @@ export const LongRecord: Story = {
 /** 1200px 이상 — 데스크톱 레이아웃이 보이고, 첨부 라이트박스도 열린다. */
 export const Desktop: Story = {
   args: { today },
-  parameters: { viewport: { defaultViewport: "desktop" } },
+  globals: { viewport: { value: "desktop" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { level: 1, name: "제작·배송 현황" })).toBeVisible();
