@@ -13,6 +13,7 @@ import {
 import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { BuyerProjectDetail } from "./buyer-project-detail";
+import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 
 export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: string }) {
   const { state } = useAuth();
@@ -201,7 +202,13 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
         amount: summary.currentAmount.toLocaleString("ko-KR"),
         goal: data.goalAmount?.toLocaleString("ko-KR") ?? "—",
       }}
-      fundingAction={<Button disabled>펀딩 연결 준비 중</Button>}
+      fundingAction={
+        data.status === "ONGOING" ? (
+          <FundingCta projectId={projectId} />
+        ) : (
+          <Button disabled>현재 펀딩에 참여할 수 없습니다</Button>
+        )
+      }
       tabContent={
         <>
           {content}
