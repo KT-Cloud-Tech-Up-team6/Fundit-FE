@@ -9,7 +9,7 @@ import { Icon } from "@/shared/components/ui/icon";
 import { Input } from "@/shared/components/ui/input";
 import { emptyShippingAddress, isShippingAddressComplete } from "../model/checkout-demo";
 import type { ShippingAddress } from "../model/checkout-demo";
-import { DaumPostcodeSearch } from "./daum-postcode-button";
+import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button";
 import styles from "./checkout-sheet.module.css";
 
 type ShippingAddressSheetProps = {

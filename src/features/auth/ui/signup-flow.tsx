@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
+
 import { AuthButton, AuthSocialButton } from "./auth-form-controls";
 import { AuthScreen } from "./auth-screen";
 import { SignupTermsSheet } from "./signup-terms-sheet";
@@ -15,6 +17,7 @@ type SignupFlowProps = {
 export function SignupFlow({ initialSheetOpen = false }: SignupFlowProps) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(initialSheetOpen);
+  const { resetFlow } = useAuthFlow();
 
   return (
     <AuthScreen withHeader={false}>
@@ -34,7 +37,14 @@ export function SignupFlow({ initialSheetOpen = false }: SignupFlowProps) {
           label="Google 회원가입"
           tone="google"
         />
-        <AuthButton onClick={() => setSheetOpen(true)}>일반 회원가입</AuthButton>
+        <AuthButton
+          onClick={() => {
+            resetFlow();
+            setSheetOpen(true);
+          }}
+        >
+          일반 회원가입
+        </AuthButton>
       </div>
 
       <SignupTermsSheet
