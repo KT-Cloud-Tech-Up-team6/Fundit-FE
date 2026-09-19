@@ -1,5 +1,14 @@
 # API 계약 초안
 
+## 제작·배송 코드 대조 및 FE 연결 (#198)
+
+- 2026-09-19 BE develop `e56bab06` 기준 `/api/v2/projects/{projectId}/fulfillment` 및 `/api/v2/projects/{projectId}/fundings/{fundingId}/shipment`의 UUID 계약을 사용한다.
+- `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 첨부와 기록 수정 API는 없어 저장된 것처럼 처리하지 않는다.
+- `/my/fundings/{UUID}/fulfillment`와 `/history`는 내 주문 v2 목록을 페이지 순회해 프로젝트 UUID 관계를 확인한 뒤 제작·배송을 조회한다. 서버 `canConfirmReceipt`가 참일 때 수령 확인을 제공한다. 외부 택배 추적은 연결하지 않는다.
+- 단계 조회는 단계별 최신 상세 1건만 제공한다. 전체 기록 이력이 아닌 최신 기록과 별도의 일정 변경 이력을 표시한다. 미갱신 경고는 서버 `isUpdateOverdue`를 사용한다.
+- 송장 등록 API 클라이언트는 준비했지만 판매자 발송 대상 목록은 내부 API만 있어 UI 연결을 보류한다. `/seller/projects/{UUID}/shipping`에서 목업 주문의 송장을 실제 저장하지 않으며 임의 UUID 입력이나 내부 서비스 우회 호출을 제공하지 않는다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 목록 공개 API, 전체 기록/첨부 계약과 권한을 확인해야 한다.
+
 작성일은 2026-09-07, 갱신일은 2026-09-14다. 상태는 **최신 전달 명세 반영, 서버 대조 전**이며 전체 계약 확정을 뜻하지 않는다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
 
 ## 1. 목적·근거·우선순위
