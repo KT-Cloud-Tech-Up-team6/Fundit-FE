@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ProjectRewardsPage } from "@/features/project-basic-info/ui/project-reward-manager";
 import {
   ProjectSidebar,
   projectEditTabs,
@@ -36,6 +37,11 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+  if (
+    activeTab === "rewards" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)
+  )
+    return <ProjectRewardsPage key={projectId} projectId={projectId} />;
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;
 
   if (activeTab === "funding") {
