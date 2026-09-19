@@ -10,7 +10,7 @@ import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import styles from "./buyer-search.module.css";
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SellerRow } from "@/entities/seller/ui/seller-row";
+import { SellerRow, type SellerSummary } from "@/entities/seller/ui/seller-row";
 import { ProjectRow } from "@/entities/project/ui/project-row";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Icon } from "@/shared/components/ui/icon";
@@ -55,10 +55,18 @@ export function BuyerSearch({
   initialInput?: string;
   server?: {
     projects: ReturnType<typeof searchResults>["projects"];
-    count: number;
+    count?: number;
+    sellers: Pick<SellerSummary, "id" | "name">[];
+    sellerCount?: number;
+    recent: {
+      words: string[];
+      state?: ReactNode;
+      removing: boolean;
+      onRemove: (word: string) => void;
+    };
+    keywords: { items: { keyword: string; rank: number }[]; state?: ReactNode };
     state?: ReactNode;
     footer: ReactNode;
-    popular: ReactNode;
   };
 }) {
   const router = useRouter();
@@ -67,9 +75,10 @@ export function BuyerSearch({
     value: initialInput || query.q,
     editing: Boolean(initialInput),
   });
-  const [recent, setRecent] = useState(
+  const [localRecent, setRecent] = useState(
     server ? [] : ["무선 청소기", "수박", "육하원칙", "고무대야"],
   );
+  const recent = server ? server.recent.words : localRecent;
   const [following, setFollowing] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
   const recentDrag = useHorizontalDrag();
@@ -82,25 +91,25 @@ export function BuyerSearch({
   const value = draft.base === query.q ? draft.value : query.q;
   const editing = draft.base === query.q && draft.editing;
   const results = server
-    ? { projects: server.projects, lives: [], sellers: [], liveTotal: 0 }
+    ? { projects: server.projects, lives: [], sellers: server.sellers, liveTotal: 0 }
     : searchResults(query);
   const suggestions = searchResults({ ...query, q: value });
   const tabCounts = {
-    projects: server?.count ?? results.projects.length,
-    live: results.liveTotal,
-    sellers: results.sellers.length,
+    projects: server ? server.count : results.projects.length,
+    live: server ? undefined : results.liveTotal,
+    sellers: server ? server.sellerCount : results.sellers.length,
   };
   const count =
     query.tab === "projects"
       ? (server?.count ?? results.projects.length)
       : query.tab === "live"
         ? results.lives.length
-        : results.sellers.length;
+        : (server?.sellerCount ?? results.sellers.length);
 
   function submit(word = value, tab = query.tab) {
     if (composing.current) return;
     const q = word.trim();
-    setRecent((current) => addRecentSearch(current, q));
+    if (!server) setRecent((current) => addRecentSearch(current, q));
     setDraft({ base: q, value: q, editing: false });
     onQueryChange({ ...query, q, tab });
     input.current?.blur();
@@ -182,44 +191,53 @@ export function BuyerSearch({
                       <button
                         type="button"
                         aria-label={`${word} 최근 검색어 삭제`}
-                        onClick={() => setRecent((items) => items.filter((item) => item !== word))}
+                        disabled={server?.recent.removing}
+                        onClick={() =>
+                          server
+                            ? server.recent.onRemove(word)
+                            : setRecent((items) => items.filter((item) => item !== word))
+                        }
                       >
                         <Icon name="closeSmall" className="block size-4" />
                       </button>
                     </div>
                   ))}
                 </div>
-                {!recent.length && (
+                {server?.recent.state}
+                {!recent.length && !server?.recent.state && (
                   <p className="text-caption-m text-text-disabled">최근 검색어가 없습니다.</p>
                 )}
               </section>
-              {server ? (
-                server.popular
-              ) : (
-                <section className="py-3" aria-label="인기 검색어">
-                  <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
-                  <ol
-                    className={`${styles.track} flex gap-2 py-2`}
-                    {...popularDrag}
-                    tabIndex={0}
-                    aria-label="인기 검색어 가로 목록"
-                  >
-                    {["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
-                      (word, index) => (
-                        <li key={word} className="shrink-0">
-                          <button
-                            type="button"
-                            className="border-border-primary text-label-l h-9 rounded-full border px-3"
-                            onClick={() => submit(word)}
-                          >
-                            {index + 1} {word}
-                          </button>
-                        </li>
-                      ),
-                    )}
-                  </ol>
-                </section>
-              )}
+              <section className="py-3" aria-label="인기 검색어">
+                <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
+                <ol
+                  className={`${styles.track} flex gap-2 py-2`}
+                  {...popularDrag}
+                  tabIndex={0}
+                  aria-label="인기 검색어 가로 목록"
+                >
+                  {(server
+                    ? server.keywords.items
+                    : ["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
+                        (keyword, index) => ({ keyword, rank: index + 1 }),
+                      )
+                  ).map(({ keyword, rank }) => (
+                    <li key={keyword} className="shrink-0">
+                      <button
+                        type="button"
+                        className="border-border-primary text-label-l h-9 rounded-full border px-3"
+                        onClick={() => submit(keyword)}
+                      >
+                        {rank} {keyword}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+                {server?.keywords.state}
+                {server && !server.keywords.state && !server.keywords.items.length && (
+                  <p className="text-caption-m text-text-disabled">인기 검색어가 없습니다.</p>
+                )}
+              </section>
             </>
           ) : (
             <section aria-label="연관 검색어" className="py-2">
@@ -297,9 +315,11 @@ export function BuyerSearch({
                 variant={tab.value === "live" ? "primaryLive" : "primary"}
               >
                 {tab.label}{" "}
-                <span className="text-text-disabled ml-1 text-[12px] font-medium">
-                  {tabCounts[tab.value]}
-                </span>
+                {tabCounts[tab.value] != null && (
+                  <span className="text-text-disabled ml-1 text-[12px] font-medium">
+                    {tabCounts[tab.value]}
+                  </span>
+                )}
               </Tab>
             ))}
           </TabList>
@@ -467,6 +487,7 @@ export function BuyerSearch({
                   <SellerRow
                     key={seller.id}
                     seller={seller}
+                    followUnavailable={Boolean(server)}
                     following={following.includes(seller.id)}
                     onFollow={() =>
                       setFollowing((ids) =>

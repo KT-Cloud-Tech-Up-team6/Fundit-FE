@@ -79,6 +79,7 @@ export function searchProjects(
   ended: boolean,
   page: number,
   signal?: AbortSignal,
+  authenticated = false,
 ) {
   const params = new URLSearchParams({
     keyword,
@@ -87,7 +88,10 @@ export function searchProjects(
     page: String(page),
     size: "20",
   });
-  return apiRequest<ApiPage<ProjectCardResponse>>(`/api/v1/search/projects?${params}`, { signal });
+  return apiRequest<ApiPage<ProjectCardResponse>>(`/api/v1/search/projects?${params}`, {
+    signal,
+    auth: authenticated,
+  });
 }
 export function getCategoryProjects(
   major: string,

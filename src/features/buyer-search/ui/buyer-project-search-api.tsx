@@ -1,38 +1,80 @@
-"use client";
-import { useQuery } from "@tanstack/react-query";
+﻿"use client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getPopularProjects, searchProjects } from "@/entities/project/api/buyer-project-api";
+import { searchProjects } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
-import { ProjectRow } from "@/entities/project/ui/project-row";
 import { projectCard } from "@/entities/project/model/project-card";
+import {
+  deleteRecentKeyword,
+  getPopularKeywords,
+  getRecentKeywords,
+  searchSellers,
+} from "../api/search-api";
 import { BuyerSearch } from "./buyer-search";
 import { parseSearch, searchUrl } from "../model/search-demo";
 
 export function BuyerProjectSearchApi() {
   const { state } = useAuth();
+  const memberId = state.user?.memberId ?? null;
+  return (
+    <SearchSession
+      key={`${state.status}:${memberId}`}
+      memberId={memberId}
+      ready={state.status !== "checking"}
+    />
+  );
+}
+
+function SearchSession({ memberId, ready }: { memberId: string | null; ready: boolean }) {
   const params = useSearchParams(),
-    router = useRouter();
+    router = useRouter(),
+    client = useQueryClient();
   const query = parseSearch(params);
   const raw = Number(params.get("page") ?? 1),
     page = Number.isSafeInteger(raw) && raw > 0 ? raw - 1 : 0;
+  const recentKey = ["search-recent-keywords", memberId];
+  const recent = useQuery({
+    queryKey: recentKey,
+    queryFn: ({ signal }) => getRecentKeywords(signal),
+    enabled: ready && Boolean(memberId),
+  });
+  const remove = useMutation({
+    mutationFn: async (word: string) => {
+      await client.cancelQueries({ queryKey: recentKey });
+      await deleteRecentKeyword(word);
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: recentKey }),
+  });
   const result = useQuery({
-    queryKey: ["public-project-search", query.q, query.sort, query.closed, page],
-    queryFn: ({ signal }) =>
-      searchProjects(
+    queryKey: ["public-project-search", memberId, query.q, query.sort, query.closed, page],
+    queryFn: async ({ signal }) => {
+      const response = await searchProjects(
         query.q,
         { latest: "RECENT", popular: "POPULAR", closing: "DEADLINE" }[query.sort],
         query.closed,
         page,
         signal,
-      ),
-    enabled: state.status !== "checking" && Boolean(query.q) && query.tab === "projects",
+        Boolean(memberId),
+      );
+      if (memberId && !signal.aborted) {
+        await client.invalidateQueries({ queryKey: recentKey });
+      }
+      return response;
+    },
+    enabled: ready && Boolean(query.q) && query.tab === "projects",
+  });
+  const sellers = useQuery({
+    queryKey: ["public-seller-search", query.q, page],
+    queryFn: ({ signal }) => searchSellers(query.q, page, signal),
+    enabled: ready && Boolean(query.q) && query.tab === "sellers",
   });
   const popular = useQuery({
-    queryKey: ["popular-project-feed"],
-    queryFn: ({ signal }) => getPopularProjects(signal),
-    enabled: state.status !== "checking" && !query.q,
+    queryKey: ["popular-search-keywords"],
+    queryFn: ({ signal }) => getPopularKeywords(signal),
+    enabled: ready,
   });
+  const active = query.tab === "sellers" ? sellers : result;
   const move = (next: number) => {
     const target = new URL(searchUrl(query), window.location.origin);
     target.searchParams.set("page", String(next + 1));
@@ -44,53 +86,64 @@ export function BuyerProjectSearchApi() {
       onQueryChange={(next) => router.push(searchUrl(next))}
       server={{
         projects: (result.data?.content ?? []).map(projectCard),
-        count: result.data?.totalElements ?? 0,
-        state:
-          query.tab !== "projects" ? (
-            <p role="status">이 검색 유형의 API 연결은 준비 중입니다.</p>
-          ) : result.isPending ? (
-            <p role="status">검색 중입니다.</p>
-          ) : result.isError ? (
+        count: result.data?.totalElements,
+        sellers: (sellers.data?.content ?? []).map((seller) => ({
+          id: seller.sellerId,
+          name: seller.sellerDisplayName,
+        })),
+        sellerCount: sellers.data?.totalElements,
+        recent: {
+          words: recent.data?.content.map((item) => item.keyword) ?? [],
+          removing: remove.isPending,
+          onRemove: (word) => remove.mutate(word),
+          state: !ready ? (
+            <p role="status">회원 정보를 확인하고 있습니다.</p>
+          ) : !memberId ? (
+            <p>로그인하면 최근 검색어를 확인할 수 있습니다.</p>
+          ) : recent.isPending ? (
+            <p role="status">최근 검색어를 불러오고 있습니다.</p>
+          ) : recent.isError ? (
             <p role="alert">
-              검색하지 못했습니다. <button onClick={() => void result.refetch()}>다시 시도</button>
+              최근 검색어 조회 실패.{" "}
+              <button onClick={() => void recent.refetch()}>다시 시도</button>
+            </p>
+          ) : remove.isError ? (
+            <p role="alert">최근 검색어를 삭제하지 못했습니다. 삭제 버튼을 다시 눌러주세요.</p>
+          ) : undefined,
+        },
+        keywords: {
+          items: popular.data?.content ?? [],
+          state: popular.isPending ? (
+            <p role="status">인기 검색어를 불러오고 있습니다.</p>
+          ) : popular.isError ? (
+            <p role="alert">
+              인기 검색어 조회 실패.{" "}
+              <button onClick={() => void popular.refetch()}>다시 시도</button>
+            </p>
+          ) : undefined,
+        },
+        state:
+          query.tab === "live" ? (
+            <p role="status">이 검색 유형의 API 연결은 준비 중입니다.</p>
+          ) : active.isPending ? (
+            <p role="status">검색 중입니다.</p>
+          ) : active.isError ? (
+            <p role="alert">
+              검색하지 못했습니다. <button onClick={() => void active.refetch()}>다시 시도</button>
             </p>
           ) : undefined,
         footer:
-          result.data && query.tab === "projects" ? (
+          active.data && query.tab !== "live" ? (
             <div className="mt-4 flex justify-between">
               <Button disabled={page === 0} onClick={() => move(page - 1)}>
                 이전 페이지
               </Button>
               <span>{page + 1}</span>
-              <Button disabled={!result.data.hasNext} onClick={() => move(page + 1)}>
+              <Button disabled={!active.data.hasNext} onClick={() => move(page + 1)}>
                 다음 페이지
               </Button>
             </div>
           ) : null,
-        popular: (
-          <section className="space-y-3 py-3">
-            <h2 className="text-body-emphasis">인기 프로젝트</h2>
-            {popular.isPending ? (
-              <p role="status">불러오는 중입니다.</p>
-            ) : popular.isError ? (
-              <p role="alert">
-                인기 프로젝트 조회 실패.{" "}
-                <button onClick={() => void popular.refetch()}>다시 시도</button>
-              </p>
-            ) : popular.data.content.length ? (
-              popular.data.content.map((row) => (
-                <ProjectRow
-                  key={row.projectId}
-                  project={projectCard(row)}
-                  thumbnailClassName="w-[36.57%]"
-                  unavailable
-                />
-              ))
-            ) : (
-              <p>프로젝트가 없습니다.</p>
-            )}
-          </section>
-        ),
       }}
     />
   );
