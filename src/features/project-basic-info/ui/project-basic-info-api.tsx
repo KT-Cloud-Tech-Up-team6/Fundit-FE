@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import {
-  createProject,
   getProjectPreview,
   saveProjectBasicInfo,
   type BasicInfoResponse,
 } from "@/entities/project/api/seller-project-api";
 import { basicInfoRequest, businessCodes, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectBasicInfoForm } from "./project-basic-info-form";
+import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
 import {
   ProjectSidebar,
   projectEditTabs,
@@ -29,7 +28,6 @@ export function ProjectBasicInfoApi({
   const { state } = useAuth();
   const router = useRouter();
   const cache = useQueryClient();
-  const createdId = useRef<string | null>(null);
   const owner = state.user?.memberId;
   const enabled = state.status === "authenticated" && Boolean(owner);
   const preview = useQuery({
@@ -39,8 +37,8 @@ export function ProjectBasicInfoApi({
   });
   const saved = cache.getQueryData<BasicInfoResponse>(["seller-project-basic", owner, projectId]);
   async function save(values: BasicInfoValues) {
-    const id = projectId ?? createdId.current ?? (await createProject()).projectId;
-    createdId.current = id;
+    if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
+    const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
     const response = await saveProjectBasicInfo(id, basicInfoRequest(values));
     cache.setQueryData(["seller-project-basic", owner, id], response);
     await Promise.all([
@@ -48,7 +46,10 @@ export function ProjectBasicInfoApi({
       cache.invalidateQueries({ queryKey: ["seller-project-counts"] }),
       cache.invalidateQueries({ queryKey: ["seller-project-preview", owner, id] }),
     ]);
-    if (!projectId) router.replace(`/seller/projects/${id}?tab=basic-info`);
+    if (!projectId) {
+      sessionStorage.removeItem(projectAttemptKey(owner));
+      router.replace(`/seller/projects/${id}?tab=basic-info`);
+    }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
   if (state.status === "guest")
@@ -72,7 +73,15 @@ export function ProjectBasicInfoApi({
         </button>
       </div>
     );
-  if (!projectId) return <ProjectBasicInfoForm onSave={save} />;
+  if (!projectId)
+    return (
+      <>
+        <ProjectBasicInfoForm key={owner} onSave={save} />
+        <Link href="/seller/projects?status=draft" className="block py-4 underline">
+          내 프로젝트 목록에서 생성 여부 확인
+        </Link>
+      </>
+    );
   const data = preview.data!;
   const initialValues = {
     title: saved?.title ?? data.title ?? "",
@@ -100,7 +109,11 @@ export function ProjectBasicInfoApi({
                 나머지 기존 값은 유지됩니다.
               </p>
             )}
-            <ProjectBasicInfoForm key={projectId} initialValues={initialValues} onSave={save} />
+            <ProjectBasicInfoForm
+              key={`${owner}:${projectId}`}
+              initialValues={initialValues}
+              onSave={save}
+            />
           </>
         ) : (
           <>

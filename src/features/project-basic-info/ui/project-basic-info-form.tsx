@@ -26,6 +26,7 @@ import {
 } from "../model/basic-info-demo";
 import { RewardFormModal } from "./reward-form-modal";
 import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-request";
+import { ProjectCreationUncertainError } from "../model/project-create-attempt";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
 const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
@@ -103,10 +104,12 @@ export function ProjectBasicInfoForm({
         await onSave(values);
         setFormMessageRole("status");
         setFormMessage("기본 정보를 저장했습니다. 리워드는 이번 저장에 포함되지 않습니다.");
-      } catch {
+      } catch (error) {
         setFormMessageRole("alert");
         setFormMessage(
-          "기본 정보를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해 주세요.",
+          error instanceof ProjectCreationUncertainError
+            ? error.message
+            : "기본 정보를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해 주세요.",
         );
       } finally {
         savingRef.current = false;
