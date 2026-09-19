@@ -22,6 +22,7 @@ import {
   type ReturnType,
 } from "../model/funding-cancel";
 import { demoFundingDetail, formatWon } from "../model/funding-history";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 /* ponytail: 참여 취소·반품/교환 제출 API가 없어(docs/OPEN_DECISIONS.md P0 환불) 확인 모달에서
    버튼을 누르면 목록으로 돌아가는 것으로 갈음한다. API가 생기면 여기서 서버에 제출한다. */
@@ -109,13 +110,12 @@ export function FundingCancel({
         <h1 className="text-title-s text-text-default flex-1 text-center">
           {isReturn ? "펀딩 반품/교환" : "펀딩 취소"}
         </h1>
-        <Link
-          href="/my/notifications"
-          aria-label="알림"
+        <PendingDestination
+          label="알림"
           className="flex size-10 shrink-0 items-center justify-center"
         >
           <Icon name="bell" className="text-text-default size-6" />
-        </Link>
+        </PendingDestination>
       </header>
 
       <div className="flex flex-1 flex-col gap-2">

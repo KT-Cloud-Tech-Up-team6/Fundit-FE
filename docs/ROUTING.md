@@ -70,7 +70,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 | URL                                    | 화면                    | 접근 조건                 | 상태                                                    |
 | -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
-| `/`                                    | 홈                      | public                    | placeholder                                             |
+| `/`                                    | 홈 (→ `/live` redirect) | public                    | 원본 없음                                               |
 | `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
 | `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | placeholder                                             |
 | `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
@@ -175,6 +175,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 | 이전 URL                                         | 이동 URL                                       |
 | ------------------------------------------------ | ---------------------------------------------- |
+| `/`                                              | `/live`                                        |
 | `/auth/signup/terms`                             | `/auth/signup`                                 |
 | `/auth/signup/done`                              | `/auth/signup/complete`                        |
 | `/auth/recovery?view=email`                      | `/auth/recovery/email`                         |
@@ -188,6 +189,8 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/projects/[projectId]/fulfillment/delay` | `/seller/projects/[projectId]?tab=fulfillment` |
 | `/seller/projects/[projectId]/live-proof`        | `/seller/projects/[projectId]?tab=live`        |
 | `/seller/live/[liveId]/setup`                    | `/seller/live/[liveId]/cue-sheet`              |
+
+구매자 홈은 Figma에 화면 원본이 없고 [소비자 핵심 플로우 `1087:18097`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1087-18097)도 `LIVE 탭 이동`에서 시작합니다. 화면을 임의로 만들지 않고 `next.config.ts`의 라우팅 레벨 redirect로 `/live`에 보냅니다. 정적 라우트라 페이지 `redirect()`는 1초 `meta refresh`가 되므로 사용하지 않으며, 홈 디자인이 확정되면 되돌립니다. 목적지 미정 링크의 비활성 처리와 함께 [BUYER_FLOW_CONTINUITY.md](./BUYER_FLOW_CONTINUITY.md)에 기록합니다.
 
 ## 접근 제어 계약
 
