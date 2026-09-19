@@ -8,7 +8,7 @@ import { EmptyState } from "@/shared/components/ui/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import styles from "./buyer-search.module.css";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
 import { ProjectRow } from "@/entities/project/ui/project-row";
@@ -48,10 +48,18 @@ export function BuyerSearch({
   query,
   onQueryChange,
   initialInput = "",
+  server,
 }: {
   query: SearchQuery;
   onQueryChange: (query: SearchQuery) => void;
   initialInput?: string;
+  server?: {
+    projects: ReturnType<typeof searchResults>["projects"];
+    count: number;
+    state?: ReactNode;
+    footer: ReactNode;
+    popular: ReactNode;
+  };
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState({
@@ -59,7 +67,9 @@ export function BuyerSearch({
     value: initialInput || query.q,
     editing: Boolean(initialInput),
   });
-  const [recent, setRecent] = useState(["무선 청소기", "수박", "육하원칙", "고무대야"]);
+  const [recent, setRecent] = useState(
+    server ? [] : ["무선 청소기", "수박", "육하원칙", "고무대야"],
+  );
   const [following, setFollowing] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
   const recentDrag = useHorizontalDrag();
@@ -71,16 +81,18 @@ export function BuyerSearch({
   }
   const value = draft.base === query.q ? draft.value : query.q;
   const editing = draft.base === query.q && draft.editing;
-  const results = searchResults(query);
+  const results = server
+    ? { projects: server.projects, lives: [], sellers: [], liveTotal: 0 }
+    : searchResults(query);
   const suggestions = searchResults({ ...query, q: value });
   const tabCounts = {
-    projects: results.projects.length,
+    projects: server?.count ?? results.projects.length,
     live: results.liveTotal,
     sellers: results.sellers.length,
   };
   const count =
     query.tab === "projects"
-      ? results.projects.length
+      ? (server?.count ?? results.projects.length)
       : query.tab === "live"
         ? results.lives.length
         : results.sellers.length;
@@ -181,29 +193,33 @@ export function BuyerSearch({
                   <p className="text-caption-m text-text-disabled">최근 검색어가 없습니다.</p>
                 )}
               </section>
-              <section className="py-3" aria-label="인기 검색어">
-                <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
-                <ol
-                  className={`${styles.track} flex gap-2 py-2`}
-                  {...popularDrag}
-                  tabIndex={0}
-                  aria-label="인기 검색어 가로 목록"
-                >
-                  {["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
-                    (word, index) => (
-                      <li key={word} className="shrink-0">
-                        <button
-                          type="button"
-                          className="border-border-primary text-label-l h-9 rounded-full border px-3"
-                          onClick={() => submit(word)}
-                        >
-                          {index + 1} {word}
-                        </button>
-                      </li>
-                    ),
-                  )}
-                </ol>
-              </section>
+              {server ? (
+                server.popular
+              ) : (
+                <section className="py-3" aria-label="인기 검색어">
+                  <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
+                  <ol
+                    className={`${styles.track} flex gap-2 py-2`}
+                    {...popularDrag}
+                    tabIndex={0}
+                    aria-label="인기 검색어 가로 목록"
+                  >
+                    {["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
+                      (word, index) => (
+                        <li key={word} className="shrink-0">
+                          <button
+                            type="button"
+                            className="border-border-primary text-label-l h-9 rounded-full border px-3"
+                            onClick={() => submit(word)}
+                          >
+                            {index + 1} {word}
+                          </button>
+                        </li>
+                      ),
+                    )}
+                  </ol>
+                </section>
+              )}
             </>
           ) : (
             <section aria-label="연관 검색어" className="py-2">
@@ -219,7 +235,7 @@ export function BuyerSearch({
                 <span className="min-w-0 flex-1 truncate font-semibold">{value}</span>
                 <Icon name="next" className="size-4" />
               </button>
-              {searchSuggestions
+              {(server ? [] : searchSuggestions)
                 .filter((item) => matchesSearch(item.data.title, value))
                 .map((item) => (
                   <Link
@@ -234,7 +250,7 @@ export function BuyerSearch({
                     <Icon name="next" className="size-4 shrink-0" />
                   </Link>
                 ))}
-              {suggestions.sellers.slice(0, 1).map((seller) => (
+              {(server ? [] : suggestions.sellers).slice(0, 1).map((seller) => (
                 <button
                   key={seller.id}
                   type="button"
@@ -293,7 +309,7 @@ export function BuyerSearch({
             aria-labelledby={`search-${query.tab}`}
             className="px-5 pb-6"
           >
-            {query.tab !== "sellers" && count > 0 && (
+            {query.tab !== "sellers" && (count > 0 || server) && (
               <div className="text-body-s flex items-center justify-between gap-1 pt-3 pb-2">
                 <p role="status" className="text-text-disabled shrink-0">
                   총 {count}개
@@ -308,7 +324,7 @@ export function BuyerSearch({
                         onQueryChange({ ...query, closed: event.target.checked })
                       }
                     >
-                      종료 프로젝트 보기
+                      {server ? "종료 프로젝트만 보기" : "종료 프로젝트 보기"}
                     </Checkbox>
                   )}
                   <Dropdown
@@ -345,7 +361,9 @@ export function BuyerSearch({
                 ))}
               </div>
             )}
-            {count === 0 ? (
+            {server?.state ? (
+              server.state
+            ) : count === 0 ? (
               <EmptyState
                 role="status"
                 className="[&>p]:text-body-s pt-[166px]"
@@ -369,7 +387,12 @@ export function BuyerSearch({
             ) : query.tab === "projects" ? (
               <div className="space-y-3">
                 {results.projects.map((project) => (
-                  <ProjectRow key={project.id} project={project} thumbnailClassName="w-[36.57%]" />
+                  <ProjectRow
+                    key={project.id}
+                    project={project}
+                    thumbnailClassName="w-[36.57%]"
+                    unavailable={Boolean(server)}
+                  />
                 ))}
               </div>
             ) : query.tab === "live" ? (
@@ -456,6 +479,7 @@ export function BuyerSearch({
                 ))}
               </div>
             )}
+            {server?.footer}
           </section>
         </>
       )}
