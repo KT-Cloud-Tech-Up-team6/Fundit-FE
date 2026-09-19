@@ -35,7 +35,10 @@ export function PaymentMethodSection({
             ["toss_pay", "toss pay"],
           ] as const
         ).map(([value, label]) => (
-          <div key={value} className="border-border-default rounded-xs border px-4 py-3">
+          <div
+            key={value}
+            className={`border-border-default rounded-xs border px-4 ${value === "credit_card" && form.method === value ? "flex flex-col gap-2 py-2" : "h-[46px] py-3"}`}
+          >
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="radio"
@@ -58,27 +61,26 @@ export function PaymentMethodSection({
               <span className="text-body-m font-medium">{label}</span>
             </label>
             {value === "credit_card" && form.method === value && (
-              <div className="mt-3 space-y-2">
+              <div className="space-y-2">
                 <button
                   type="button"
                   onClick={() => setSheet("card")}
-                  className="border-border-default text-body-s flex h-9 w-full items-center justify-between rounded-xs border px-3"
+                  className={`text-body-s flex h-9 w-full items-center justify-between rounded-xs border border-[#ededed] px-3 ${form.card ? "text-text-default" : "text-text-secondary"}`}
                   aria-label="카드 선택"
                 >
                   {form.card || "카드를 선택해주세요"}
                   <Icon name="arrowDown" className="size-4" />
                 </button>
-                {form.card && (
-                  <button
-                    type="button"
-                    onClick={() => setSheet("installment")}
-                    className="border-border-default text-body-s flex h-9 w-full items-center justify-between rounded-xs border px-3"
-                    aria-label="할부 선택"
-                  >
-                    {form.installment}
-                    <Icon name="arrowDown" className="size-4" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setSheet("installment")}
+                  disabled={!form.card}
+                  className={`text-body-s flex h-9 w-full items-center justify-between rounded-xs border border-[#ededed] px-3 ${form.card ? "text-text-default" : "text-text-secondary"}`}
+                  aria-label="할부 선택"
+                >
+                  {form.installment}
+                  <Icon name="arrowDown" className="size-4" />
+                </button>
               </div>
             )}
           </div>
@@ -89,6 +91,7 @@ export function PaymentMethodSection({
         onClose={() => setSheet(null)}
         title={sheet === "card" ? "카드선택" : "할부 선택"}
         className={styles.sheet}
+        desktopModal
       >
         <div
           className="pb-10"

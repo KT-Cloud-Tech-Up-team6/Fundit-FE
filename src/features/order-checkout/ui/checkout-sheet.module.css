@@ -17,10 +17,7 @@
 .sheet > div > div:first-child > button {
   position: absolute;
   right: 8px;
-  opacity: 0;
-}
-
-.sheet > div > div:first-child > button:focus-visible {
+  /* Figma 와이어프레임에는 없지만, 모든 결제 시트에 명시적인 닫기 경로를 제공한다. */
   opacity: 1;
 }
 
@@ -33,8 +30,27 @@
   padding: 8px 20px;
 }
 
-.searchSheet > div > div:first-child > button {
-  opacity: 1;
+/* FL_B_PY의 모바일 시트는 390px 하단에 붙고, 넓은 구매자 화면에서는
+   공통 Modal/m(588px) 크기의 중앙 다이얼로그로 전환한다. 본문만 스크롤되므로
+   쿠폰·카드 목록과 주소 입력의 CTA는 항상 보인다. */
+@media (min-width: 1200px) {
+  .sheet > div {
+    max-height: calc(100dvh - 80px);
+    padding-bottom: 0;
+  }
+
+  .sheet > div > div:first-child {
+    min-height: 60px;
+    padding: 12px 24px;
+  }
+
+  .sheet > div > div:nth-child(2) {
+    padding: 0 24px 32px;
+  }
+
+  .sheet > div > div:last-child:not(:nth-child(2)) {
+    padding: 12px 24px 24px;
+  }
 }
 
 @media (width < 1200px) {

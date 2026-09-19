@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CheckoutForm } from "@/entities/order/model/order-session";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import {
   DEMO_POINT_BALANCE,
   clampPointUsage,
@@ -72,7 +73,6 @@ export function OrderCheckoutScreen({
         method: null,
         card: "",
         installment: "일시불",
-        agreedIds: [],
       },
   );
   const [addressWarning, setAddressWarning] = useState(false);
@@ -134,61 +134,82 @@ export function OrderCheckoutScreen({
     }
   }
   return (
-    <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="mx-auto flex min-h-dvh w-full flex-col min-[1200px]:max-w-[390px]">
-        <CheckoutTopBar title="결제" />
-        <div className="flex flex-1 flex-col gap-3 pb-8">
-          <ShippingAddressSection
-            id={SHIPPING_SECTION_ID}
-            state={shippingState}
-            address={form.address ?? address}
-            onChangeAddress={() => setAddressSheetOpen(true)}
-            onAddAddress={() => setAddressSheetOpen(true)}
-          />
-          <section className="bg-layer-surface-default flex flex-col">
-            {(items ?? [orderItem]).map((item, index) => (
-              <OrderItemSection key={index} item={item} />
-            ))}
-            <div className="px-5 pb-4">
-              <Button
-                type="button"
-                variant="secondary"
-                appearance="cta"
-                size="md"
-                className="w-full"
-                onClick={() => setCouponSheetOpen(true)}
-              >
-                {selectedCoupon ? "쿠폰 변경" : "쿠폰 적용"}
-              </Button>
-              {selectedCoupon && <p className="text-body-s mt-2">{selectedCoupon.name} 사용중</p>}
-            </div>
-            <PointUsageSection
-              value={usedPoints ? String(usedPoints) : ""}
-              onChange={handlePointInput}
-              balance={DEMO_POINT_BALANCE}
-              maxUsable={maxPointUsage(couponSummary)}
-            />
-          </section>
-          <div>
-            <PaymentMethodSection
-              form={form}
-              onChange={(change) => {
-                update(change);
-                setMethodWarning("");
-              }}
-            />
-            {methodWarning && (
-              <p
-                role="alert"
-                className="text-text-warning bg-layer-surface-default px-5 pb-4 text-[14px]"
-              >
-                {methodWarning}
-              </p>
-            )}
-          </div>
-          <PaymentSummarySection summary={effectiveSummary} />
+    /* 모바일은 #165대로 가용 폭을 쓰고, 데스크톱은 라이브·상세와 같은 헤더와 1200px 그리드를 쓴다. */
+    <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-dvh w-full">
+      <BuyerDesktopHeader />
+      <div className="mx-auto flex min-h-dvh w-full flex-col min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300">
+        <div className="min-[1200px]:hidden">
+          <CheckoutTopBar title="결제" />
         </div>
-        <div className="bg-layer-surface-default sticky bottom-0 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
+        <div className="flex flex-1 flex-col gap-3 pb-8 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,746px)_386px] min-[1200px]:items-start min-[1200px]:gap-10 min-[1200px]:pt-8 min-[1200px]:pb-16">
+          <div className="flex min-w-0 flex-col gap-3">
+            <ShippingAddressSection
+              id={SHIPPING_SECTION_ID}
+              state={shippingState}
+              address={form.address ?? address}
+              onChangeAddress={() => setAddressSheetOpen(true)}
+              onAddAddress={() => setAddressSheetOpen(true)}
+            />
+            <section className="bg-layer-surface-default flex flex-col">
+              {(items ?? [orderItem]).map((item, index) => (
+                <OrderItemSection key={index} item={item} />
+              ))}
+              <div className="px-5 pb-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  appearance="cta"
+                  size="md"
+                  className="w-full"
+                  onClick={() => setCouponSheetOpen(true)}
+                >
+                  {selectedCoupon ? "쿠폰 변경" : "쿠폰 적용"}
+                </Button>
+                {selectedCoupon && <p className="text-body-s mt-2">{selectedCoupon.name} 사용중</p>}
+              </div>
+              <PointUsageSection
+                value={usedPoints ? String(usedPoints) : ""}
+                onChange={handlePointInput}
+                balance={DEMO_POINT_BALANCE}
+                maxUsable={maxPointUsage(couponSummary)}
+              />
+            </section>
+            <div>
+              <PaymentMethodSection
+                form={form}
+                onChange={(change) => {
+                  update(change);
+                  setMethodWarning("");
+                }}
+              />
+              {methodWarning && (
+                <p
+                  role="alert"
+                  className="text-text-warning bg-layer-surface-default px-5 pb-4 text-[14px]"
+                >
+                  {methodWarning}
+                </p>
+              )}
+            </div>
+            <div className="min-[1200px]:hidden">
+              <PaymentSummarySection summary={effectiveSummary} />
+            </div>
+          </div>
+          <aside className="hidden min-[1200px]:sticky min-[1200px]:top-6 min-[1200px]:block">
+            <div className="border-border-default bg-layer-surface-default overflow-hidden rounded-xs border">
+              <PaymentSummarySection summary={effectiveSummary} />
+              <div className="border-border-default border-t px-5 py-5">
+                <p className="text-caption-s text-text-secondary mb-3 text-center">
+                  실제 결제가 발생하지 않는 데모입니다.
+                </p>
+                <Button className="w-full" appearance="cta" size="xl" onClick={handlePay}>
+                  {formatWon(finalPaymentAmount(effectiveSummary))} 결제하기
+                </Button>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div className="bg-layer-surface-default sticky bottom-0 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))] min-[1200px]:hidden">
           <p className="text-caption-s text-text-secondary mb-2 text-center">
             실제 결제가 발생하지 않는 데모입니다.
           </p>
@@ -301,7 +322,8 @@ function PointUsageSection({
         <Button
           type="button"
           variant="secondary"
-          className="h-13 shrink-0 px-2 text-[14px]!"
+          size="xl"
+          className="shrink-0 px-2 text-[14px]!"
           onClick={() => onChange(String(Math.min(balance, maxUsable)))}
         >
           전체 사용
@@ -317,11 +339,10 @@ function PointUsageSection({
 
 function PaymentSummarySection({ summary }: { summary: PaymentSummary }) {
   return (
-    <section aria-labelledby="checkout-summary-title" className="flex flex-col">
+    /* 모바일·데스크탑 두 벌이 항상 DOM에 있어 id가 중복되므로 aria-label로 이름을 준다. */
+    <section aria-label="결제 금액" className="flex flex-col">
       <div className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
-        <h2 id="checkout-summary-title" className="text-title-s text-text-default">
-          결제 금액
-        </h2>
+        <h2 className="text-title-s text-text-default">결제 금액</h2>
         <div className="flex flex-col gap-3">
           <dl className="flex flex-col gap-1.5">
             <SummaryRow label="총 주문 금액" value={formatWon(totalOrderAmount(summary))} strong />
