@@ -33,9 +33,7 @@ export const SubscriptionKeyboard: Story = {
     await waitFor(() =>
       expect(subscriptions.getByText("알림 신청한 라이브가 없습니다.")).toHaveFocus(),
     );
-    expect(
-      canvas.getByRole("button", { name: "예정된 라이브 전체보기 · 화면 미정" }),
-    ).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "예정된 라이브 전체보기 (준비중)" })).toBeDisabled();
   },
 };
 
