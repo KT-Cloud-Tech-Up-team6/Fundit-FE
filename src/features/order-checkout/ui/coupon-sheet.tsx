@@ -49,6 +49,7 @@ export function CouponSheet({
       onClose={onClose}
       title="쿠폰 선택"
       className={styles.sheet}
+      desktopModal
       footer={
         <Button
           className="w-full disabled:bg-[#cdced4]!"
@@ -61,15 +62,15 @@ export function CouponSheet({
       }
     >
       {coupons.length === 0 ? (
-        <div className="flex flex-col items-center gap-6 py-10">
+        <div className="flex flex-col items-center gap-10 py-10">
           <Image
             src="/images/checkout/coupon-empty.svg"
             alt=""
-            width={80}
-            height={64}
-            className="h-16 w-20"
+            width={112}
+            height={112}
+            className="size-28"
           />
-          <p className="text-body-s text-text-default">사용가능한 쿠폰이 없습니다</p>
+          <p className="text-title-s text-text-default">사용가능한 쿠폰이 없습니다</p>
         </div>
       ) : (
         <fieldset className="flex flex-col gap-3">
