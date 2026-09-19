@@ -12,7 +12,7 @@ export type FundingSummary = {
   thumbnail: string;
   category: string;
   period: FundingPeriod;
-  goalAmount: number;
+  goalAmount: number | null;
   raisedAmount: number;
   backerCount: number;
   wishlistCount: number | null;
@@ -27,7 +27,7 @@ export type RewardStatusRow = {
   name: string;
   option: string;
   quantity: number;
-  amount: number;
+  amount: number | null;
 };
 
 /** 목표 대비 달성률(%). 목표가 0이면 0. seller-project-card와 같은 계산식. */
