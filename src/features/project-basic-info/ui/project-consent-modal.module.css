@@ -1,0 +1,21 @@
+.modal {
+  margin: 20px auto auto;
+  max-height: calc(100dvh - 40px);
+}
+
+.modal > div {
+  max-height: inherit;
+}
+
+.modal > div > :last-child {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 1200px) and (min-height: 720px) {
+  .modal {
+    margin-top: 114px;
+    max-height: calc(100dvh - 134px);
+  }
+}
