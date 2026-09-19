@@ -15,6 +15,9 @@ type RewardFormModalProps = {
   onClose: () => void;
   onSave: () => void;
   onUpdate: (patch: Partial<RewardDraft>) => void;
+  busy?: boolean;
+  optionsReadOnly?: boolean;
+  onFile?: (file?: File) => void;
 };
 
 export function RewardFormModal({
@@ -24,6 +27,9 @@ export function RewardFormModal({
   onClose,
   onSave,
   onUpdate,
+  busy = false,
+  optionsReadOnly = false,
+  onFile,
 }: RewardFormModalProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   if (!draft) return null;
@@ -40,7 +46,7 @@ export function RewardFormModal({
       title={editing ? "리워드 수정" : "리워드 추가"}
     >
       {/* Figma modal_web content: 필드·옵션·CTA 묶음 사이 간격은 모두 24px이다. */}
-      <div className="mt-6 space-y-6">
+      <fieldset disabled={busy} className="mt-6 space-y-6">
         <label className="block space-y-2">
           <span className="text-title-s">리워드 명</span>
           <Input
@@ -64,7 +70,6 @@ export function RewardFormModal({
               value={draft.imageName}
               placeholder="이미지를 첨부해주세요 (선택)"
             />
-            {/* ponytail: 파일 선택까지만 실동작. 업로드 API 생기면 여기에 붙인다 */}
             <input
               ref={fileInput}
               className="sr-only"
@@ -72,6 +77,7 @@ export function RewardFormModal({
               accept="image/*"
               onChange={(event) => {
                 onUpdate({ imageName: event.target.files?.[0]?.name ?? "" });
+                onFile?.(event.target.files?.[0]);
               }}
             />
             <Button
@@ -195,6 +201,7 @@ export function RewardFormModal({
           <Checkbox
             shape="square"
             checked={draft.options}
+            disabled={optionsReadOnly}
             onChange={(event) => onUpdate({ options: event.target.checked })}
             className="min-h-11 w-full items-start gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
           >
@@ -203,6 +210,11 @@ export function RewardFormModal({
               색상·사이즈처럼 후원자가 고를 수 있는 옵션이 있다면 켜주세요
             </span>
           </Checkbox>
+          {optionsReadOnly && (
+            <p className="text-caption-s">
+              등록된 옵션은 유지됩니다. 옵션 편집은 연결 준비 중입니다.
+            </p>
+          )}
         </div>
         {error && (
           <p role="alert" className="text-caption-s text-text-error">
@@ -214,7 +226,7 @@ export function RewardFormModal({
             등록
           </Button>
         </div>
-      </div>
+      </fieldset>
     </Modal>
   );
 }

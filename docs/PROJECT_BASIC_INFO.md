@@ -1,5 +1,12 @@
 # 판매자 기본 정보·리워드 목업
 
+## 리워드 API 연결 (#192)
+
+- 서버 UUID 프로젝트의 `?tab=rewards` 및 기본정보 화면에서 판매자 리워드 조회·등록·수정·삭제를 사용합니다. 공통 인증 PR #97 외 다른 기능 PR의 코드는 필요하지 않습니다.
+- 프로젝트 ID는 UUID, 리워드 ID는 BE가 반환한 숫자입니다. 이미지 업로드는 서명 URL PUT 성공 후에만 저장합니다.
+- 실패 시 입력을 유지하고 성공 후 목록을 다시 조회합니다. 옵션 상세·배송 필드는 수정 요청에서 생략해 기존 서버 값을 보존합니다.
+- 옵션 상세·배송 정보 입력·환불정책 편집은 미완료입니다. Gateway·테스트 환경 안내 전 실제 BE/S3 검증은 하지 않았습니다. 아래 목업 설명은 데모 ID와 Storybook에 해당합니다.
+
 ## Design Source
 
 - [Figma 지정 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=281-5059), [Issue #42](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/42).
