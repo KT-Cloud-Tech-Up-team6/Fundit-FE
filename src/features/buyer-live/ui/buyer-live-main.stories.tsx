@@ -145,9 +145,6 @@ export const SearchAndNavigation: Story = {
     expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
     expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
     expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
-    expect(canvas.getByRole("link", { name: "실시간 순위 전체보기" })).toHaveAttribute(
-      "href",
-      "/live/rank",
-    );
+    expect(canvas.getByRole("button", { name: "실시간 순위 전체보기 (준비중)" })).toBeDisabled();
   },
 };
