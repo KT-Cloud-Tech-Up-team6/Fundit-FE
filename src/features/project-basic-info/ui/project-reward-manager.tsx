@@ -22,6 +22,7 @@ import {
 } from "../model/basic-info-demo";
 import { rewardRequest, rewardToDraft } from "../model/reward-request";
 import { RewardFormModal } from "./reward-form-modal";
+import { createRewardOnce, RewardCreationUncertainError } from "../model/reward-create-attempt";
 
 export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const { state } = useAuth();
@@ -66,11 +67,21 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     setBusy(true);
     try {
       const imageUrl = file.current ? await uploadProjectMedia(projectId, file.current) : undefined;
-      await persistReward(projectId, rewardRequest(draft, imageUrl), editing);
+      const body = rewardRequest(draft, imageUrl);
+      if (editing === undefined) {
+        if (!state.user?.memberId) throw new Error("로그인이 필요합니다.");
+        await createRewardOnce(sessionStorage, state.user.memberId, projectId, body);
+      } else {
+        await persistReward(projectId, body, editing);
+      }
       await cache.invalidateQueries({ queryKey });
       setDraft(null);
-    } catch {
-      setRewardMessage("리워드를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해주세요.");
+    } catch (error) {
+      setRewardMessage(
+        error instanceof RewardCreationUncertainError
+          ? error.message
+          : "리워드를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해주세요.",
+      );
     } finally {
       pending.current = false;
       setBusy(false);
