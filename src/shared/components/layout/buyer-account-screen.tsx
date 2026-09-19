@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 export function BuyerAccountScreen({
   title,
@@ -26,13 +27,9 @@ export function BuyerAccountScreen({
           <Icon name="arrowLeft" className="size-5" />
         </Link>
         <h1 className="text-title-s text-center">{title}</h1>
-        <Link
-          href="/my/notifications"
-          aria-label="알림함"
-          className="flex size-10 items-center justify-center"
-        >
+        <PendingDestination label="알림함" className="flex size-10 items-center justify-center">
           <Icon name="bell" className="size-6" />
-        </Link>
+        </PendingDestination>
       </header>
       {children}
     </main>

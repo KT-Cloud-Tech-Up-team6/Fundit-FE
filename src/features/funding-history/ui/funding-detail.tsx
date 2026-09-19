@@ -7,6 +7,7 @@ import {
   formatDate,
   formatWon,
 } from "../model/funding-history";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 /* ponytail: 펀딩 상세 조회 API가 없어(docs/OPEN_DECISIONS.md P1) demoFundingDetail 목업을 쓴다.
    API가 생기면 fundingId로 서버 조회하도록 이 자리만 바꾼다. */
@@ -25,13 +26,12 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
           <Icon name="arrowLeft" className="text-text-default size-5" />
         </Link>
         <h1 className="text-title-s text-text-default flex-1 text-center">펀딩 상세 내역</h1>
-        <Link
-          href="/my/notifications"
-          aria-label="알림"
+        <PendingDestination
+          label="알림"
           className="flex size-10 shrink-0 items-center justify-center"
         >
           <Icon name="bell" className="text-text-default size-6" />
-        </Link>
+        </PendingDestination>
       </header>
 
       <div className="flex flex-1 flex-col gap-2">

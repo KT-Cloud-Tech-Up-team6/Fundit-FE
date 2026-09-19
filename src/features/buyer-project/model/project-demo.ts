@@ -1,3 +1,5 @@
+import { projectSearchDemo } from "@/entities/project/model/project-search-demo";
+
 export const projectDemo = {
   title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
   seller: "홈메이트랩",
@@ -66,3 +68,33 @@ export const questionDemos = [
     answeredAt: "09.07",
   },
 ];
+
+/** LIVE 연결에서 넘어오는 목업 관계. features 간 직접 의존을 만들지 않으려고 구조만 받는다. */
+type ProjectDemoConnection = {
+  liveId: string;
+  hasLive: boolean;
+  data: { title: string; seller: string; image: string };
+};
+
+/* 프로젝트 화면이 쓰는 표시용 목업을 한 곳에서 고른다. LIVE 연결 > 검색 목록 > 기본값 순서다.
+   상세와 주문서가 각자 같은 3단 분기를 복붙하고 있어 서로 다르게 갈라졌던 것을 합쳤다.
+   각 화면 문서가 요구하는 "명시적 목업 관계"이며 API 조회가 아니다. */
+export function resolveProjectDemo(projectId: string, connection?: ProjectDemoConnection) {
+  if (connection) {
+    const { title, seller, image } = connection.data;
+    return {
+      ...projectDemo,
+      title,
+      seller,
+      image,
+      liveId: connection.liveId,
+      hasLive: connection.hasLive,
+    };
+  }
+  const searchProject = projectSearchDemo.find((project) => project.id === projectId);
+  if (searchProject) {
+    const { title, seller, image } = searchProject;
+    return { ...projectDemo, title, seller, image, liveId: undefined, hasLive: false };
+  }
+  return { ...projectDemo, liveId: undefined, hasLive: true };
+}
