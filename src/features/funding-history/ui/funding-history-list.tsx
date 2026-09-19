@@ -19,6 +19,7 @@ import {
   type FundingHistoryStatus,
   type FundingPeriod,
 } from "../model/funding-history";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 /* ponytail: 펀딩 집계 API가 없어(docs/OPEN_DECISIONS.md P1) 목록은 useState 목업이다.
    API가 생기면 demoFundingHistoryItems 자리를 서버 응답으로 바꾼다. */
@@ -56,13 +57,12 @@ export function FundingHistoryList() {
           <Icon name="arrowLeft" className="text-text-default size-5" />
         </Link>
         <h1 className="text-title-s text-text-default flex-1 text-center">참여/배송 내역</h1>
-        <Link
-          href="/my/notifications"
-          aria-label="알림"
+        <PendingDestination
+          label="알림"
           className="flex size-10 shrink-0 items-center justify-center"
         >
           <Icon name="bell" className="text-text-default size-6" />
-        </Link>
+        </PendingDestination>
       </header>
 
       <div className="bg-layer-surface-default flex flex-col gap-2 px-5 py-2">

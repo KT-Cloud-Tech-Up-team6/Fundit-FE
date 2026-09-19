@@ -111,6 +111,9 @@ src/shared/components/
 | Feedback   | `Badge`, `Chip`, `ProgressBar`, `Toast`               | 상태·선택·진행률·알림의 도메인 비의존 표현                           |
 | Surface    | `Card`, `BottomSheet`, `Tooltip`                      | 콘텐츠 표면, modal dialog와 컨텍스트 팝업 동작                       |
 | Media      | `Icon`, `Avatar`, `AspectRatio`                       | 허용된 아이콘 이름, 프로필 이미지와 비율 컨테이너                    |
+| State      | `PendingDestination`                                  | 화면 원본이 없어 목적지가 미정인 자리의 비활성 표현                  |
+
+`PendingDestination`은 Link를 대신해 `button disabled`를 렌더하고 `aria-label`에 `(준비중)`을 붙입니다. 각 화면 문서의 "목적지 미정이므로 비활성으로 유지한다"를 한 방식으로 지키기 위한 것이며, 해당 화면이 확정되면 그 자리를 Link로 되돌립니다. 적용 범위는 [BUYER_FLOW_CONTINUITY.md](./BUYER_FLOW_CONTINUITY.md)에 있습니다.
 
 이 표는 컴포넌트 사용법의 정본이 아닙니다. 공개 props와 상태 예시는 각 Storybook 스토리를 기준으로 확인합니다.
 

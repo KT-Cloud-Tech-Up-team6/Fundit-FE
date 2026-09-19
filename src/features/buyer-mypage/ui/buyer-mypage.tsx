@@ -2,7 +2,10 @@ import Link from "next/link";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
+import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
+/* href가 없는 항목은 화면 원본이 없어 목적지가 미정인 자리다(PendingDestination).
+   Figma 구매자 프레임에 알림함·고객센터·설정 화면이 없어 임의로 만들지 않는다. */
 const menuGroups = [
   {
     title: "펀딩 내역",
@@ -14,29 +17,22 @@ const menuGroups = [
   },
   {
     title: "나의 활동",
-    items: [
-      { label: "관심 목록", href: "/my/wishlist" },
-      { label: "알림함", href: "/my/notifications" },
-    ],
+    items: [{ label: "관심 목록", href: "/my/wishlist" }, { label: "알림함" }],
   },
   {
     title: "고객센터",
-    items: [
-      { label: "1:1 문의", href: "/my/support/inquiries" },
-      { label: "FAQ", href: "/support/faq" },
-      { label: "공지사항", href: "/support/notices" },
-    ],
+    items: [{ label: "1:1 문의" }, { label: "FAQ" }, { label: "공지사항" }],
   },
   {
     title: "설정",
     items: [
-      { label: "맞춤 정보 설정", href: "/my/preferences" },
-      { label: "알림 설정", href: "/my/notifications/settings" },
-      { label: "회원 정보 관리", href: "/my/profile" },
-      { label: "화면 모드", href: "/my/settings" },
+      { label: "맞춤 정보 설정" },
+      { label: "알림 설정" },
+      { label: "회원 정보 관리" },
+      { label: "화면 모드" },
     ],
   },
-];
+] satisfies { title: string; items: { label: string; href?: string }[] }[];
 
 export function BuyerMyPage() {
   return (
@@ -47,10 +43,9 @@ export function BuyerMyPage() {
     >
       <div className="px-5 pb-6">
         <div className="flex items-center justify-between gap-2 py-3">
-          <Link
-            href="/my/profile"
-            className="flex min-w-0 items-center gap-2"
-            aria-label="내 프로필 보기"
+          <PendingDestination
+            label="내 프로필 보기"
+            className="flex min-w-0 items-center gap-2 text-left"
           >
             <span
               aria-hidden
@@ -67,7 +62,7 @@ export function BuyerMyPage() {
                 12*****@gmail.com
               </p>
             </div>
-          </Link>
+          </PendingDestination>
           <Link
             href="/seller/projects"
             className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
@@ -117,15 +112,20 @@ export function BuyerMyPage() {
             >
               <h2 className="text-text-disabled mb-1 text-[14px] leading-5">{group.title}</h2>
               <div className="grid grid-cols-2 gap-x-3">
-                {group.items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`text-body-m flex items-center ${group.title === "설정" ? "min-h-10" : "min-h-12"}`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {group.items.map((item) => {
+                  const rowClass = `text-body-m flex items-center ${group.title === "설정" ? "min-h-10" : "min-h-12"}`;
+                  return item.href ? (
+                    <Link key={item.label} href={item.href} className={rowClass}>
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <PendingDestination
+                      key={item.label}
+                      label={item.label}
+                      className={`${rowClass} justify-start text-left`}
+                    />
+                  );
+                })}
               </div>
             </nav>
           ))}
