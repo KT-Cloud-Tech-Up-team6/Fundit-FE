@@ -183,7 +183,9 @@ export function BuyerFulfillmentSummary({
               )}
               {currentStage.startDate && (
                 <p className="text-body-s text-text-secondary font-medium">
-                  {formatShippingDate(currentStage.startDate)} {stageLabel(current)} 시작
+                  {currentStage.status === "todo"
+                    ? `${stageLabel(current)} 시작 예정일 ${formatShippingDate(currentStage.startDate)}`
+                    : `${formatShippingDate(currentStage.startDate)} ${stageLabel(current)} 시작`}
                 </p>
               )}
             </div>
@@ -193,7 +195,9 @@ export function BuyerFulfillmentSummary({
               {current === "production" ? "제작" : stageLabel(current)}{" "}
               <span className="text-body-s text-text-secondary ml-3 font-normal">
                 {currentStage.startDate &&
-                  `${formatShippingDate(currentStage.startDate)} ${stageLabel(current)} 시작`}
+                  (currentStage.status === "todo"
+                    ? `${stageLabel(current)} 시작 예정일 ${formatShippingDate(currentStage.startDate)}`
+                    : `${formatShippingDate(currentStage.startDate)} ${stageLabel(current)} 시작`)}
               </span>
             </h2>
             <div className="bg-layer-bg px-6 py-4">

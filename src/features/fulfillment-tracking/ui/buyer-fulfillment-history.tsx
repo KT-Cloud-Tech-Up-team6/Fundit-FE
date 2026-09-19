@@ -244,7 +244,9 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
               )}
               {currentStage.startDate && (
                 <p className="text-body-s text-text-secondary font-medium">
-                  {formatShippingDate(currentStage.startDate)} {currentLabel} 시작
+                  {currentStage.status === "todo"
+                    ? `${currentLabel} 시작 예정일 ${formatShippingDate(currentStage.startDate)}`
+                    : `${formatShippingDate(currentStage.startDate)} ${currentLabel} 시작`}
                 </p>
               )}
             </div>
@@ -263,7 +265,9 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
                       .map(formatShippingDate)
                       .join(" - ")
                   : stage.startDate
-                    ? `${formatShippingDate(stage.startDate)} ${label} 시작`
+                    ? stage.status === "todo"
+                      ? `${label} 시작 예정일 ${formatShippingDate(stage.startDate)}`
+                      : `${formatShippingDate(stage.startDate)} ${label} 시작`
                     : "예정 시작일 미정";
               return (
                 <section
