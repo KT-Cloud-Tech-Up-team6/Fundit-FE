@@ -19,7 +19,23 @@ export type OrderPreview = {
   shippingFee: number;
   discountAmount: number;
   finalAmount: number;
+  appliedCoupons?: { couponCode: string; discountAmount: number }[];
+  unavailableCoupons?: { couponCode: string; reason: string }[];
 };
+export type CheckoutCoupon = {
+  couponCode: string;
+  couponName: string | null;
+  discountType: string | null;
+  discountValue: number;
+  status: string;
+  expiresAt: string | null;
+};
+export function getCheckoutCoupons(page: number, signal?: AbortSignal) {
+  return apiRequest<{ content: CheckoutCoupon[]; hasNext: boolean }>(
+    `/api/v1/coupons/me?page=${page}&size=20&status=AVAILABLE`,
+    { auth: true, signal },
+  );
+}
 export type OrderCreated = {
   orderId: string;
   projectId: string;

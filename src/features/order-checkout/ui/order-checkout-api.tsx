@@ -19,6 +19,8 @@ import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { OrderMemberAccess } from "./order-member-access";
 import { OrderAttemptError, submitOrderOnce } from "../model/order-attempt";
+import { CouponApiSheet } from "./coupon-api-sheet";
+import { couponPreviewError } from "../model/coupon-preview";
 
 export function OrderCheckoutApi({
   projectId,
@@ -93,6 +95,8 @@ function Checkout({
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const saving = useRef(false);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponOpen, setCouponOpen] = useState(false);
   const valid =
     lines.length > 0 &&
     lines.every((line) => {
@@ -112,19 +116,33 @@ function Checkout({
         )
       );
     });
-  const body = { projectId, lineItems: lines, shippingAddress: address!, couponCodes: [] };
+  const body = {
+    projectId,
+    lineItems: lines,
+    shippingAddress: address!,
+    couponCodes: couponCode ? [couponCode] : [],
+  };
   const preview = useQuery({
     queryKey: ["order-preview", memberId, body],
     queryFn: () => previewOrder(body),
     enabled: valid && Boolean(address),
   });
+  const couponError = preview.data ? couponPreviewError(preview.data, couponCode) : "";
   function updateLine(rewardId: number, change: Partial<OrderLine>) {
     setLines((previous) =>
       previous.map((line) => (line.rewardId === rewardId ? { ...line, ...change } : line)),
     );
   }
   async function submit() {
-    if (saving.current || !valid || !address || !preview.isSuccess || preview.isFetching) return;
+    if (
+      saving.current ||
+      !valid ||
+      !address ||
+      !preview.isSuccess ||
+      preview.isFetching ||
+      couponError
+    )
+      return;
     saving.current = true;
     setBusy(true);
     setError("");
@@ -327,6 +345,15 @@ function Checkout({
                 배송지 입력
               </Button>
             </section>
+            <section className="bg-layer-surface-default space-y-3 p-5">
+              <h2 className="text-title-s">쿠폰</h2>
+              <p>{couponCode ? "선택한 쿠폰을 적용합니다." : "사용하지 않음"}</p>
+              <Button disabled={busy || !valid || !address} onClick={() => setCouponOpen(true)}>
+                쿠폰 선택
+              </Button>
+              {(!valid || !address) && <p>리워드와 배송지를 먼저 선택해주세요.</p>}
+              {couponError && <p role="alert">{couponError} 쿠폰을 변경하거나 해제해주세요.</p>}
+            </section>
           </div>
           <section className="bg-layer-surface-default space-y-3 p-5">
             <h2 className="text-title-s">주문 금액</h2>
@@ -359,7 +386,14 @@ function Checkout({
               주문을 생성한 뒤 참여 내역에서 결제 준비 상태를 확인합니다.
             </p>
             <Button
-              disabled={busy || !valid || !address || !preview.isSuccess || preview.isFetching}
+              disabled={
+                busy ||
+                !valid ||
+                !address ||
+                !preview.isSuccess ||
+                preview.isFetching ||
+                Boolean(couponError)
+              }
               onClick={() => void submit()}
               className="w-full"
             >
@@ -384,6 +418,18 @@ function Checkout({
       >
         {rewardContent}
       </BottomSheet>
+      {couponOpen && address && valid && (
+        <CouponApiSheet
+          memberId={memberId}
+          body={body}
+          selectedCode={couponCode}
+          onClose={() => setCouponOpen(false)}
+          onApply={(code) => {
+            setCouponCode(code);
+            setCouponOpen(false);
+          }}
+        />
+      )}
       <ShippingAddressSheet
         showDeliveryMemo={false}
         showDefault={false}
