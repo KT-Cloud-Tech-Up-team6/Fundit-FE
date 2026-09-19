@@ -12,6 +12,7 @@ import {
 } from "../model/checkout-demo";
 import type { OrderReceipt } from "../model/checkout-demo";
 import { CheckoutTopBar } from "./checkout-top-bar";
+import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 
 const DEMO_RECEIPT = demoOrderReceipt();
 const FUNDING_HISTORY_PATH = "/my/fundings";
@@ -68,13 +69,16 @@ export function OrderCompleteScreen({
   ];
 
   return (
-    /* 모바일은 가용 폭을 사용하고 별도 웹 원본은 후속 작업에서 적용한다. */
-    <div className="bg-layer-bg min-h-dvh w-full">
-      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full flex-col min-[1200px]:max-w-[390px]">
-        <CheckoutTopBar />
+    /* 모바일은 #165대로 가용 폭을 쓰고, 데스크톱은 라이브·상세와 같은 헤더와 넓은 여백을 쓴다. */
+    <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-dvh w-full">
+      <BuyerDesktopHeader />
+      <div className="bg-layer-surface-default mx-auto flex min-h-dvh w-full flex-col min-[1200px]:min-h-[calc(100dvh-70px)]">
+        <div className="min-[1200px]:hidden">
+          <CheckoutTopBar />
+        </div>
 
-        <div className="flex flex-1 flex-col items-center gap-8 px-5 pt-12 pb-8">
-          <div className="flex w-full flex-col items-center gap-10">
+        <div className="mx-auto flex w-full max-w-[390px] flex-1 flex-col items-center gap-8 px-5 pt-12 pb-8 min-[1200px]:max-w-[560px] min-[1200px]:pt-28">
+          <div className="flex w-full flex-col items-center gap-10 min-[1200px]:gap-12">
             <div className="flex size-28 shrink-0 items-center justify-center" aria-hidden>
               <Image src="/images/checkout/complete.svg" alt="" width={102} height={102} />
             </div>
@@ -123,7 +127,7 @@ export function OrderCompleteScreen({
             {shareNotice}
           </p>
         )}
-        <div className="bg-layer-surface-default sticky bottom-0 flex gap-2 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
+        <div className="bg-layer-surface-default sticky bottom-0 mx-auto flex w-full max-w-[390px] gap-2 px-5 py-2 pb-[calc(8px+env(safe-area-inset-bottom))] min-[1200px]:max-w-[560px] min-[1200px]:pb-8">
           <Button
             variant="secondary"
             appearance="cta"

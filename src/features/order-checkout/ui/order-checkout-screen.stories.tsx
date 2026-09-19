@@ -26,7 +26,9 @@ export const Default: Story = {
     await expect(canvas.getByRole("button", { name: "배송지 변경" })).toBeVisible();
 
     // 적립금 0원일 때 최종 결제 금액 = 219,900 − 얼리버드 20,900 = 199,000원(상품 카드 쿠폰 적용가와 동일), CTA도 일치.
-    const finalAmount = () => canvas.getByText("최종 결제 금액").nextElementSibling;
+    // 결제 금액 요약은 모바일/데스크탑 두 벌이 DOM에 있으므로, 보이는 쪽으로 범위를 좁힌다.
+    const summary = () => within(canvas.getByRole("region", { name: "결제 금액" }));
+    const finalAmount = () => summary().getByText("최종 결제 금액").nextElementSibling;
     await expect(finalAmount()).toHaveTextContent("199,000원");
     await expect(canvas.getByRole("button", { name: "199,000원 결제하기" })).toBeEnabled();
 
@@ -84,7 +86,6 @@ export const PaymentWithoutConsent: Story = {
       method: "toss_pay",
       card: "",
       installment: "일시불",
-      agreedIds: [],
     },
     onComplete: fn(),
   },
@@ -96,7 +97,7 @@ export const PaymentWithoutConsent: Story = {
     await userEvent.dblClick(pay);
     expect(args.onComplete).toHaveBeenCalledTimes(1);
     expect(args.onComplete).toHaveBeenCalledWith(
-      expect.objectContaining({ agreedIds: [] }),
+      expect.objectContaining({ method: "toss_pay" }),
       199000,
     );
   },

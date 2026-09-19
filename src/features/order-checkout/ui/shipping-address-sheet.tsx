@@ -61,8 +61,9 @@ export function ShippingAddressSheet({
     <BottomSheet
       open={open}
       onClose={searching ? closeSearch : onClose}
-      title={searching ? "우편번호 찾기" : "신규 배송지"}
+      title={searching ? "우편번호 찾기" : "배송지 입력"}
       className={`${styles.sheet} ${searching ? styles.searchSheet : ""}`}
+      desktopModal
       footer={
         !searching && (
           <Button
@@ -132,7 +133,8 @@ export function ShippingAddressSheet({
                   ref={searchButton}
                   type="button"
                   onClick={() => setSearching(true)}
-                  className="h-13 shrink-0 px-2 text-[14px]!"
+                  size="xl"
+                  className="w-25 shrink-0 px-2 text-[14px]!"
                 >
                   우편번호 찾기
                 </Button>
