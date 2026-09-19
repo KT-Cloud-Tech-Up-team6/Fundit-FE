@@ -155,7 +155,7 @@ export function SignupProfileFlow({
     if (valid) setView("address");
   }
 
-  async function submitSignup(values: ProfileFormValues) {
+  async function submitSignup(values: ProfileFormValues, skipAddress = false) {
     setSubmitError(undefined);
     if (!identityDraft || !verificationToken) {
       setVerificationToken(null);
@@ -177,7 +177,7 @@ export function SignupProfileFlow({
     /* 배송지는 전부 선택이라 우편번호·기본주소가 없으면 아예 보내지 않는다(스킵과 동일 취급).
        받는사람·연락처는 본인인증 정보로 채운다. 대리 수령인 입력이 필요해지면 별도 필드로 확장한다. */
     const address: SignupAddress | undefined =
-      zipcode && baseAddress
+      !skipAddress && zipcode && baseAddress
         ? {
             addressLine1: baseAddress,
             addressLine2: detailAddress || undefined,
@@ -271,7 +271,8 @@ export function SignupProfileFlow({
   }
 
   if (view === "address") {
-    const submit = form.handleSubmit(submitSignup);
+    const submit = form.handleSubmit((values) => submitSignup(values));
+    const skip = form.handleSubmit((values) => submitSignup(values, true));
     return (
       <AuthScreen onBack={() => setView("password")}>
         <AuthTitle>{"배송지를 입력해두면\n이용이 편리해져요"}</AuthTitle>
@@ -318,7 +319,7 @@ export function SignupProfileFlow({
         <button
           className="text-caption-s text-text-secondary mx-auto mt-16 block h-10 px-2 underline underline-offset-2 disabled:cursor-not-allowed"
           disabled={signupMutation.isPending}
-          onClick={() => void submit()}
+          onClick={() => void skip()}
           type="button"
         >
           다음에 설정할게요

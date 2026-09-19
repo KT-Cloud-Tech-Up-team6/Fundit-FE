@@ -1,12 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { getMe, refreshAccessToken } from "@/features/auth/api/auth-api";
 import type { AuthUser } from "@/features/auth/api/auth-types";
 import { authTokenStore } from "@/shared/api/auth-token-store";
+import { ApiError } from "@/shared/api/api-error";
 
 export type AuthSessionState =
   | { accessToken: null; status: "checking"; user: null }
@@ -44,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: "checking",
     user: null,
   });
-  const restoreStarted = useRef(false);
+  const restoreStarted = useRef<number | null>(null);
+  const [restoreAttempt, retryRestore] = useReducer((attempt: number) => attempt + 1, 0);
+  const [restoreError, setRestoreError] = useState(false);
   const statusRef = useRef(state.status);
   /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
   const restoreSupersededRef = useRef(false);
@@ -66,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   useEffect(() => {
-    if (restoreStarted.current) return;
-    restoreStarted.current = true;
+    if (restoreStarted.current === restoreAttempt) return;
+    restoreStarted.current = restoreAttempt;
 
     void (async () => {
       try {
@@ -77,14 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (restoreSupersededRef.current) return;
         dispatch({ accessToken, type: "AUTHENTICATED" });
         dispatch({ type: "USER_LOADED", user });
-      } catch {
+      } catch (error) {
         if (restoreSupersededRef.current) return;
-        authTokenStore.clear();
-        queryClient.clear();
-        dispatch({ type: "SESSION_FAILED" });
+        if (error instanceof ApiError && error.status === 401) {
+          authTokenStore.clear();
+          queryClient.clear();
+          dispatch({ type: "SESSION_FAILED" });
+        } else {
+          setRestoreError(true);
+        }
       }
     })();
-  }, [queryClient]);
+  }, [queryClient, restoreAttempt]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -111,7 +118,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient, state],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {restoreError && state.status === "checking" && (
+        <div role="alert" className="bg-layer-bg p-4 text-center">
+          로그인 상태를 확인하지 못했습니다.{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              setRestoreError(false);
+              retryRestore();
+            }}
+          >
+            로그인 상태 다시 확인
+          </button>
+        </div>
+      )}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
