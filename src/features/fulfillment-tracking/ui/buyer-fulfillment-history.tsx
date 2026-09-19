@@ -223,7 +223,7 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
             <p className="text-body-l text-text-default">
               {currentStage.status === "active" ? (
                 <>
-                  현재 <strong className="font-semibold">{currentLabel}</strong> 중 이에요
+                  현재 <strong className="font-semibold">{currentLabel}</strong> 중이에요
                 </>
               ) : currentStage.status === "todo" ? (
                 <>

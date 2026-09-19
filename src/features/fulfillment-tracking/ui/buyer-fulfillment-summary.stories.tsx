@@ -153,7 +153,7 @@ export const NotStarted: Story = {
           element?.tagName === "P" && element.textContent === "제작 착수 시작 전이에요",
       ),
     ).toBeVisible();
-    await expect(canvas.queryByText(/제작 착수 중 이에요/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/제작 착수 중이에요/)).not.toBeInTheDocument();
   },
 };
 

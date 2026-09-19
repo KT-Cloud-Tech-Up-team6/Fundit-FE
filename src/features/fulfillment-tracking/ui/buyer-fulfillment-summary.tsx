@@ -54,7 +54,7 @@ export function BuyerFulfillmentSummary({
   const statusCopy =
     currentStage.status === "active" ? (
       <>
-        현재 <strong className="font-semibold">{stageLabel(current)}</strong> 중 이에요
+        현재 <strong className="font-semibold">{stageLabel(current)}</strong> 중이에요
       </>
     ) : currentStage.status === "todo" ? (
       <>
@@ -90,7 +90,7 @@ export function BuyerFulfillmentSummary({
           <div className="flex min-h-10 items-center justify-between gap-3">
             {currentStage.status === "active" ? (
               <p className="text-body-l text-text-default">
-                현재 <span className="text-title-s">{stageLabel(current)}</span> 중 이에요
+                현재 <span className="text-title-s">{stageLabel(current)}</span> 중이에요
               </p>
             ) : currentStage.status === "todo" ? (
               <p className="text-body-l text-text-default">
