@@ -18,7 +18,7 @@ import { QuantityStepper } from "@/features/reward-selection/ui/quantity-stepper
 import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { OrderMemberAccess } from "./order-member-access";
-import { submitOrderOnce } from "../model/order-attempt";
+import { OrderAttemptError, submitOrderOnce } from "../model/order-attempt";
 
 export function OrderCheckoutApi({
   projectId,
@@ -131,8 +131,12 @@ function Checkout({
     try {
       const order = await submitOrderOnce(sessionStorage, memberId, body);
       router.replace(`/my/fundings/${order.orderId}`);
-    } catch {
-      setError("주문을 완료하지 못했습니다. 참여 내역에서 생성 여부를 먼저 확인해주세요.");
+    } catch (error) {
+      setError(
+        error instanceof OrderAttemptError
+          ? error.message
+          : "주문을 완료하지 못했습니다. 참여 내역에서 생성 여부를 먼저 확인해주세요.",
+      );
       saving.current = false;
       setBusy(false);
     }

@@ -205,6 +205,11 @@ function Detail({
               )
             ) : (
               <>
+                {detail.data.status === "GOAL_ACHIEVED" && (
+                  <Link className="block underline" href={`/my/fundings/${fundingId}/fulfillment`}>
+                    제작·배송 현황
+                  </Link>
+                )}
                 {detail.data.availableActions.includes("CANCEL") && (
                   <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
                     참여 취소
