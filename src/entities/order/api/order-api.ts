@@ -96,10 +96,10 @@ export function getCheckoutAddresses(signal?: AbortSignal) {
   });
 }
 export function previewOrder(body: OrderRequest) {
-  return apiRequest<OrderPreview>("/api/v2/orders/preview", { auth: true, method: "POST", body });
+  return apiRequest<OrderPreview>("/api/v1/orders/preview", { auth: true, method: "POST", body });
 }
 export function createOrder(body: OrderRequest) {
-  return apiRequest<OrderCreated>("/api/v2/orders", { auth: true, method: "POST", body });
+  return apiRequest<OrderCreated>("/api/v1/orders", { auth: true, method: "POST", body });
 }
 export function getOrder(id: string, signal?: AbortSignal) {
   return apiRequest<OrderDetail>(`/api/v1/orders/${id}`, { auth: true, signal });
@@ -118,7 +118,7 @@ export function getOrders(page: number, status: string, signal?: AbortSignal) {
     }[];
     totalElements: number;
     hasNext: boolean;
-  }>(`/api/v2/orders?${params}`, { auth: true, signal });
+  }>(`/api/v1/orders?${params}`, { auth: true, signal });
 }
 export function cancelOrder(id: string) {
   return apiRequest<{ orderId: string; status: string }>(`/api/v1/orders/${id}/cancel`, {

@@ -82,7 +82,7 @@ test("미리보기와 결제는 서버 금액·서버 ID를 그대로 사용한�
     await createPayment("order-uuid");
     await confirmPayment({ paymentKey: "callback-key", orderId: "pg-order-id", amount: 73100 });
     await cancelOrder("order-uuid");
-    assert.equal(calls[0].url, "/api/v2/orders/preview");
+    assert.equal(calls[0].url, "/api/v1/orders/preview");
     assert.deepEqual(calls[1].body, { fundingId: "order-uuid" });
     assert.equal(calls[2].body.orderId, "pg-order-id");
     assert.equal(calls[3].url, "/api/v1/orders/order-uuid/cancel");

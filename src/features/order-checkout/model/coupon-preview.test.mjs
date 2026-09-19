@@ -53,7 +53,7 @@ test("인증된 쿠폰함 페이지와 선택·해제 미리보기는 BE 계약�
   await previewOrder({ ...body, couponCodes: [] });
   assert.equal(calls[0].url, "/api/v1/coupons/me?page=1&size=20&status=AVAILABLE");
   assert.equal(calls[0].init.headers.get("Authorization"), "Bearer test-coupon");
-  assert.equal(calls[1].url, "/api/v2/orders/preview");
+  assert.equal(calls[1].url, "/api/v1/orders/preview");
   assert.deepEqual(JSON.parse(calls[1].init.body).couponCodes, ["SAVE"]);
   assert.deepEqual(JSON.parse(calls[2].init.body).couponCodes, []);
 });

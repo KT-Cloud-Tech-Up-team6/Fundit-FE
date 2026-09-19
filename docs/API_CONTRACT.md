@@ -4,7 +4,7 @@
 
 ## 주문·결제 코드 대조 및 FE 연결 (#197)
 
-- 2026-09-19 BE develop `e56bab06` 기준으로 주문 preview/생성/목록은 `/api/v2/orders`의 UUID 계약을 사용한다. 상세/취소는 `/api/v1/orders/{orderId}`다. 리워드·옵션은 조회 응답의 숫자 ID를 전달한다.
+- 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 preview/생성/목록은 `/api/v1/orders`의 UUID 계약을 사용한다. 이전 `/api/v2/orders` 컨트롤러와 Gateway 매핑은 제거됐다. 상세/취소는 기존 `/api/v1/orders/{orderId}`를 유지한다. 리워드·옵션은 조회 응답의 숫자 ID를 전달한다.
 - `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 `/my/fundings/{orderId}`로 이동한다. 주문 목록의 `finalAmount`는 BE에서 할인 전 합산하므로 목록에서 최종 결제금액으로 표시하지 않고 상세의 서버 금액을 사용한다.
 - `/my/fundings`는 서버 상태/페이지 필터를 사용하며 기존 목업 검색·기간 필터는 서버 계약에 없어 적용하지 않는다. 상세의 `availableActions`에 CANCEL이 있을 때만 취소를 제공한다. `/payment/result?orderId={UUID}`는 새로고침 가능한 주문 조회다.
 - `/api/v2/payments`의 시도 생성은 서버 주문 UUID를 사용한다. `/confirm`의 `orderId`는 별도의 `pgOrderId`이며 주문 UUID와 혼용하지 않는다.
