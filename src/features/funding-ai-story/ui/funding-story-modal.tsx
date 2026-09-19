@@ -12,11 +12,10 @@ import { createStoryState, storyBody, storyQuestions, storyReducer } from "../mo
 import type { StoryDemoState } from "../model/story-demo";
 import styles from "./funding-story-modal.module.css";
 import { StoryPreview } from "./story-preview";
-import {
-  applyFundingStory,
-  generateFundingStory,
-  type FundingStorySession,
-} from "@/entities/project/api/story-api";
+import { generateFundingStory, type FundingStorySession } from "@/entities/project/api/story-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/providers/auth-provider";
+import { applyStory } from "../model/apply-story";
 import { storySummary } from "../model/story-demo";
 
 type FundingStoryModalProps = {
@@ -36,6 +35,8 @@ export function FundingStoryModal({
   pauseDemo = false,
   projectId,
 }: FundingStoryModalProps) {
+  const cache = useQueryClient();
+  const { state: auth } = useAuth();
   const [state, dispatch] = useReducer(storyReducer, initialState ?? createStoryState());
   const [input, setInput] = useState("");
   const [session, setSession] = useState<FundingStorySession | null>(null);
@@ -82,7 +83,8 @@ export function FundingStoryModal({
     setApiBusy(true);
     setApiError("");
     try {
-      await applyFundingStory(session.sessionId);
+      if (!auth.user?.memberId) throw new Error("로그인이 필요합니다.");
+      await applyStory(cache, auth.user.memberId, projectId, session);
       onImport(generatedBody);
     } catch {
       setApiError("스토리에 반영하지 못했습니다. 다시 시도해주세요.");
