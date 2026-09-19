@@ -493,14 +493,12 @@ export function BuyerLiveMain({
               ))}
             </ol>
             {upcoming ? (
-              <button
-                type="button"
-                disabled
-                aria-label="예정된 라이브 전체보기 · 화면 미정"
-                className={textButtonNavigationClasses + " mx-auto cursor-not-allowed"}
+              <PendingDestination
+                label="예정된 라이브 전체보기"
+                className={textButtonNavigationClasses + " mx-auto"}
               >
                 더 보러 가기
-              </button>
+              </PendingDestination>
             ) : (
               <PendingDestination
                 label="실시간 순위 전체보기"
