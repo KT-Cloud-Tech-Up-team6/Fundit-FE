@@ -3,6 +3,7 @@
 import { Placeholder } from "@tiptap/extensions";
 import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/core";
 import { useRef, useState } from "react";
 import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
 import { Button } from "@/shared/components/ui/button";
@@ -122,20 +123,28 @@ const toolbarButtonClasses = (active: boolean) =>
 export function StoryEditor({
   projectTitle,
   onReady,
+  initialContent,
+  upload,
+  projectId,
 }: {
   projectTitle: string;
   onReady: (editor: Editor) => void;
+  initialContent?: JSONContent;
+  upload?: (file: File) => Promise<string>;
+  projectId?: string;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   /* shouldRerenderOnTransaction을 명시적으로 true로 안 주면(기본값 취급 시) 이 설치 버전의
      useEditor가 트랜잭션마다 재렌더링을 트리거하지 않는다 — 굵게/기울임을 눌러도 버튼의
      isActive 표시가 안 바뀌던 원인이 이거였다. */
   const editor = useEditor({
     extensions,
+    content: initialContent,
     immediatelyRender: false,
     shouldRerenderOnTransaction: true,
     onCreate: ({ editor }) => onReady(editor),
@@ -146,11 +155,18 @@ export function StoryEditor({
 
   const insertImageFromFile = (file: File) => {
     if (!editor) return;
-    if (file.size > MAX_IMAGE_BYTES) {
+    if (!upload && file.size > MAX_IMAGE_BYTES) {
       window.alert("이미지는 5MB 이하만 삽입할 수 있어요.");
       return;
     }
-    readFileAsDataUrl(file, (src) => editor.chain().focus().setImage({ src }).run());
+    if (upload) {
+      setUploadError("");
+      void upload(file)
+        .then((src) => {
+          if (!editor.isDestroyed) editor.chain().focus().setImage({ src }).run();
+        })
+        .catch(() => setUploadError("이미지를 업로드하지 못했습니다. 다시 선택해주세요."));
+    } else readFileAsDataUrl(file, (src) => editor.chain().focus().setImage({ src }).run());
   };
 
   const insertVideo = (src: string) => {
@@ -163,11 +179,18 @@ export function StoryEditor({
   };
 
   const insertVideoFromFile = (file: File) => {
-    if (file.size > MAX_VIDEO_BYTES) {
+    if (!upload && file.size > MAX_VIDEO_BYTES) {
       window.alert("영상은 20MB 이하만 삽입할 수 있어요.");
       return;
     }
-    readFileAsDataUrl(file, insertVideo);
+    if (upload) {
+      setUploadError("");
+      void upload(file)
+        .then((src) => {
+          if (editor && !editor.isDestroyed) insertVideo(src);
+        })
+        .catch(() => setUploadError("영상을 업로드하지 못했습니다. 다시 선택해주세요."));
+    } else readFileAsDataUrl(file, insertVideo);
   };
 
   const closeVideoMenu = () => {
@@ -332,6 +355,7 @@ export function StoryEditor({
 
       {isAiModalOpen && (
         <FundingStoryModal
+          projectId={projectId}
           projectTitle={projectTitle || "프로젝트"}
           onClose={() => setAiModalOpen(false)}
           onImport={(body) => {
@@ -340,6 +364,7 @@ export function StoryEditor({
           }}
         />
       )}
+      {uploadError && <p role="alert">{uploadError}</p>}
     </div>
   );
 }

@@ -5,9 +5,15 @@ import { Button } from "@/shared/components/ui/button";
 import { InputButton } from "@/shared/components/ui/input-button";
 
 /* 파일은 서버에 업로드하지 않고 이름 표시와 로컬 미리보기에 사용한다. */
-export function ThumbnailUpload({ onFileChange }: { onFileChange: (file: File) => void }) {
+export function ThumbnailUpload({
+  onFileChange,
+  initialName = "",
+}: {
+  onFileChange: (file: File) => void;
+  initialName?: string;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(initialName);
 
   return (
     <>

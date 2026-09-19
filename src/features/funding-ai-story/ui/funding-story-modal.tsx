@@ -12,6 +12,12 @@ import { createStoryState, storyBody, storyQuestions, storyReducer } from "../mo
 import type { StoryDemoState } from "../model/story-demo";
 import styles from "./funding-story-modal.module.css";
 import { StoryPreview } from "./story-preview";
+import {
+  applyFundingStory,
+  generateFundingStory,
+  type FundingStorySession,
+} from "@/entities/project/api/story-api";
+import { storySummary } from "../model/story-demo";
 
 type FundingStoryModalProps = {
   projectTitle: string;
@@ -19,6 +25,7 @@ type FundingStoryModalProps = {
   onImport: (body: string) => void;
   initialState?: StoryDemoState;
   pauseDemo?: boolean;
+  projectId?: string;
 };
 
 export function FundingStoryModal({
@@ -27,14 +34,68 @@ export function FundingStoryModal({
   onImport,
   initialState,
   pauseDemo = false,
+  projectId,
 }: FundingStoryModalProps) {
   const [state, dispatch] = useReducer(storyReducer, initialState ?? createStoryState());
   const [input, setInput] = useState("");
+  const [session, setSession] = useState<FundingStorySession | null>(null);
+  const [apiError, setApiError] = useState("");
+  const [apiBusy, setApiBusy] = useState(false);
+  const apiBusyRef = useRef(false);
+  const generatedBody = projectId
+    ? (session?.result?.sections.map((section) => section.body).join("\n\n") ?? "")
+    : storyBody(state);
+  async function generate() {
+    if (apiBusyRef.current) return;
+    if (!projectId) {
+      dispatch({ type: "generate" });
+      return;
+    }
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    try {
+      const next = await generateFundingStory(projectId, storySummary(state));
+      if (next.status !== "COMPLETED" || !next.result)
+        throw new Error("생성이 완료되지 않았습니다. 잠시 후 다시 시도해주세요.");
+      if (next.result.sections.some((section) => section.images.length))
+        throw new Error("이미지를 포함한 AI 결과는 아직 불러올 수 없습니다.");
+      setSession(next);
+      dispatch({ type: "generate" });
+      dispatch({ type: "ready" });
+      dispatch({ type: "result" });
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "생성 요청에 실패했습니다.");
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+  }
+  async function importResult() {
+    if (apiBusyRef.current) return;
+    if (!projectId) {
+      onImport(generatedBody);
+      return;
+    }
+    if (!session) return;
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    try {
+      await applyFundingStory(session.sessionId);
+      onImport(generatedBody);
+    } catch {
+      setApiError("스토리에 반영하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+  }
   const historyRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const followBottom = useRef(true);
   const stageRef = useRef(state.stage);
-  const busy = ["summarizing", "generating", "ready"].includes(state.stage);
+  const busy = apiBusy || ["summarizing", "generating", "ready"].includes(state.stage);
   const result = state.stage === "result";
   const loading = state.stage === "generating" || state.stage === "ready";
 
@@ -44,7 +105,7 @@ export function FundingStoryModal({
   }, []);
 
   useEffect(() => {
-    if (pauseDemo) return;
+    if (pauseDemo || (projectId && state.stage !== "summarizing")) return;
     const action =
       state.stage === "summarizing"
         ? "summary-ready"
@@ -59,7 +120,7 @@ export function FundingStoryModal({
       state.stage === "generating" ? 1800 : 800,
     );
     return () => window.clearTimeout(timer);
-  }, [state.stage, pauseDemo]);
+  }, [state.stage, pauseDemo, projectId]);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -88,11 +149,21 @@ export function FundingStoryModal({
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={() => {
+        if (!apiBusyRef.current) onClose();
+      }}
       title="AI 스토리 작성"
       className={`h-168 sm:mt-[clamp(20px,calc((100dvh-672px)/2),114px)] [&>div]:gap-6 ${loading ? styles.loading : ""}`}
       size={result ? "l" : "m"}
     >
+      {projectId && (
+        <p className="text-caption-s">
+          BE 목업 생성입니다. 불러오기는 저장된 스토리 전체를 덮어씁니다. 실제 AI 연동은 준비
+          중입니다.
+        </p>
+      )}
+      {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
+      {apiError && <p role="alert">{apiError}</p>}
       {loading ? (
         <div className="flex h-full flex-col items-center pt-[139px] text-center" role="status">
           <p className="text-title-s leading-[1.42] font-semibold">AI가 스토리를 생성중이에요...</p>
@@ -117,27 +188,30 @@ export function FundingStoryModal({
             tabIndex={0}
           >
             <p className="text-caption-s mb-2 break-words">{projectTitle} · 목업 결과</p>
-            <StoryPreview body={storyBody(state)} />
+            <StoryPreview body={generatedBody} />
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3">
             <Button
               variant="secondary"
               size="xs"
               className="h-10! w-36 leading-[1.42] font-medium"
+              disabled={apiBusy}
               onClick={() => dispatch({ type: "back" })}
             >
               이전으로
             </Button>
             <TextButton
               className="ml-auto h-10 no-underline!"
-              onClick={() => dispatch({ type: "generate" })}
+              disabled={apiBusy}
+              onClick={() => void generate()}
             >
               재생성
             </TextButton>
             <Button
               size="xs"
               className="h-10! w-36 leading-[1.42] font-medium"
-              onClick={() => onImport(storyBody(state))}
+              disabled={apiBusy}
+              onClick={() => void importResult()}
             >
               불러오기
             </Button>
@@ -194,7 +268,8 @@ export function FundingStoryModal({
                         <Chip
                           appearance="outline"
                           className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
-                          onClick={() => dispatch({ type: "generate" })}
+                          disabled={apiBusy}
+                          onClick={() => void generate()}
                         >
                           그대로 생성하기
                         </Chip>
