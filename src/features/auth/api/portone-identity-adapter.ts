@@ -25,8 +25,7 @@ export async function requestIdentityVerification(
   const identityVerificationId = crypto.randomUUID();
 
   if (!storeId || !channelKey) {
-    // ponytail: 실제 PortOne Store ID와 Channel Key가 생기면 개발 시뮬레이션 대신 SDK 결과를 사용한다.
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV !== "development" || process.env.NEXT_PUBLIC_MSW_ENABLED !== "true") {
       throw new Error("PortOne 설정(NEXT_PUBLIC_PORTONE_STORE_ID/CHANNEL_KEY)이 없습니다.");
     }
     if (options?.redirectUrl && isNarrowViewport()) {

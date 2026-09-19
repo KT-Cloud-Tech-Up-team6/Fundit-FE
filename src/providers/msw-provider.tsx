@@ -15,21 +15,46 @@ export function MswProvider({ children, forceEnabled = false }: MswProviderProps
     forceEnabled ||
     (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_MSW_ENABLED === "true");
   const [ready, setReady] = useState(!shouldStart);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!shouldStart) return;
+    let active = true;
 
     void import("@/mocks/browser")
       .then(({ startMockWorker }) => startMockWorker())
       .then(
-        () => setReady(true),
-        // ponytail: MSW가 안 켜져도 화면을 영원히 막지 않는다. 이후 호출은 실제 네트워크 오류로 드러난다.
+        () => {
+          if (active) setReady(true);
+        },
         (error: unknown) => {
           console.error("[MSW] failed to start", error);
-          setReady(true);
+          if (active) setFailed(true);
         },
       );
-  }, [shouldStart]);
+    return () => {
+      active = false;
+    };
+  }, [shouldStart, attempt]);
+
+  if (failed) {
+    return (
+      <div className="text-body-s p-6" role="alert">
+        <p>테스트 환경을 시작하지 못했습니다. 다시 시도해 주세요.</p>
+        <button
+          className="mt-3 underline"
+          onClick={() => {
+            setFailed(false);
+            setAttempt((value) => value + 1);
+          }}
+          type="button"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
 
   return ready ? children : null;
 }
