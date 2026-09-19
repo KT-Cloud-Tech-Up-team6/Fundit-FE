@@ -144,7 +144,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                      |
 | `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                      |
 
-`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 판매자 최초 개인정보 동의는 접근 제어 구현 후 `/seller/projects`, `/seller/live` 등 실제 판매자 진입 경로의 공통 경계에서 모달로 처리합니다.
+`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #188의 동의 상태는 현재 화면에만 유지하는 프런트엔드 목업이며 서버 동의 기록은 별도 연동합니다.
 
 ## 쿼리 규칙
 
@@ -190,10 +190,10 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 ## 접근 제어 계약
 
-현재 접근 제어 코드는 구현하지 않았습니다. 인증 세션과 판매자 동의 API가 확정되면 아래 원칙에 따라 공통 경계에서 적용합니다.
+현재 접근 제어 코드는 구현하지 않았습니다. 인증 세션과 API가 확정되면 아래 원칙에 따라 공통 경계에서 적용합니다.
 
 - public 화면은 로그인 없이 읽을 수 있고 쓰기 동작에서 로그인을 요청합니다.
 - member 화면은 Access Token을 확인하고 원래 목적지 `returnTo`를 보존합니다.
-- seller 화면은 회원 인증과 판매자 개인정보 동의를 확인합니다.
+- seller 화면은 회원 인증을 확인합니다. 프로젝트 개인정보 동의는 신규 생성마다 별도로 받으며 서버 기록·검증은 API 연동 시 적용합니다.
 - owner 화면은 URL 식별자를 신뢰하지 않고 서버에서 리소스 소유권을 재검증합니다.
 - 환불·취소 등 조건부 화면은 FE 시간 계산이 아니라 서버 eligibility와 불가 사유를 따릅니다.
