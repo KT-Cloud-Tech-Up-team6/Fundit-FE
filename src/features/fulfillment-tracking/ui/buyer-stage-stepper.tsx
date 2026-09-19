@@ -39,11 +39,14 @@ export function BuyerStageStepper({
         const { status } = state[value];
         const filled = status !== "todo";
         const isLast = index === fulfillmentStages.length - 1;
-        const showTooltip =
+        /** 툴팁 대상이면 예상 시작일(2026.09.20), 아니면 null. */
+        const tooltipDate =
           showExpectedStartTooltip &&
           (value === "release" || value === "delivery") &&
           status === "todo" &&
-          state[value].startDate;
+          state[value].startDate
+            ? state[value].startDate!.replaceAll("-", ".")
+            : null;
         const circleClass = `flex size-[38px] shrink-0 items-center justify-center rounded-full ${
           filled ? "bg-layer-surface-primary" : "bg-layer-surface-disabled"
         }`;
@@ -57,7 +60,9 @@ export function BuyerStageStepper({
         return (
           <li
             key={value}
-            aria-label={`${label} 단계, ${stageStatusLabel[status]}`}
+            aria-label={`${label} 단계, ${stageStatusLabel[status]}${
+              tooltipDate ? `, 예상 시작일 ${tooltipDate}` : ""
+            }`}
             aria-current={status === "active" ? "step" : undefined}
             className={isLast ? "flex shrink-0" : "flex flex-1 items-center"}
           >
@@ -71,7 +76,7 @@ export function BuyerStageStepper({
                   진행중
                 </Badge>
               )}
-              {showTooltip && (
+              {tooltipDate && (
                 <Tooltip
                   variant="inverse"
                   role="tooltip"
@@ -79,20 +84,13 @@ export function BuyerStageStepper({
                   contentClassName="w-[100px] text-center"
                 >
                   <span className="block">예상 시작일</span>
-                  <span className="block">{state[value].startDate?.replaceAll("-", ".")}</span>
+                  <span className="block">{tooltipDate}</span>
                 </Tooltip>
               )}
-              {showTooltip ? (
-                <button
-                  type="button"
-                  aria-label={`${label} 예상 시작일 ${state[value].startDate?.replaceAll("-", ".")}`}
-                  className={`${circleClass} cursor-default`}
-                >
-                  {icon}
-                </button>
-              ) : (
-                <span className={circleClass}>{icon}</span>
-              )}
+              {/* 키보드로도 툴팁을 열 수 있게 focus만 받는다 — 누를 동작은 없다. */}
+              <span tabIndex={tooltipDate ? 0 : undefined} className={circleClass}>
+                {icon}
+              </span>
             </span>
             {!isLast && (
               <span

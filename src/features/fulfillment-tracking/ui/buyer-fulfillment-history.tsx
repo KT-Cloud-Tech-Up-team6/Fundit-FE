@@ -258,17 +258,15 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
               const expanded = desktopOpen[value];
               const badge = statusBadge[stage.status];
               const heading = value === "production" ? "제작" : label;
+              const formatOrUnknown = (date?: string) => (date ? formatShippingDate(date) : "미정");
               const dates =
                 stage.status === "done"
-                  ? [stage.startDate, stage.expectedEndDate]
-                      .filter((date): date is string => Boolean(date))
-                      .map(formatShippingDate)
-                      .join(" - ")
+                  ? `${formatOrUnknown(stage.startDate)} - ${formatOrUnknown(stage.expectedEndDate)}`
                   : stage.startDate
                     ? stage.status === "todo"
                       ? `${label} 시작 예정일 ${formatShippingDate(stage.startDate)}`
                       : `${formatShippingDate(stage.startDate)} ${label} 시작`
-                    : "예정 시작일 미정";
+                    : `${label} 시작 예정일 미정`;
               return (
                 <section
                   key={value}
@@ -284,13 +282,17 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
                     className="border-border-default flex min-h-[58px] w-full cursor-pointer items-center justify-between gap-4 border-b px-3 py-3 text-left"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <h2 className="text-body-strong text-text-default shrink-0">{heading}</h2>
+                      <span className="text-body-strong text-text-default shrink-0">{heading}</span>
                       {badge && stage.status === "done" && (
-                        <Badge shape="rounded" variant="info">
+                        <Badge
+                          shape="rounded"
+                          variant="neutral"
+                          className="shrink-0 bg-[#eeeef0]! text-[#53545c]!"
+                        >
                           {badge}
                         </Badge>
                       )}
-                      <p className="text-body-s text-text-secondary truncate">{dates}</p>
+                      <span className="text-body-s text-text-secondary truncate">{dates}</span>
                     </div>
                     <span
                       className="flex size-[22px] shrink-0 items-center justify-center"
@@ -305,19 +307,20 @@ export function BuyerFulfillmentHistory({ fundingId, initialState }: BuyerFulfil
                       />
                     </span>
                   </button>
-                  {expanded && (
-                    <div
-                      id={`desktop-fulfillment-stage-${value}`}
-                      className="bg-layer-bg px-6 py-4"
-                    >
+                  <div
+                    id={`desktop-fulfillment-stage-${value}`}
+                    hidden={!expanded}
+                    className="bg-layer-bg px-6 py-4"
+                  >
+                    {expanded && (
                       <BuyerTimeline
                         records={stage.records}
                         onSelectMedia={setPreview}
                         showLatestBadge={stage.status === "active"}
                         variant="desktop"
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </section>
               );
             })}
