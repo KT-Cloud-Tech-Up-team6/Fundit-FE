@@ -34,7 +34,11 @@ const menuGroups = [
   },
 ] satisfies { title: string; items: { label: string; href?: string }[] }[];
 
-export function BuyerMyPage() {
+export function BuyerMyPage({
+  member,
+}: {
+  member?: { name: string; nickname: string; isSeller: boolean };
+}) {
   return (
     <BuyerAccountScreen
       title="마이페이지"
@@ -55,54 +59,65 @@ export function BuyerMyPage() {
             </span>
             <div className="min-w-0">
               <p className="flex items-center gap-1 text-[20px] leading-7 font-semibold">
-                <span className="truncate">홍길동</span>
+                <span className="truncate">
+                  {member ? member.nickname || member.name : "홍길동"}
+                </span>
                 <Icon name="next" className="size-4 shrink-0" />
               </p>
               <p className="text-caption-s text-text-disabled mt-1 truncate font-medium">
-                12*****@gmail.com
+                {member ? member.name : "12*****@gmail.com"}
               </p>
             </div>
           </PendingDestination>
-          <Link
-            href="/seller/projects"
-            className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
-            aria-label="판매자 모드로 이동"
-          >
-            판매자 전환
-            <span
-              aria-hidden
-              className="size-4 bg-current [mask-image:url('/icons/buyer-account/ab25c.svg')] [mask-size:contain]"
-            />
-          </Link>
+          {(!member || member.isSeller) && (
+            <Link
+              href="/seller/projects"
+              className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
+              aria-label="판매자 모드로 이동"
+            >
+              판매자 전환
+              <span
+                aria-hidden
+                className="size-4 bg-current [mask-image:url('/icons/buyer-account/ab25c.svg')] [mask-size:contain]"
+              />
+            </Link>
+          )}
         </div>
-        <section aria-label="회원 등급" className="mt-3 space-y-2">
-          <div className="border-border-default rounded-xs border px-4 py-3">
-            <h2 className="text-body-strong mb-2 flex items-center gap-2">
-              <span
-                aria-hidden
-                className="size-5 bg-current [mask-image:url('/icons/buyer-account/01cd2.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-              />
-              Ripple(잔물결)
-            </h2>
-            <p className="text-[14px] leading-5">
-              <span className="font-medium">성립 펀딩 2건 이상</span> 또는{" "}
-              <span className="font-medium">누적 15만원 이상</span>일 시<br />
-              <span className="font-medium">Current(해류)</span> 달성
-            </p>
-          </div>
-          <div className="bg-layer-surface-disabled rounded-xs px-3 py-2">
-            <h3 className="text-caption-strong mb-1 flex items-center gap-1">
-              <span
-                aria-hidden
-                className="size-3.5 bg-current [mask-image:url('/icons/buyer-account/9d49f.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-              />
-              Current(해류) 혜택
-            </h3>
-            <p className="text-caption-s font-medium">
-              등급 전용 쿠폰(분기) 3천원, 등급 배지(프로필·서포터 탭 노출)
-            </p>
-          </div>
-        </section>
+        {!member && (
+          <section aria-label="회원 등급" className="mt-3 space-y-2">
+            <div className="border-border-default rounded-xs border px-4 py-3">
+              <h2 className="text-body-strong mb-2 flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="size-5 bg-current [mask-image:url('/icons/buyer-account/01cd2.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
+                />
+                Ripple(잔물결)
+              </h2>
+              <p className="text-[14px] leading-5">
+                <span className="font-medium">성립 펀딩 2건 이상</span> 또는{" "}
+                <span className="font-medium">누적 15만원 이상</span>일 시<br />
+                <span className="font-medium">Current(해류)</span> 달성
+              </p>
+            </div>
+            <div className="bg-layer-surface-disabled rounded-xs px-3 py-2">
+              <h3 className="text-caption-strong mb-1 flex items-center gap-1">
+                <span
+                  aria-hidden
+                  className="size-3.5 bg-current [mask-image:url('/icons/buyer-account/9d49f.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
+                />
+                Current(해류) 혜택
+              </h3>
+              <p className="text-caption-s font-medium">
+                등급 전용 쿠폰(분기) 3천원, 등급 배지(프로필·서포터 탭 노출)
+              </p>
+            </div>
+          </section>
+        )}
+        {member && (
+          <Link href="/my/addresses" className="text-body-m block py-3">
+            배송지 관리
+          </Link>
+        )}
         <div className="mt-8 space-y-6">
           {menuGroups.map((group) => (
             <nav

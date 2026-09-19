@@ -13,6 +13,9 @@ import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button"
 import styles from "./checkout-sheet.module.css";
 
 type ShippingAddressSheetProps = {
+  busy?: boolean;
+  error?: string;
+  showDeliveryMemo?: boolean;
   open: boolean;
   onClose: () => void;
   initial?: ShippingAddress | null;
@@ -24,6 +27,9 @@ export function ShippingAddressSheet({
   onClose,
   initial,
   onSave,
+  busy = false,
+  error,
+  showDeliveryMemo = true,
 }: ShippingAddressSheetProps) {
   const [form, setForm] = useState<ShippingAddress>(initial ?? emptyShippingAddress());
   const [searching, setSearching] = useState(false);
@@ -60,7 +66,7 @@ export function ShippingAddressSheet({
   return (
     <BottomSheet
       open={open}
-      onClose={searching ? closeSearch : onClose}
+      onClose={busy ? () => {} : searching ? closeSearch : onClose}
       title={searching ? "우편번호 찾기" : "배송지 입력"}
       className={`${styles.sheet} ${searching ? styles.searchSheet : ""}`}
       desktopModal
@@ -69,12 +75,12 @@ export function ShippingAddressSheet({
           <Button
             className="w-full disabled:bg-[#cdced4]!"
             appearance="cta"
-            disabled={!canSave}
+            disabled={!canSave || busy}
             onClick={() => {
-              if (canSave) onSave(form);
+              if (canSave && !busy) onSave(form);
             }}
           >
-            저장
+            {busy ? "저장 중" : "저장"}
           </Button>
         )
       }
@@ -95,7 +101,8 @@ export function ShippingAddressSheet({
           />
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <fieldset disabled={busy} className="flex flex-col gap-4">
+          {error && <p role="alert">{error}</p>}
           <Field label="받는 사람">
             <Input
               shape="compact"
@@ -168,16 +175,18 @@ export function ShippingAddressSheet({
               </div>
             </div>
           </Field>
-          <Field label="배송 요청사항">
-            <Input
-              shape="compact"
-              aria-label="배송 요청 사항"
-              placeholder="요청사항을 입력해주세요 (선택)"
-              value={form.deliveryMemo ?? ""}
-              onChange={(event) => update("deliveryMemo", event.target.value)}
-            />
-          </Field>
-        </div>
+          {showDeliveryMemo && (
+            <Field label="배송 요청사항">
+              <Input
+                shape="compact"
+                aria-label="배송 요청 사항"
+                placeholder="요청사항을 입력해주세요 (선택)"
+                value={form.deliveryMemo ?? ""}
+                onChange={(event) => update("deliveryMemo", event.target.value)}
+              />
+            </Field>
+          )}
+        </fieldset>
       )}
     </BottomSheet>
   );
