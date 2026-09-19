@@ -4,12 +4,8 @@ import { Icon } from "@/shared/components/ui/icon";
 /** `value`가 null이면 갈 곳이 정해지지 않은 항목이라 링크 없이 비활성으로 둔다. */
 export type ProjectSidebarTab = { value: string | null; label: string };
 
-/* ponytail: 6팀_IA_v1.2.xlsx(판매자 IA #32)에는 "기본 정보 수정" 탭이 FL_S_PR_CREATE를 재사용하는
-   실제 탭으로 정의돼 있지만, docs/ROUTING.md의 판매자 프로젝트 tab 허용값엔 대응 값이 없다.
-   지어내지 않고 비활성 항목으로 둔다. tab 값이 정해지면(예: basic-info) ROUTING.md에 먼저 반영하고
-   다른 탭처럼 value를 채운다. */
 export const projectEditTabs: readonly ProjectSidebarTab[] = [
-  { value: null, label: "기본 정보 수정" },
+  { value: "basic-info", label: "기본 정보 수정" },
   { value: "story", label: "스토리 작성" },
   { value: "rewards", label: "리워드" },
   { value: "refund-policy", label: "환불 정책" },
