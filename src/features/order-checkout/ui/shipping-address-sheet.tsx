@@ -13,6 +13,8 @@ import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button"
 import styles from "./checkout-sheet.module.css";
 
 type ShippingAddressSheetProps = {
+  showDeliveryMemo?: boolean;
+  showDefault?: boolean;
   open: boolean;
   onClose: () => void;
   initial?: ShippingAddress | null;
@@ -24,6 +26,8 @@ export function ShippingAddressSheet({
   onClose,
   initial,
   onSave,
+  showDeliveryMemo = true,
+  showDefault = true,
 }: ShippingAddressSheetProps) {
   const [form, setForm] = useState<ShippingAddress>(initial ?? emptyShippingAddress());
   const [searching, setSearching] = useState(false);
@@ -158,25 +162,29 @@ export function ShippingAddressSheet({
                   endAdornment={clearButton("detailAddress", "상세주소")}
                 />
               )}
-              <div className="flex justify-end">
-                <Checkbox
-                  checked={form.isDefault ?? false}
-                  onChange={(event) => update("isDefault", event.target.checked)}
-                >
-                  <span className="text-body-s">기본 배송지 설정</span>
-                </Checkbox>
-              </div>
+              {showDefault && (
+                <div className="flex justify-end">
+                  <Checkbox
+                    checked={form.isDefault ?? false}
+                    onChange={(event) => update("isDefault", event.target.checked)}
+                  >
+                    <span className="text-body-s">기본 배송지 설정</span>
+                  </Checkbox>
+                </div>
+              )}
             </div>
           </Field>
-          <Field label="배송 요청사항">
-            <Input
-              shape="compact"
-              aria-label="배송 요청 사항"
-              placeholder="요청사항을 입력해주세요 (선택)"
-              value={form.deliveryMemo ?? ""}
-              onChange={(event) => update("deliveryMemo", event.target.value)}
-            />
-          </Field>
+          {showDeliveryMemo && (
+            <Field label="배송 요청사항">
+              <Input
+                shape="compact"
+                aria-label="배송 요청 사항"
+                placeholder="요청사항을 입력해주세요 (선택)"
+                value={form.deliveryMemo ?? ""}
+                onChange={(event) => update("deliveryMemo", event.target.value)}
+              />
+            </Field>
+          )}
         </div>
       )}
     </BottomSheet>

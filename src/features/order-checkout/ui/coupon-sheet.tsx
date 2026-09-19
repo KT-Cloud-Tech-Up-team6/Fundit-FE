@@ -103,7 +103,7 @@ export function CouponSheet({
   );
 }
 
-function CouponRadio({
+export function CouponRadio({
   label,
   badge,
   condition,
