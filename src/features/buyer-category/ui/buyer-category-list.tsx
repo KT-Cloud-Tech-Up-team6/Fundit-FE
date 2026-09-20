@@ -30,7 +30,8 @@ export function BuyerCategoryList({
       <div
         className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300 min-[1200px]:pb-16`}
       >
-        <header className="flex items-center gap-4 px-5 py-2 min-[1200px]:hidden">
+        {/* 데스크톱 헤더에는 검색이 없으므로 /live와 같이 검색은 남기고 알림만 숨긴다. */}
+        <header className="flex items-center gap-4 px-5 py-2 min-[1200px]:mx-auto min-[1200px]:w-full min-[1200px]:max-w-[614px] min-[1200px]:px-0 min-[1200px]:py-8">
           <form action="/search" role="search" className="min-w-0 flex-1">
             <SearchField
               size="md"
@@ -41,7 +42,7 @@ export function BuyerCategoryList({
           </form>
           <PendingDestination
             label="알림함"
-            className="flex h-10 w-6 shrink-0 items-center justify-center"
+            className="flex h-10 w-6 shrink-0 items-center justify-center min-[1200px]:hidden"
           >
             <Icon name="bell" className="size-6" />
           </PendingDestination>
@@ -51,7 +52,7 @@ export function BuyerCategoryList({
           <h1 className="sr-only">카테고리 탐색</h1>
           <section
             aria-label="프로모션 배너"
-            className="px-5 py-1 min-[1200px]:mx-auto min-[1200px]:max-w-[833px] min-[1200px]:pt-8"
+            className="px-5 py-1 min-[1200px]:mx-auto min-[1200px]:max-w-[833px]"
           >
             <CategoryBannerCarousel />
           </section>
