@@ -241,7 +241,7 @@ Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v
 
 SignupRequest의 required는 password, email, verificationToken, name, phoneNumber, agreedTerms다. 문자열은 minLength 1, email은 email 형식, agreedTerms는 문자열 배열·minItems 1이며 address는 선택 자유 객체다. nickname은 이번 YAML에 없다. PasswordChangeRequest의 두 비밀번호는 required·minLength 1이다. 로그인은 본문 자체가 필수지만 email/password의 required 목록이 없고, 응답 DTO들도 required 목록이 없어 필드의 존재 보장·null 허용을 이 파일만으로 확정하지 않는다.
 
-다음은 **이전 Markdown 근거를 보존한 항목이며 이번 YAML에는 없는 경로**다. 진행 중 작업·연동 제외·미구현 중 어느 상태인지 추정하지 않는다.
+다음은 **이전 Markdown 근거를 보존한 항목이며 당시 YAML에는 없는 경로**다. 이메일 찾기·재설정의 현재 계약은 아래 4.7의 BE 코드 대조로 갱신했다. 나머지 경로의 구현 상태는 이 표만으로 추정하지 않는다.
 
 | 경로                                                           | 이전 근거와 남은 확인                                                                                                         |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -311,6 +311,23 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 | 가입·갱신 쿠키      | 응답 Set-Cookie 정의 없음.                       | AuthController는 가입·갱신 성공 시 쿠키를 설정. 명세 보완과 실제 환경 대조 필요.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 마이페이지의 이메일·프로필 이미지·등급·혜택은 MemberMeResponse에 없다. 찜 목록에는 판매자명·달성률·종료 상태가 없으며 판매자 팔로우 API도 이번 파일에 없다. 다른 API에서 조합할지 DTO를 확장할지 확인한다. 프로젝트 공개 UUID와 찜 int64 projectId 연결도 미정이다. 통합 검색·LIVE 알림·취소/환불/교환 내역은 담당 서비스의 별도 명세가 필요하며 Auth·Member 파일에 없다는 이유로 미구현으로 분류하지 않는다.
+
+### 4.7. 로그인·계정 복구 코드 대조 (#217)
+
+2026-09-20 `Fundit-backend` develop `d7ea517`의 `AuthController`, `LoginFailureHandler`, `PasswordResetService`를 확인했다. 4.2의 과거 복구 명세 대신 아래 계약을 사용한다.
+
+| 경로                                       | 요청 → 응답                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------ |
+| POST `/api/v1/auth/find-email`             | name, phoneNumber → maskedEmail. 없는 계정은 null.                             |
+| POST `/api/v1/auth/find-email/reveal`      | verificationToken → email. PortOne 서버 검증 토큰을 일회 소비.                 |
+| POST `/api/v1/auth/reset-password`         | name, phoneNumber, email → message. 계정 유무와 무관한 동일 안내.              |
+| POST `/api/v1/auth/reset-password/confirm` | token, newPassword → message. token은 UUID이며 만료·소비 후 401 TOKEN_INVALID. |
+| PATCH `/api/v1/auth/password`              | Bearer + currentPassword, newPassword → message.                               |
+
+- 로그인 실패는 401 INVALID_CREDENTIALS, 잠금은 423 ACCOUNT_LOCKED와 detail.lockedUntil이다. FE가 실패 횟수로 잠금을 추정하지 않는다.
+- `mustChangePassword`는 true도 처리하며 새 비밀번호 정책은 회원가입과 공유한다.
+- 재설정 메일 기본·개발 링크는 `/reset-password?token=%s`다. 운영 URL 템플릿·실제 메일 발송·PortOne 채널/복구 콜백은 BE/인프라 확인 대상으로 남긴다.
+- FE 검증은 HTTP 대역과 독립 브라우저 기준이며 운영 외부 인증·메일 수신 성공을 의미하지 않는다.
 
 ## 5. 프로젝트
 
@@ -422,7 +439,7 @@ apply는 mode(OVERWRITE/COPY), edits를 받고 스토리에 임시저장하는 �
 | AI 세부 계약        | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                                                                        |
 | 결과 불명 복구      | 가입·생성 등 요청 타임아웃 시 성공 여부 확인·중복 방지 방법.                                                                                                   |
 | 재고 조회 실패      | 프로젝트 명세의 remainingStock null 정상 응답과 503 오류 중 실제 응답.                                                                                         |
-| 계정 복구·소셜      | 이번 YAML에 없는 이메일 찾기·비밀번호 재설정·소셜 인증의 제공 여부와 일정. 포함 시 요청·응답·오류·콜백·토큰 TTL.                                               |
+| 계정 복구·소셜      | 계정 복구 계약은 4.7에서 코드 확인. 실제 메일·PortOne 설정 검증, 소셜 인증의 연동 범위·일정·TTL 확인.                                                          |
 
 ### 8.2. 정책·환경 협의
 

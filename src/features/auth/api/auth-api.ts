@@ -13,6 +13,59 @@ import type {
 
 const signalOptions = (options?: RequestOptions) => ({ signal: options?.signal });
 
+export function findEmail(
+  request: { name: string; phoneNumber: string },
+  options?: RequestOptions,
+) {
+  return apiRequest<{ maskedEmail: string | null }>("/api/v1/auth/find-email", {
+    ...signalOptions(options),
+    body: request,
+    method: "POST",
+  });
+}
+
+export function revealEmail(verificationToken: string, options?: RequestOptions) {
+  return apiRequest<{ email: string }>("/api/v1/auth/find-email/reveal", {
+    ...signalOptions(options),
+    body: { verificationToken },
+    method: "POST",
+  });
+}
+
+export function requestPasswordReset(
+  request: { name: string; phoneNumber: string; email: string },
+  options?: RequestOptions,
+) {
+  return apiRequest<{ message: string }>("/api/v1/auth/reset-password", {
+    ...signalOptions(options),
+    body: request,
+    method: "POST",
+  });
+}
+
+export function confirmPasswordReset(
+  request: { token: string; newPassword: string },
+  options?: RequestOptions,
+) {
+  return apiRequest<{ message: string }>("/api/v1/auth/reset-password/confirm", {
+    ...signalOptions(options),
+    body: request,
+    method: "POST",
+  });
+}
+
+export function changePassword(
+  request: { currentPassword: string; newPassword: string },
+  options?: RequestOptions,
+) {
+  return apiRequest<{ message: string }>("/api/v1/auth/password", {
+    ...signalOptions(options),
+    auth: true,
+    body: request,
+    method: "PATCH",
+  });
+}
+
 export function getTerms(options?: RequestOptions) {
   return apiRequest<SignupTerm[]>("/api/v1/terms", signalOptions(options));
 }

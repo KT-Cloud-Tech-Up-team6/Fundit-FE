@@ -6,6 +6,7 @@ export type IdentityVerificationResult =
   { identityVerificationId: string; status: "success" } | { status: "cancelled" };
 
 type RequestOptions = {
+  identityVerificationId?: string;
   /* 주어지면 모바일 등 팝업을 못 쓰는 환경에서 전체 페이지 리다이렉트로 진행될 수 있다.
      실제 팝업/리다이렉트 분기는 PortOne SDK와 채널(PG)이 기기에 따라 결정한다. */
   redirectUrl?: string;
@@ -19,10 +20,10 @@ function isNarrowViewport() {
 }
 
 export async function requestIdentityVerification(
-  draft: IdentityDraft,
+  draft: Omit<IdentityDraft, "birthDate"> & { birthDate?: string },
   options?: RequestOptions,
 ): Promise<IdentityVerificationResult> {
-  const identityVerificationId = crypto.randomUUID();
+  const identityVerificationId = options?.identityVerificationId ?? crypto.randomUUID();
 
   if (!storeId || !channelKey) {
     if (process.env.NODE_ENV !== "development" || process.env.NEXT_PUBLIC_MSW_ENABLED !== "true") {
@@ -41,7 +42,7 @@ export async function requestIdentityVerification(
     return { identityVerificationId, status: "success" };
   }
 
-  const [birthYear, birthMonth, birthDay] = draft.birthDate.split("-");
+  const [birthYear, birthMonth, birthDay] = draft.birthDate?.split("-") ?? [];
   const response = await PortOne.requestIdentityVerification({
     channelKey,
     customer: {
