@@ -11,6 +11,7 @@ import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
 import { CouponRadio } from "./coupon-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
+import { couponConditions } from "../model/coupon-conditions";
 import styles from "./checkout-sheet.module.css";
 
 export function CouponApiSheet({
@@ -81,11 +82,7 @@ export function CouponApiSheet({
               checked={choice === coupon.couponCode}
               onSelect={() => setChoice(coupon.couponCode)}
               disabled={coupon.status !== "AVAILABLE"}
-              expiry={
-                coupon.expiresAt
-                  ? `${new Date(coupon.expiresAt).toLocaleDateString("ko-KR")}까지 사용 가능`
-                  : undefined
-              }
+              {...couponConditions(coupon, body.projectId)}
             />
           ))
         )}

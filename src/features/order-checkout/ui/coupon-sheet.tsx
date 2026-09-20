@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import styles from "./checkout-sheet.module.css";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
@@ -120,6 +120,7 @@ export function CouponRadio({
   checked: boolean;
   onSelect: () => void;
 }) {
+  const descriptionId = useId();
   const tone = disabled ? "text-text-disabled" : "text-text-default";
   const subTone = disabled ? "text-text-disabled" : "text-text-secondary";
 
@@ -139,6 +140,14 @@ export function CouponRadio({
         disabled={disabled}
         onChange={onSelect}
         aria-label={label}
+        aria-describedby={
+          [
+            condition ? `${descriptionId}-condition` : null,
+            expiry ? `${descriptionId}-expiry` : null,
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
       />
       <span
         aria-hidden
@@ -163,12 +172,17 @@ export function CouponRadio({
         </span>
         {condition && (
           <span
-            className={`text-body-s leading-[1.42] ${disabled ? "text-text-disabled" : "text-text-default"}`}
+            id={`${descriptionId}-condition`}
+            className={`text-body-s leading-[1.42] wrap-anywhere whitespace-pre-line ${disabled ? "text-text-disabled" : "text-text-default"}`}
           >
             {condition}
           </span>
         )}
-        {expiry && <span className={`text-caption-s ${subTone}`}>{expiry}</span>}
+        {expiry && (
+          <span id={`${descriptionId}-expiry`} className={`text-caption-s ${subTone}`}>
+            {expiry}
+          </span>
+        )}
       </span>
     </label>
   );
