@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  findFundingProject,
   getFulfillment,
   getShipment,
   confirmReceipt,
@@ -13,6 +12,7 @@ import {
 } from "@/entities/fulfillment/api/fulfillment-api";
 import { Button } from "@/shared/components/ui/button";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
+import { fundingProjectQuery } from "../model/funding-project-query";
 import { FulfillmentAccess } from "./fulfillment-access";
 import { BuyerStageStepper } from "./buyer-stage-stepper";
 import { BuyerTimeline } from "./buyer-timeline";
@@ -47,10 +47,7 @@ function Buyer({
   fundingId: string;
   history: boolean;
 }) {
-  const order = useQuery({
-    queryKey: ["funding-project", memberId, fundingId],
-    queryFn: ({ signal }) => findFundingProject(fundingId, signal),
-  });
+  const order = useQuery(fundingProjectQuery(memberId, fundingId));
   if (order.isPending) return <p role="status">참여 내역을 확인하고 있습니다.</p>;
   if (order.isError)
     return (
