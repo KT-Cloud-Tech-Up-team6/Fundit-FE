@@ -6,7 +6,17 @@ const meta = {
   title: "Features/BuyerCategory/List",
   component: BuyerCategoryList,
   tags: ["autodocs"],
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "figma390" } },
   args: { slug: "tech-appliances" },
 } satisfies Meta<typeof BuyerCategoryList>;
 export default meta;
@@ -38,3 +48,4 @@ export const Travel: Story = {
 };
 
 export const HomeLiving: Story = { args: { slug: "home-living" } };
+export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };

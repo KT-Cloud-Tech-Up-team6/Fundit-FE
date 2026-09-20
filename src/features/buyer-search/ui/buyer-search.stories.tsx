@@ -29,7 +29,17 @@ function SearchPreview({
 const meta = {
   title: "Features/BuyerSearch",
   component: BuyerSearch,
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "figma390" } },
   args: { query: defaultSearch, onQueryChange: () => {} },
   render: (args) => (
     <SearchPreview key={JSON.stringify(args.query) + args.initialInput} {...args} />
@@ -49,6 +59,10 @@ export const Sellers: Story = {
   args: { query: { ...defaultSearch, q: "판매자", tab: "sellers" } },
 };
 export const Empty: Story = { args: { query: { ...defaultSearch, q: "존재하지않는검색어" } } };
+export const Desktop: Story = {
+  args: { query: { ...defaultSearch, q: "청소기" } },
+  globals: { viewport: { value: "desktop" } },
+};
 
 export const HistoryRestoration: Story = {
   render: function Render() {
