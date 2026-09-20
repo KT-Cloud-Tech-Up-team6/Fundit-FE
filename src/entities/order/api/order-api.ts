@@ -29,6 +29,10 @@ export type CheckoutCoupon = {
   discountValue: number;
   status: string;
   expiresAt: string | null;
+  minFundingAmount: number;
+  perMemberLimit: number;
+  targetScope: string | null;
+  targetRefId: string | null;
 };
 export function getCheckoutCoupons(page: number, signal?: AbortSignal) {
   return apiRequest<{ content: CheckoutCoupon[]; hasNext: boolean }>(
