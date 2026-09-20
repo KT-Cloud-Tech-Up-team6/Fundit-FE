@@ -40,7 +40,7 @@ export function ProjectStoryForm({
   const [initialContent] = useState(() =>
     initial ? fromIntroContent(initial.introContent ?? []) : undefined,
   );
-  async function upload(file: File, kind: "image" | "media" = "media") {
+  async function upload(file: File, kind: "image" | "video") {
     if (pending.current) throw new Error("업로드 또는 저장 중입니다.");
     pending.current = true;
     setBusy(true);

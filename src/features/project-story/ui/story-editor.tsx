@@ -125,7 +125,7 @@ export function StoryEditor({
   projectTitle: string;
   onReady: (editor: Editor) => void;
   initialContent?: JSONContent;
-  upload?: (file: File) => Promise<string>;
+  upload?: (file: File, kind: "image" | "video") => Promise<string>;
   projectId?: string;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -156,7 +156,7 @@ export function StoryEditor({
     }
     if (upload) {
       setUploadError("");
-      void upload(file)
+      void upload(file, "image")
         .then((src) => {
           if (!editor.isDestroyed) editor.chain().focus().setImage({ src }).run();
         })
@@ -186,7 +186,7 @@ export function StoryEditor({
     }
     if (upload) {
       setUploadError("");
-      void upload(file)
+      void upload(file, "video")
         .then((src) => {
           if (editor && !editor.isDestroyed) insertVideo(src);
         })
