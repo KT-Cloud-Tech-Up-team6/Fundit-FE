@@ -13,6 +13,7 @@ import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button"
 import styles from "./checkout-sheet.module.css";
 
 type ShippingAddressSheetProps = {
+  showDefault?: boolean;
   busy?: boolean;
   error?: string;
   showDeliveryMemo?: boolean;
@@ -27,6 +28,7 @@ export function ShippingAddressSheet({
   onClose,
   initial,
   onSave,
+  showDefault = true,
   busy = false,
   error,
   showDeliveryMemo = true,
@@ -165,14 +167,16 @@ export function ShippingAddressSheet({
                   endAdornment={clearButton("detailAddress", "상세주소")}
                 />
               )}
-              <div className="flex justify-end">
-                <Checkbox
-                  checked={form.isDefault ?? false}
-                  onChange={(event) => update("isDefault", event.target.checked)}
-                >
-                  <span className="text-body-s">기본 배송지 설정</span>
-                </Checkbox>
-              </div>
+              {showDefault && (
+                <div className="flex justify-end">
+                  <Checkbox
+                    checked={form.isDefault ?? false}
+                    onChange={(event) => update("isDefault", event.target.checked)}
+                  >
+                    <span className="text-body-s">기본 배송지 설정</span>
+                  </Checkbox>
+                </div>
+              )}
             </div>
           </Field>
           {showDeliveryMemo && (
