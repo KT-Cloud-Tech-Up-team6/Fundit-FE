@@ -90,6 +90,7 @@ function Checkout({
   });
   const [lines, setLines] = useState<OrderLine[]>(initialLines),
     [address, setAddress] = useState<OrderAddress | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressOpen, setAddressOpen] = useState(false),
     [rewardsOpen, setRewardsOpen] = useState(() => initialLines().length === 0),
     [busy, setBusy] = useState(false),
@@ -307,13 +308,15 @@ function Checkout({
               ) : (
                 <select
                   aria-label="저장된 배송지"
-                  value=""
+                  value={selectedAddressId}
                   disabled={busy}
                   onChange={(event) => {
                     const selected = addresses.data.find(
                       (item) => item.id === Number(event.target.value),
                     );
-                    if (selected)
+                    setSelectedAddressId(selected ? String(selected.id) : "");
+                    if (!selected) setAddress(null);
+                    else
                       setAddress({
                         recipientName: selected.recipientName,
                         phoneNumber: selected.phoneNumber,
@@ -436,6 +439,7 @@ function Checkout({
         open={addressOpen}
         onClose={() => setAddressOpen(false)}
         onSave={(value) => {
+          setSelectedAddressId("");
           setAddress({
             recipientName: value.recipientName,
             phoneNumber: value.phone,
