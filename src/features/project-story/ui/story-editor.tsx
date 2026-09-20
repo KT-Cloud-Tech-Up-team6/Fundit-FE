@@ -9,6 +9,7 @@ import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-
 import { Button } from "@/shared/components/ui/button";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
 import { storyExtensions } from "../model/story-extensions";
+import { fromIntroContent } from "../model/story-content";
 import styles from "./story-editor.module.css";
 
 /* ponytail: #38(펀딩 AI 스토리 챗봇) 목업 결과는 일반 텍스트라 문단(\n\n)·줄바꿈(\n)만 있다.
@@ -121,12 +122,14 @@ export function StoryEditor({
   initialContent,
   upload,
   projectId,
+  onAiCoverImport,
 }: {
   projectTitle: string;
   onReady: (editor: Editor) => void;
   initialContent?: JSONContent;
   upload?: (file: File, kind: "image" | "video") => Promise<string>;
   projectId?: string;
+  onAiCoverImport?: (coverImageUrl: string) => void;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -365,8 +368,13 @@ export function StoryEditor({
           projectId={projectId}
           projectTitle={projectTitle || "프로젝트"}
           onClose={() => setAiModalOpen(false)}
-          onImport={(body) => {
-            editor?.chain().focus().setContent(storyBodyToHtml(body)).run();
+          onImport={(body, introContent, coverImageUrl) => {
+            editor
+              ?.chain()
+              .focus()
+              .setContent(introContent ? fromIntroContent(introContent) : storyBodyToHtml(body))
+              .run();
+            if (coverImageUrl) onAiCoverImport?.(coverImageUrl);
             setAiModalOpen(false);
           }}
         />

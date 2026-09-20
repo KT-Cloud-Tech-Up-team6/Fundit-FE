@@ -146,6 +146,7 @@ export function ProjectStoryForm({
         initialContent={initialContent}
         upload={initial ? upload : undefined}
         projectId={initial ? projectId : undefined}
+        onAiCoverImport={setThumbnailUrl}
       />
 
       <div className="mt-16 flex flex-wrap items-center justify-between gap-3 pb-1.5">
