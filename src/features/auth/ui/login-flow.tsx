@@ -10,6 +10,7 @@ import { login } from "@/features/auth/api/auth-api";
 import { safeReturnTo } from "@/features/auth/model/auth-input";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
+import { authTokenStore } from "@/shared/api/auth-token-store";
 
 import { AuthButton, AuthInput, AuthSocialButton } from "./auth-form-controls";
 import { AuthScreen } from "./auth-screen";
@@ -34,8 +35,9 @@ export function LoginFlow({
   initialView = "method",
 }: LoginFlowProps) {
   const router = useRouter();
-  const { authenticate } = useAuth();
+  const { authenticate, clearSession } = useAuth();
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const restrictedSession = useRef<{ generation: string | null } | null>(null);
   const [requestError, setRequestError] = useState("");
   const requestRef = useRef<AbortController | null>(null);
   const [view, setView] = useState<LoginView>(initialView);
@@ -48,6 +50,12 @@ export function LoginFlow({
   useEffect(
     () => () => {
       requestRef.current?.abort();
+      if (
+        restrictedSession.current &&
+        restrictedSession.current.generation === authTokenStore.getSessionGeneration()
+      ) {
+        authTokenStore.changeSession();
+      }
       if (submitTimerRef.current !== null) {
         window.clearTimeout(submitTimerRef.current);
       }
@@ -71,7 +79,28 @@ export function LoginFlow({
 
   if (mustChangePassword)
     return (
-      <PasswordUpdateFlow mode="change" onComplete={() => router.replace(safeReturnTo(returnTo))} />
+      <PasswordUpdateFlow
+        mode="change"
+        onCancel={() => {
+          restrictedSession.current = null;
+          clearSession();
+          setMustChangePassword(false);
+          setView("method");
+        }}
+        onComplete={async () => {
+          const token = authTokenStore.get();
+          if (
+            !token ||
+            restrictedSession.current?.generation !== authTokenStore.getSessionGeneration()
+          )
+            throw new DOMException("Session changed", "AbortError");
+          await authenticate(token);
+          if (restrictedSession.current?.generation !== authTokenStore.getSessionGeneration())
+            throw new DOMException("Session changed", "AbortError");
+          restrictedSession.current = null;
+          router.replace(safeReturnTo(returnTo));
+        }}
+      />
     );
 
   if (view === "method") {
@@ -121,11 +150,15 @@ export function LoginFlow({
       try {
         const result = await login({ email: email.trim(), password }, { signal: request.signal });
         if (request.signal.aborted) return;
-        await authenticate(result.accessToken);
-        if (request.signal.aborted) return;
         setPassword("");
-        if (result.mustChangePassword) setMustChangePassword(true);
-        else router.replace(safeReturnTo(returnTo));
+        if (result.mustChangePassword) {
+          // 세션 요청은 일반 인증 상태를 비운다. 변경 API에만 토큰을 사용하고 승격은 완료 후 한다.
+          restrictedSession.current = { generation: authTokenStore.getSessionGeneration() };
+          setMustChangePassword(true);
+        } else {
+          await authenticate(result.accessToken);
+          if (!request.signal.aborted) router.replace(safeReturnTo(returnTo));
+        }
       } catch (cause) {
         if (request.signal.aborted) return;
         if (isApiError(cause) && cause.code === "INVALID_CREDENTIALS") setError("credentials");

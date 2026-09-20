@@ -12,5 +12,6 @@ export default async function ResetPasswordPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token } = await searchParams;
-  return <PasswordUpdateFlow mode="reset" token={typeof token === "string" ? token : ""} />;
+  const resetToken = typeof token === "string" ? token : "";
+  return <PasswordUpdateFlow key={resetToken} mode="reset" token={resetToken} />;
 }

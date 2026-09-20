@@ -12,11 +12,14 @@ import { isApiError } from "@/shared/api/api-error";
 import { AuthButton, AuthInput } from "./auth-form-controls";
 import { AuthScreen, AuthTitle } from "./auth-screen";
 
-type Props = { mode: "change"; onComplete: () => void } | { mode: "reset"; token: string };
+type Props =
+  | { mode: "change"; onComplete: () => Promise<void>; onCancel: () => void }
+  | { mode: "reset"; token: string };
 
 export function PasswordUpdateFlow(props: Props) {
   const router = useRouter();
   const { clearSession } = useAuth();
+  const [resetToken] = useState(() => (props.mode === "reset" ? props.token : ""));
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -25,9 +28,12 @@ export function PasswordUpdateFlow(props: Props) {
   const [complete, setComplete] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
   useEffect(() => () => requestRef.current?.abort(), []);
+  useEffect(() => {
+    if (props.mode === "reset") window.history.replaceState(null, "", "/reset-password");
+  }, [props.mode]);
 
   const validPassword = passwordSchema.safeParse(password);
-  const missingToken = props.mode === "reset" && !props.token;
+  const missingToken = props.mode === "reset" && !resetToken;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (requestRef.current || !validPassword.success || password !== confirmation || missingToken)
@@ -39,7 +45,7 @@ export function PasswordUpdateFlow(props: Props) {
     try {
       if (props.mode === "reset") {
         await confirmPasswordReset(
-          { token: props.token, newPassword: password },
+          { token: resetToken, newPassword: password },
           { signal: request.signal },
         );
       } else {
@@ -52,11 +58,10 @@ export function PasswordUpdateFlow(props: Props) {
       setPassword("");
       setConfirmation("");
       setCurrentPassword("");
-      if (props.mode === "change") props.onComplete();
+      if (props.mode === "change") await props.onComplete();
       else {
         // 재설정은 BE의 모든 Refresh Token 폐기와 함께 현재 FE 세션도 비운다.
         clearSession();
-        window.history.replaceState(null, "", "/reset-password");
         setComplete(true);
       }
     } catch (cause) {
@@ -77,7 +82,14 @@ export function PasswordUpdateFlow(props: Props) {
   }
 
   return (
-    <AuthScreen headerTitle="비밀번호 설정" onBack={() => router.replace("/auth/login")}>
+    <AuthScreen
+      headerTitle="비밀번호 설정"
+      onBack={() => {
+        requestRef.current?.abort();
+        if (props.mode === "change") props.onCancel();
+        else router.replace("/auth/login");
+      }}
+    >
       <AuthTitle>
         {complete ? "비밀번호가 변경되었습니다" : "새 비밀번호를 설정해 주세요"}
       </AuthTitle>
