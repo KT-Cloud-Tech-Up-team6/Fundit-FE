@@ -191,3 +191,9 @@ Redux Toolkit은 이벤트 이력 추적, 복잡한 middleware 또는 조직 표
 - [TanStack Query의 Server Component 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr).
 - [TanStack Query Query Key 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys).
 - [Zustand의 Next.js 가이드](https://zustand.docs.pmnd.rs/learn/guides/nextjs).
+
+## 인증 갱신 동시성
+
+같은 탭의 refresh 호출은 하나의 Promise를 공유한다. Web Locks를 지원하는 환경에서는 `fundit-auth-refresh` 잠금으로 같은 origin의 탭 간 refresh 요청도 직렬화한다. 잠금을 기다리는 동안 세션이 바뀌면 요청을 보내지 않는다. Web Locks 미지원 환경은 기존 탭 내부 중복 방지를 사용하며, 다른 origin·브라우저·기기의 동시 갱신까지 보장하지 않는다.
+
+소셜 로그인 응답 타입은 BE `SocialLoginResponse`의 `needsSignup`·`needsLink` 판별값을 사용한다. `status` 필드를 가정하지 않으며, 현재 소셜 로그인 화면 연결은 이 타입 정합화와 별도 작업이다.

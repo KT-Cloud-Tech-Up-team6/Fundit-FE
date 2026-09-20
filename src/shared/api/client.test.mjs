@@ -78,3 +78,55 @@ for (const status of [401, 503]) {
     assert.equal(authTokenStore.get(), status === 401 ? null : "existing");
   });
 }
+
+function mockLocks(t, request) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { locks: { request } },
+  });
+  t.after(() =>
+    descriptor
+      ? Object.defineProperty(globalThis, "navigator", descriptor)
+      : delete globalThis.navigator,
+  );
+}
+
+test("refresh waits for the cross-tab lock before sending a rotating cookie", async (t) => {
+  authTokenStore.clear();
+  const available = deferred();
+  let requests = 0;
+  let lockName;
+  mockLocks(t, async (name, run) => {
+    lockName = name;
+    await available.promise;
+    return run();
+  });
+  t.mock.method(globalThis, "fetch", async () => {
+    requests++;
+    return json({ accessToken: "rotated" });
+  });
+  const first = refreshOnce(),
+    second = refreshOnce();
+  assert.equal(requests, 0);
+  available.resolve();
+  assert.deepEqual(await Promise.all([first, second]), ["rotated", "rotated"]);
+  assert.equal(requests, 1);
+  assert.equal(lockName, "fundit-auth-refresh");
+});
+
+test("a session changed while waiting for another tab does not send refresh", async (t) => {
+  const available = deferred();
+  mockLocks(t, async (_, run) => {
+    await available.promise;
+    return run();
+  });
+  const fetch = t.mock.method(globalThis, "fetch", async () => json({ accessToken: "wrong" }));
+  const refresh = refreshOnce();
+  authTokenStore.set("new-account");
+  const rejected = assert.rejects(refresh, { name: "AbortError" });
+  available.resolve();
+  await rejected;
+  assert.equal(fetch.mock.callCount(), 0);
+  assert.equal(authTokenStore.get(), "new-account");
+});

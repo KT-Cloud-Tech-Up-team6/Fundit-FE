@@ -73,11 +73,21 @@ async function request<T>(path: string, options: ApiRequestOptions, retried: boo
 export async function refreshOnce(): Promise<string> {
   if (!refreshPromise) {
     const revision = authTokenStore.getRevision();
-    refreshPromise = fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
-      method: "POST",
-      credentials: "include",
-    })
-      .then((response) => parseResponse<{ accessToken: string }>(response))
+    const refresh = async () => {
+      if (authTokenStore.getRevision() !== revision) {
+        throw new DOMException("Session changed", "AbortError");
+      }
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      return parseResponse<{ accessToken: string }>(response);
+    };
+    // HttpOnly refresh 쿠키를 공유하는 같은 origin의 탭에서도 토큰 회전을 직렬화한다.
+    const locks = globalThis.navigator?.locks;
+    refreshPromise = Promise.resolve(
+      locks ? locks.request("fundit-auth-refresh", refresh) : refresh(),
+    )
       .then(({ accessToken }) => {
         if (authTokenStore.getRevision() !== revision) {
           throw new DOMException("Session changed", "AbortError");
