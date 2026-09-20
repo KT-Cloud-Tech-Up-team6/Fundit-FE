@@ -19,6 +19,7 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
     <BuyerAccountScreen
       title="펀딩 상세 내역"
       backHref="/my/fundings"
+      backLabel="펀딩 내역으로 돌아가기"
       breadcrumb={["마이페이지", "펀딩내역", "펀딩 상세 내역"]}
       className="flex min-w-0 flex-col"
     >

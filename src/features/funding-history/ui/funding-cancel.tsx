@@ -100,6 +100,7 @@ export function FundingCancel({
     <BuyerAccountScreen
       title={isReturn ? "펀딩 반품/교환" : "펀딩 취소"}
       backHref={`/my/fundings/${fundingId}`}
+      backLabel="펀딩 상세로 돌아가기"
       breadcrumb={["마이페이지", "펀딩내역", isReturn ? "펀딩 반품/교환" : "펀딩 취소"]}
       className="flex min-w-0 flex-col"
     >

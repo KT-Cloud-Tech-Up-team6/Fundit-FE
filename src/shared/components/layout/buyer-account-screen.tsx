@@ -12,18 +12,28 @@ import { PendingDestination } from "@/shared/components/ui/pending-destination";
 export function BuyerAccountScreen({
   title,
   backHref = "/my",
+  backLabel,
   breadcrumb,
   children,
   className = "",
 }: {
   title: string;
   backHref?: string;
+  /** 모바일 헤더 뒤로가기 링크가 이동할 목적지를 설명한다. */
+  backLabel?: string;
   /** 데스크톱 현재 위치 표시. 마지막 항목이 현재 화면이다. 기본값은 `마이페이지 > {title}`. */
   breadcrumb?: string[];
   children: ReactNode;
   className?: string;
 }) {
   const crumbs = breadcrumb ?? ["마이페이지", title];
+  const resolvedBackLabel =
+    backLabel ??
+    (backHref === "/my"
+      ? "마이페이지로 돌아가기"
+      : backHref === "/"
+        ? "홈으로 돌아가기"
+        : "이전 화면으로 돌아가기");
 
   return (
     <div className="bg-layer-surface-default min-h-dvh w-full">
@@ -34,7 +44,7 @@ export function BuyerAccountScreen({
         <header className="bg-layer-surface-default sticky top-0 z-10 grid h-[52px] grid-cols-[40px_1fr_40px] items-center px-3 min-[1200px]:hidden">
           <Link
             href={backHref}
-            aria-label={backHref === "/my" ? "마이페이지로 돌아가기" : "홈으로 돌아가기"}
+            aria-label={resolvedBackLabel}
             className="flex size-10 items-center justify-center"
           >
             <Icon name="arrowLeft" className="size-5" />
