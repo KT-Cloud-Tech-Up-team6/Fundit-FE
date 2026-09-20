@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ProjectRewardsPage } from "@/features/project-basic-info/ui/project-reward-manager";
 import { ProjectBasicInfoApi } from "@/features/project-basic-info/ui/project-basic-info-api";
 import {
   ProjectSidebar,
@@ -39,6 +40,8 @@ export default async function SellerProjectPage({
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    if (activeTab === "rewards")
+      return <ProjectRewardsPage key={projectId} projectId={projectId} />;
     return <ProjectBasicInfoApi key={projectId} projectId={projectId} tab={activeTab} />;
   }
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;

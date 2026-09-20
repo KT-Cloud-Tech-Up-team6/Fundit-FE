@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useParams } from "next/navigation";
+import { ProjectRewardManager } from "./project-reward-manager";
 import { ApiError } from "@/shared/api/api-error";
 import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
@@ -60,6 +62,12 @@ export function ProjectBasicInfoForm({
   const [formMessage, setFormMessage] = useState("");
   const [formMessageRole, setFormMessageRole] = useState<"alert" | "status">("status");
   const nextId = useRef(3);
+  const params = useParams<{ projectId?: string }>();
+  const apiProjectId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    params?.projectId ?? "",
+  )
+    ? params.projectId
+    : undefined;
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const values = { business, title, category, subcategory, amount };
   const validation = onSave
@@ -251,138 +259,142 @@ export function ProjectBasicInfoForm({
               </div>
             </div>
           </div>
-          <section className="mt-[45px]" aria-labelledby="rewards">
-            <h2 id="rewards" className="text-title-s text-text-title">
-              리워드
-            </h2>
-            <p className="text-caption-s text-text-default mt-1">
-              후원자에게 제공할 리워드를 등록해주세요. 최소 1개 이상 등록해야 다음 단계로 진행할 수
-              있어요
-            </p>
-            {rewards.length ? (
-              <div className="mt-2 flex w-full flex-col items-end gap-4">
-                <div className="w-full overflow-x-auto">
-                  <div className="border-w-xs border-border-default min-w-[792px] overflow-hidden rounded-xs border">
-                    <table className="text-body-m w-full table-fixed text-left">
-                      <caption className="sr-only">등록된 리워드</caption>
-                      <thead className="bg-layer-bg block">
-                        <tr className="grid h-[42px] grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 px-2">
-                          {["No.", "리워드명", "가격", "수량", "할인", "관리"].map((label) => (
-                            <th key={label} scope="col" className="min-w-0 font-medium">
-                              {label}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="block">
-                        {rewards.map((reward, index) => (
-                          <tr
-                            key={reward.id}
-                            className="border-border-default grid h-11 grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 border-t px-2"
-                          >
-                            <td className="text-center font-semibold">{index + 1}</td>
-                            <td className="min-w-0 truncate" title={reward.name}>
-                              {reward.name}
-                            </td>
-                            <td className="min-w-0">
-                              {reward.discount ? (
-                                <div className="flex min-w-0 items-center justify-end gap-2">
-                                  <s
-                                    className="text-caption-s text-text-secondary max-w-[45%] min-w-0 truncate whitespace-nowrap"
+          {apiProjectId ? (
+            <ProjectRewardManager projectId={apiProjectId} />
+          ) : (
+            <section className="mt-[45px]" aria-labelledby="rewards">
+              <h2 id="rewards" className="text-title-s text-text-title">
+                리워드
+              </h2>
+              <p className="text-caption-s text-text-default mt-1">
+                후원자에게 제공할 리워드를 등록해주세요. 최소 1개 이상 등록해야 다음 단계로 진행할
+                수 있어요
+              </p>
+              {rewards.length ? (
+                <div className="mt-2 flex w-full flex-col items-end gap-4">
+                  <div className="w-full overflow-x-auto">
+                    <div className="border-w-xs border-border-default min-w-[792px] overflow-hidden rounded-xs border">
+                      <table className="text-body-m w-full table-fixed text-left">
+                        <caption className="sr-only">등록된 리워드</caption>
+                        <thead className="bg-layer-bg block">
+                          <tr className="grid h-[42px] grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 px-2">
+                            {["No.", "리워드명", "가격", "수량", "할인", "관리"].map((label) => (
+                              <th key={label} scope="col" className="min-w-0 font-medium">
+                                {label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="block">
+                          {rewards.map((reward, index) => (
+                            <tr
+                              key={reward.id}
+                              className="border-border-default grid h-11 grid-cols-[26px_231px_minmax(0,1fr)_83px_70px_99px] items-center gap-4 border-t px-2"
+                            >
+                              <td className="text-center font-semibold">{index + 1}</td>
+                              <td className="min-w-0 truncate" title={reward.name}>
+                                {reward.name}
+                              </td>
+                              <td className="min-w-0">
+                                {reward.discount ? (
+                                  <div className="flex min-w-0 items-center justify-end gap-2">
+                                    <s
+                                      className="text-caption-s text-text-secondary max-w-[45%] min-w-0 truncate whitespace-nowrap"
+                                      title={`${Number(reward.price).toLocaleString("ko-KR")}원`}
+                                    >
+                                      {Number(reward.price).toLocaleString("ko-KR")}원
+                                    </s>
+                                    <span
+                                      className="min-w-0 truncate text-right whitespace-nowrap"
+                                      title={`${discountedPrice(reward).toLocaleString("ko-KR")}원`}
+                                    >
+                                      {discountedPrice(reward).toLocaleString("ko-KR")}원
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="block truncate text-right whitespace-nowrap"
                                     title={`${Number(reward.price).toLocaleString("ko-KR")}원`}
                                   >
                                     {Number(reward.price).toLocaleString("ko-KR")}원
-                                  </s>
-                                  <span
-                                    className="min-w-0 truncate text-right whitespace-nowrap"
-                                    title={`${discountedPrice(reward).toLocaleString("ko-KR")}원`}
-                                  >
-                                    {discountedPrice(reward).toLocaleString("ko-KR")}원
                                   </span>
-                                </div>
-                              ) : (
-                                <span
-                                  className="block truncate text-right whitespace-nowrap"
-                                  title={`${Number(reward.price).toLocaleString("ko-KR")}원`}
+                                )}
+                              </td>
+                              <td
+                                className="min-w-0 truncate"
+                                title={reward.limited ? `${reward.quantity}개` : "제한 없음"}
+                              >
+                                {reward.limited ? `${reward.quantity}개` : "제한 없음"}
+                              </td>
+                              <td>{reward.discount ? "적용" : "-"}</td>
+                              <td className="flex h-10 items-center gap-2 whitespace-nowrap">
+                                <TextButton
+                                  variant="underline"
+                                  showIcon={false}
+                                  className="text-caption-s h-10 px-2"
+                                  onClick={() => openReward(reward)}
+                                  aria-label={`${reward.name} 수정`}
                                 >
-                                  {Number(reward.price).toLocaleString("ko-KR")}원
+                                  수정
+                                </TextButton>
+                                <span aria-hidden className="mx-1">
+                                  ·
                                 </span>
-                              )}
-                            </td>
-                            <td
-                              className="min-w-0 truncate"
-                              title={reward.limited ? `${reward.quantity}개` : "제한 없음"}
-                            >
-                              {reward.limited ? `${reward.quantity}개` : "제한 없음"}
-                            </td>
-                            <td>{reward.discount ? "적용" : "-"}</td>
-                            <td className="flex h-10 items-center gap-2 whitespace-nowrap">
-                              <TextButton
-                                variant="underline"
-                                showIcon={false}
-                                className="text-caption-s h-10 px-2"
-                                onClick={() => openReward(reward)}
-                                aria-label={`${reward.name} 수정`}
-                              >
-                                수정
-                              </TextButton>
-                              <span aria-hidden className="mx-1">
-                                ·
-                              </span>
-                              <TextButton
-                                variant="underline"
-                                showIcon={false}
-                                className="text-caption-s h-10 px-2"
-                                onClick={() => {
-                                  setRewards((current) =>
-                                    current.filter((item) => item.id !== reward.id),
-                                  );
-                                  setFormMessage("");
-                                }}
-                                aria-label={`${reward.name} 삭제`}
-                              >
-                                삭제
-                              </TextButton>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                <TextButton
+                                  variant="underline"
+                                  showIcon={false}
+                                  className="text-caption-s h-10 px-2"
+                                  onClick={() => {
+                                    setRewards((current) =>
+                                      current.filter((item) => item.id !== reward.id),
+                                    );
+                                    setFormMessage("");
+                                  }}
+                                  aria-label={`${reward.name} 삭제`}
+                                >
+                                  삭제
+                                </TextButton>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    appearance="cta"
+                    size="md"
+                    className="text-body-s! w-[106px] gap-1 font-medium"
+                    onClick={() => openReward()}
+                  >
+                    추가 <Icon name="plus" className="size-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  appearance="cta"
-                  size="md"
-                  className="text-body-s! w-[106px] gap-1 font-medium"
-                  onClick={() => openReward()}
-                >
-                  추가 <Icon name="plus" className="size-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-layer-bg border-w-xs border-border-default mt-2 flex h-[238px] flex-col items-center justify-center rounded-sm border border-dashed">
-                <div className="relative size-14">
-                  <Icon name="gift" className="absolute top-2.5 left-2.5 size-9" />
-                  <Icon name="plusCircle" className="absolute top-0 right-0 size-4" />
+              ) : (
+                <div className="bg-layer-bg border-w-xs border-border-default mt-2 flex h-[238px] flex-col items-center justify-center rounded-sm border border-dashed">
+                  <div className="relative size-14">
+                    <Icon name="gift" className="absolute top-2.5 left-2.5 size-9" />
+                    <Icon name="plusCircle" className="absolute top-0 right-0 size-4" />
+                  </div>
+                  <p className="text-body-s text-text-secondary mt-2 text-center font-medium">
+                    등록된 리워드가 없습니다
+                    <br />
+                    리워드를 등록해주세요
+                  </p>
+                  <Button
+                    type="button"
+                    size="md"
+                    className="text-body-s! mt-3 h-10! w-[204px] font-medium"
+                    onClick={() => openReward()}
+                  >
+                    리워드 추가
+                  </Button>
                 </div>
-                <p className="text-body-s text-text-secondary mt-2 text-center font-medium">
-                  등록된 리워드가 없습니다
-                  <br />
-                  리워드를 등록해주세요
-                </p>
-                <Button
-                  type="button"
-                  size="md"
-                  className="text-body-s! mt-3 h-10! w-[204px] font-medium"
-                  onClick={() => openReward()}
-                >
-                  리워드 추가
-                </Button>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </fieldset>
         {/* 리워드 영역 끝(961)부터 Figma 하단 액션 시작점(994)까지 33px */}
         <div className="mx-auto mt-[34px] w-full max-w-198 pb-7">
