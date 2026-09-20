@@ -2,18 +2,22 @@ import { apiRequest } from "../../../shared/api/client";
 import { ApiError } from "../../../shared/api/api-error";
 
 export class ProjectMediaValidationError extends Error {}
+export type ProjectMediaKind = "image" | "video" | "media";
 
-export function validateProjectMedia(file: File, kind: "image" | "media" = "media") {
+export function validateProjectMedia(file: File, kind: ProjectMediaKind = "media") {
   const image =
-    (file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name)) ||
-    (file.type === "image/png" && /\.png$/i.test(file.name)) ||
-    (file.type === "image/webp" && /\.webp$/i.test(file.name));
-  const video = kind === "media" && file.type === "video/mp4" && /\.mp4$/i.test(file.name);
+    kind !== "video" &&
+    ((file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name)) ||
+      (file.type === "image/png" && /\.png$/i.test(file.name)) ||
+      (file.type === "image/webp" && /\.webp$/i.test(file.name)));
+  const video = kind !== "image" && file.type === "video/mp4" && /\.mp4$/i.test(file.name);
   if ((!image && !video) || file.size <= 0 || file.size > (image ? 10 : 100) * 1024 * 1024) {
     throw new ProjectMediaValidationError(
       kind === "image"
         ? "JPG·PNG·WebP 이미지는 10MB 이하만 업로드할 수 있습니다."
-        : "JPG·PNG·WebP 이미지는 10MB, MP4 영상은 100MB 이하만 업로드할 수 있습니다.",
+        : kind === "video"
+          ? "MP4 영상은 100MB 이하만 업로드할 수 있습니다."
+          : "JPG·PNG·WebP 이미지는 10MB, MP4 영상은 100MB 이하만 업로드할 수 있습니다.",
     );
   }
 }
@@ -21,7 +25,7 @@ export function validateProjectMedia(file: File, kind: "image" | "media" = "medi
 export async function uploadProjectMedia(
   projectId: string,
   file: File,
-  kind: "image" | "media" = "media",
+  kind: ProjectMediaKind = "media",
 ) {
   validateProjectMedia(file, kind);
   let upload: { uploadUrl: string; fileUrl: string };

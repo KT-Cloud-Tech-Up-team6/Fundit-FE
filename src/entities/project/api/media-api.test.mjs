@@ -23,6 +23,13 @@ test("media rejects unsupported, empty, mismatched and oversized files before HT
     uploadProjectMedia("project", file("a.mp4", "video/mp4"), "image"),
     /JPG·PNG·WebP/,
   );
+  for (const [name, type] of [
+    ["a.jpg", "image/jpeg"],
+    ["a.png", "image/png"],
+    ["a.webp", "image/webp"],
+  ]) {
+    await assert.rejects(uploadProjectMedia("project", file(name, type), "video"), /MP4/);
+  }
   assert.equal(fetch.mock.callCount(), 0);
 });
 
@@ -34,13 +41,15 @@ test("valid media at the size limits use signed PUT without credentials", async 
       ? Response.json({ uploadUrl: "https://upload.test/signed", fileUrl: "https://cdn.test/file" })
       : new Response(null, { status: 200 });
   });
-  for (const item of [
-    file("a.JPG", "image/jpeg", 10 * 1024 ** 2),
-    file("a.png", "image/png"),
-    file("a.webp", "image/webp"),
-    file("a.mp4", "video/mp4", 100 * 1024 ** 2),
+  for (const [item, kind] of [
+    [file("a.JPG", "image/jpeg", 10 * 1024 ** 2), "image"],
+    [file("a.png", "image/png"), "image"],
+    [file("a.webp", "image/webp"), "image"],
+    [file("a.mp4", "video/mp4", 100 * 1024 ** 2), "video"],
+    [file("a.png", "image/png"), "media"],
+    [file("a.mp4", "video/mp4"), "media"],
   ]) {
-    assert.equal(await uploadProjectMedia("project", item), "https://cdn.test/file");
+    assert.equal(await uploadProjectMedia("project", item, kind), "https://cdn.test/file");
     const upload = calls.at(-1);
     assert.equal(upload.init.method, "PUT");
     assert.equal(upload.init.credentials, "omit");
