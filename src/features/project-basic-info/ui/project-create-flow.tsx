@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { ProjectBasicInfoForm } from "./project-basic-info-form";
+import { ProjectBasicInfoApi } from "./project-basic-info-api";
 import { ProjectConsentModal } from "./project-consent-modal";
 
 export function ProjectCreateFlow() {
@@ -13,7 +13,7 @@ export function ProjectCreateFlow() {
   return (
     <>
       <div ref={formRef} tabIndex={-1}>
-        <ProjectBasicInfoForm />
+        <ProjectBasicInfoApi />
       </div>
       {!agreed && (
         <ProjectConsentModal

@@ -83,14 +83,11 @@ export const CategoriesAndAmount: Story = {
     expect(canvas.queryByRole("listbox")).not.toBeInTheDocument();
     await userEvent.click(sub());
     await userEvent.keyboard("{End}{Enter}");
-    expect(sub()).toHaveTextContent("수납·정리");
+    expect(sub()).toHaveTextContent("방향제");
     await userEvent.click(sub());
-    expect(canvas.getByRole("option", { name: "수납·정리" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(canvas.getByRole("option", { name: "방향제" })).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{Escape}");
-    expect(sub()).toHaveTextContent("수납·정리");
+    expect(sub()).toHaveTextContent("방향제");
     expect(sub()).toHaveFocus();
     await userEvent.click(main);
     await userEvent.keyboard("{ArrowDown}{Enter}");
