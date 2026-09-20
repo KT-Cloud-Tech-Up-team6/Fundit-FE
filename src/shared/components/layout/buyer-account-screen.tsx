@@ -54,8 +54,9 @@ export function BuyerAccountScreen({
             <Icon name="bell" className="size-6" />
           </PendingDestination>
         </header>
-        {/* 데스크톱 제목 블록. 모바일 헤더와 배타적으로 표시돼 h1은 항상 한 개다. */}
-        <div className="hidden pt-3 min-[1200px]:block">
+        {/* 데스크톱 제목 블록. 모바일 헤더와 배타적으로 표시돼 h1은 항상 한 개다.
+            px-5는 아래 콘텐츠 블록이 유지하는 모바일 좌우 여백과 시작선을 맞춘다. */}
+        <div className="hidden px-5 pt-3 min-[1200px]:block">
           <nav
             aria-label="현재 위치"
             className="text-label-m text-text-secondary flex h-6 items-center gap-2 font-medium"
