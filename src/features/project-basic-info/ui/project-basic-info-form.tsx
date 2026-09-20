@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ApiError } from "@/shared/api/api-error";
+import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
@@ -17,28 +19,34 @@ import {
   demoRewards,
   discountedPrice,
   emptyReward,
-  mainCategories,
   rewardError,
-  subcategoriesByMain,
   upsertReward,
   type DemoReward,
   type RewardDraft,
 } from "../model/basic-info-demo";
 import { RewardFormModal } from "./reward-form-modal";
+import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-request";
+import { ProjectCreationUncertainError } from "../model/project-create-attempt";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
 const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
 
 export function ProjectBasicInfoForm({
   initialView = "empty",
+  initialValues,
+  onSave,
 }: {
   initialView?: BasicInfoPreview;
+  initialValues?: Partial<BasicInfoValues>;
+  onSave?: (values: BasicInfoValues) => Promise<void>;
 }) {
-  const [business, setBusiness] = useState("");
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [amount, setAmount] = useState("");
+  const [business, setBusiness] = useState(initialValues?.business ?? "");
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [category, setCategory] = useState(initialValues?.category ?? "");
+  const [subcategory, setSubcategory] = useState(initialValues?.subcategory ?? "");
+  const [amount, setAmount] = useState(initialValues?.amount ?? "");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [rewards, setRewards] = useState<DemoReward[]>(() =>
     initialView.startsWith("list") ? demoRewards.map((reward) => ({ ...reward })) : [],
   );
@@ -53,7 +61,10 @@ export function ProjectBasicInfoForm({
   const [formMessageRole, setFormMessageRole] = useState<"alert" | "status">("status");
   const nextId = useRef(3);
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
-  const validation = basicInfoError({ business, title, category, subcategory, amount, rewards });
+  const values = { business, title, category, subcategory, amount };
+  const validation = onSave
+    ? basicInfoApiError(values, false)
+    : basicInfoError({ ...values, rewards });
 
   function updateDraft(patch: Partial<RewardDraft>) {
     setDraft((current) => (current ? { ...current, ...patch } : current));
@@ -79,10 +90,34 @@ export function ProjectBasicInfoForm({
     setFormMessage("");
     closeReward();
   }
-  function saveBasicInfo() {
-    if (validation) {
+  async function saveBasicInfo(partial = false) {
+    if (savingRef.current) return;
+    const error = onSave ? basicInfoApiError(values, partial) : validation;
+    if (error) {
       setFormMessageRole("alert");
-      return setFormMessage(validation);
+      return setFormMessage(error);
+    }
+    if (onSave) {
+      savingRef.current = true;
+      setSaving(true);
+      try {
+        await onSave(values);
+        setFormMessageRole("status");
+        setFormMessage("기본 정보를 저장했습니다. 리워드는 이번 저장에 포함되지 않습니다.");
+      } catch (error) {
+        setFormMessageRole("alert");
+        setFormMessage(
+          error instanceof ProjectCreationUncertainError
+            ? error.message
+            : error instanceof ApiError && error.code === "INVALID_CATEGORY"
+              ? "선택한 카테고리를 저장할 수 없습니다. 대분류와 상세 카테고리를 다시 선택해주세요."
+              : "기본 정보를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해 주세요.",
+        );
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
+      }
+      return;
     }
     setFormMessageRole("status");
     setFormMessage("목업 저장입니다. 실제 프로젝트를 생성하거나 다음 단계로 이동하지 않습니다.");
@@ -94,11 +129,11 @@ export function ProjectBasicInfoForm({
         className="flex min-h-[calc(100vh-92px)] flex-col pt-3"
         onSubmit={(event) => {
           event.preventDefault();
-          saveBasicInfo();
+          void saveBasicInfo();
         }}
         onChange={() => setFormMessage("")}
       >
-        <div className="mx-auto w-full max-w-198">
+        <fieldset disabled={saving} className="mx-auto w-full max-w-198 min-w-0">
           <Breadcrumb items={breadcrumb} />
           {/* breadcrumb 24 + 간격 4 + 제목(상하 8 포함) 52 = Figma page_header 80px */}
           <h1 className="text-heading-l text-text-title mt-1 w-full py-2">기본 정보 등록</h1>
@@ -129,6 +164,7 @@ export function ProjectBasicInfoForm({
                 shape="compact"
                 className="[&_input]:text-body-s"
                 value={title}
+                maxLength={onSave ? 40 : undefined}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="프로젝트 제목을 입력해주세요"
               />
@@ -347,7 +383,7 @@ export function ProjectBasicInfoForm({
               </div>
             )}
           </section>
-        </div>
+        </fieldset>
         {/* 리워드 영역 끝(961)부터 Figma 하단 액션 시작점(994)까지 33px */}
         <div className="mx-auto mt-[34px] w-full max-w-198 pb-7">
           <div className="flex justify-end gap-3">
@@ -357,7 +393,12 @@ export function ProjectBasicInfoForm({
               appearance="cta"
               size="lg"
               className="w-[186px]"
+              disabled={saving}
               onClick={() => {
+                if (onSave) {
+                  void saveBasicInfo(true);
+                  return;
+                }
                 setFormMessageRole("status");
                 setFormMessage("목업 임시저장입니다. 새로고침하면 입력이 초기화됩니다.");
               }}
@@ -369,7 +410,7 @@ export function ProjectBasicInfoForm({
               appearance="cta"
               size="lg"
               className="w-[186px]"
-              disabled={Boolean(validation)}
+              disabled={saving || Boolean(validation)}
             >
               저장
             </Button>

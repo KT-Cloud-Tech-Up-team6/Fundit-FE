@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ProjectBasicInfoApi } from "@/features/project-basic-info/ui/project-basic-info-api";
 import {
   ProjectSidebar,
   projectEditTabs,
@@ -12,6 +13,7 @@ import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
 
 const allowedTabs = new Set([
+  "basic-info",
   "story",
   "rewards",
   "refund-policy",
@@ -36,6 +38,9 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    return <ProjectBasicInfoApi key={projectId} projectId={projectId} tab={activeTab} />;
+  }
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;
 
   if (activeTab === "funding") {
