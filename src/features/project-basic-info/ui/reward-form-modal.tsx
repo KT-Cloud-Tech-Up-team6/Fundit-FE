@@ -74,7 +74,7 @@ export function RewardFormModal({
               ref={fileInput}
               className="sr-only"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={(event) => {
                 onUpdate({ imageName: event.target.files?.[0]?.name ?? "" });
                 onFile?.(event.target.files?.[0]);

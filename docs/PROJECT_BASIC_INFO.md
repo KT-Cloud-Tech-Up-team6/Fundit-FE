@@ -56,3 +56,9 @@
 - RewardLifecycle은 입력 오류, 추가, 수정, 수량 제한 해제, 삭제를 검증합니다. CategoriesAndAmount는 상세 카테고리 초기화와 금액 조작을 검증합니다.
 - MainCategoryOpen과 SubcategoryOpen에서 펼침 상태를 확인합니다. CategoriesAndAmount는 키보드 선택·취소·포커스 이동·바깥 클릭도 검증합니다.
 - `pnpm test`는 금액·리워드 검증 및 목록 갱신 모델 테스트를 포함합니다.
+
+## 리워드 API 업로드 검증
+
+리워드 이미지는 JPG·PNG·WebP, 10MB 이하만 허용한다. MIME·확장자·빈 파일·용량을 업로드 URL 요청 전에 검사하고, 서버의 `UNSUPPORTED_MEDIA_TYPE`·`MEDIA_TOO_LARGE` 거절도 형식·용량 안내로 표시한다. 프로젝트 미디어 공통 업로더가 검증을 소유한다.
+
+생성 결과가 불명확한 리워드 시도의 잠금은 목록 재조회만으로 해제하지 않는다. 목록 부재는 진행 중인 생성 요청의 실패를 증명하지 않는다. 안전한 해제에는 BE의 생성 멱등성 키와 결과 조회 계약이 필요하며, 현재 보호는 같은 탭 범위다.

@@ -8,7 +8,7 @@ import {
   saveReward as persistReward,
   deleteReward,
 } from "@/entities/project/api/reward-api";
-import { uploadProjectMedia } from "@/entities/project/api/media-api";
+import { uploadProjectMedia, ProjectMediaValidationError } from "@/entities/project/api/media-api";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { TextButton } from "@/shared/components/ui/text-button";
@@ -34,9 +34,6 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     enabled: state.status === "authenticated" && Boolean(state.user?.memberId),
   });
   const rewards = (query.data ?? []).map(rewardToDraft);
-  const rewardApi = {
-    unavailable: query.isPending || query.isError ? "리워드 조회 후 다시 시도해주세요." : undefined,
-  };
   const [draft, setDraft] = useState<RewardDraft | null>(null),
     [editing, setEditing] = useState<number | undefined>();
   const [rewardMessage, setRewardMessage] = useState(""),
@@ -45,7 +42,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     file = useRef<File | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   function openReward(reward?: DemoReward) {
-    if (pending.current || rewardApi.unavailable) return;
+    if (pending.current) return;
     file.current = undefined;
     setEditing(reward?.id);
     setDraft(reward ?? emptyReward());
@@ -66,7 +63,9 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     pending.current = true;
     setBusy(true);
     try {
-      const imageUrl = file.current ? await uploadProjectMedia(projectId, file.current) : undefined;
+      const imageUrl = file.current
+        ? await uploadProjectMedia(projectId, file.current, "image")
+        : undefined;
       const body = rewardRequest(draft, imageUrl);
       if (editing === undefined) {
         if (!state.user?.memberId) throw new Error("로그인이 필요합니다.");
@@ -78,7 +77,8 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
       setDraft(null);
     } catch (error) {
       setRewardMessage(
-        error instanceof RewardCreationUncertainError
+        error instanceof RewardCreationUncertainError ||
+          error instanceof ProjectMediaValidationError
           ? error.message
           : "리워드를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해주세요.",
       );
@@ -124,7 +124,6 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
           <h2 id="rewards" className="text-title-s text-text-title">
             리워드
           </h2>
-          {rewardApi?.unavailable && <p role="status">{rewardApi.unavailable}</p>}
           <p className="text-caption-s text-text-default mt-1">
             후원자에게 제공할 리워드를 등록해주세요. 최소 1개 이상 등록해야 다음 단계로 진행할 수
             있어요
@@ -222,7 +221,6 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
                 size="md"
                 className="text-body-s! w-[106px] gap-1 font-medium"
                 onClick={() => openReward()}
-                disabled={Boolean(rewardApi?.unavailable)}
               >
                 추가 <Icon name="plus" className="size-4" />
               </Button>
@@ -243,7 +241,6 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
                 size="md"
                 className="text-body-s! mt-3 h-10! w-[204px] font-medium"
                 onClick={() => openReward()}
-                disabled={Boolean(rewardApi?.unavailable)}
               >
                 리워드 추가
               </Button>
