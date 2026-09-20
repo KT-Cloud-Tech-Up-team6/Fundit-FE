@@ -6,7 +6,17 @@ const meta = {
   title: "Features/Funding History/Cancel",
   component: FundingCancel,
   args: { fundingId: "in_progress" },
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "figma390" } },
   decorators: [
     (Story) => (
       <div className="bg-layer-bg py-6">
@@ -19,6 +29,8 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+
+export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
 
 /** 진입 기본값 — 사유를 고르기 전에는 취소 신청 버튼이 비활성이다. */
 export const Default: Story = {

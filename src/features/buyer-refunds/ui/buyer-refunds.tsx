@@ -21,8 +21,11 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
   const filtered = filterRefundHistory(entries, type, inProgressOnly);
 
   return (
-    <BuyerAccountScreen title="취소/환불/교환 내역">
-      <div className="bg-layer-bg min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))]">
+    <BuyerAccountScreen
+      title="취소/환불/교환 내역"
+      breadcrumb={["마이페이지", "펀딩내역", "취소/환불/교환 내역"]}
+    >
+      <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         <div className="bg-layer-surface-default flex w-full items-center justify-between gap-1 px-5 py-3">
           <p className="text-caption-m text-text-secondary">총 {filtered.length}개</p>
           <div className="flex items-center gap-1">
@@ -64,7 +67,7 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
                   />
                 </div>
                 <p className="text-caption-m">{entry.fundingNumber}</p>
-                <h2 className="text-caption-m max-w-[259px] truncate font-medium">{entry.title}</h2>
+                <h2 className="text-caption-m truncate font-medium">{entry.title}</h2>
                 <div className="mt-2 flex items-center gap-2">
                   <Badge variant={refundBadgeVariant(entry.status)}>{entry.status}</Badge>
                   {entry.completedAt && (
@@ -114,7 +117,7 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
       <BuyerBottomNavigation
         activeHref="/my"
         compact
-        className="fixed bottom-0 left-1/2 z-20 w-full max-w-[390px] -translate-x-1/2"
+        className="fixed inset-x-0 bottom-0 z-20 w-full min-[1200px]:hidden"
       />
     </BuyerAccountScreen>
   );

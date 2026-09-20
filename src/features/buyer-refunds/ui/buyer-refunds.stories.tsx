@@ -5,13 +5,24 @@ import { BuyerRefunds } from "./buyer-refunds";
 const meta = {
   title: "Features/BuyerRefunds",
   component: BuyerRefunds,
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "figma390" } },
 } satisfies Meta<typeof BuyerRefunds>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 export const Empty: Story = { args: { entries: [] } };
+export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
 
 export const FilterByType: Story = {
   play: async ({ canvasElement }) => {

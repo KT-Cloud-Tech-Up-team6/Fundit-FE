@@ -94,13 +94,13 @@ export function CategoryBannerCarousel() {
           <div
             key={index}
             aria-hidden={index !== activeIndex}
-            className={`${styles.slide} relative h-22 w-full shrink-0 overflow-hidden rounded-xs`}
+            className={`${styles.slide} relative aspect-[350/88] w-full shrink-0 overflow-hidden rounded-xs`}
           >
             <Image
               src="/images/buyer-category/promotion.png"
               alt={`벨로라 건강 음료 프로모션 ${index + 1}`}
               fill
-              sizes="350px"
+              sizes="(min-width: 1200px) 793px, calc(100vw - 40px)"
               className="object-cover object-top"
             />
           </div>
