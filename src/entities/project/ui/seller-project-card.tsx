@@ -17,8 +17,8 @@ const destinations = {
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
-export function SellerProjectCard(project: SellerProject) {
-  const href = destinations[project.status](project.id);
+export function SellerProjectCard(project: SellerProject & { hrefOverride?: string }) {
+  const href = project.hrefOverride ?? destinations[project.status](project.id);
 
   return (
     <article
@@ -26,13 +26,16 @@ export function SellerProjectCard(project: SellerProject) {
     >
       <div className="flex min-w-0 flex-1 gap-4 md:gap-6">
         <div className="bg-layer-bg size-[82px] shrink-0 overflow-hidden rounded-xs">
-          <Image
-            src={project.thumbnail}
-            alt=""
-            width={82}
-            height={82}
-            className="size-full object-cover"
-          />
+          {project.thumbnail && (
+            <Image
+              src={project.thumbnail}
+              alt=""
+              width={82}
+              height={82}
+              className="size-full object-cover"
+              unoptimized={/^https?:\/\//.test(project.thumbnail)}
+            />
+          )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col md:max-w-[268px]">
           {project.status === "draft" ? (
