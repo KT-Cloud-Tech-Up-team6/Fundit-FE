@@ -14,10 +14,12 @@ export function SellerRow({
   seller,
   following,
   onFollow,
+  followUnavailable = false,
 }: {
-  seller: SellerSummary;
+  seller: Pick<SellerSummary, "id" | "name"> & Partial<SellerSummary>;
   following: boolean;
   onFollow: () => void;
+  followUnavailable?: boolean;
 }) {
   return (
     <article className="flex items-center justify-between gap-3 py-3" aria-label={seller.name}>
@@ -44,14 +46,22 @@ export function SellerRow({
         <div className="min-w-0">
           <h2 className="text-body-emphasis truncate">{seller.name}</h2>
           <p className="text-caption-s flex flex-wrap items-center gap-1">
-            <span className="text-text-disabled">팔로워</span>{" "}
-            {(seller.followers + Number(following)).toLocaleString("ko-KR")}
-            <span aria-hidden>·</span>
-            <span
-              aria-label="좋아요"
-              className="inline-block size-4 bg-current [mask-image:url('/icons/buyer-search/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-            />
-            {seller.likes.toLocaleString("ko-KR")}
+            {seller.followers != null && (
+              <>
+                <span className="text-text-disabled">팔로워</span>{" "}
+                {(seller.followers + Number(following)).toLocaleString("ko-KR")}
+              </>
+            )}
+            {seller.followers != null && seller.likes != null && <span aria-hidden>·</span>}
+            {seller.likes != null && (
+              <>
+                <span
+                  aria-label="좋아요"
+                  className="inline-block size-4 bg-current [mask-image:url('/icons/buyer-search/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
+                />
+                {seller.likes.toLocaleString("ko-KR")}
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -61,7 +71,8 @@ export function SellerRow({
         size="md"
         className="h-9 shrink-0 px-3 text-[12px]!"
         aria-label={`${seller.name} ${following ? "팔로우 해제" : "팔로우"}`}
-        aria-pressed={following}
+        aria-pressed={followUnavailable ? undefined : following}
+        disabled={followUnavailable}
         onClick={onFollow}
       >
         {following ? "팔로잉" : "팔로우"}
