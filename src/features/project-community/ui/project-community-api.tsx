@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
@@ -23,18 +23,24 @@ function ContentForm({
   onSubmit,
   maxLength,
   validationError = "",
+  children,
 }: {
   initial?: string;
   label: string;
   onSubmit: (content: string) => Promise<unknown>;
   maxLength?: number;
   validationError?: string;
+  children?: ReactNode;
 }) {
   const [content, setContent] = useState(initial);
+  const [showValidation, setShowValidation] = useState(false);
   const pending = useRef(false);
   const mutation = useMutation({
     mutationFn: () => onSubmit(content.trim()),
-    onSuccess: () => setContent(""),
+    onSuccess: () => {
+      setContent("");
+      setShowValidation(false);
+    },
     onSettled: () => {
       pending.current = false;
     },
@@ -42,14 +48,17 @@ function ContentForm({
   return (
     <form
       className="mt-3 space-y-2"
+      onChange={() => setShowValidation(true)}
       onSubmit={(event) => {
         event.preventDefault();
+        setShowValidation(true);
         if (content.trim() && !validationError && !pending.current) {
           pending.current = true;
           mutation.mutate();
         }
       }}
     >
+      {children}
       <Textarea
         aria-label={label}
         value={content}
@@ -57,7 +66,7 @@ function ContentForm({
         disabled={mutation.isPending}
         onChange={(event) => setContent(event.target.value)}
       />
-      {validationError && <p role="alert">{validationError}</p>}
+      {showValidation && validationError && <p role="alert">{validationError}</p>}
       <Button
         type="submit"
         disabled={!content.trim() || Boolean(validationError) || mutation.isPending}
@@ -296,22 +305,6 @@ export function ProjectCommunityApi({
           )}
           <div className="border-border-default rounded-xs border p-4">
             <h2 className="text-title-s">새 소식 작성</h2>
-            <label>
-              유형{" "}
-              <select value={noticeType} onChange={(event) => setNoticeType(event.target.value)}>
-                {Object.entries(noticeTypes).map(([value, label]) => (
-                  <option value={value} key={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Input
-              aria-label="새 소식 제목"
-              maxLength={100}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
             <ContentForm
               label="새 소식 등록"
               validationError={title.trim() ? "" : "새 소식 제목을 입력해주세요."}
@@ -321,7 +314,24 @@ export function ProjectCommunityApi({
                 navigate({ page: "1" });
                 await cache.invalidateQueries({ queryKey: noticesKey });
               }}
-            />
+            >
+              <label>
+                유형{" "}
+                <select value={noticeType} onChange={(event) => setNoticeType(event.target.value)}>
+                  {Object.entries(noticeTypes).map(([value, label]) => (
+                    <option value={value} key={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Input
+                aria-label="새 소식 제목"
+                maxLength={100}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </ContentForm>
           </div>
         </>
       )}
