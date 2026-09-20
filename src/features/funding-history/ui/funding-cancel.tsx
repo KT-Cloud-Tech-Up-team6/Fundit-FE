@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
@@ -22,7 +22,6 @@ import {
   type ReturnType,
 } from "../model/funding-cancel";
 import { demoFundingDetail, formatWon } from "../model/funding-history";
-import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 /* ponytail: 참여 취소·반품/교환 제출 API가 없어(docs/OPEN_DECISIONS.md P0 환불) 확인 모달에서
    버튼을 누르면 목록으로 돌아가는 것으로 갈음한다. API가 생기면 여기서 서버에 제출한다. */
@@ -98,199 +97,207 @@ export function FundingCancel({
   }
 
   return (
-    <div className="bg-layer-bg mx-auto flex min-h-dvh w-full max-w-[390px] min-w-0 flex-col">
-      <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
-        <Link
-          href={`/my/fundings/${fundingId}`}
-          aria-label="뒤로"
-          className="flex size-10 shrink-0 items-center justify-center"
-        >
-          <Icon name="arrowLeft" className="text-text-default size-5" />
-        </Link>
-        <h1 className="text-title-s text-text-default flex-1 text-center">
-          {isReturn ? "펀딩 반품/교환" : "펀딩 취소"}
-        </h1>
-        <PendingDestination
-          label="알림"
-          className="flex size-10 shrink-0 items-center justify-center"
-        >
-          <Icon name="bell" className="text-text-default size-6" />
-        </PendingDestination>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-2">
-        <section className="bg-layer-surface-default flex gap-3 px-5 py-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={detail.imageSrc} alt="" className="size-20 shrink-0 rounded-xs object-cover" />
-          <div className="flex min-w-0 flex-1 flex-col justify-between">
-            <div className="flex flex-col gap-1">
-              <p className="text-body-m text-text-default truncate">{detail.projectTitle}</p>
-              <p className="text-caption-m text-text-default flex gap-1">
-                <span className="truncate">{detail.rewardOption}</span>
-                <span aria-hidden>·</span>
-                <span className="shrink-0">{detail.rewardQuantity}개</span>
+    <BuyerAccountScreen
+      title={isReturn ? "펀딩 반품/교환" : "펀딩 취소"}
+      backHref={`/my/fundings/${fundingId}`}
+      backLabel="펀딩 상세로 돌아가기"
+      breadcrumb={["마이페이지", "펀딩내역", isReturn ? "펀딩 반품/교환" : "펀딩 취소"]}
+      className="flex min-w-0 flex-col"
+    >
+      <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-1 flex-col min-[1200px]:pb-16">
+        <div className="flex flex-1 flex-col gap-2">
+          <section className="bg-layer-surface-default flex gap-3 px-5 py-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={detail.imageSrc}
+              alt=""
+              className="size-20 shrink-0 rounded-xs object-cover"
+            />
+            <div className="flex min-w-0 flex-1 flex-col justify-between">
+              <div className="flex flex-col gap-1">
+                <p className="text-body-m text-text-default truncate">{detail.projectTitle}</p>
+                <p className="text-caption-m text-text-default flex gap-1">
+                  <span className="truncate">{detail.rewardOption}</span>
+                  <span aria-hidden>·</span>
+                  <span className="shrink-0">{detail.rewardQuantity}개</span>
+                </p>
+              </div>
+              <p className="text-title-s text-text-default text-right">
+                {formatWon(detail.amount)}
               </p>
             </div>
-            <p className="text-title-s text-text-default text-right">{formatWon(detail.amount)}</p>
-          </div>
-        </section>
+          </section>
 
-        <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-title-s text-text-default">{isReturn ? "사유" : "취소 사유"}</h2>
-            <div className="flex flex-col gap-2">
-              {isReturn && (
-                <div className="flex w-full gap-2">
-                  <Select
-                    aria-label="유형"
-                    className="!w-[88px] shrink-0"
-                    value={returnType}
-                    onChange={(event) => {
-                      setReturnType(event.target.value as ReturnType);
-                      setReason("");
-                    }}
-                  >
-                    <option value="" disabled hidden>
-                      유형 선택
-                    </option>
-                    {returnTypes.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
+          <section className="bg-layer-surface-default flex flex-col gap-4 px-5 py-4">
+            <div className="flex flex-col gap-4">
+              <h2 className="text-title-s text-text-default">{isReturn ? "사유" : "취소 사유"}</h2>
+              <div className="flex flex-col gap-2">
+                {isReturn && (
+                  <div className="flex w-full gap-2">
+                    <Select
+                      aria-label="유형"
+                      className="!w-[88px] shrink-0"
+                      value={returnType}
+                      onChange={(event) => {
+                        setReturnType(event.target.value as ReturnType);
+                        setReason("");
+                      }}
+                    >
+                      <option value="" disabled hidden>
+                        유형 선택
                       </option>
-                    ))}
-                  </Select>
+                      {returnTypes.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      aria-label="사유"
+                      className="!w-auto min-w-0 flex-1"
+                      value={reason}
+                      disabled={!returnType}
+                      onChange={(event) => setReason(event.target.value)}
+                    >
+                      <option value="" disabled hidden>
+                        사유를 선택해주세요
+                      </option>
+                      {returnReasonsByType[returnType || "반품"].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {!isReturn && (
                   <Select
-                    aria-label="사유"
-                    className="!w-auto min-w-0 flex-1"
+                    aria-label="취소 사유"
                     value={reason}
-                    disabled={!returnType}
                     onChange={(event) => setReason(event.target.value)}
                   >
                     <option value="" disabled hidden>
-                      사유를 선택해주세요
+                      취소 사유를 선택해주세요
                     </option>
-                    {returnReasonsByType[returnType || "반품"].map((value) => (
+                    {cancelReasons.map((value) => (
                       <option key={value} value={value}>
                         {value}
                       </option>
                     ))}
                   </Select>
-                </div>
-              )}
-              {!isReturn && (
-                <Select
-                  aria-label="취소 사유"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                >
-                  <option value="" disabled hidden>
-                    취소 사유를 선택해주세요
-                  </option>
-                  {cancelReasons.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
-              )}
-              <Textarea
-                className="h-[222px]"
-                placeholder="내용을 입력해주세요 (선택)"
-                maxLength={cancelDetailMaxLength}
-                value={detailText}
-                onChange={(event) => setDetailText(event.target.value)}
-              />
-            </div>
-          </div>
-
-          {isReturn && (
-            <div className="flex flex-col gap-3">
-              <h2 className="text-title-s text-text-default">사진 첨부 (선택)</h2>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="사진 첨부"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-text-secondary flex size-20 items-center justify-center rounded-xs border border-dashed"
-                >
-                  <Icon name="plusSquare" className="text-text-secondary size-3.5" />
-                </button>
-                {photos.map((photo) => (
-                  <div key={photo.id} className="relative size-20 shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다. */}
-                    <img
-                      src={photo.url}
-                      alt=""
-                      className="border-border-default size-full rounded-xs border object-cover"
-                    />
-                    <button
-                      type="button"
-                      aria-label={`${photo.name} 첨부 삭제`}
-                      onClick={() => handleRemovePhoto(photo.id)}
-                      className="bg-layer-surface-primary text-text-inverse absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full"
-                    >
-                      <Icon name="closeSmall" className="size-3" />
-                    </button>
-                  </div>
-                ))}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => {
-                    handleFiles(event.target.files);
-                    event.target.value = "";
-                  }}
+                )}
+                <Textarea
+                  className="h-[222px]"
+                  placeholder="내용을 입력해주세요 (선택)"
+                  maxLength={cancelDetailMaxLength}
+                  value={detailText}
+                  onChange={(event) => setDetailText(event.target.value)}
                 />
               </div>
             </div>
-          )}
-        </section>
 
-        <section className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
-          <h2 className="text-title-s text-text-default">환불 정보</h2>
-          <dl className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <dt className="text-body-m text-text-default">적립금 환불 금액</dt>
-              <dd className="text-body-strong text-text-default flex-1 text-right">
-                {formatWon(refund.pointRefundAmount)}
-              </dd>
-            </div>
             {isReturn && (
-              <div className="flex items-center gap-2">
-                <dt className="text-body-m text-text-default">배송비</dt>
-                <dd className="text-body-strong text-text-default flex-1 text-right">
-                  -{formatWon(refund.shippingFee)}
-                </dd>
+              <div className="flex flex-col gap-3">
+                <h2 className="text-title-s text-text-default">사진 첨부 (선택)</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="사진 첨부"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-text-secondary flex size-20 items-center justify-center rounded-xs border border-dashed"
+                  >
+                    <Icon name="plusSquare" className="text-text-secondary size-3.5" />
+                  </button>
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="relative size-20 shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- objectURL이라 next/image 최적화 대상이 아니다. */}
+                      <img
+                        src={photo.url}
+                        alt=""
+                        className="border-border-default size-full rounded-xs border object-cover"
+                      />
+                      <button
+                        type="button"
+                        aria-label={`${photo.name} 첨부 삭제`}
+                        onClick={() => handleRemovePhoto(photo.id)}
+                        className="bg-layer-surface-primary text-text-inverse absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full"
+                      >
+                        <Icon name="closeSmall" className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      handleFiles(event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+                </div>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <dt className="text-body-m text-text-default">취소 수수료</dt>
-              <dd className="text-body-strong text-text-default flex-1 text-right">
-                -{formatWon(refund.cancelFee)}
-              </dd>
-            </div>
-            <div className="flex items-center gap-2">
-              <dt className="text-body-m text-text-default">실 환불 금액</dt>
-              <dd className="text-body-strong text-text-default flex-1 text-right">
-                {formatWon(refund.actualRefundAmount)}
-              </dd>
-            </div>
-          </dl>
-        </section>
-      </div>
+          </section>
 
-      <div className="bg-layer-surface-default px-5 py-2">
-        <Button
-          className="w-full"
-          appearance="cta"
-          disabled={!canSubmit}
-          onClick={() => setConfirmOpen(true)}
-        >
-          {requestLabel}
-        </Button>
+          <section className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
+            <h2 className="text-title-s text-text-default">환불 정보</h2>
+            <dl className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <dt className="text-body-m text-text-default">적립금 환불 금액</dt>
+                <dd className="text-body-strong text-text-default flex-1 text-right">
+                  {formatWon(refund.pointRefundAmount)}
+                </dd>
+              </div>
+              {isReturn && (
+                <div className="flex items-center gap-2">
+                  <dt className="text-body-m text-text-default">배송비</dt>
+                  <dd className="text-body-strong text-text-default flex-1 text-right">
+                    -{formatWon(refund.shippingFee)}
+                  </dd>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <dt className="text-body-m text-text-default">취소 수수료</dt>
+                <dd className="text-body-strong text-text-default flex-1 text-right">
+                  -{formatWon(refund.cancelFee)}
+                </dd>
+              </div>
+              <div className="flex items-center gap-2">
+                <dt className="text-body-m text-text-default">실 환불 금액</dt>
+                <dd className="text-body-strong text-text-default flex-1 text-right">
+                  {formatWon(refund.actualRefundAmount)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <div className="bg-layer-surface-default px-5 py-2 min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:w-[386px] min-[1200px]:gap-2 min-[1200px]:px-0 min-[1200px]:py-5">
+          {/* Button 기본 클래스의 inline-flex가 hidden보다 뒤에 오므로 래퍼로 숨긴다. */}
+          <div className="hidden min-[1200px]:flex min-[1200px]:flex-1">
+            <Button
+              href={`/my/fundings/${fundingId}`}
+              variant="secondary"
+              appearance="cta"
+              size="lg"
+              className="w-full"
+            >
+              돌아가기
+            </Button>
+          </div>
+          <Button
+            className="w-full min-[1200px]:w-auto min-[1200px]:flex-1"
+            appearance="cta"
+            size="lg"
+            disabled={!canSubmit}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {requestLabel}
+          </Button>
+        </div>
       </div>
 
       <DialogBase
@@ -320,6 +327,6 @@ export function FundingCancel({
           </div>
         </div>
       </DialogBase>
-    </div>
+    </BuyerAccountScreen>
   );
 }
