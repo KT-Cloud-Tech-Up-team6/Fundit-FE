@@ -24,7 +24,7 @@
 - 인증 사용자 요약과 테마처럼 제한된 공유 값만 React Context로 제공합니다.
 - Zustand와 Redux Toolkit은 현재 도입하지 않습니다.
 
-TanStack Query는 도구로 선정했지만 아직 설치하지 않습니다. 첫 API 계약과 MSW handler가 확정되는 기능에서 함께 도입해 사용하지 않는 전역 Provider와 의존성이 먼저 생기지 않게 합니다.
+TanStack Query는 인증 기능에서 처음 도입했습니다(`QueryProvider`, 인증 API의 `useQuery`·`useMutation`). 다른 기능은 각자의 API 계약과 MSW handler가 확정될 때 같은 조건으로 도입해 쓰지 않는 전역 Provider와 의존성이 먼저 생기지 않게 합니다.
 
 ## 선택 배경
 
@@ -77,7 +77,7 @@ Provider는 필요한 Client Component 경계만 감쌉니다. 루트 `AppProvid
 
 ## Query 규칙
 
-Query 정의는 데이터를 사용하는 `features/<feature>`가 소유하고 HTTP client와 공통 오류 변환만 `shared/lib`에 둡니다.
+Query 정의는 데이터를 사용하는 `features/<feature>`가 소유하고 HTTP client와 공통 오류 변환만 `shared/api`에 둡니다.
 
 ```ts
 const projectKeys = {
@@ -150,15 +150,17 @@ MSW는 상태 저장소가 아니라 실제 API와 동일한 HTTP 경계를 제�
 - 실제 API 전환은 base URL과 실행 환경만 바꾸고 query와 컴포넌트는 유지합니다.
 - production bundle에서는 MSW를 실행하지 않습니다.
 
-첫 검증 대상은 판매자 프로젝트 목록입니다. 다음 조건이 갖춰지면 TanStack Query와 MSW를 함께 도입합니다.
+첫 도입 대상은 인증(약관 조회·본인인증·회원가입)이며, 아래 조건을 확인하며 TanStack Query와 MSW를 함께 도입했습니다. 로그인은 화면만 있고 아직 API 연동 전입니다.
 
-1. 목록 Request·Response와 페이지네이션 기준이 확정됩니다.
-2. 카드에 필요한 카테고리, 참여자 수, 모금액, 목표액과 진행 상태 필드가 확정됩니다.
+1. 약관 조회, 로그인, 회원가입, 본인인증의 Request·Response가 확정됩니다.
+2. 로그인 응답의 accessToken·mustChangePassword, 약관의 code·title·content·required·version 등 화면에 필요한 필드가 확정됩니다.
 3. 공통 오류 형식과 인증 전달 방식이 확정됩니다.
 4. MSW 조회 결과로 loading, success, empty와 error 상태를 확인합니다.
-5. 필터·페이지는 URL이 소유하고 Query Key는 해당 값을 입력으로 사용합니다.
+5. 회원가입 단계 전환은 URL이 아니라 `AuthFlowProvider`가 소유하고, Query Key에 인증 토큰·이메일·전화번호 같은 비밀값을 넣지 않습니다.
 6. 사용자 A의 캐시를 채운 뒤 로그아웃 또는 계정 전환을 수행해 캐시가 비워지고 사용자 A의 데이터가 다시 표시되지 않는 회귀 테스트를 추가합니다.
 7. 사용자 A에서 시작한 mutation 응답을 지연시킨 뒤 사용자 B로 전환해, 늦게 끝난 콜백이 사용자 B의 캐시를 쓰거나 무효화하지 않는 회귀 테스트를 추가합니다.
+
+이후 판매자 프로젝트 목록 등 다른 기능이 TanStack Query·MSW를 도입할 때도 위 조건과 같은 수준(요청·응답 확정, 오류 형식 확정, 상태별 확인, 캐시 격리 회귀 테스트)을 각 기능에 맞게 충족해야 합니다.
 
 ## 재검토 조건
 
@@ -189,3 +191,15 @@ Redux Toolkit은 이벤트 이력 추적, 복잡한 middleware 또는 조직 표
 - [TanStack Query의 Server Component 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr).
 - [TanStack Query Query Key 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys).
 - [Zustand의 Next.js 가이드](https://zustand.docs.pmnd.rs/learn/guides/nextjs).
+
+## 인증 갱신 동시성
+
+같은 탭의 refresh 호출은 하나의 Promise를 공유한다. Web Locks를 지원하는 환경에서는 `fundit-auth-refresh` 잠금으로 같은 origin의 refresh와 로그인·가입·소셜 연동 요청을 직렬화한다. 세션을 교체하는 API는 쿠키가 바뀌기 전에 `authTokenStore.changeSession()`을 호출하고 결과 토큰 저장까지 잠금을 유지한다. `authenticate()`는 해당 API가 저장한 토큰의 사용자 요약을 불러온다.
+
+탭 간에는 localStorage의 `fundit.auth.session-generation`에 임의 세대 표식만 공유한다. 토큰·계정 ID·권한은 저장하지 않는다. 다른 탭의 세대 변경은 storage 이벤트 및 요청 전후의 직접 읽기로 감지한다. 변경을 감지하면 기존 토큰·사용자 상태·Query 캐시를 비우고, 대기/진행 중인 refresh 및 이전 세대의 인증 요청 결과는 AbortError로 폐기한다. 다른 탭은 새 계정을 자동 적용하지 않고 비로그인 상태로 전환하며, 새로고침 시 서버 쿠키로 세션을 복구한다. 일반적인 같은 계정의 refresh는 세대를 바꾸거나 다른 탭을 로그아웃시키지 않는다.
+
+Web Locks 미지원 환경에서는 기존 탭 내부 refresh 중복 방지만 유지한다. localStorage가 차단된 환경에서는 교차 탭 세대 감지가 지원되지 않고 탭 내부 revision 보호만 유지한다. 다른 origin·브라우저·기기의 동시 갱신, 브라우저 외부에서 바뀐 쿠키는 이 조정 범위에 포함하지 않는다.
+
+회원가입의 주소 포함 제출과 건너뛰기는 같은 useRef 잠금을 사용해 렌더링 전 연속 제출을 막고 성공·실패·조기 반환 모두 finally에서 잠금을 해제한다.
+
+소셜 로그인 응답 타입은 BE `SocialLoginResponse`의 `needsSignup`·`needsLink` 판별값을 사용한다. `status` 필드를 가정하지 않으며, 현재 소셜 로그인 화면 연결은 이 타입 정합화와 별도 작업이다.
