@@ -70,9 +70,6 @@ export type PublicReward = {
 export function getCategories(signal?: AbortSignal) {
   return apiRequest<{ categories: CategoryGroup[] }>("/api/v1/categories", { signal });
 }
-export function getPopularProjects(signal?: AbortSignal) {
-  return apiRequest<{ content: ProjectCardResponse[] }>("/api/v1/home/feed?size=20", { signal });
-}
 export function searchProjects(
   keyword: string,
   sort: string,
