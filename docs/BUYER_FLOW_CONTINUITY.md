@@ -80,3 +80,9 @@ LIVE 탭 이동 → LIVE 방송 입장 → 방송 시청(AI 코파일럿 답변/
 - `(준비중)` `aria-label`이 `/my` 10곳, `/live` 4곳, `/live/upcoming` 3곳, `/my/fundings` 1곳에 렌더되는 것을 확인했습니다.
 - Storybook `Shared/UI/PendingDestination`의 `MenuRow`, `IconSlot`.
 - 실제 브라우저 확인과 반응형 점검은 별도입니다.
+
+## 주문 배송지 선택
+
+저장된 배송지 select는 선택한 배송지 ID를 유지한다. 선택 해제 시 주문 주소도 비우고, 배송지 직접 입력을 저장하면 저장된 배송지 선택 표시를 해제한다. 회원 접근 게이트는 `providers/member-access.tsx`를 재사용한다.
+
+주문 생성 응답 유실의 `pending`은 BE 멱등성 계약 없이 자동 해제하지 않는다. 같은 탭의 추가 생성을 차단하지만 여러 탭·기기를 포함한 안전한 재시도는 서버의 멱등성 키와 결과 조회 지원이 필요하다.

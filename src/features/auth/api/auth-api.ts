@@ -1,4 +1,4 @@
-import { apiRequest, refreshOnce } from "@/shared/api/client";
+import { apiRequest, apiSessionRequest, refreshOnce } from "@/shared/api/client";
 
 import type {
   AuthResult,
@@ -35,7 +35,7 @@ export function verifyIdentity(
 }
 
 export function signup(request: SignupRequest, options?: RequestOptions) {
-  return apiRequest<AuthResult>("/api/v1/auth/signup", {
+  return apiSessionRequest<AuthResult>("/api/v1/auth/signup", {
     ...signalOptions(options),
     body: request,
     method: "POST",
@@ -43,18 +43,21 @@ export function signup(request: SignupRequest, options?: RequestOptions) {
 }
 
 export function login(request: { email: string; password: string }, options?: RequestOptions) {
-  return apiRequest<{ accessToken: string; mustChangePassword: boolean }>("/api/v1/auth/login", {
-    ...signalOptions(options),
-    body: request,
-    method: "POST",
-  });
+  return apiSessionRequest<{ accessToken: string; mustChangePassword: boolean }>(
+    "/api/v1/auth/login",
+    {
+      ...signalOptions(options),
+      body: request,
+      method: "POST",
+    },
+  );
 }
 
 export function loginSocial(
   request: { authorizationCode: string; provider: SocialProvider },
   options?: RequestOptions,
 ) {
-  return apiRequest<SocialLoginResult>("/api/v1/auth/login/social", {
+  return apiSessionRequest<SocialLoginResult>("/api/v1/auth/login/social", {
     ...signalOptions(options),
     body: request,
     method: "POST",
@@ -62,7 +65,7 @@ export function loginSocial(
 }
 
 export function signupSocial(request: SocialSignupRequest, options?: RequestOptions) {
-  return apiRequest<AuthResult>("/api/v1/auth/signup/social", {
+  return apiSessionRequest<AuthResult>("/api/v1/auth/signup/social", {
     ...signalOptions(options),
     body: request,
     method: "POST",
@@ -73,7 +76,7 @@ export function linkSocial(
   request: { linkToken: string; verificationToken: string },
   options?: RequestOptions,
 ) {
-  return apiRequest<{ accessToken: string }>("/api/v1/auth/social/link", {
+  return apiSessionRequest<{ accessToken: string }>("/api/v1/auth/social/link", {
     ...signalOptions(options),
     body: request,
     method: "POST",

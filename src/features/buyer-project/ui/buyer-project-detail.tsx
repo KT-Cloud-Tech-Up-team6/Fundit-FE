@@ -151,9 +151,11 @@ export function BuyerProjectDetail({
   storyContent,
   rewardSummary,
   rewardSelection,
+  server,
+  tabContent,
 }: {
   projectId: string;
-  activeTab: "story" | "live-proof";
+  activeTab: string;
   fundingAction: ReactNode;
   project?: typeof projectDemo;
   liveId?: string;
@@ -162,6 +164,8 @@ export function BuyerProjectDetail({
   storyContent?: ReactNode;
   rewardSummary?: ReactNode;
   rewardSelection?: ReactNode;
+  server?: { remainingDays: number | null; participantCount: number };
+  tabContent?: ReactNode;
 }) {
   const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
@@ -208,12 +212,12 @@ export function BuyerProjectDetail({
         type="button"
         aria-label="프로젝트 찜"
         aria-pressed={liked}
-        disabled={preview}
+        disabled={preview || Boolean(server)}
         onClick={() => setLiked(!liked)}
       >
         <DetailIcon name="heart" className="size-6" />
-        <span className={preview ? "" : "min-[1200px]:hidden"}>9999+</span>
-        {!preview && <span className="hidden min-[1200px]:inline">2.4천+</span>}
+        {!server && <span className={preview ? "" : "min-[1200px]:hidden"}>9999+</span>}
+        {!preview && !server && <span className="hidden min-[1200px]:inline">2.4천+</span>}
       </button>
       {!preview && (
         <button
@@ -263,7 +267,7 @@ export function BuyerProjectDetail({
               alt={preview ? `${project.title} 썸네일` : ""}
               fill
               sizes="(min-width: 1200px) 714px, 390px"
-              unoptimized={preview}
+              unoptimized={preview || Boolean(server)}
               className={preview ? "object-cover" : styles.heroImage}
             />
           ) : (
@@ -291,9 +295,9 @@ export function BuyerProjectDetail({
               </div>
             </Link>
           )}
-          {(!preview || project.image) && (
+          {((!preview && !server) || project.image) && (
             <Badge variant="neutral" className="absolute right-5 bottom-5">
-              {preview ? "1/1" : "1/3"}
+              {preview || server ? "1/1" : "1/3"}
             </Badge>
           )}
         </div>
@@ -315,42 +319,52 @@ export function BuyerProjectDetail({
                       : "max-[1200px]:bg-status-info max-[1200px]:text-text-info max-[1200px]:text-label-m max-[1200px]:h-6 max-[1200px]:font-semibold"
                   }
                 >
-                  D-28
+                  {server
+                    ? server.remainingDays === null
+                      ? "기간 미정"
+                      : server.remainingDays <= 0
+                        ? "종료"
+                        : `D-${server.remainingDays}`
+                    : "D-28"}
                 </Badge>
               </div>
               <div>
                 <p>
                   <b>{project.amount}</b> <span className="text-body-s">/{project.goal}원</span>
                 </p>
-                <span className={styles.participants}>100명 참여</span>
+                <span className={styles.participants}>
+                  {server ? server.participantCount.toLocaleString("ko-KR") : "100"}명 참여
+                </span>
               </div>
             </div>
-            <section
-              className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
-              aria-label="AI 프로젝트 요약"
-            >
-              <div className="flex items-center gap-1">
-                <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
-                <h2 className="text-label-l">AI 프로젝트 요약</h2>
-                <Information label="AI 프로젝트 요약 안내" disabled={preview} />
-              </div>
-              {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
-                (title, i) => (
-                  <div className="text-caption-s" key={i}>
-                    <h3 className="flex items-center gap-1 font-medium">
-                      <Image
-                        src="/images/buyer-project/summary-check.svg"
-                        width={12}
-                        height={12}
-                        alt=""
-                      />
-                      {title}
-                    </h3>
-                    <p className="pl-4">상세 내용</p>
-                  </div>
-                ),
-              )}
-            </section>
+            {!server && (
+              <section
+                className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
+                aria-label="AI 프로젝트 요약"
+              >
+                <div className="flex items-center gap-1">
+                  <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
+                  <h2 className="text-label-l">AI 프로젝트 요약</h2>
+                  <Information label="AI 프로젝트 요약 안내" disabled={preview} />
+                </div>
+                {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
+                  (title, i) => (
+                    <div className="text-caption-s" key={i}>
+                      <h3 className="flex items-center gap-1 font-medium">
+                        <Image
+                          src="/images/buyer-project/summary-check.svg"
+                          width={12}
+                          height={12}
+                          alt=""
+                        />
+                        {title}
+                      </h3>
+                      <p className="pl-4">상세 내용</p>
+                    </div>
+                  ),
+                )}
+              </section>
+            )}
           </section>
           {!preview && rewardSelection && (
             <div className="hidden min-[1200px]:block">{rewardSelection}</div>
@@ -371,7 +385,7 @@ export function BuyerProjectDetail({
                 aria-current={value === activeTab ? "page" : undefined}
               >
                 {label}
-                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
               </button>
             ) : (
               <Link
@@ -383,12 +397,14 @@ export function BuyerProjectDetail({
                 aria-current={value === activeTab ? "page" : undefined}
               >
                 {label}
-                {value !== "story" && value !== "refund-policy" && <small>000</small>}
+                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
               </Link>
             ),
           )}
         </nav>
-        {activeTab === "story" ? (
+        {tabContent ? (
+          <section className={styles.story + " relative mx-5 mt-4 mb-8"}>{tabContent}</section>
+        ) : activeTab === "story" ? (
           <section className={styles.story + " relative mx-5 mt-4 mb-8"} aria-label="상품 소개">
             {storyContent ?? (
               <div className={styles.storyImage}>

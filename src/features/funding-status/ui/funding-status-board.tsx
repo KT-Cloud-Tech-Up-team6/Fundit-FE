@@ -27,9 +27,12 @@ export function FundingStatusBoard({
   summary = demoFundingSummary(),
   rewards = demoRewardRows(),
 }: FundingStatusBoardProps) {
-  const rate = achievementRate(summary.raisedAmount, summary.goalAmount);
+  const rate = achievementRate(summary.raisedAmount, summary.goalAmount ?? 0);
   const stats = [
-    { label: "목표 금액", value: formatWon(summary.goalAmount) },
+    {
+      label: "목표 금액",
+      value: summary.goalAmount === null ? "—" : formatWon(summary.goalAmount),
+    },
     { label: "달성금액", value: formatWon(summary.raisedAmount) },
     { label: "후원자 수", value: formatPeople(summary.backerCount) },
     {
@@ -60,13 +63,16 @@ export function FundingStatusBoard({
           className="relative flex flex-col gap-3 sm:min-h-[108px]"
         >
           <div className="flex min-w-0 gap-4 sm:gap-6">
-            <Image
-              src={summary.thumbnail}
-              alt=""
-              width={82}
-              height={82}
-              className="bg-layer-bg size-[82px] shrink-0 rounded-xs object-cover"
-            />
+            {summary.thumbnail && (
+              <Image
+                src={summary.thumbnail}
+                unoptimized
+                alt=""
+                width={82}
+                height={82}
+                className="bg-layer-bg size-[82px] shrink-0 rounded-xs object-cover"
+              />
+            )}
             <div className="min-w-0 flex-1 sm:pr-[118px]">
               <p className="text-body-strong truncate" title={summary.title}>
                 {summary.title}
@@ -84,7 +90,7 @@ export function FundingStatusBoard({
               <p className="mt-3 flex flex-wrap items-baseline gap-1">
                 <span className="text-title-s">{formatWon(summary.raisedAmount)}</span>
                 <span className="text-body-s text-text-secondary">
-                  / {formatWon(summary.goalAmount)}
+                  / {summary.goalAmount === null ? "—" : formatWon(summary.goalAmount)}
                 </span>
               </p>
               <div className="flex h-[26px] items-center gap-2">
@@ -111,7 +117,9 @@ export function FundingStatusBoard({
               <Badge variant={summary.closedBadge.variant} size="md" shape="rounded">
                 {summary.closedBadge.label}
               </Badge>
-            ) : summary.goalAmount > 0 && summary.raisedAmount >= summary.goalAmount ? (
+            ) : summary.goalAmount !== null &&
+              summary.goalAmount > 0 &&
+              summary.raisedAmount >= summary.goalAmount ? (
               <Badge variant="success" size="md" shape="rounded">
                 목표 달성
               </Badge>
@@ -184,7 +192,7 @@ export function FundingStatusBoard({
                       {formatQuantity(reward.quantity)}
                     </td>
                     <td className="text-body-s px-4 pt-2.5 whitespace-nowrap">
-                      {formatWon(reward.amount)}
+                      {reward.amount === null ? "—" : formatWon(reward.amount)}
                     </td>
                   </tr>
                 ))}
