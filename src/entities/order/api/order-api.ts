@@ -19,7 +19,7 @@ export type OrderPreview = {
   shippingFee: number;
   discountAmount: number;
   finalAmount: number;
-  appliedCoupons?: { couponCode: string; discountAmount: number }[];
+  appliedCoupons?: { couponCode: string; issuerType: string; discountType: string }[];
   unavailableCoupons?: { couponCode: string; reason: string }[];
 };
 export type CheckoutCoupon = {

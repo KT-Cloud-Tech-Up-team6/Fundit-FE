@@ -7,7 +7,7 @@ import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 test("서버가 적용을 확인한 쿠폰만 승인하고 누락·거절 응답은 차단한다", () => {
   const preview = {
     finalAmount: 17000,
-    appliedCoupons: [{ couponCode: "SAVE", discountAmount: 3000 }],
+    appliedCoupons: [{ couponCode: "SAVE", issuerType: "PLATFORM", discountType: "AMOUNT" }],
   };
   assert.equal(couponPreviewError(preview, "SAVE"), "");
   assert.equal(couponPreviewError({}, null), "");
