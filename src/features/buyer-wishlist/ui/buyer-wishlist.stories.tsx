@@ -17,7 +17,17 @@ function WishlistPreview({
 const meta = {
   title: "Features/BuyerWishlist",
   component: BuyerWishlist,
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "figma390" } },
   args: { tab: "projects", onTabChange: () => {} },
   render: (args) => <WishlistPreview key={`${args.tab}-${args.initialEmpty}`} {...args} />,
 } satisfies Meta<typeof BuyerWishlist>;
@@ -27,6 +37,7 @@ type Story = StoryObj<typeof meta>;
 export const Projects: Story = {};
 export const Sellers: Story = { args: { tab: "sellers" } };
 export const Empty: Story = { args: { initialEmpty: true } };
+export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
 export const RemoveItems: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

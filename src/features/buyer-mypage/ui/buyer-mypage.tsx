@@ -43,9 +43,10 @@ export function BuyerMyPage({
     <BuyerAccountScreen
       title="마이페이지"
       backHref="/"
-      className="flex w-full flex-col max-[1200px]:max-w-none"
+      breadcrumb={["마이페이지"]}
+      className="flex w-full flex-col"
     >
-      <div className="px-5 pb-6">
+      <div className="bg-layer-surface-default px-5 pb-6">
         <div className="flex items-center justify-between gap-2 py-3">
           <PendingDestination
             label="내 프로필 보기"
@@ -146,7 +147,11 @@ export function BuyerMyPage({
           ))}
         </div>
       </div>
-      <BuyerBottomNavigation compact activeHref="/my" className="sticky bottom-0 mt-auto" />
+      <BuyerBottomNavigation
+        compact
+        activeHref="/my"
+        className="sticky bottom-0 mt-auto min-[1200px]:hidden"
+      />
     </BuyerAccountScreen>
   );
 }

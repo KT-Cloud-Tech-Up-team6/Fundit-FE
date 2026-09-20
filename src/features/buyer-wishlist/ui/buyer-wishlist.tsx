@@ -38,7 +38,7 @@ export function BuyerWishlist({
   const [sellers, setSellers] = useState(initialEmpty ? [] : wishlistSellers);
   const count = tab === "projects" ? projects.length : sellers.length;
   return (
-    <BuyerAccountScreen title="관심 목록" className="w-full max-[1200px]:max-w-none">
+    <BuyerAccountScreen title="관심 목록" className="w-full">
       <TabList
         aria-label="관심 목록 종류"
         selectedIndex={tab === "projects" ? 0 : 1}
@@ -64,7 +64,7 @@ export function BuyerWishlist({
         id="wishlist-panel"
         role="tabpanel"
         aria-labelledby={`wishlist-${tab}`}
-        className="px-5 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))]"
+        className="bg-layer-surface-default min-h-[calc(100dvh-104px)] px-5 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0"
       >
         <p role="status" className="text-text-disabled text-body-s mb-3">
           총 {count}개
@@ -77,7 +77,10 @@ export function BuyerWishlist({
           <div className="space-y-3">
             {projects.map((project, index) => (
               <Fragment key={project.id}>
-                <ProjectRow project={project} thumbnailClassName="w-[41.14%]">
+                <ProjectRow
+                  project={project}
+                  thumbnailClassName="w-[41.14%] min-[1200px]:w-[200px]"
+                >
                   <button
                     type="button"
                     aria-label={`${project.title} 찜 해제`}
@@ -124,7 +127,7 @@ function Advertisement() {
         src="/images/buyer-category/promotion.png"
         alt="벨로라 건강 음료 프로모션"
         fill
-        sizes="350px"
+        sizes="(min-width: 1200px) 793px, 100vw"
         className="object-cover object-top"
       />
     </aside>
