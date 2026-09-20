@@ -22,11 +22,13 @@ function ContentForm({
   label,
   onSubmit,
   maxLength,
+  validationError = "",
 }: {
   initial?: string;
   label: string;
   onSubmit: (content: string) => Promise<unknown>;
   maxLength?: number;
+  validationError?: string;
 }) {
   const [content, setContent] = useState(initial);
   const pending = useRef(false);
@@ -42,7 +44,7 @@ function ContentForm({
       className="mt-3 space-y-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (content.trim() && !pending.current) {
+        if (content.trim() && !validationError && !pending.current) {
           pending.current = true;
           mutation.mutate();
         }
@@ -55,7 +57,11 @@ function ContentForm({
         disabled={mutation.isPending}
         onChange={(event) => setContent(event.target.value)}
       />
-      <Button type="submit" disabled={!content.trim() || mutation.isPending}>
+      {validationError && <p role="alert">{validationError}</p>}
+      <Button
+        type="submit"
+        disabled={!content.trim() || Boolean(validationError) || mutation.isPending}
+      >
         {label}
       </Button>
       {mutation.isError && (
@@ -308,8 +314,8 @@ export function ProjectCommunityApi({
             />
             <ContentForm
               label="새 소식 등록"
+              validationError={title.trim() ? "" : "새 소식 제목을 입력해주세요."}
               onSubmit={async (content) => {
-                if (!title.trim()) throw new Error("제목을 입력해주세요.");
                 await createNotice(projectId, { noticeType, title: title.trim(), content });
                 setTitle("");
                 navigate({ page: "1" });
