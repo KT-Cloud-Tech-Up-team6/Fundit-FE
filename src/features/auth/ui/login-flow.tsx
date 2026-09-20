@@ -2,16 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
+import { login } from "@/features/auth/api/auth-api";
+import { safeReturnTo } from "@/features/auth/model/auth-input";
+import { useAuth } from "@/providers/auth-provider";
+import { isApiError } from "@/shared/api/api-error";
+
 import { AuthButton, AuthInput, AuthSocialButton } from "./auth-form-controls";
 import { AuthScreen } from "./auth-screen";
+import { PasswordUpdateFlow } from "./password-update-flow";
 
 export type LoginView = "method" | "form";
 export type LoginError = "none" | "password-required" | "credentials";
 
 type LoginFlowProps = {
+  returnTo?: string;
   demoMode?: boolean;
   initialError?: LoginError;
   initialSubmitting?: boolean;
@@ -19,11 +27,17 @@ type LoginFlowProps = {
 };
 
 export function LoginFlow({
+  returnTo,
   demoMode = false,
   initialError = "none",
   initialSubmitting = false,
   initialView = "method",
 }: LoginFlowProps) {
+  const router = useRouter();
+  const { authenticate } = useAuth();
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const requestRef = useRef<AbortController | null>(null);
   const [view, setView] = useState<LoginView>(initialView);
   const [email, setEmail] = useState(initialError === "none" ? "" : "1234abc@gmail.com");
   const [password, setPassword] = useState(initialError === "credentials" ? "password123" : "");
@@ -33,6 +47,7 @@ export function LoginFlow({
 
   useEffect(
     () => () => {
+      requestRef.current?.abort();
       if (submitTimerRef.current !== null) {
         window.clearTimeout(submitTimerRef.current);
       }
@@ -41,6 +56,9 @@ export function LoginFlow({
   );
 
   function showMethodSelection() {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setRequestError("");
     if (submitTimerRef.current !== null) {
       window.clearTimeout(submitTimerRef.current);
       submitTimerRef.current = null;
@@ -50,6 +68,11 @@ export function LoginFlow({
     setError("none");
     setView("method");
   }
+
+  if (mustChangePassword)
+    return (
+      <PasswordUpdateFlow mode="change" onComplete={() => router.replace(safeReturnTo(returnTo))} />
+    );
 
   if (view === "method") {
     return (
@@ -81,17 +104,45 @@ export function LoginFlow({
     );
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || requestRef.current || !email.trim()) return;
 
     if (!password) {
       setError("password-required");
       return;
     }
 
-    if (!demoMode) return;
-
     setSubmitting(true);
+    setRequestError("");
+    if (!demoMode) {
+      const request = new AbortController();
+      requestRef.current = request;
+      try {
+        const result = await login({ email: email.trim(), password }, { signal: request.signal });
+        if (request.signal.aborted) return;
+        await authenticate(result.accessToken);
+        if (request.signal.aborted) return;
+        setPassword("");
+        if (result.mustChangePassword) setMustChangePassword(true);
+        else router.replace(safeReturnTo(returnTo));
+      } catch (cause) {
+        if (request.signal.aborted) return;
+        if (isApiError(cause) && cause.code === "INVALID_CREDENTIALS") setError("credentials");
+        else
+          setRequestError(
+            isApiError(cause) && cause.code === "ACCOUNT_LOCKED"
+              ? "계정이 일시적으로 잠겼습니다. 잠시 후 다시 시도하거나 비밀번호를 재설정해 주세요."
+              : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          );
+      } finally {
+        if (!request.signal.aborted) {
+          requestRef.current = null;
+          setSubmitting(false);
+        }
+      }
+      return;
+    }
     submitTimerRef.current = window.setTimeout(() => {
       submitTimerRef.current = null;
       setSubmitting(false);
@@ -112,6 +163,7 @@ export function LoginFlow({
       <form className="mt-16" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-3">
           <AuthInput
+            disabled={submitting}
             aria-label="이메일"
             autoComplete="email"
             id="login-email"
@@ -125,6 +177,7 @@ export function LoginFlow({
             value={email}
           />
           <AuthInput
+            disabled={submitting}
             aria-label="비밀번호"
             autoComplete="current-password"
             errorMessage={
@@ -149,7 +202,12 @@ export function LoginFlow({
           />
           {/* 이 화면만 46px(size="lg")다 — 실제 로그인 Figma(FL_C_ME_LOGIN_2)가 그렇게 그려져 있고,
               다른 회원가입 CTA(52px)와는 의도적으로 다르다. */}
-          <AuthButton disabled={submitting || !demoMode} size="lg" type="submit">
+          {requestError && (
+            <p role="alert" className="text-body-s">
+              {requestError}
+            </p>
+          )}
+          <AuthButton disabled={submitting || !email.trim() || !password} size="lg" type="submit">
             {submitting ? "로그인 중" : "로그인"}
           </AuthButton>
         </div>

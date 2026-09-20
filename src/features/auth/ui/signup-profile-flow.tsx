@@ -10,6 +10,7 @@ import { z } from "zod";
 import { checkEmail, signup } from "@/features/auth/api/auth-api";
 import type { SignupAddress } from "@/features/auth/api/auth-types";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
+import { passwordCategoryCount, passwordSchema } from "@/features/auth/model/auth-input";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
 import { DaumPostcodeButton } from "@/shared/components/ui/daum-postcode-button";
@@ -23,16 +24,7 @@ export type SignupProfileView = "email" | "password" | "address";
 const emailDomains = ["@gmail.com", "@naver.com", "@daum.com"];
 const CUSTOM_DOMAIN = "custom";
 
-function passwordCategoryCount(value: string) {
-  return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
-}
-
-export const passwordSchema = z
-  .string()
-  .min(8, "비밀번호는 8자 이상이어야 합니다.")
-  .refine((value) => passwordCategoryCount(value) >= 3, {
-    message: "대문자, 소문자, 숫자, 특수문자 중 3종 이상을 포함해 주세요.",
-  });
+export { passwordSchema } from "@/features/auth/model/auth-input";
 
 const profileSchema = z
   .object({

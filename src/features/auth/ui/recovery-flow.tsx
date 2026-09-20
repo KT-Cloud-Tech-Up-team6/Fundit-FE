@@ -1,8 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+
+import {
+  findEmail,
+  revealEmail,
+  requestPasswordReset,
+  verifyIdentity,
+} from "@/features/auth/api/auth-api";
+import { requestIdentityVerification } from "@/features/auth/api/portone-identity-adapter";
+import { formatPhone, validRecoveryIdentity } from "@/features/auth/model/auth-input";
+import {
+  clearEmailRecoverySession,
+  consumeEmailRecoverySession,
+  saveEmailRecoverySession,
+} from "@/features/auth/model/email-recovery-session";
+import { isApiError } from "@/shared/api/api-error";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
 import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
@@ -45,6 +60,7 @@ const identityDescriptionByStatus: Record<IdentityStatus, string> = {
 };
 
 type RecoveryFlowProps = {
+  callback?: { identityVerificationId: string; code: string | null };
   demoMode?: boolean;
   initialView?: RecoveryView;
 };
@@ -67,15 +83,107 @@ function RecoveryDescription({ children }: { children: ReactNode }) {
   return <p className="text-body-m mt-3 whitespace-pre-line">{children}</p>;
 }
 
-export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: RecoveryFlowProps) {
+export function RecoveryFlow({
+  callback,
+  demoMode = false,
+  initialView = "email-form",
+}: RecoveryFlowProps) {
   const router = useRouter();
   const [view, setView] = useState<RecoveryView>(initialView);
   const [viewHistory, setViewHistory] = useState<RecoveryView[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState(demoMode ? "1234q***@gmail.com" : "");
+  const [fullEmail, setFullEmail] = useState(demoMode ? "1234abc@fundit.com" : "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const requestRef = useRef<AbortController | null>(null);
+  const callbackCancelled = useRef(false);
+  const callbackTask = useRef<Promise<{ email: string; name: string; phoneNumber: string }> | null>(
+    null,
+  );
+  useEffect(() => () => requestRef.current?.abort(), []);
+
+  useEffect(() => {
+    if (!callback) return;
+    let active = true;
+    if (!callbackTask.current)
+      callbackTask.current = (async () => {
+        const session = consumeEmailRecoverySession(callback.identityVerificationId);
+        if (!session || callback.code || !callback.identityVerificationId)
+          throw new Error("Invalid callback");
+        const { verificationToken } = await verifyIdentity({
+          identityVerificationId: callback.identityVerificationId,
+        });
+        const result = await revealEmail(verificationToken);
+        return { ...result, name: session.name, phoneNumber: session.phoneNumber };
+      })();
+    void callbackTask.current.then(
+      (result) => {
+        if (!active || callbackCancelled.current) return;
+        setName(result.name);
+        setPhone(formatPhone(result.phoneNumber));
+        setFullEmail(result.email);
+        setEmail(result.email);
+        setView("full-email");
+        window.history.replaceState(null, "", "/auth/recovery/email");
+      },
+      () => {
+        if (active && !callbackCancelled.current) setView("identity-verification-failed");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [callback]);
+
+  function cancelRequest() {
+    callbackCancelled.current = true;
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setPending(false);
+    setError("");
+    clearEmailRecoverySession();
+  }
+
+  async function submitRecovery(kind: "email" | "password") {
+    if (requestRef.current || !validRecoveryIdentity(name, phone)) return;
+    const request = new AbortController();
+    requestRef.current = request;
+    setPending(true);
+    setError("");
+    try {
+      const identity = { name: name.trim(), phoneNumber: phone.replace(/-/g, "") };
+      if (kind === "email") {
+        const result = await findEmail(identity, { signal: request.signal });
+        if (request.signal.aborted) return;
+        setMaskedEmail(result.maskedEmail ?? "");
+        goTo(result.maskedEmail ? "masked-email" : "not-found");
+      } else {
+        await requestPasswordReset(
+          { ...identity, email: email.trim() },
+          { signal: request.signal },
+        );
+        if (!request.signal.aborted) goTo("password-sent");
+      }
+    } catch (cause) {
+      if (!request.signal.aborted)
+        setError(
+          isApiError(cause) && cause.status === 429
+            ? "요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."
+            : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+    } finally {
+      if (!request.signal.aborted) {
+        requestRef.current = null;
+        setPending(false);
+      }
+    }
+  }
 
   function showLogin() {
+    cancelRequest();
     router.push("/auth/login");
   }
 
@@ -85,6 +193,11 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
   }
 
   function goBack() {
+    cancelRequest();
+    if (callback) {
+      router.replace("/auth/recovery/email");
+      return;
+    }
     const previousView = viewHistory.at(-1);
 
     if (previousView) {
@@ -103,6 +216,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
     function submitEmailSearch(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (demoMode && name && phone) goTo("masked-email");
+      else if (!demoMode) void submitRecovery("email");
     }
 
     return (
@@ -111,6 +225,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
         <form className="mt-16" onSubmit={submitEmailSearch}>
           <div className="flex flex-col gap-3">
             <AuthInput
+              disabled={pending}
               aria-label="이름"
               autoComplete="name"
               onChange={(event) => setName(event.target.value)}
@@ -119,17 +234,27 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
               value={name}
             />
             <AuthInput
+              disabled={pending}
               aria-label="전화번호"
               autoComplete="tel"
               inputMode="tel"
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => setPhone(formatPhone(event.target.value))}
               onClear={() => setPhone("")}
               placeholder="전화번호"
               value={phone}
             />
             {/* 회원가입 CTA(52px)와 달리 이 화면군은 46px다(FL_C_ME_IDFIND_1/2 실측). */}
-            <AuthButton disabled={!demoMode} size="lg" type="submit">
-              찾기
+            {error && (
+              <p role="alert" className="text-body-s">
+                {error}
+              </p>
+            )}
+            <AuthButton
+              disabled={pending || !validRecoveryIdentity(name, phone)}
+              size="lg"
+              type="submit"
+            >
+              {pending ? "조회 중" : "찾기"}
             </AuthButton>
           </div>
         </form>
@@ -144,9 +269,10 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
         <RecoveryDescription>입력하신 정보로 가입된 이메일 주소입니다.</RecoveryDescription>
         <div className="bg-layer-surface-disabled text-body-m mt-12 flex h-[118px] items-center justify-center rounded-sm text-center">
           <p>
-            <span className="text-text-primary-live">이름</span> 회원님의 아이디는
+            <span className="text-text-primary-live">{name || (demoMode ? "홍길동" : "")}</span>{" "}
+            회원님의 아이디는
             <br />
-            <span className="text-text-primary-live">마스킹 이메일</span> 입니다
+            <span className="text-text-primary-live">{maskedEmail}</span> 입니다
           </p>
         </div>
         <div className="mt-6 flex items-center justify-center gap-1">
@@ -203,6 +329,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
     function submitPasswordReset(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (demoMode && name && phone && email) goTo("password-sent");
+      else if (!demoMode) void submitRecovery("password");
     }
 
     return (
@@ -214,6 +341,7 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
         <form className="mt-16 flex flex-1 flex-col" onSubmit={submitPasswordReset}>
           <div className="flex flex-col gap-3">
             <AuthInput
+              disabled={pending}
               aria-label="이름"
               onChange={(event) => setName(event.target.value)}
               onClear={() => setName("")}
@@ -221,14 +349,16 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
               value={name}
             />
             <AuthInput
+              disabled={pending}
               aria-label="휴대폰번호"
               inputMode="tel"
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => setPhone(formatPhone(event.target.value))}
               onClear={() => setPhone("")}
               placeholder="휴대폰번호"
               value={phone}
             />
             <AuthInput
+              disabled={pending}
               aria-label="이메일"
               onChange={(event) => setEmail(event.target.value)}
               onClear={() => setEmail("")}
@@ -238,8 +368,21 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
             />
           </div>
           <AuthBottomAction>
-            <AuthButton disabled={!demoMode} size="lg" type="submit">
-              발송
+            {error && (
+              <p role="alert" className="text-body-s">
+                {error}
+              </p>
+            )}
+            <AuthButton
+              disabled={
+                pending ||
+                !validRecoveryIdentity(name, phone) ||
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+              }
+              size="lg"
+              type="submit"
+            >
+              {pending ? "요청 중" : "발송"}
             </AuthButton>
           </AuthBottomAction>
         </form>
@@ -252,10 +395,10 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
       <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
         <AuthTitle>메일을 확인해 주세요</AuthTitle>
         <RecoveryDescription>
-          아래 이메일함에서 링크를 클릭해 새 비밀번호를 설정하세요.
+          입력하신 정보와 일치하는 계정이 있다면 재설정 링크를 보내드립니다.
         </RecoveryDescription>
         <p className="text-body-m mt-7">
-          <span className="text-text-primary-live">이메일 ex***@gmail.com</span>으로 보내드렸어요
+          <span className="text-text-primary-live">{email}</span> 메일함을 확인해 주세요.
         </p>
         <AuthBottomAction>
           <AuthButton onClick={showLogin} size="lg">
@@ -275,9 +418,10 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
         </RecoveryDescription>
         <div className="bg-layer-surface-disabled text-body-m mt-12 flex h-[118px] items-center justify-center rounded-sm text-center">
           <p>
-            <span className="text-text-primary-live">이름</span> 회원님의 아이디는
+            <span className="text-text-primary-live">{name || (demoMode ? "홍길동" : "")}</span>{" "}
+            회원님의 아이디는
             <br />
-            <span className="text-text-primary-live">이메일 마스킹 x</span> 입니다
+            <span className="text-text-primary-live">{fullEmail}</span> 입니다
           </p>
         </div>
         <button
@@ -300,16 +444,61 @@ export function RecoveryFlow({ demoMode = false, initialView = "email-form" }: R
 
   if (!identityStatus) return null;
 
-  function handleIdentityAction() {
-    if (!demoMode || !identityStatus) return;
-
-    setView(isRetryIdentityStatus(identityStatus) ? "identity-ready" : "identity-requesting");
+  async function handleIdentityAction() {
+    if (!identityStatus || requestRef.current) return;
+    if (demoMode) {
+      setView(isRetryIdentityStatus(identityStatus) ? "identity-ready" : "identity-requesting");
+      return;
+    }
+    if (callback) {
+      router.replace("/auth/recovery/email");
+      return;
+    }
+    const request = new AbortController();
+    requestRef.current = request;
+    setView("identity-requesting");
+    let verifying = false;
+    try {
+      const identityVerificationId = crypto.randomUUID();
+      const draft = { name: name.trim(), phoneNumber: phone.replace(/-/g, "") };
+      saveEmailRecoverySession({ ...draft, identityVerificationId });
+      const result = await requestIdentityVerification(draft, {
+        identityVerificationId,
+        redirectUrl: `${window.location.origin}/auth/recovery/email/callback`,
+      });
+      if (request.signal.aborted) return;
+      clearEmailRecoverySession();
+      if (result.status === "cancelled") {
+        setView("identity-cancelled");
+        return;
+      }
+      verifying = true;
+      setView("identity-verifying");
+      const verified = await verifyIdentity(
+        { identityVerificationId: result.identityVerificationId },
+        { signal: request.signal },
+      );
+      const revealed = await revealEmail(verified.verificationToken, { signal: request.signal });
+      if (!request.signal.aborted) {
+        setFullEmail(revealed.email);
+        setEmail(revealed.email);
+        setView("full-email");
+      }
+    } catch {
+      if (!request.signal.aborted)
+        setView(verifying ? "identity-verification-failed" : "identity-failed");
+    } finally {
+      if (!request.signal.aborted) {
+        clearEmailRecoverySession();
+        requestRef.current = null;
+      }
+    }
   }
 
   return (
     <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
       <AuthIdentityVerification
-        actionDisabled={!demoMode}
+        actionDisabled={identityStatus === "requesting" || identityStatus === "verifying"}
         description={identityDescriptionByStatus[identityStatus]}
         onAction={handleIdentityAction}
         status={identityStatus}
