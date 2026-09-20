@@ -7,6 +7,7 @@ import { BuyerProjectDetail } from "@/features/buyer-project/ui/buyer-project-de
 import styles from "@/features/buyer-project/ui/buyer-project-detail.module.css";
 import { getProjectDemoConnection } from "@/features/buyer-live/model/live-demo";
 import { resolveProjectDemo } from "@/features/buyer-project/model/project-demo";
+import { BuyerProjectApi } from "@/features/buyer-project/ui/buyer-project-api";
 
 const allowedTabs = new Set([
   "story",
@@ -27,6 +28,8 @@ export default async function ProjectDetailPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId))
+    return <BuyerProjectApi key={projectId} projectId={projectId} tab={activeTab} />;
   const project = resolveProjectDemo(projectId, getProjectDemoConnection(projectId));
 
   if (activeTab === "story" || activeTab === "live-proof") {

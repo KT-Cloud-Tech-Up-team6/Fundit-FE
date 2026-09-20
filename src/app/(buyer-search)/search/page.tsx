@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BuyerSearchRoute } from "@/features/buyer-search/ui/buyer-search";
+import { BuyerProjectSearchApi } from "@/features/buyer-search/ui/buyer-project-search-api";
 
 export default function SearchPage() {
   return (
@@ -10,7 +10,7 @@ export default function SearchPage() {
         </p>
       }
     >
-      <BuyerSearchRoute />
+      <BuyerProjectSearchApi />
     </Suspense>
   );
 }
