@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ProjectManagementApi } from "@/features/funding-status/ui/project-management-api";
 import { ProjectStoryApi } from "@/features/project-story/ui/project-story-api";
 import { ProjectRewardsPage } from "@/features/project-basic-info/ui/project-reward-manager";
 import { ProjectBasicInfoApi } from "@/features/project-basic-info/ui/project-basic-info-api";
@@ -41,6 +42,8 @@ export default async function SellerProjectPage({
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    if (activeTab === "funding" || activeTab === "news" || activeTab === "community")
+      return <ProjectManagementApi key={projectId} projectId={projectId} tab={activeTab} />;
     if (activeTab === "story") return <ProjectStoryApi key={projectId} projectId={projectId} />;
     if (activeTab === "rewards")
       return <ProjectRewardsPage key={projectId} projectId={projectId} />;
