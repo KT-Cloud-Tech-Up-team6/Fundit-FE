@@ -1,15 +1,4 @@
-import { buyerCategories } from "@/entities/category/model/category-mock";
-
 export const businessTypes = ["일반 사업자", "개인 사업자", "법인 사업자"] as const;
-export const mainCategories = buyerCategories.map((category) => category.name);
-export const subcategoriesByMain = Object.fromEntries(
-  buyerCategories.map((category) => [
-    category.name,
-    // 화면에는 같은 임시명("소분류 명")이 반복될 수 있어도, Dropdown의 value/key는
-    // 고유한 slug를 써야 빠른 카테고리 전환 때 React key 충돌이 나지 않는다.
-    category.subcategories.map((item) => ({ value: item.slug, label: item.name })),
-  ]),
-);
 export const amountSteps = [100_000, 500_000, 1_000_000, 5_000_000];
 
 export type RewardDraft = {

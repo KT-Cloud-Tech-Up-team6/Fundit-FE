@@ -57,9 +57,16 @@ export type AuthUser = {
 
 export type SocialProvider = "KAKAO" | "GOOGLE";
 export type SocialLoginResult =
-  | { accessToken: string; status: "authenticated" }
-  | { signupToken: string; status: "needsSignup" }
-  | { linkToken: string; status: "needsLink" };
+  | { needsSignup: false; needsLink: false; accessToken: string; mustChangePassword: boolean }
+  | {
+      needsSignup: true;
+      needsLink: false;
+      provider: SocialProvider;
+      signupToken: string;
+      email?: string;
+      name?: string;
+    }
+  | { needsSignup: false; needsLink: true; provider: SocialProvider; linkToken: string };
 
 export type SocialSignupRequest = {
   agreedTerms: string[];
