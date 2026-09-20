@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -91,6 +91,7 @@ export function SignupProfileFlow({
   const [baseAddress, setBaseAddress] = useState("");
   const [detailAddress, setDetailAddress] = useState("");
   const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
+  const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState<string>();
   const initialEmailParts = profileDraft?.email.split("@");
   const form = useForm<ProfileFormValues>({
@@ -156,38 +157,40 @@ export function SignupProfileFlow({
   }
 
   async function submitSignup(values: ProfileFormValues, skipAddress = false) {
-    setSubmitError(undefined);
-    if (!identityDraft || !verificationToken) {
-      setVerificationToken(null);
-      router.replace("/auth/signup/verify");
-      return;
-    }
-    if (selectedTermCodes.length === 0) {
-      router.replace("/auth/signup");
-      return;
-    }
-
-    const profile = {
-      email: resolveEmail(values),
-      nickname: values.nickname.trim(),
-      password: values.password,
-    };
-    setProfileDraft(profile);
-
-    /* 배송지는 전부 선택이라 우편번호·기본주소가 없으면 아예 보내지 않는다(스킵과 동일 취급).
-       받는사람·연락처는 본인인증 정보로 채운다. 대리 수령인 입력이 필요해지면 별도 필드로 확장한다. */
-    const address: SignupAddress | undefined =
-      !skipAddress && zipcode && baseAddress
-        ? {
-            addressLine1: baseAddress,
-            addressLine2: detailAddress || undefined,
-            phoneNumber: identityDraft.phoneNumber,
-            recipientName: identityDraft.name,
-            zipcode,
-          }
-        : undefined;
-
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     try {
+      setSubmitError(undefined);
+      if (!identityDraft || !verificationToken) {
+        setVerificationToken(null);
+        router.replace("/auth/signup/verify");
+        return;
+      }
+      if (selectedTermCodes.length === 0) {
+        router.replace("/auth/signup");
+        return;
+      }
+
+      const profile = {
+        email: resolveEmail(values),
+        nickname: values.nickname.trim(),
+        password: values.password,
+      };
+      setProfileDraft(profile);
+
+      /* 배송지는 전부 선택이라 우편번호·기본주소가 없으면 아예 보내지 않는다(스킵과 동일 취급).
+       받는사람·연락처는 본인인증 정보로 채운다. 대리 수령인 입력이 필요해지면 별도 필드로 확장한다. */
+      const address: SignupAddress | undefined =
+        !skipAddress && zipcode && baseAddress
+          ? {
+              addressLine1: baseAddress,
+              addressLine2: detailAddress || undefined,
+              phoneNumber: identityDraft.phoneNumber,
+              recipientName: identityDraft.name,
+              zipcode,
+            }
+          : undefined;
+
       const result = await signupMutation.mutateAsync({
         ...profile,
         address,
@@ -216,6 +219,8 @@ export function SignupProfileFlow({
           ? "가입 처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
           : "회원가입을 완료하지 못했습니다. 입력 내용을 확인해 주세요.",
       );
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -271,8 +276,6 @@ export function SignupProfileFlow({
   }
 
   if (view === "address") {
-    const submit = form.handleSubmit((values) => submitSignup(values));
-    const skip = form.handleSubmit((values) => submitSignup(values, true));
     return (
       <AuthScreen onBack={() => setView("password")}>
         <AuthTitle>{"배송지를 입력해두면\n이용이 편리해져요"}</AuthTitle>
@@ -312,14 +315,14 @@ export function SignupProfileFlow({
         <AuthButton
           className="mt-3"
           disabled={!zipcode || signupMutation.isPending}
-          onClick={() => void submit()}
+          onClick={() => void form.handleSubmit((values) => submitSignup(values))()}
         >
           {signupMutation.isPending ? "가입 처리 중" : "다음"}
         </AuthButton>
         <button
           className="text-caption-s text-text-secondary mx-auto mt-16 block h-10 px-2 underline underline-offset-2 disabled:cursor-not-allowed"
           disabled={signupMutation.isPending}
-          onClick={() => void skip()}
+          onClick={() => void form.handleSubmit((values) => submitSignup(values, true))()}
           type="button"
         >
           다음에 설정할게요

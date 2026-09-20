@@ -48,20 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const restoreStarted = useRef<number | null>(null);
   const [restoreAttempt, retryRestore] = useReducer((attempt: number) => attempt + 1, 0);
   const [restoreError, setRestoreError] = useState(false);
-  const statusRef = useRef(state.status);
   /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
   const restoreSupersededRef = useRef(false);
 
-  useEffect(() => {
-    statusRef.current = state.status;
-  }, [state.status]);
-
-  /* client.ts의 백그라운드 401 refresh 실패는 authTokenStore를 직접 비운다.
-     AuthProvider가 구독하지 않으면 이 상태 머신은 그 사실을 모른 채 "authenticated"로
-     남아, 토큰 없는 요청만 계속 나가는 화면이 된다. */
+  // 다른 탭의 세션 변경과 백그라운드 refresh 실패 모두 사용자 상태·캐시를 비운다.
   useEffect(() => {
     return authTokenStore.subscribe((accessToken) => {
-      if (accessToken === null && statusRef.current === "authenticated") {
+      if (accessToken === null) {
+        restoreSupersededRef.current = true;
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
       }
@@ -97,19 +91,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       async authenticate(accessToken) {
         restoreSupersededRef.current = true;
-        authTokenStore.set(accessToken);
+        if (authTokenStore.get() !== accessToken) {
+          throw new DOMException("Session changed", "AbortError");
+        }
+        const generation = authTokenStore.getSessionGeneration();
+        queryClient.clear();
         dispatch({ accessToken, type: "AUTHENTICATED" });
 
         try {
           const user = await getMe();
+          if (authTokenStore.getSessionGeneration() !== generation) {
+            throw new DOMException("Session changed", "AbortError");
+          }
           dispatch({ type: "USER_LOADED", user });
-        } catch {
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") throw error;
           // Access Token 발급은 성공했으므로 사용자 요약 실패와 세션 실패를 구분한다.
         }
       },
       clearSession() {
         restoreSupersededRef.current = true;
-        authTokenStore.clear();
+        authTokenStore.changeSession();
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
       },
