@@ -57,8 +57,8 @@ test("조회하지 못한 필드는 PATCH에서 제외한다", () => {
 test("사업자 코드 변환과 기본정보 입력 제약을 검증한다", () => {
   const values = {
     business: "법인 사업자",
-    category: "테크",
-    subcategory: "가전",
+    category: "테크·가전",
+    subcategory: "생활가전",
     title: "제목",
     amount: "500000",
   };

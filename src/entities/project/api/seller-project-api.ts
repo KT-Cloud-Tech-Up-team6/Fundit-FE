@@ -36,6 +36,8 @@ export type ProjectPage = {
 };
 export type ProjectPreview = {
   projectId: string;
+  categoryMajor?: string | null;
+  categoryMinor?: string | null;
   title: string | null;
   status: ProjectApiStatus;
   goalAmount: number | null;

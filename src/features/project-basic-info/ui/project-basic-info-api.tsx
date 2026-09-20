@@ -89,8 +89,8 @@ export function ProjectBasicInfoApi({
     business:
       Object.keys(businessCodes).find((label) => businessCodes[label] === saved?.businessType) ??
       "",
-    category: saved?.categoryMajor ?? "",
-    subcategory: saved?.categoryMinor ?? "",
+    category: saved?.categoryMajor ?? data.categoryMajor ?? "",
+    subcategory: saved?.categoryMinor ?? data.categoryMinor ?? "",
   };
   return (
     <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
@@ -105,8 +105,8 @@ export function ProjectBasicInfoApi({
           <>
             {!saved && (
               <p role="status" className="text-body-s mb-3">
-                사업자 유형과 카테고리의 기존 선택은 표시되지 않습니다. 변경할 항목만 선택하면
-                나머지 기존 값은 유지됩니다.
+                사업자 유형의 기존 선택은 표시되지 않습니다. 변경할 때만 선택하면 기존 값은
+                유지됩니다.
               </p>
             )}
             <ProjectBasicInfoForm

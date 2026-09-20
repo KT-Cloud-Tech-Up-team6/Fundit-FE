@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ApiError } from "@/shared/api/api-error";
+import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
@@ -17,9 +19,7 @@ import {
   demoRewards,
   discountedPrice,
   emptyReward,
-  mainCategories,
   rewardError,
-  subcategoriesByMain,
   upsertReward,
   type DemoReward,
   type RewardDraft,
@@ -109,7 +109,9 @@ export function ProjectBasicInfoForm({
         setFormMessage(
           error instanceof ProjectCreationUncertainError
             ? error.message
-            : "기본 정보를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해 주세요.",
+            : error instanceof ApiError && error.code === "INVALID_CATEGORY"
+              ? "선택한 카테고리를 저장할 수 없습니다. 대분류와 상세 카테고리를 다시 선택해주세요."
+              : "기본 정보를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해 주세요.",
         );
       } finally {
         savingRef.current = false;

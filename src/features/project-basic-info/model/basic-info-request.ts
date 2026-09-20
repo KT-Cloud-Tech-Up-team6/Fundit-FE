@@ -1,4 +1,5 @@
 import type { BasicInfoRequest, BusinessType } from "@/entities/project/api/seller-project-api";
+import { projectCategories } from "@/entities/category/model/project-categories";
 
 export type BasicInfoValues = {
   business: string;
@@ -35,6 +36,11 @@ export function basicInfoApiError(values: BasicInfoValues, partial: boolean) {
   }
   if (values.business && !businessCodes[values.business]) return "사업자 유형을 선택해주세요.";
   if (values.category && !values.subcategory) return "상세 카테고리를 선택해주세요.";
+  if (
+    (values.category || values.subcategory) &&
+    !projectCategories[values.category]?.includes(values.subcategory)
+  )
+    return "프로젝트 카테고리와 상세 카테고리를 목록에서 다시 선택해주세요.";
   if (!partial && (!values.title.trim() || !values.amount))
     return "제목과 목표 금액을 입력해주세요.";
   if (Object.keys(basicInfoRequest(values)).length === 0) return "저장할 기본 정보를 입력해주세요.";
