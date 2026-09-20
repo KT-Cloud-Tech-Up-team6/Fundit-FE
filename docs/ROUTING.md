@@ -63,6 +63,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | `/auth/login`                          | 로그인                              | guest          | implemented |
 | `/auth/recovery/email`                 | 이메일 찾기                         | guest          | implemented |
 | `/auth/recovery/password`              | 비밀번호 재설정                     | guest          | implemented |
+| `/auth/recovery/email/callback`        | 이메일 공개용 PortOne 결과 검증     | guest          | implemented |
+| `/reset-password?token=…`              | 메일 링크의 새 비밀번호 설정        | guest          | implemented |
 
 약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 이름·생년월일·전화번호를 받아 포트원 SDK 요청에 prefill로 실어 보내고, 그 이후(통신사 선택·SMS 인증번호 입력 등)는 포트원 팝업이 자체적으로 처리합니다. `/auth/identity-verification/callback`은 모바일처럼 포트원이 팝업 대신 전체 페이지 리다이렉트를 쓰는 경우의 결과 수신 전용 라우트이며, `sessionStorage`(`fundit-auth-identity-recovery`, 10분 만료, `src/features/auth/model/auth-flow-session.ts`)로 리다이렉트 전 입력값을 복구한 뒤 원래 가입 흐름(`/auth/signup/verify`)으로 되돌립니다.
 
