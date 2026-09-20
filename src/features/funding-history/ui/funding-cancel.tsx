@@ -276,15 +276,18 @@ export function FundingCancel({
         </div>
 
         <div className="bg-layer-surface-default px-5 py-2 min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:w-[386px] min-[1200px]:gap-2 min-[1200px]:px-0 min-[1200px]:py-5">
-          <Button
-            href={`/my/fundings/${fundingId}`}
-            variant="secondary"
-            appearance="cta"
-            size="lg"
-            className="hidden min-[1200px]:inline-flex min-[1200px]:flex-1"
-          >
-            돌아가기
-          </Button>
+          {/* Button 기본 클래스의 inline-flex가 hidden보다 뒤에 오므로 래퍼로 숨긴다. */}
+          <div className="hidden min-[1200px]:flex min-[1200px]:flex-1">
+            <Button
+              href={`/my/fundings/${fundingId}`}
+              variant="secondary"
+              appearance="cta"
+              size="lg"
+              className="w-full"
+            >
+              돌아가기
+            </Button>
+          </div>
           <Button
             className="w-full min-[1200px]:w-auto min-[1200px]:flex-1"
             appearance="cta"
