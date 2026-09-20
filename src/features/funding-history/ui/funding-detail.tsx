@@ -1,13 +1,13 @@
 import Link from "next/link";
+import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
-import { Icon } from "@/shared/components/ui/icon";
+import { Button } from "@/shared/components/ui/button";
 import {
   actionsForStatus,
   demoFundingDetail,
   formatDate,
   formatWon,
 } from "../model/funding-history";
-import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
 /* ponytail: 펀딩 상세 조회 API가 없어(docs/OPEN_DECISIONS.md P1) demoFundingDetail 목업을 쓴다.
    API가 생기면 fundingId로 서버 조회하도록 이 자리만 바꾼다. */
@@ -16,25 +16,13 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
   const detail = demoFundingDetail(fundingId);
 
   return (
-    <div className="bg-layer-bg mx-auto flex min-h-dvh w-full max-w-[390px] min-w-0 flex-col">
-      <header className="bg-layer-surface-default flex h-[52px] items-center gap-1 px-3">
-        <Link
-          href="/my/fundings"
-          aria-label="뒤로"
-          className="flex size-10 shrink-0 items-center justify-center"
-        >
-          <Icon name="arrowLeft" className="text-text-default size-5" />
-        </Link>
-        <h1 className="text-title-s text-text-default flex-1 text-center">펀딩 상세 내역</h1>
-        <PendingDestination
-          label="알림"
-          className="flex size-10 shrink-0 items-center justify-center"
-        >
-          <Icon name="bell" className="text-text-default size-6" />
-        </PendingDestination>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-2">
+    <BuyerAccountScreen
+      title="펀딩 상세 내역"
+      backHref="/my/fundings"
+      breadcrumb={["마이페이지", "펀딩내역", "펀딩 상세 내역"]}
+      className="flex min-w-0 flex-col"
+    >
+      <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-1 flex-col gap-2 min-[1200px]:pb-16">
         <section className="bg-layer-surface-default flex flex-col gap-2 px-4 py-3">
           <p className="text-body-emphasis text-text-default">{detail.orderNumber}</p>
           <div className="flex flex-col gap-4">
@@ -98,9 +86,23 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
             <p className="text-body-emphasis text-text-default">{formatWon(detail.amount)}</p>
           </div>
         </section>
+        <div className="hidden justify-center px-5 py-3 min-[1200px]:flex">
+          <Button
+            href="/my/fundings"
+            variant="secondary"
+            appearance="cta"
+            size="lg"
+            className="w-[189px]"
+          >
+            돌아가기
+          </Button>
+        </div>
+        <BuyerBottomNavigation
+          compact
+          activeHref="/my"
+          className="sticky bottom-0 mt-auto min-[1200px]:hidden"
+        />
       </div>
-
-      <BuyerBottomNavigation compact activeHref="/my" className="sticky bottom-0 mt-auto" />
-    </div>
+    </BuyerAccountScreen>
   );
 }
