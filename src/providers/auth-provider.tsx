@@ -1,12 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { getMe, refreshAccessToken } from "@/features/auth/api/auth-api";
 import type { AuthUser } from "@/features/auth/api/auth-types";
 import { authTokenStore } from "@/shared/api/auth-token-store";
+import { ApiError } from "@/shared/api/api-error";
 
 export type AuthSessionState =
   | { accessToken: null; status: "checking"; user: null }
@@ -44,21 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: "checking",
     user: null,
   });
-  const restoreStarted = useRef(false);
-  const statusRef = useRef(state.status);
+  const restoreStarted = useRef<number | null>(null);
+  const [restoreAttempt, retryRestore] = useReducer((attempt: number) => attempt + 1, 0);
+  const [restoreError, setRestoreError] = useState(false);
   /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
   const restoreSupersededRef = useRef(false);
 
-  useEffect(() => {
-    statusRef.current = state.status;
-  }, [state.status]);
-
-  /* client.ts의 백그라운드 401 refresh 실패는 authTokenStore를 직접 비운다.
-     AuthProvider가 구독하지 않으면 이 상태 머신은 그 사실을 모른 채 "authenticated"로
-     남아, 토큰 없는 요청만 계속 나가는 화면이 된다. */
+  // 다른 탭의 세션 변경과 백그라운드 refresh 실패 모두 사용자 상태·캐시를 비운다.
   useEffect(() => {
     return authTokenStore.subscribe((accessToken) => {
-      if (accessToken === null && statusRef.current === "authenticated") {
+      if (accessToken === null) {
+        restoreSupersededRef.current = true;
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
       }
@@ -66,8 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   useEffect(() => {
-    if (restoreStarted.current) return;
-    restoreStarted.current = true;
+    if (restoreStarted.current === restoreAttempt) return;
+    restoreStarted.current = restoreAttempt;
 
     void (async () => {
       try {
@@ -77,32 +74,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (restoreSupersededRef.current) return;
         dispatch({ accessToken, type: "AUTHENTICATED" });
         dispatch({ type: "USER_LOADED", user });
-      } catch {
+      } catch (error) {
         if (restoreSupersededRef.current) return;
-        authTokenStore.clear();
-        queryClient.clear();
-        dispatch({ type: "SESSION_FAILED" });
+        if (error instanceof ApiError && error.status === 401) {
+          authTokenStore.clear();
+          queryClient.clear();
+          dispatch({ type: "SESSION_FAILED" });
+        } else {
+          setRestoreError(true);
+        }
       }
     })();
-  }, [queryClient]);
+  }, [queryClient, restoreAttempt]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       async authenticate(accessToken) {
         restoreSupersededRef.current = true;
-        authTokenStore.set(accessToken);
+        if (authTokenStore.get() !== accessToken) {
+          throw new DOMException("Session changed", "AbortError");
+        }
+        const generation = authTokenStore.getSessionGeneration();
+        queryClient.clear();
         dispatch({ accessToken, type: "AUTHENTICATED" });
 
         try {
           const user = await getMe();
+          if (authTokenStore.getSessionGeneration() !== generation) {
+            throw new DOMException("Session changed", "AbortError");
+          }
           dispatch({ type: "USER_LOADED", user });
-        } catch {
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") throw error;
           // Access Token 발급은 성공했으므로 사용자 요약 실패와 세션 실패를 구분한다.
         }
       },
       clearSession() {
         restoreSupersededRef.current = true;
-        authTokenStore.clear();
+        authTokenStore.changeSession();
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
       },
@@ -111,7 +120,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient, state],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {restoreError && state.status === "checking" && (
+        <div role="alert" className="bg-layer-bg p-4 text-center">
+          로그인 상태를 확인하지 못했습니다.{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              setRestoreError(false);
+              retryRestore();
+            }}
+          >
+            로그인 상태 다시 확인
+          </button>
+        </div>
+      )}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -3,6 +3,7 @@
 import { Placeholder } from "@tiptap/extensions";
 import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/core";
 import { useRef, useState } from "react";
 import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-modal";
 import { Button } from "@/shared/components/ui/button";
@@ -109,33 +110,36 @@ const toolbarButtonClasses = (active: boolean) =>
    P1 "AI Story·Copilot")이라 모달 내부는 전부 목업이고, 결과를 "불러오기"하면 이 에디터의
    콘텐츠를 통째로 덮어쓴다(IA의 "전체 덮어쓰기"에 해당, "복사하기"는 모달에 없어 미구현).
 
-   이미지 삽입은 업로드 서버가 없어 base64로 에디터 콘텐츠에 직접 임베드한다 — 데모/작성
-   단계에서만 쓸 수 있고, 실제 저장 시엔 콘텐츠 용량이 커진다. 업로드 API가 생기면 base64
-   대신 그 API로 올리고 URL만 저장하도록 바꾼다.
-
-   동영상은 이미지처럼 파일을 직접 올릴 수도, YouTube·mp4 URL을 붙여넣을 수도 있다. 파일은
-   이미지와 같은 방식(base64 임베드)이라 영상이라 용량이 훨씬 커진다 — 업로드 API가 생기면
-   base64 대신 그 API로 올리고 URL만 저장하도록 바꾼다.
+   API 화면에서는 upload 콜백으로 이미지·영상을 업로드하고 반환된 URL을 삽입한다.
+   upload가 없는 데모에서만 base64를 사용한다. 동영상은 파일 또는 YouTube·mp4 URL로 삽입한다.
 
    URL이냐 파일이냐를 물어보는 선택 UI가 필요한데, 이 저장소엔 드롭다운/팝오버 컴포넌트가
    따로 없다. 새로 만들지 않고 네이티브 <details>/<summary>로 여닫는 작은 메뉴를 쓴다. */
 export function StoryEditor({
   projectTitle,
   onReady,
+  initialContent,
+  upload,
+  projectId,
 }: {
   projectTitle: string;
   onReady: (editor: Editor) => void;
+  initialContent?: JSONContent;
+  upload?: (file: File, kind: "image" | "video") => Promise<string>;
+  projectId?: string;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoMenuRef = useRef<HTMLDetailsElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   /* shouldRerenderOnTransaction을 명시적으로 true로 안 주면(기본값 취급 시) 이 설치 버전의
      useEditor가 트랜잭션마다 재렌더링을 트리거하지 않는다 — 굵게/기울임을 눌러도 버튼의
      isActive 표시가 안 바뀌던 원인이 이거였다. */
   const editor = useEditor({
     extensions,
+    content: initialContent,
     immediatelyRender: false,
     shouldRerenderOnTransaction: true,
     onCreate: ({ editor }) => onReady(editor),
@@ -146,11 +150,24 @@ export function StoryEditor({
 
   const insertImageFromFile = (file: File) => {
     if (!editor) return;
-    if (file.size > MAX_IMAGE_BYTES) {
+    if (!upload && file.size > MAX_IMAGE_BYTES) {
       window.alert("이미지는 5MB 이하만 삽입할 수 있어요.");
       return;
     }
-    readFileAsDataUrl(file, (src) => editor.chain().focus().setImage({ src }).run());
+    if (upload) {
+      setUploadError("");
+      void upload(file, "image")
+        .then((src) => {
+          if (!editor.isDestroyed) editor.chain().focus().setImage({ src }).run();
+        })
+        .catch((error: unknown) =>
+          setUploadError(
+            error instanceof Error
+              ? error.message
+              : "이미지를 업로드하지 못했습니다. 다시 선택해주세요.",
+          ),
+        );
+    } else readFileAsDataUrl(file, (src) => editor.chain().focus().setImage({ src }).run());
   };
 
   const insertVideo = (src: string) => {
@@ -163,11 +180,24 @@ export function StoryEditor({
   };
 
   const insertVideoFromFile = (file: File) => {
-    if (file.size > MAX_VIDEO_BYTES) {
+    if (!upload && file.size > MAX_VIDEO_BYTES) {
       window.alert("영상은 20MB 이하만 삽입할 수 있어요.");
       return;
     }
-    readFileAsDataUrl(file, insertVideo);
+    if (upload) {
+      setUploadError("");
+      void upload(file, "video")
+        .then((src) => {
+          if (editor && !editor.isDestroyed) insertVideo(src);
+        })
+        .catch((error: unknown) =>
+          setUploadError(
+            error instanceof Error
+              ? error.message
+              : "영상을 업로드하지 못했습니다. 다시 선택해주세요.",
+          ),
+        );
+    } else readFileAsDataUrl(file, insertVideo);
   };
 
   const closeVideoMenu = () => {
@@ -332,6 +362,7 @@ export function StoryEditor({
 
       {isAiModalOpen && (
         <FundingStoryModal
+          projectId={projectId}
           projectTitle={projectTitle || "프로젝트"}
           onClose={() => setAiModalOpen(false)}
           onImport={(body) => {
@@ -340,6 +371,7 @@ export function StoryEditor({
           }}
         />
       )}
+      {uploadError && <p role="alert">{uploadError}</p>}
     </div>
   );
 }

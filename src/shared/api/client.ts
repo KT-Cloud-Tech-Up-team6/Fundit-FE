@@ -53,6 +53,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 async function request<T>(path: string, options: ApiRequestOptions, retried: boolean): Promise<T> {
   const { auth = false, body, ...requestInit } = options;
+  const generation = authTokenStore.getSessionGeneration();
+  const assertSession = () => {
+    if (auth && authTokenStore.getSessionGeneration() !== generation) {
+      throw new DOMException("Session changed", "AbortError");
+    }
+  };
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...requestInit,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -60,12 +66,16 @@ async function request<T>(path: string, options: ApiRequestOptions, retried: boo
     headers: makeHeaders(options, auth ? authTokenStore.get() : null),
   });
 
+  assertSession();
   if (auth && response.status === 401 && !retried) {
     await refreshOnce();
+    assertSession();
     return request(path, options, true);
   }
 
-  return parseResponse<T>(response);
+  const result = await parseResponse<T>(response);
+  assertSession();
+  return result;
 }
 
 /* 어느 한 호출자의 AbortSignal에 묶으면, 그 호출자가 취소될 때 같이 기다리던 다른
@@ -73,18 +83,23 @@ async function request<T>(path: string, options: ApiRequestOptions, retried: boo
 export async function refreshOnce(): Promise<string> {
   if (!refreshPromise) {
     const revision = authTokenStore.getRevision();
-    refreshPromise = fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
-      method: "POST",
-      credentials: "include",
-    })
-      .then((response) => parseResponse<{ accessToken: string }>(response))
-      .then(({ accessToken }) => {
-        if (authTokenStore.getRevision() !== revision) {
-          throw new DOMException("Session changed", "AbortError");
-        }
-        authTokenStore.set(accessToken);
-        return accessToken;
-      })
+    const refresh = async () => {
+      if (authTokenStore.getRevision() !== revision) {
+        throw new DOMException("Session changed", "AbortError");
+      }
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const { accessToken } = await parseResponse<{ accessToken: string }>(response);
+      if (authTokenStore.getRevision() !== revision) {
+        throw new DOMException("Session changed", "AbortError");
+      }
+      authTokenStore.set(accessToken);
+      return accessToken;
+    };
+    // 쿠키를 바꾸는 로그인·가입과 refresh 모두 같은 origin 잠금을 사용한다.
+    refreshPromise = withAuthLock(refresh)
       .catch((error: unknown) => {
         /* 네트워크 오류·타임아웃·5xx까지 세션 실패로 취급하면 일시적 장애로 강제 로그아웃된다.
            Refresh Token 자체가 무효하다고 서버가 확인한 401에서만 지운다. */
@@ -107,4 +122,28 @@ export async function refreshOnce(): Promise<string> {
 
 export function apiRequest<T>(path: string, options: ApiRequestOptions = {}) {
   return request<T>(path, options, false);
+}
+
+async function withAuthLock<T>(run: () => Promise<T>): Promise<T> {
+  const locks = globalThis.navigator?.locks;
+  return await (locks ? locks.request("fundit-auth-refresh", run) : run());
+}
+
+// 쿠키가 바뀌기 전에 이전 세션을 무효화하고, 결과 저장까지 refresh와 직렬화한다.
+export function apiSessionRequest<T extends object>(
+  path: string,
+  options: ApiRequestOptions,
+): Promise<T> {
+  return withAuthLock(async () => {
+    options.signal?.throwIfAborted();
+    const generation = authTokenStore.changeSession();
+    const result = await apiRequest<T>(path, options);
+    if (authTokenStore.getSessionGeneration() !== generation) {
+      throw new DOMException("Session changed", "AbortError");
+    }
+    if ("accessToken" in result && typeof result.accessToken === "string") {
+      authTokenStore.set(result.accessToken);
+    }
+    return result;
+  });
 }
