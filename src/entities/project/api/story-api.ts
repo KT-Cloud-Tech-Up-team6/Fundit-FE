@@ -1,15 +1,4 @@
 import { apiRequest } from "../../../shared/api/client";
-import { uploadProjectMedia } from "./media-api";
-
-export function uploadStoryMedia(projectId: string, file: File) {
-  const image =
-    ["image/jpeg", "image/png", "image/webp"].includes(file.type) &&
-    /\.(jpe?g|png|webp)$/i.test(file.name);
-  const video = file.type === "video/mp4" && /\.mp4$/i.test(file.name);
-  if ((!image && !video) || file.size <= 0 || file.size > (image ? 10 : 100) * 1024 * 1024)
-    throw new Error("JPG·PNG·WebP 이미지는 10MB, MP4 영상은 100MB 이하만 업로드할 수 있습니다.");
-  return uploadProjectMedia(projectId, file);
-}
 
 export type StoryPreviewResponse = {
   projectId: string;

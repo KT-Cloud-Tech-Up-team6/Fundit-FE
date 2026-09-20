@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { InputButton } from "@/shared/components/ui/input-button";
 
-/* 파일은 서버에 업로드하지 않고 이름 표시와 로컬 미리보기에 사용한다. */
+/* 선택한 파일을 부모에 전달한다. 서버 업로드 또는 데모 미리보기는 부모가 처리한다. */
 export function ThumbnailUpload({
   onFileChange,
   initialName = "",
@@ -46,7 +46,7 @@ export function ThumbnailUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];

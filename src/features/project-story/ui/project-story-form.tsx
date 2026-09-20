@@ -3,7 +3,7 @@
 import type { Editor, JSONContent } from "@tiptap/core";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { uploadStoryMedia } from "@/entities/project/api/story-api";
+import { uploadProjectMedia, validateProjectMedia } from "@/entities/project/api/media-api";
 import { saveProjectStory } from "@/entities/project/api/story-api";
 import type { StoryPreviewResponse } from "@/entities/project/api/story-api";
 import { fromIntroContent, toIntroContent } from "../model/story-content";
@@ -40,13 +40,13 @@ export function ProjectStoryForm({
   const [initialContent] = useState(() =>
     initial ? fromIntroContent(initial.introContent ?? []) : undefined,
   );
-  async function upload(file: File) {
+  async function upload(file: File, kind: "image" | "media" = "media") {
     if (pending.current) throw new Error("업로드 또는 저장 중입니다.");
     pending.current = true;
     setBusy(true);
     setMessage("");
     try {
-      return await uploadStoryMedia(projectId, file);
+      return await uploadProjectMedia(projectId, file, kind);
     } finally {
       pending.current = false;
       setBusy(false);
@@ -125,13 +125,10 @@ export function ProjectStoryForm({
           <ThumbnailUpload
             initialName={initial?.coverImageUrl ?? ""}
             onFileChange={async (file) => {
-              if (!initial) {
-                setThumbnailUrl(URL.createObjectURL(file));
-                return;
-              }
               setFailed(false);
               try {
-                setThumbnailUrl(await upload(file));
+                validateProjectMedia(file, "image");
+                setThumbnailUrl(initial ? await upload(file, "image") : URL.createObjectURL(file));
               } catch (error) {
                 setFailed(true);
                 setMessage(
@@ -162,8 +159,8 @@ export function ProjectStoryForm({
         >
           미리보기
         </Button>
-        {/* 소개 저장 API 명세는 docs/API_CONTRACT.md에 있다. 편집기 콘텐츠 변환·업로드·저장
-           연동은 미구현이므로 임시저장·저장은 비활성으로 유지한다. */}
+        {/* 서버에서 불러온 프로젝트만 저장하며, 데모에서는 미리보기만 제공한다.
+           임시저장과 저장은 같은 소개 저장 API를 사용한다(docs/API_CONTRACT.md). */}
         <div className="grid w-full grid-cols-2 gap-3 sm:w-96">
           <Button
             variant="secondary"
