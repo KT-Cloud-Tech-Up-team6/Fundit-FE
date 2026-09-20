@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { buyerCategories, getBuyerCategory } from "@/entities/category/model/category-mock";
+import {
+  buyerCategories,
+  getBuyerCategory,
+  type BuyerCategory,
+} from "@/entities/category/model/category-mock";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { Icon } from "@/shared/components/ui/icon";
@@ -8,8 +12,17 @@ import { SearchField } from "@/shared/components/ui/search-field";
 import { CategoryBannerCarousel } from "./category-banner-carousel";
 import styles from "./buyer-category-list.module.css";
 
-export function BuyerCategoryList({ slug }: { slug: string }) {
-  const selectedCategory = getBuyerCategory(slug);
+export function BuyerCategoryList({
+  slug,
+  categories = buyerCategories,
+}: {
+  slug: string;
+  categories?: readonly BuyerCategory[];
+}) {
+  const selectedCategory =
+    categories.find((category) => category.slug === slug) ??
+    categories[0] ??
+    getBuyerCategory(slug);
 
   return (
     <div className="bg-layer-surface-default min-h-dvh w-full">
@@ -46,7 +59,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
           <div className="flex gap-0 px-5 pt-2 pb-8">
             <nav aria-label="카테고리 목록" className="w-25 shrink-0 min-[1200px]:w-50">
               <ul className="space-y-3">
-                {buyerCategories.map((category) => {
+                {categories.map((category) => {
                   const selected = category.slug === selectedCategory.slug;
                   return (
                     <li key={category.slug}>

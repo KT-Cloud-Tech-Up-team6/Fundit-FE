@@ -20,7 +20,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Ready: Story = {};
+export const Information: Story = {};
+
+export const Ready: Story = {
+  args: { initialView: "ready" },
+};
 
 export const Requesting: Story = {
   args: { initialView: "requesting" },

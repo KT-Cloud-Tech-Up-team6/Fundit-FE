@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Storybook 정적 빌드 산출물
     "storybook-static/**",
+    // MSW CLI가 생성하고 업데이트하는 브라우저 worker
+    "public/mockServiceWorker.js",
   ]),
   ...storybook.configs["flat/recommended"],
 ]);

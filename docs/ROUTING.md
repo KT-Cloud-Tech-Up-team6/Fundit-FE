@@ -53,17 +53,18 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 공통·인증
 
-| URL                       | 화면                           | 접근 조건      | 상태        |
-| ------------------------- | ------------------------------ | -------------- | ----------- |
-| `/auth/signup`            | 가입 방식·약관                 | guest          | implemented |
-| `/auth/signup/verify`     | 포트원 본인인증 진행·결과 확인 | terms complete | implemented |
-| `/auth/signup/profile`    | 회원정보 입력                  | verified guest | implemented |
-| `/auth/signup/complete`   | 가입 완료                      | verified guest | implemented |
-| `/auth/login`             | 로그인                         | guest          | implemented |
-| `/auth/recovery/email`    | 이메일 찾기                    | guest          | implemented |
-| `/auth/recovery/password` | 비밀번호 재설정                | guest          | implemented |
+| URL                                    | 화면                                | 접근 조건      | 상태        |
+| -------------------------------------- | ----------------------------------- | -------------- | ----------- |
+| `/auth/signup`                         | 가입 방식·약관                      | guest          | implemented |
+| `/auth/signup/verify`                  | 포트원 본인인증 진행·결과 확인      | terms complete | implemented |
+| `/auth/identity-verification/callback` | 모바일 PortOne 리다이렉트 결과 수신 | terms complete | implemented |
+| `/auth/signup/profile`                 | 회원정보 입력                       | verified guest | implemented |
+| `/auth/signup/complete`                | 가입 완료                           | verified guest | implemented |
+| `/auth/login`                          | 로그인                              | guest          | implemented |
+| `/auth/recovery/email`                 | 이메일 찾기                         | guest          | implemented |
+| `/auth/recovery/password`              | 비밀번호 재설정                     | guest          | implemented |
 
-약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 포트원 SDK 호출과 서버 검증 결과를 연결하는 프론트엔드 진행 경로이며, 본인인증 입력 화면을 직접 구현하지 않습니다.
+약관은 `/auth/signup`의 시트로 표시합니다. `/auth/signup/verify`는 이름·생년월일·전화번호를 받아 포트원 SDK 요청에 prefill로 실어 보내고, 그 이후(통신사 선택·SMS 인증번호 입력 등)는 포트원 팝업이 자체적으로 처리합니다. `/auth/identity-verification/callback`은 모바일처럼 포트원이 팝업 대신 전체 페이지 리다이렉트를 쓰는 경우의 결과 수신 전용 라우트이며, `sessionStorage`(`fundit-auth-identity-recovery`, 10분 만료, `src/features/auth/model/auth-flow-session.ts`)로 리다이렉트 전 입력값을 복구한 뒤 원래 가입 흐름(`/auth/signup/verify`)으로 되돌립니다.
 
 ## 구매자 탐색·LIVE
 
@@ -200,3 +201,16 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - seller 화면은 회원 인증을 확인합니다. 프로젝트 개인정보 동의는 신규 생성마다 별도로 받으며 서버 기록·검증은 API 연동 시 적용합니다.
 - owner 화면은 URL 식별자를 신뢰하지 않고 서버에서 리소스 소유권을 재검증합니다.
 - 환불·취소 등 조건부 화면은 FE 시간 계산이 아니라 서버 eligibility와 불가 사유를 따릅니다.
+
+## 제작·배송 주문 관계 캐시
+
+주문 UUID에서 프로젝트 UUID를 찾는 목록 조회 결과는 회원·주문별 Query Key로 5분간 재사용한다. 요약과 기록 화면을 오갈 때 같은 주문 목록을 다시 순회하지 않는다. 로그아웃 시 캐시 제거와 명시적 무효화는 유지한다. 배송·제작 현황 조회에는 이 staleTime을 적용하지 않아 최신 상태 조회를 유지한다. 회원 접근 게이트는 `providers/member-access.tsx`를 재사용한다.
+
+최초 조회와 캐시 만료 후에는 주문 목록 페이지 순회가 필요하다. 주문 상세에 `projectId`를 제공하는 BE 계약이 생기면 직접 조회로 전환할 수 있다.
+
+# 판매자 API 연결 보완 (#191)
+
+- `/seller/projects`는 인증 후 서버 목록·검색·상태별 개수·페이지를 조회합니다. API 오류를 로컬 목업 목록으로 대체하지 않습니다.
+- `/seller/projects/[projectId]?tab=basic-info`와 `/edit?section=basic-info`는 서버 UUID의 기본정보 조회·수정으로 연결합니다. 신규 저장 후 같은 UUID 경로로 이동합니다.
+- 기존 데모 ID의 관리 화면은 유지합니다. 서버 UUID는 기본정보·리워드·스토리·펀딩·새 소식·커뮤니티·제작배송 API 화면으로 연결합니다. 환불 정책·정산·LIVE 등 미연결 탭은 준비 중으로 표시하며 다른 프로젝트의 목업을 보여주지 않습니다.
+- 준비중의 수정일·작성 단계 등 응답에 없는 값은 임의 생성하지 않습니다. 생성일은 수정일로 사용하지 않습니다.

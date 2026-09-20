@@ -6,15 +6,15 @@
 
 ## 현재 구현 상태
 
-2026년 9월 20일(KST, UTC+09:00) 기준입니다. `main`에는 주요 화면과 목업 기반 인터랙션, Docker 이미지 검증 및 ECR 업로드 CI가 반영돼 있습니다. 인증과 기능별 API 연결은 별도 PR에서 진행 중이며, 실제 BE·외부 서비스·클라우드 환경의 통합 QA는 완료되지 않았습니다.
+2026년 9월 20일(KST, UTC+09:00) 기준입니다. 주요 화면과 목업 기반 인터랙션, 인증·회원가입, 판매자 프로젝트·리워드·스토리·펀딩 관리, 구매자 탐색·회원·주문·결제 준비·제작배송 API 연결을 구현했습니다. Docker 이미지 검증 및 ECR 업로드 CI를 갖추었으며, 실제 BE·외부 서비스·클라우드 환경의 통합 QA는 완료되지 않았습니다.
 
-| 구분             | 상태                                                                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| 구매자 화면      | LIVE 목록·상세·시청·다시보기, 카테고리·검색·찜·마이페이지, 결제·제작배송 등의 화면과 목업 흐름 구현. 일부 탭·보조 화면은 placeholder 유지 |
-| 판매자 화면      | 프로젝트 작성·스토리 편집·AI 스토리 목업·펀딩관리·LIVE 콘솔·제작배송 등의 화면 구현. 실제 송출·AI·배송 연동 완료를 의미하지 않음          |
-| 인증 및 API 연결 | [#97](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/97), #200~#207에서 구현·검토 중. 아직 main 미반영                          |
-| 이미지 배포 준비 | PR에서 Docker 빌드·기동 검증, main push에서 검증 후 AWS ECR 업로드                                                                        |
-| 통합 QA          | 실제 Gateway 주소·테스트 계정과 데이터·배포 환경을 확정하고 진행해야 함. ECR 업로드 성공은 서비스 배포 및 API 연동 완료와 별개            |
+| 구분             | 상태                                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 구매자 화면      | LIVE 목록·상세·시청·다시보기, 카테고리·검색·찜·마이페이지, 결제·제작배송 등의 화면과 목업 흐름 구현. 일부 탭·보조 화면은 placeholder 유지                                             |
+| 판매자 화면      | 프로젝트 작성·스토리 편집·AI 스토리 목업·펀딩관리·LIVE 콘솔·제작배송 등의 화면 구현. 실제 송출·AI·배송 연동 완료를 의미하지 않음                                                      |
+| 인증 및 API 연결 | [#97](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/97)의 인증·회원가입 기반과 #200~#207의 기능별 API 연결 통합. 생성 복구·카드 상세 ID·실결제 등 제한은 아래 QA 항목 참조 |
+| 이미지 배포 준비 | PR에서 Docker 빌드·기동 검증, main push에서 검증 후 AWS ECR 업로드                                                                                                                    |
+| 통합 QA          | 실제 Gateway 주소·테스트 계정과 데이터·배포 환경을 확정하고 진행해야 함. ECR 업로드 성공은 서비스 배포 및 API 연동 완료와 별개                                                        |
 
 일반 로그인 화면은 현재 실제 제출이 비활성화돼 있습니다. 회원가입 화면이 존재한다는 사실만으로 PortOne 본인인증과 BE 가입이 실제 연결된 상태로 판단하지 않습니다. LIVE 시작·종료 조작은 보류 중이며, 실제 IVS 송출·채팅과 AI 연결도 별도 작업입니다.
 
@@ -65,12 +65,12 @@
 | 패키지 관리     | pnpm 10.33.2                            | lockfile 기반 설치                          |
 | CI·이미지       | GitHub Actions, Docker, AWS ECR         | 검증·컨테이너 기동 확인·OIDC 인증 업로드    |
 
-인증 PR #97에는 TanStack Query v5, React Hook Form·Zod, MSW, PortOne Browser SDK가 추가돼 있습니다. 후속 API PR은 이를 기반으로 하며, 해당 PR이 머지되기 전까지 main의 설치 항목으로 취급하지 않습니다.
+TanStack Query v5, React Hook Form·Zod, MSW, PortOne Browser SDK를 인증·회원가입 기반에 사용합니다. 후속 API 연결도 이 기반을 공유합니다.
 
 ### 상태 관리 원칙
 
 - 공유 링크·새로고침·뒤로가기에 필요한 상태는 URL에서 관리합니다.
-- 클라이언트 서버 상태는 API 연결 PR의 TanStack Query로 관리합니다.
+- 클라이언트 서버 상태는 TanStack Query로 관리합니다.
 - 화면 내부 입력·모달·단계 전환은 `useState`·`useReducer`, 제한된 공유 상태는 Context를 사용합니다.
 - Zustand·Redux Toolkit은 도입하지 않았습니다. 실제 공유 상태 문제가 확인되면 재검토합니다.
 
@@ -128,7 +128,7 @@ Fundit-FE/
 | 사용자 | 경로                                                             | 화면 및 현재 범위                                                                              |
 | ------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | 공통   | `/`                                                              | 별도 홈 피드 없이 `/live`로 이동                                                               |
-| 공통   | `/auth/signup`, `/auth/signup/*`                                 | 약관·회원가입 화면. 실제 인증·가입 연결은 #97 검토 중                                          |
+| 공통   | `/auth/signup`, `/auth/signup/*`                                 | 약관·본인인증·회원가입 API 연결. 실제 BE·PortOne 통합 QA는 미완료                              |
 | 공통   | `/auth/login`, `/auth/recovery/*`                                | 로그인·복구 화면. 실제 로그인 제출 비활성화                                                    |
 | 구매자 | `/live`, `/live/upcoming`, `/live/[liveId]`                      | 목록·예정·시청·다시보기 화면과 목업                                                            |
 | 구매자 | `/categories/[slug]`, `/search`, `/my/wishlist`                  | 카테고리·검색·찜 화면과 목업                                                                   |
@@ -165,7 +165,7 @@ cp .env.example .env.local
 
 PowerShell에서는 `Copy-Item .env.example .env.local`을 사용합니다.
 
-API 연결 PR #97 및 이를 기반으로 한 브랜치에는 다음 변수가 정의돼 있습니다. 실제 설정은 작업 브랜치의 `.env.example`과 확정된 BE·인프라 환경을 따릅니다.
+인증·회원가입 연결에는 다음 변수가 정의돼 있습니다. 실제 설정은 `.env.example`과 확정된 BE·인프라 환경을 따릅니다.
 
 | 변수                              | 용도                                                                                                       |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -215,9 +215,11 @@ GitOps·ArgoCD를 통한 실제 서비스 배포는 별도 인프라 단계입�
 - 판매자 API는 [#200 프로젝트](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/200), [#201 리워드](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/201), [#202 스토리](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/202), [#203 펀딩관리](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/203)에서 다룹니다.
 - 구매자 API는 [#204 탐색·상세](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/204), [#205 회원·찜·배송지](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/205), [#206 주문·결제 준비](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/206), [#207 제작배송](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/pull/207)에서 다룹니다.
 - API PR의 로컬 테스트·HTTP 테스트 대역 검증과 실제 BE 서버 검증을 구분합니다. 브라우저에서 목업 흐름이 동작해도 실제 결제·본인인증·업로드 성공을 뜻하지 않습니다.
-- 팀원 검토와 PR 통합 후, 확정된 Gateway 주소·계정·연관 데이터·배포 이미지로 핵심 흐름을 검증해야 합니다.
+- 확정된 Gateway 주소·계정·연관 데이터·배포 이미지로 실제 핵심 흐름을 검증해야 합니다.
 - BE가 화면용 목업을 제공할 경우 응답 형식뿐 아니라 저장 후 재조회·상태 변경 지원 여부도 확인합니다. Storybook과 자동 테스트용 목업은 별도로 유지합니다.
-- 실제 결제 승인, IVS·AI, 외부 배송 연동과 API 응답 누락 등은 해당 PR의 미완료·미검증 항목 및 [API 계약 문서](./docs/API_CONTRACT.md)를 확인합니다. 미머지 기능의 상세 계약은 해당 PR 브랜치 기준입니다.
+- 실제 결제 승인, IVS·AI, 외부 배송 연동과 API 응답 누락 등은 해당 PR의 미완료·미검증 항목 및 [API 계약 문서](./docs/API_CONTRACT.md)를 확인합니다. API 클라이언트 구현이 실서비스 통합 완료를 뜻하지 않습니다.
+- 생성 멱등성과 불확실한 결과 복구는 [#213 프로젝트](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/213), [#214 리워드](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/214), [#215 주문](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/215)에서 추적합니다. 현재 탭 단위 FE 방어는 다중 탭·기기 중복 방지나 서버 결과 복구를 보장하지 않습니다.
+- 구매자 목록·찜 카드의 숫자 ID와 공개 상세 UUID 연결은 [#216](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/216)에서 추적합니다. 매핑 계약이 없는 카드의 상세 이동은 비활성 상태입니다.
 
 ## 설계 문서
 

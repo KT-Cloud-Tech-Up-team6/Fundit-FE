@@ -1,5 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite";
 
+import { AuthFlowProvider } from "../src/features/auth/model/auth-flow-context";
+import { AppProviders } from "../src/providers/app-providers";
 import "../src/app/globals.css";
 
 /**
@@ -45,15 +47,19 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "var(--layer-bg)",
-          color: "var(--text-default)",
-        }}
-      >
-        <Story />
-      </div>
+      <AppProviders mswForceEnabled>
+        <AuthFlowProvider>
+          <div
+            style={{
+              minHeight: "100vh",
+              background: "var(--layer-bg)",
+              color: "var(--text-default)",
+            }}
+          >
+            <Story />
+          </div>
+        </AuthFlowProvider>
+      </AppProviders>
     ),
   ],
 };
