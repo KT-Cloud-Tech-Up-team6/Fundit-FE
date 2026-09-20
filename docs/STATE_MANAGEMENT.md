@@ -191,3 +191,15 @@ Redux Toolkit은 이벤트 이력 추적, 복잡한 middleware 또는 조직 표
 - [TanStack Query의 Server Component 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr).
 - [TanStack Query Query Key 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys).
 - [Zustand의 Next.js 가이드](https://zustand.docs.pmnd.rs/learn/guides/nextjs).
+
+## 인증 갱신 동시성
+
+같은 탭의 refresh 호출은 하나의 Promise를 공유한다. Web Locks를 지원하는 환경에서는 `fundit-auth-refresh` 잠금으로 같은 origin의 refresh와 로그인·가입·소셜 연동 요청을 직렬화한다. 세션을 교체하는 API는 쿠키가 바뀌기 전에 `authTokenStore.changeSession()`을 호출하고 결과 토큰 저장까지 잠금을 유지한다. `authenticate()`는 해당 API가 저장한 토큰의 사용자 요약을 불러온다.
+
+탭 간에는 localStorage의 `fundit.auth.session-generation`에 임의 세대 표식만 공유한다. 토큰·계정 ID·권한은 저장하지 않는다. 다른 탭의 세대 변경은 storage 이벤트 및 요청 전후의 직접 읽기로 감지한다. 변경을 감지하면 기존 토큰·사용자 상태·Query 캐시를 비우고, 대기/진행 중인 refresh 및 이전 세대의 인증 요청 결과는 AbortError로 폐기한다. 다른 탭은 새 계정을 자동 적용하지 않고 비로그인 상태로 전환하며, 새로고침 시 서버 쿠키로 세션을 복구한다. 일반적인 같은 계정의 refresh는 세대를 바꾸거나 다른 탭을 로그아웃시키지 않는다.
+
+Web Locks 미지원 환경에서는 기존 탭 내부 refresh 중복 방지만 유지한다. localStorage가 차단된 환경에서는 교차 탭 세대 감지가 지원되지 않고 탭 내부 revision 보호만 유지한다. 다른 origin·브라우저·기기의 동시 갱신, 브라우저 외부에서 바뀐 쿠키는 이 조정 범위에 포함하지 않는다.
+
+회원가입의 주소 포함 제출과 건너뛰기는 같은 useRef 잠금을 사용해 렌더링 전 연속 제출을 막고 성공·실패·조기 반환 모두 finally에서 잠금을 해제한다.
+
+소셜 로그인 응답 타입은 BE `SocialLoginResponse`의 `needsSignup`·`needsLink` 판별값을 사용한다. `status` 필드를 가정하지 않으며, 현재 소셜 로그인 화면 연결은 이 타입 정합화와 별도 작업이다.
