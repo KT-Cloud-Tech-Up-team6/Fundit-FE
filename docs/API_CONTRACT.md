@@ -1,5 +1,12 @@
 # API 계약 초안
 
+## 검색·카테고리 카드의 공개 상세 연결 (#216)
+
+- 2026-09-21 BE develop `ae1e032`의 `ProjectCardProjection.projectPublicId`를 사용한다. 숫자 `projectId`는 카드 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
+- `/search`와 `/categories/{major}/{minor}`에서 유효한 UUID가 있는 카드만 `/projects/{UUID}`로 연결한다. 필드 누락·null·잘못된 값은 상세 연결 대기 상태를 유지하며 숫자 ID나 데모 ID로 대체하지 않는다.
+- 찜 목록 `WishListItemResponse`에는 공개 UUID가 없어 이번 연결 범위에서 제외한다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는다.
+- 단위 테스트, lint, typecheck, production build와 격리 Playwright의 모바일 390×844·데스크톱 1440×900 검색/카테고리 클릭·새로고침·뒤로/앞으로가기·누락/잘못된 UUID·404 표시를 확인했다. API 응답은 계약 기반 fixture이며 실제 QA 배포·색인 데이터 연결은 미검증이다.
+
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 목록은 `/api/v1/orders`의 UUID 계약으로 통합됐으며 `/api/v2/orders`는 제거됐다. 제작·배송의 `/api/v2/projects/{projectId}/fulfillment` 및 `/api/v2/projects/{projectId}/fundings/{fundingId}/shipment` UUID 계약은 유지한다.
