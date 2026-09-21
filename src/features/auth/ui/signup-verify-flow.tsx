@@ -17,16 +17,16 @@ import {
 import { isApiError } from "@/shared/api/api-error";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
-import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
+import { AuthIdentityVerification } from "./auth-identity-verification";
 import type { IdentityStatus } from "./auth-identity-verification";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 
-export type SignupVerifyView = IdentityStatus | "information" | "done";
+/* 본인정보를 받은 즉시 PortOne을 열기 때문에 회원가입에는 안내만 하는 ready 화면이 없다. */
+export type SignupVerifyView = Exclude<IdentityStatus, "ready"> | "information" | "done";
 
 /* 제목·상태 문구·버튼 라벨은 AuthIdentityVerification이 소유한다. 여기서는 회원가입
    맥락에서만 달라지는 안내 문구를 준다. */
-const descriptionByStatus: Record<IdentityStatus, string> = {
-  ready: "안전한 가입을 위해\n휴대폰 본인인증이 필요해요.",
+const descriptionByStatus: Record<Exclude<IdentityStatus, "ready">, string> = {
   requesting: "열린 인증 창에서\n본인인증을 완료해 주세요.",
   cancelled: "회원가입을 계속하려면\n본인인증을 다시 진행해 주세요.",
   failed: "인증 과정에서 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
@@ -66,6 +66,31 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     mutationFn: (identityVerificationId: string) => verifyIdentity({ identityVerificationId }),
   });
 
+  /* 본인정보를 받은 직후 바로 인증창을 연다. 취소·실패 뒤 "다시 시도"도 같은 경로로 즉시 다시 연다. */
+  async function startVerification(input: IdentityDraft) {
+    setView("requesting");
+    /* 모바일에서는 이 호출이 페이지 전체 리다이렉트로 이어질 수 있어, 이 함수가 이어서
+       실행된다는 보장 없이 미리 복구용 정보를 남겨둔다. 같은 페이지에서 끝나면 아래에서
+       바로 지운다. */
+    saveIdentityRecoverySession({ agreedTerms: selectedTermCodes, identityDraft: input });
+    try {
+      const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
+      const identityResult = await identityMutation.mutateAsync({ draft: input, redirectUrl });
+      clearIdentityRecoverySession();
+      if (identityResult.status === "cancelled") {
+        setView("cancelled");
+        return;
+      }
+      setView("verifying");
+      const result = await verificationMutation.mutateAsync(identityResult.identityVerificationId);
+      setVerificationToken(result.verificationToken);
+      setView("done");
+    } catch (error) {
+      clearIdentityRecoverySession();
+      setView(isApiError(error) ? "verification-failed" : "failed");
+    }
+  }
+
   if (view === "information") {
     const valid =
       draft.name.trim().length > 0 &&
@@ -75,8 +100,9 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     function submitInformation(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (!valid) return;
-      setIdentityDraft({ ...draft, name: draft.name.trim() });
-      setView("ready");
+      const verified = { ...draft, name: draft.name.trim() };
+      setIdentityDraft(verified);
+      void startVerification(verified);
     }
 
     return (
@@ -128,7 +154,7 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
             />
           </div>
           <AuthButton disabled={!valid} type="submit">
-            다음
+            본인인증하기
           </AuthButton>
         </form>
       </AuthScreen>
@@ -159,48 +185,13 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
 
   const status = view;
 
-  async function handleAction() {
-    if (isRetryIdentityStatus(status)) {
-      setView("ready");
-      return;
-    }
-
-    if (!identityDraft) {
-      setView("information");
-      return;
-    }
-
-    setView("requesting");
-    /* 모바일에서는 이 호출이 페이지 전체 리다이렉트로 이어질 수 있어, 이 함수가 이어서
-       실행된다는 보장 없이 미리 복구용 정보를 남겨둔다. 같은 페이지에서 끝나면 아래에서
-       바로 지운다. */
-    saveIdentityRecoverySession({ agreedTerms: selectedTermCodes, identityDraft });
-    try {
-      const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
-      const identityResult = await identityMutation.mutateAsync({
-        draft: identityDraft,
-        redirectUrl,
-      });
-      clearIdentityRecoverySession();
-      if (identityResult.status === "cancelled") {
-        setView("cancelled");
-        return;
-      }
-      setView("verifying");
-      const result = await verificationMutation.mutateAsync(identityResult.identityVerificationId);
-      setVerificationToken(result.verificationToken);
-      setView("done");
-    } catch (error) {
-      clearIdentityRecoverySession();
-      setView(isApiError(error) ? "verification-failed" : "failed");
-    }
-  }
-
   return (
     <AuthScreen onBack={() => setView("information")}>
       <AuthIdentityVerification
         description={descriptionByStatus[status]}
-        onAction={() => void handleAction()}
+        onAction={() =>
+          identityDraft ? void startVerification(identityDraft) : setView("information")
+        }
         status={status}
       />
     </AuthScreen>
