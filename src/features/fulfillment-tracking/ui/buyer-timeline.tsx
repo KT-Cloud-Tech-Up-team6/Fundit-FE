@@ -117,7 +117,7 @@ export function BuyerTimeline({
             }`}
           >
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-[11px]">
+              <div className="flex h-6 items-center gap-[11px]">
                 <p
                   className={`text-caption-s font-medium ${collapsibleItems && isLatest ? "text-text-default" : "text-text-secondary"}`}
                 >
