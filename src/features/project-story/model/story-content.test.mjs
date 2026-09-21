@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { toIntroContent, fromIntroContent } from "./story-content.ts";
+import { toIntroContent, fromIntroContent, safeStoryHtml } from "./story-content.ts";
 import {
   confirmFundingStorySession,
   createFundingStoryRun,
@@ -11,6 +11,81 @@ import {
 } from "../../../entities/project/api/story-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 
+test("story formatting serializes to the backend HTML contract and round-trips", () => {
+  const document = {
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        attrs: { textAlign: "center" },
+        content: [
+          { type: "text", text: "bold", marks: [{ type: "bold" }] },
+          { type: "text", text: " italic", marks: [{ type: "italic" }] },
+          { type: "text", text: " underline", marks: [{ type: "underline" }] },
+          {
+            type: "text",
+            text: " color",
+            marks: [{ type: "textStyle", attrs: { color: "#123abc" } }],
+          },
+        ],
+      },
+      { type: "paragraph", content: [{ type: "hardBreak" }] },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "item" }] }],
+          },
+        ],
+      },
+    ],
+  };
+  const [{ value }] = toIntroContent(document);
+  assert.equal(
+    value,
+    '<p style="text-align: center"><strong>bold</strong><em> italic</em><u> underline</u><span style="color: #123abc"> color</span></p><p><br></p><ul><li><p>item</p></li></ul>',
+  );
+  assert.deepEqual(toIntroContent(fromIntroContent([{ type: "TEXT", value }])), [
+    { type: "TEXT", value },
+  ]);
+});
+
+test("legacy plain text and HTML entities retain newlines and decoded text", () => {
+  const legacy = fromIntroContent([{ type: "TEXT", value: "first\n\nthird & <fourth>" }]);
+  assert.deepEqual(legacy.content[0].content, [
+    { type: "text", text: "first" },
+    { type: "hardBreak" },
+    { type: "hardBreak" },
+    { type: "text", text: "third & <fourth>" },
+  ]);
+  const html = fromIntroContent([{ type: "TEXT", value: "<p>Fish &amp; chips &lt;3</p>" }]);
+  assert.equal(html.content[0].content[0].text, "Fish & chips <3");
+});
+
+test("pretty-printed server HTML does not create whitespace paragraphs", () => {
+  const restored = fromIntroContent([{ type: "TEXT", value: "<p>first</p>\n<p>second</p>" }]);
+  assert.deepEqual(restored.content, [
+    { type: "paragraph", content: [{ type: "text", text: "first" }] },
+    { type: "paragraph", content: [{ type: "text", text: "second" }] },
+  ]);
+  const nested = safeStoryHtml("<div><p>first</p><p>second</p></div>");
+  assert.equal(nested[0].tag, "div");
+});
+
+test("public rich text drops malicious markup and non-contract styles", () => {
+  const nodes = safeStoryHtml(
+    '<p onclick="globalThis.pwned=1" style="color:#abc; background:url(javascript:alert(1)); text-align:center">safe<script>globalThis.pwned=1</script><img src=x onerror="globalThis.pwned=1"><span style="font-weight:700;position:fixed">styled</span></p>',
+  );
+  assert.deepEqual(nodes, [
+    {
+      tag: "p",
+      style: { color: "#abc", textAlign: "center" },
+      children: ["safe", { tag: "span", style: { fontWeight: "700" }, children: ["styled"] }],
+    },
+  ]);
+});
+
 test("텍스트·줄바꿈·이미지·영상은 저장과 복원 왕복에 유지된다", () => {
   const blocks = [
     { type: "TEXT", value: "첫 문단\n다음 줄" },
@@ -18,7 +93,12 @@ test("텍스트·줄바꿈·이미지·영상은 저장과 복원 왕복에 유�
     { type: "VIDEO_URL", value: "https://cdn/video.mp4" },
     { type: "TEXT", value: "<script>태그도 텍스트</script>" },
   ];
-  assert.deepEqual(toIntroContent(fromIntroContent(blocks)), blocks);
+  assert.deepEqual(toIntroContent(fromIntroContent(blocks)), [
+    { type: "TEXT", value: "<p>첫 문단<br>다음 줄</p>" },
+    blocks[1],
+    blocks[2],
+    { type: "TEXT", value: "<p>&lt;script&gt;태그도 텍스트&lt;/script&gt;</p>" },
+  ]);
   const video = fromIntroContent([
     { type: "VIDEO_URL", value: "https://www.youtube.com/watch?v=12345678901" },
   ]);
@@ -103,8 +183,9 @@ test("서식·이미지 배치·로컬 파일·중간 빈 문단은 손실시키
     { type: "paragraph", content: [{ type: "text", text: "내용", marks: [{ type: "bold" }] }] },
     { type: "image", attrs: { src: "data:image/png;base64,AA==" } },
   ])
-    assert.throws(() => toIntroContent({ type: "doc", content: [node] }));
-  assert.throws(() =>
+    if (node.type !== "paragraph")
+      assert.throws(() => toIntroContent({ type: "doc", content: [node] }));
+  assert.doesNotThrow(() =>
     toIntroContent({
       type: "doc",
       content: [
@@ -147,4 +228,43 @@ test("AI 계약은 동일한 api/v1/ai 경로와 X-Project-Id를 사용한다", 
     confirmed_revision: 1,
     idempotency_key: "run-key",
   });
+});
+
+test("nested blocks and adjacent inline spacing survive server HTML restoration", () => {
+  const value = '<div style="text-align:center;color:#abc"><p>first</p>\n<p>second</p></div>';
+  const restored = fromIntroContent([{ type: "TEXT", value }]);
+  assert.equal(restored.content.length, 2);
+  assert.equal(restored.content[0].attrs.textAlign, "center");
+  assert.equal(restored.content[1].content[0].text, "second");
+  assert.deepEqual(restored.content[0].content[0].marks, [
+    { type: "textStyle", attrs: { color: "#abc" } },
+  ]);
+  const inline = fromIntroContent([{ type: "TEXT", value: "<strong>a</strong> <em>b</em>" }]);
+  assert.equal(inline.content.length, 1);
+  assert.equal(inline.content[0].content.map((node) => node.text).join(""), "a b");
+});
+
+test("numeric entities cannot crash parsing and unsupported color is not silently lost", () => {
+  assert.doesNotThrow(() => safeStoryHtml("<p>&#1114112;&#xD800;&#X1F600;</p>"));
+  assert.equal(
+    fromIntroContent([{ type: "TEXT", value: "<p>&#X1F600;</p>" }]).content[0].content[0].text,
+    "😀",
+  );
+  assert.throws(() =>
+    toIntroContent({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "color",
+              marks: [{ type: "textStyle", attrs: { color: "invalid" } }],
+            },
+          ],
+        },
+      ],
+    }),
+  );
 });
