@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { getMe, refreshAccessToken } from "@/features/auth/api/auth-api";
@@ -38,6 +38,18 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/* 네트워크·CORS·5xx는 일시적 장애라 유효한 세션을 지울 근거가 못 된다(refreshOnce도 401에서만 토큰을 지운다).
+   한 번만 더 시도하고, 그래도 실패하면 호출자가 비로그인으로 내려 화면이 checking에 갇히지 않게 한다. */
+async function restoreAccessToken(superseded: { current: boolean }) {
+  try {
+    return (await refreshAccessToken()).accessToken;
+  } catch (error) {
+    if (superseded.current || (error instanceof ApiError && error.status < 500)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return (await refreshAccessToken()).accessToken;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(authReducer, {
@@ -45,9 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: "checking",
     user: null,
   });
-  const restoreStarted = useRef<number | null>(null);
-  const [restoreAttempt, retryRestore] = useReducer((attempt: number) => attempt + 1, 0);
-  const [restoreError, setRestoreError] = useState(false);
+  const restoreStarted = useRef(false);
   /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
   const restoreSupersededRef = useRef(false);
 
@@ -63,29 +73,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   useEffect(() => {
-    if (restoreStarted.current === restoreAttempt) return;
-    restoreStarted.current = restoreAttempt;
+    if (restoreStarted.current) return;
+    restoreStarted.current = true;
 
     void (async () => {
+      let accessToken: string;
       try {
-        const { accessToken } = await refreshAccessToken();
-        if (restoreSupersededRef.current) return;
-        const user = await getMe();
-        if (restoreSupersededRef.current) return;
-        dispatch({ accessToken, type: "AUTHENTICATED" });
-        dispatch({ type: "USER_LOADED", user });
-      } catch (error) {
-        if (restoreSupersededRef.current) return;
-        if (error instanceof ApiError && error.status === 401) {
-          authTokenStore.clear();
-          queryClient.clear();
-          dispatch({ type: "SESSION_FAILED" });
-        } else {
-          setRestoreError(true);
-        }
+        accessToken = await restoreAccessToken(restoreSupersededRef);
+      } catch {
+        /* 서버가 확인한 실패(401·쿠키 없음)와, 재시도까지 실패한 장애만 여기 온다. checking에 두면 화면이
+           영영 진행되지 않으므로 비로그인으로 내린다. 쿠키는 그대로라 새로고침하면 다시 복구를 시도한다. */
+        if (!restoreSupersededRef.current) dispatch({ type: "SESSION_FAILED" });
+        return;
       }
+      if (restoreSupersededRef.current) return;
+      let user: AuthUser | null = null;
+      try {
+        user = await getMe();
+      } catch {
+        // 토큰은 유효하다. 사용자 요약 실패는 MemberAccess의 "다시 시도"가 받는다. 401이면 store 구독이 guest로 내린다.
+      }
+      if (restoreSupersededRef.current) return;
+      // getMe()가 401을 만나 토큰이 회전했을 수 있다. "다시 시도"가 store와 대조하므로 현재 토큰을 싣는다.
+      dispatch({ accessToken: authTokenStore.get() ?? accessToken, type: "AUTHENTICATED" });
+      if (user) dispatch({ type: "USER_LOADED", user });
     })();
-  }, [queryClient, restoreAttempt]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -120,26 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient, state],
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {restoreError && state.status === "checking" && (
-        <div role="alert" className="bg-layer-bg p-4 text-center">
-          로그인 상태를 확인하지 못했습니다.{" "}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              setRestoreError(false);
-              retryRestore();
-            }}
-          >
-            로그인 상태 다시 확인
-          </button>
-        </div>
-      )}
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
