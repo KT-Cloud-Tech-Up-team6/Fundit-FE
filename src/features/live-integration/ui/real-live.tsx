@@ -119,6 +119,7 @@ export function RealBuyerLive({
         onRefreshQuestions={() => void questions.refetch()}
         chapters={[]}
         video={video}
+        videoConnected={playback.isSuccess}
         demoMode={false}
       />
     );

@@ -68,6 +68,7 @@ export function BuyerLiveDesktop({
   initialPanel,
   initialMessage = "",
   video,
+  videoConnected = Boolean(video),
   demoMode = true,
   questionsState,
   onRefreshQuestions,
@@ -82,6 +83,7 @@ export function BuyerLiveDesktop({
   initialPanel?: "chat" | "chapters";
   initialMessage?: string;
   video?: ReactNode;
+  videoConnected?: boolean;
   demoMode?: boolean;
   questionsState?: ReactNode;
   onRefreshQuestions?: () => void;
@@ -231,7 +233,7 @@ export function BuyerLiveDesktop({
           )}
         </section>
         <section
-          aria-label="방송 영상 · 실제 재생 미연결"
+          aria-label={videoConnected ? "방송 영상" : "방송 영상 · 실제 재생 미연결"}
           className="text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black]"
         >
           {video ? (
