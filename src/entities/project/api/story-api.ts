@@ -40,6 +40,13 @@ export type FundingStorySession = {
   summary: FundingStorySummary | null;
   active_chat_id: string | null;
 };
+
+export function isFundingStorySessionSynchronized(
+  session: FundingStorySession,
+  minimumRevision: number,
+) {
+  return session.revision >= minimumRevision && session.active_chat_id === null;
+}
 export type FundingStoryChatAccepted = { chat_id: string; status: "queued" };
 export type FundingStoryAsyncError = {
   code: string;
@@ -146,7 +153,7 @@ export async function streamFundingStoryChat(
   while (!done) {
     const chunk = await reader.read();
     if (chunk.done) break;
-    buffer += chunk.value.replaceAll("\r\n", "\n");
+    buffer = `${buffer}${chunk.value}`.replaceAll("\r\n", "\n");
     let boundary = buffer.indexOf("\n\n");
     while (boundary >= 0) {
       const frame = buffer.slice(0, boundary);

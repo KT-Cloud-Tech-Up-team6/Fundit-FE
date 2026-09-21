@@ -18,6 +18,7 @@ import {
   createFundingStorySession,
   getFundingStorySession,
   getLatestFundingStorySession,
+  isFundingStorySessionSynchronized,
   sendFundingStoryMessage,
   startFundingStorySession,
   streamFundingStoryChat,
@@ -38,6 +39,11 @@ type FundingStoryModalProps = {
   initialState?: StoryDemoState;
   pauseDemo?: boolean;
   projectId?: string;
+};
+
+type PendingSessionSync = {
+  sessionId: string;
+  minimumRevision: number;
 };
 
 const nextRemoteStage = (session: FundingStorySession) =>
@@ -75,6 +81,7 @@ export function FundingStoryModal({
   const [optimisticMessage, setOptimisticMessage] = useState<FundingStoryMessage | null>(null);
   const [apiError, setApiError] = useState("");
   const [apiBusy, setApiBusy] = useState(false);
+  const [pendingSessionSync, setPendingSessionSync] = useState<PendingSessionSync | null>(null);
   const apiBusyRef = useRef(false);
   const lifecycleRef = useRef<AbortController | null>(null);
   const remoteBlocks = run?.result?.intro_content;
@@ -92,13 +99,27 @@ export function FundingStoryModal({
     const refreshAfterChat = async (current: FundingStorySession, chatId: string) => {
       setApiBusy(true);
       setStreamingText("");
-      await streamFundingStoryChat(projectId, chatId, setStreamingText, controller.signal);
+      const done = await streamFundingStoryChat(
+        projectId,
+        chatId,
+        setStreamingText,
+        controller.signal,
+      );
+      const pending = {
+        sessionId: current.session_id,
+        minimumRevision: done.revision,
+      };
+      setPendingSessionSync(pending);
       const refreshed = await getFundingStorySession(
         projectId,
         current.session_id,
         controller.signal,
       );
+      if (!isFundingStorySessionSynchronized(refreshed, pending.minimumRevision)) {
+        throw new Error("완료된 AI 응답을 세션과 동기화하지 못했습니다.");
+      }
       setSession(refreshed);
+      setPendingSessionSync(null);
       setStreamingText("");
       setOptimisticMessage(null);
       setRemoteStage(nextRemoteStage(refreshed));
@@ -143,7 +164,7 @@ export function FundingStoryModal({
   }, [projectId]);
 
   async function generate() {
-    if (apiBusyRef.current) return;
+    if (apiBusyRef.current || pendingSessionSync) return;
     if (!projectId) {
       dispatch({ type: "generate" });
       return;
@@ -212,7 +233,7 @@ export function FundingStoryModal({
   const displayStage = projectId ? remoteStage : state.stage;
   const stageRef = useRef(displayStage);
   const busy = projectId
-    ? apiBusy || ["connecting", "generating"].includes(remoteStage)
+    ? apiBusy || pendingSessionSync !== null || ["connecting", "generating"].includes(remoteStage)
     : apiBusy || ["summarizing", "generating", "ready"].includes(state.stage);
   const result = displayStage === "result";
   const loading = displayStage === "generating" || displayStage === "ready";
@@ -286,18 +307,27 @@ export function FundingStoryModal({
         text,
         controller.signal,
       );
-      await streamFundingStoryChat(
+      const done = await streamFundingStoryChat(
         projectId,
         accepted.chat_id,
         setStreamingText,
         controller.signal,
       );
+      const pending = {
+        sessionId: session.session_id,
+        minimumRevision: done.revision,
+      };
+      setPendingSessionSync(pending);
       const refreshed = await getFundingStorySession(
         projectId,
         session.session_id,
         controller.signal,
       );
+      if (!isFundingStorySessionSynchronized(refreshed, pending.minimumRevision)) {
+        throw new Error("완료된 AI 응답을 세션과 동기화하지 못했습니다.");
+      }
       setSession(refreshed);
+      setPendingSessionSync(null);
       setRemoteStage(nextRemoteStage(refreshed));
       setOptimisticMessage(null);
       setStreamingText("");
@@ -308,6 +338,34 @@ export function FundingStoryModal({
       setOptimisticMessage(null);
       setStreamingText("");
       setRemoteStage(nextRemoteStage(session));
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+  }
+
+  async function synchronizeSession() {
+    if (!projectId || !pendingSessionSync || apiBusyRef.current) return;
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    try {
+      const controller = lifecycleRef.current ?? new AbortController();
+      const refreshed = await getFundingStorySession(
+        projectId,
+        pendingSessionSync.sessionId,
+        controller.signal,
+      );
+      if (!isFundingStorySessionSynchronized(refreshed, pendingSessionSync.minimumRevision)) {
+        throw new Error("완료된 AI 응답이 아직 세션에 반영되지 않았습니다.");
+      }
+      setSession(refreshed);
+      setPendingSessionSync(null);
+      setOptimisticMessage(null);
+      setStreamingText("");
+      setRemoteStage(nextRemoteStage(refreshed));
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "AI 세션을 다시 동기화하지 못했습니다.");
     } finally {
       apiBusyRef.current = false;
       setApiBusy(false);
@@ -349,6 +407,11 @@ export function FundingStoryModal({
       )}
       {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
       {apiError && <p role="alert">{apiError}</p>}
+      {pendingSessionSync && !apiBusy && (
+        <Button size="xs" className="self-start" onClick={() => void synchronizeSession()}>
+          세션 다시 동기화
+        </Button>
+      )}
       {loading ? (
         <div className="flex h-full flex-col items-center pt-[139px] text-center" role="status">
           <p className="text-title-s leading-[1.42] font-semibold">AI가 스토리를 생성중이에요...</p>
@@ -486,7 +549,7 @@ export function FundingStoryModal({
                         <Chip
                           appearance="outline"
                           className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
-                          disabled={apiBusy}
+                          disabled={apiBusy || pendingSessionSync !== null}
                           onClick={() => void generate()}
                         >
                           그대로 생성하기

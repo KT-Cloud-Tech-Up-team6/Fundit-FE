@@ -6,6 +6,7 @@ import {
   createFundingStoryRun,
   createFundingStorySession,
   getFundingStoryRun,
+  isFundingStorySessionSynchronized,
   streamFundingStoryChat,
 } from "../../../entities/project/api/story-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
@@ -43,6 +44,52 @@ test("채팅 SSE의 누적 message와 done 이벤트를 읽는다", async (t) =>
   });
   assert.equal(streamed, "답변");
   assert.equal(done.revision, 2);
+});
+test("CRLF 프레임 경계가 스트림 청크 사이에서 나뉘어도 done 이벤트를 읽는다", async (t) => {
+  authTokenStore.set("test");
+  const encoder = new TextEncoder();
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode('event: message\r\ndata: {"chat_id":"chat","text":"답변"}\r\n\r'),
+            );
+            controller.enqueue(
+              encoder.encode(
+                '\nevent: done\r\ndata: {"chat_id":"chat","status":"succeeded","session_id":"session","revision":2,"error":null}\r\n\r',
+              ),
+            );
+            controller.enqueue(encoder.encode("\n"));
+            controller.close();
+          },
+        }),
+        { headers: { "Content-Type": "text/event-stream" } },
+      ),
+  );
+  let streamed = "";
+  const done = await streamFundingStoryChat("project-uuid", "chat", (text) => {
+    streamed = text;
+  });
+  assert.equal(streamed, "답변");
+  assert.equal(done.revision, 2);
+});
+test("채팅 완료 revision과 active chat이 세션에 반영된 뒤에만 동기화 완료로 판단한다", () => {
+  const session = {
+    session_id: "session",
+    revision: 2,
+    confirmed_revision: null,
+    messages: [],
+    missing: [],
+    summary: null,
+    active_chat_id: null,
+  };
+  assert.equal(isFundingStorySessionSynchronized(session, 2), true);
+  assert.equal(isFundingStorySessionSynchronized({ ...session, revision: 1 }, 2), false);
+  assert.equal(isFundingStorySessionSynchronized({ ...session, active_chat_id: "chat" }, 2), false);
 });
 test("서식·이미지 배치·로컬 파일·중간 빈 문단은 손실시키지 않고 저장을 거부한다", () => {
   for (const node of [
