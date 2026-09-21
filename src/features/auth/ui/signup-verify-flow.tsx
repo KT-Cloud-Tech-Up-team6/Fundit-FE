@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 
@@ -34,6 +34,10 @@ const descriptionByStatus: Record<Exclude<IdentityStatus, "ready">, string> = {
   "verification-failed":
     "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
 };
+
+/* aria-label이 label 요소보다 우선하므로 두 값이 갈라지지 않게 한 곳에서만 정의한다.
+   aria-label은 AuthInput이 지우기 버튼 이름을 만드는 데도 쓴다. */
+const fieldLabels = { birthDate: "생년월일", name: "이름", phoneNumber: "휴대폰 번호" } as const;
 
 function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
   return (
@@ -67,6 +71,13 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   const [draft, setDraft] = useState<IdentityDraft>(
     identityDraft ?? { birthDate: "", name: "", phoneNumber: "" },
   );
+  /* 인증이 끝나기 전에 뒤로 가거나 다시 제출하면 앞선 요청의 결과는 버린다.
+     남겨두면 수정 중인 폼을 덮고, 고치기 전 draft로 가입이 이어진다. */
+  const runIdRef = useRef(0);
+  function abandonVerification() {
+    runIdRef.current++;
+  }
+
   const identityMutation = useMutation({
     mutationFn: (input: { draft: IdentityDraft; redirectUrl: string }) =>
       requestIdentityVerification(input.draft, { redirectUrl: input.redirectUrl }),
@@ -77,6 +88,8 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
 
   /* 본인정보를 받은 직후 바로 인증창을 연다. 취소·실패 뒤 "다시 시도"도 같은 경로로 즉시 다시 연다. */
   async function startVerification(input: IdentityDraft) {
+    const runId = ++runIdRef.current;
+    const current = () => runId === runIdRef.current;
     setView("requesting");
     /* 모바일에서는 이 호출이 페이지 전체 리다이렉트로 이어질 수 있어, 이 함수가 이어서
        실행된다는 보장 없이 미리 복구용 정보를 남겨둔다. 같은 페이지에서 끝나면 아래에서
@@ -86,16 +99,19 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
       const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
       const identityResult = await identityMutation.mutateAsync({ draft: input, redirectUrl });
       clearIdentityRecoverySession();
+      if (!current()) return;
       if (identityResult.status === "cancelled") {
         setView("cancelled");
         return;
       }
       setView("verifying");
       const result = await verificationMutation.mutateAsync(identityResult.identityVerificationId);
+      if (!current()) return;
       setVerificationToken(result.verificationToken);
       setView("done");
     } catch (error) {
       clearIdentityRecoverySession();
+      if (!current()) return;
       setView(isApiError(error) ? "verification-failed" : "failed");
     }
   }
@@ -123,9 +139,9 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
         <form className="mt-12 flex flex-1 flex-col" onSubmit={submitInformation}>
           <div className="flex flex-col gap-5">
             <div>
-              <AuthFieldLabel htmlFor={`${fieldId}-name`}>이름</AuthFieldLabel>
+              <AuthFieldLabel htmlFor={`${fieldId}-name`}>{fieldLabels.name}</AuthFieldLabel>
               <AuthInput
-                aria-label="이름"
+                aria-label={fieldLabels.name}
                 autoComplete="name"
                 id={`${fieldId}-name`}
                 onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
@@ -135,9 +151,9 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
               />
             </div>
             <div>
-              <AuthFieldLabel htmlFor={`${fieldId}-birth`}>생년월일</AuthFieldLabel>
+              <AuthFieldLabel htmlFor={`${fieldId}-birth`}>{fieldLabels.birthDate}</AuthFieldLabel>
               <AuthInput
-                aria-label="생년월일"
+                aria-label={fieldLabels.birthDate}
                 autoComplete="bday"
                 id={`${fieldId}-birth`}
                 max="9999-12-31"
@@ -149,9 +165,11 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
               />
             </div>
             <div>
-              <AuthFieldLabel htmlFor={`${fieldId}-phone`}>휴대폰 번호</AuthFieldLabel>
+              <AuthFieldLabel htmlFor={`${fieldId}-phone`}>
+                {fieldLabels.phoneNumber}
+              </AuthFieldLabel>
               <AuthInput
-                aria-label="휴대폰 번호"
+                aria-label={fieldLabels.phoneNumber}
                 autoComplete="tel"
                 id={`${fieldId}-phone`}
                 inputMode="numeric"
@@ -205,7 +223,12 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   const status = view;
 
   return (
-    <AuthScreen onBack={() => setView("information")}>
+    <AuthScreen
+      onBack={() => {
+        abandonVerification();
+        setView("information");
+      }}
+    >
       <AuthIdentityVerification
         description={descriptionByStatus[status]}
         onAction={() =>
