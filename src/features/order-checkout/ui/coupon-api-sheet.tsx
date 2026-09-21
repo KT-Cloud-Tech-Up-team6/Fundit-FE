@@ -12,35 +12,45 @@ import { Button } from "@/shared/components/ui/button";
 import { CouponRadio } from "./coupon-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
 import { couponConditions } from "../model/coupon-conditions";
+import {
+  couponCodes,
+  removeCoupon,
+  selectCoupon,
+  type CouponSelection,
+} from "../model/coupon-selection";
 import styles from "./checkout-sheet.module.css";
 
 export function CouponApiSheet({
   memberId,
   body,
-  selectedCode,
+  selected,
   onApply,
   onClose,
 }: {
   memberId: string;
   body: OrderRequest;
-  selectedCode: string | null;
-  onApply: (code: string | null) => void;
+  selected: CouponSelection[];
+  onApply: (selection: CouponSelection[]) => void;
   onClose: () => void;
 }) {
   const [page, setPage] = useState(0);
-  const [choice, setChoice] = useState(selectedCode);
+  const [choices, setChoices] = useState(selected);
   const coupons = useQuery({
     queryKey: ["checkout-coupons", memberId, page],
     queryFn: ({ signal }) => getCheckoutCoupons(page, signal),
   });
-  const candidate = { ...body, couponCodes: choice ? [choice] : [] };
+  const candidate = {
+    ...body,
+    couponCodes: couponCodes(choices),
+  };
   const preview = useQuery({
     queryKey: ["coupon-preview", memberId, candidate],
     queryFn: () => previewOrder(candidate),
-    enabled: Boolean(choice),
+    enabled: candidate.couponCodes.length > 0,
   });
-  const error = preview.data ? couponPreviewError(preview.data, choice) : "";
-  const canApply = !choice || (preview.isSuccess && !preview.isFetching && !error);
+  const error = preview.data ? couponPreviewError(preview.data, candidate.couponCodes) : "";
+  const canApply =
+    !candidate.couponCodes.length || (preview.isSuccess && !preview.isFetching && !error);
   return (
     <BottomSheet
       open
@@ -54,19 +64,23 @@ export function CouponApiSheet({
           appearance="cta"
           disabled={!canApply}
           onClick={() => {
-            if (canApply) onApply(choice);
+            if (canApply) onApply(choices);
           }}
         >
           적용
         </Button>
       }
     >
+      <p className="text-body-s text-text-secondary">
+        플랫폼·메이커 쿠폰은 각각 1개까지 선택할 수 있습니다.
+      </p>
       <fieldset className="flex flex-col gap-3">
         <legend className="sr-only">쿠폰 선택</legend>
         <CouponRadio
           label="사용하지 않음"
-          checked={choice === null}
-          onSelect={() => setChoice(null)}
+          inputType="checkbox"
+          checked={choices.length === 0}
+          onSelect={() => setChoices([])}
         />
         {coupons.isPending ? (
           <p role="status">쿠폰을 불러오고 있습니다.</p>
@@ -79,9 +93,23 @@ export function CouponApiSheet({
             <CouponRadio
               key={coupon.couponCode}
               label={coupon.couponName ?? coupon.couponCode}
-              checked={choice === coupon.couponCode}
-              onSelect={() => setChoice(coupon.couponCode)}
-              disabled={coupon.status !== "AVAILABLE"}
+              badge={
+                coupon.issuerType === "PLATFORM"
+                  ? "플랫폼"
+                  : coupon.issuerType === "MAKER"
+                    ? "메이커"
+                    : "발급자 확인 필요"
+              }
+              inputType="checkbox"
+              checked={choices.some((item) => item.couponCode === coupon.couponCode)}
+              onSelect={() =>
+                setChoices((previous) =>
+                  previous.some((item) => item.couponCode === coupon.couponCode)
+                    ? removeCoupon(previous, coupon.couponCode)
+                    : selectCoupon(previous, coupon),
+                )
+              }
+              disabled={coupon.status !== "AVAILABLE" || coupon.issuerType === null}
               {...couponConditions(coupon, body.projectId)}
             />
           ))
@@ -100,7 +128,7 @@ export function CouponApiSheet({
           다음 쿠폰
         </Button>
       </div>
-      {choice && (
+      {candidate.couponCodes.length > 0 && (
         <div className="mt-3" aria-live="polite">
           {preview.isPending || preview.isFetching ? (
             <p>쿠폰 적용 금액을 확인하고 있습니다.</p>

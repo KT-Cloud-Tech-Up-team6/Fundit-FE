@@ -33,6 +33,8 @@ export type CheckoutCoupon = {
   perMemberLimit: number;
   targetScope: string | null;
   targetRefId: string | null;
+  issuerType: "PLATFORM" | "MAKER" | null;
+  maxDiscountAmount: number | null;
 };
 export function getCheckoutCoupons(page: number, signal?: AbortSignal) {
   return apiRequest<{ content: CheckoutCoupon[]; hasNext: boolean }>(
@@ -117,6 +119,7 @@ export function getOrders(page: number, status: string, signal?: AbortSignal) {
       projectId: string;
       projectTitle: string;
       status: string;
+      discountAmount: number;
       finalAmount: number;
       createdAt: string;
     }[];
