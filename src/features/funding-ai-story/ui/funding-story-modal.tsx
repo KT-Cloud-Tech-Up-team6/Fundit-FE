@@ -31,6 +31,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { applyStory } from "../model/apply-story";
+import { partialSuccessMessage } from "../model/run-feedback";
 import { resolveFundingStoryRunId } from "../model/run-resume";
 
 type FundingStoryModalProps = {
@@ -205,7 +206,7 @@ export function FundingStoryModal({
       setRun(completed);
       setRemoteStage("result");
       if (completed.status === "partially_succeeded") {
-        setApiError("일부 이미지를 만들지 못해 생성된 나머지 결과만 표시합니다.");
+        setApiError(partialSuccessMessage(completed.failed_slots));
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "생성 요청에 실패했습니다.";
