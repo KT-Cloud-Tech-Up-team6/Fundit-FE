@@ -87,8 +87,9 @@ export function ProjectBasicInfoApi({
     title: saved?.title ?? data.title ?? "",
     amount: String(saved?.goalAmount ?? data.goalAmount ?? ""),
     business:
-      Object.keys(businessCodes).find((label) => businessCodes[label] === saved?.businessType) ??
-      "",
+      Object.keys(businessCodes).find(
+        (label) => businessCodes[label] === (saved?.businessType ?? data.businessType),
+      ) ?? "",
     category: saved?.categoryMajor ?? data.categoryMajor ?? "",
     subcategory: saved?.categoryMinor ?? data.categoryMinor ?? "",
   };
@@ -103,10 +104,9 @@ export function ProjectBasicInfoApi({
       <div className="min-w-0 flex-1">
         {tab === "basic-info" ? (
           <>
-            {!saved && (
+            {!initialValues.business && (
               <p role="status" className="text-body-s mb-3">
-                사업자 유형의 기존 선택은 표시되지 않습니다. 변경할 때만 선택하면 기존 값은
-                유지됩니다.
+                저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다.
               </p>
             )}
             <ProjectBasicInfoForm

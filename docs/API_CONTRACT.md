@@ -1,13 +1,20 @@
 # API 계약 초안
 
+## 판매자 관리 조회 계약 보완 (#232)
+
+- 2026-09-21 BE develop `ae1e032`와 FE를 대조했다. 후속 `3d23bc7`은 LIVE 변경만 포함해 이 절의 계약은 동일하다. 실제 배포 응답 검증과 소스 대조를 구분한다.
+- preview의 `businessType`으로 사업자 유형을 복원한다. 리워드 목록의 `options`(groupId/groupName/values.valueId/value)와 `simpleRefundDisabled`는 읽기 전용으로 복원한다. 옵션 ID 보존 PATCH 계약이 미확정이므로 옵션 수정 저장은 제공하지 않는다.
+- 공지 목록과 별개로 `GET /api/v1/notices/{noticeId}`의 `content`를 조회한다. 공지 수정 저장 엔드포인트는 확인되지 않아 연결하지 않는다.
+- 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId=null은 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다. 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
+
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 목록은 `/api/v1/orders`의 UUID 계약으로 통합됐으며 `/api/v2/orders`는 제거됐다. 제작·배송의 `/api/v2/projects/{projectId}/fulfillment` 및 `/api/v2/projects/{projectId}/fundings/{fundingId}/shipment` UUID 계약은 유지한다.
 - `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 첨부와 기록 수정 API는 없어 저장된 것처럼 처리하지 않는다.
 - `/my/fundings/{UUID}/fulfillment`와 `/history`는 내 주문 v1 목록을 페이지 순회해 프로젝트 UUID 관계를 확인한 뒤 제작·배송을 조회한다. 서버 `canConfirmReceipt`가 참일 때 수령 확인을 제공한다. 외부 택배 추적은 연결하지 않는다.
 - 단계 조회는 단계별 최신 상세 1건만 제공한다. 전체 기록 이력이 아닌 최신 기록과 별도의 일정 변경 이력을 표시한다. 미갱신 경고는 서버 `isUpdateOverdue`를 사용한다.
-- 송장 등록 API 클라이언트는 준비했지만 판매자 발송 대상 목록은 내부 API만 있어 UI 연결을 보류한다. `/seller/projects/{UUID}/shipping`에서 목업 주문의 송장을 실제 저장하지 않으며 임의 UUID 입력이나 내부 서비스 우회 호출을 제공하지 않는다.
-- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 목록 공개 API, 전체 기록/첨부 계약과 권한을 확인해야 한다.
+- 판매자 목록 `GET /api/v1/projects/{projectId}/orders`는 페이지 래퍼 없이 목표 달성 주문 배열을 반환하며 #232에서 배송 화면에 연결한다. orderId는 기존 shipment 경로의 fundingId UUID다. 다만 목록에 송장 정보가 없고 `ShipmentService.getShipment`는 구매자 본인만 허용하므로 판매자 송장 상태를 조회할 수 없다. 이 상태를 미발송으로 추정하지 않으며 송장 입력·등록 UI는 조회 계약 보완 전까지 비활성화한다. 기존 POST 등록 API 클라이언트는 유지한다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록/첨부 계약을 확인해야 한다.
 - 주문 생성 재시도는 사용자·프로젝트별로 요청 내용의 해시와 생성 결과를 보관합니다. 결제 대기 주문의 동일 요청만 재사용하며, 다른 요청은 기존 주문 확인·취소를 안내합니다. 서버에서 확인한 비대기 상태의 주문은 새 요청 결과로 재사용하지 않습니다. 결과가 불확실하거나 상태 조회가 실패하면 추가 생성하지 않습니다. 목표 달성 주문의 상세에서는 제작·배송 API 현황으로 이동합니다.
 
 ## 쿠폰 조건 표시 보완 (#218)

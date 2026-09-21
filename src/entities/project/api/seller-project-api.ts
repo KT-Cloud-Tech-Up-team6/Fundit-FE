@@ -42,6 +42,7 @@ export type ProjectPreview = {
   status: ProjectApiStatus;
   goalAmount: number | null;
   coverImageUrl: string | null;
+  businessType?: BusinessType | null;
 };
 
 const statusFilter: Record<SellerProjectStatus, string> = {

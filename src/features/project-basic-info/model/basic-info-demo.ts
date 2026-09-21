@@ -12,6 +12,8 @@ export type RewardDraft = {
   discountUnit: "won" | "percent";
   imageName: string;
   options: boolean;
+  optionSummary?: string;
+  simpleRefundDisabled?: boolean;
 };
 export type DemoReward = RewardDraft & { id: number };
 

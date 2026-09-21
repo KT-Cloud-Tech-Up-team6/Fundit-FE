@@ -15,6 +15,10 @@ export function rewardToDraft(reward: RewardResponse): DemoReward {
       reward.earlyBirdDiscountValue === null ? "" : String(reward.earlyBirdDiscountValue),
     imageName: reward.imageUrl ?? "",
     options: reward.hasOption,
+    optionSummary: (reward.options ?? [])
+      .map((group) => `${group.groupName}: ${group.values.map((value) => value.value).join(", ")}`)
+      .join(" / "),
+    simpleRefundDisabled: reward.simpleRefundDisabled,
   };
 }
 

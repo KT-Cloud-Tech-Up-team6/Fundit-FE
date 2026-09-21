@@ -17,6 +17,12 @@ export type RewardResponse = {
   earlyBirdDiscountedPrice: number | null;
   shippingFee: number | null;
   estimatedDeliveryDays: number | null;
+  simpleRefundDisabled: boolean;
+  options: {
+    groupId: number;
+    groupName: string;
+    values: { valueId: number; value: string }[];
+  }[];
 };
 
 export type RewardRequest = {

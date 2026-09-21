@@ -213,7 +213,13 @@ export function RewardFormModal({
           {optionsReadOnly && (
             <p className="text-caption-s">
               등록된 옵션은 유지됩니다. 옵션 편집은 연결 준비 중입니다.
+              {draft.optionSummary ? ` ${draft.optionSummary}` : ""}
             </p>
+          )}
+          {editing && draft.simpleRefundDisabled !== undefined && (
+            <Checkbox shape="square" checked={Boolean(draft.simpleRefundDisabled)} disabled>
+              <span className="text-body-emphasis">단순 환불 불가</span>
+            </Checkbox>
           )}
         </div>
         {error && (

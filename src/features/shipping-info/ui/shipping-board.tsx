@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerOrders } from "@/entities/order/api/seller-order-api";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Select } from "@/shared/components/ui/select";
@@ -33,11 +35,41 @@ const bulkActionClasses = [
 type ShippingBoardProps = {
   /** Storybook에서 목록을 바꿔 끼우기 위한 자리. 화면에서는 목업 기본값을 쓴다. */
   initialShipments?: Shipment[];
+  projectId?: string;
 };
 
-/* ponytail: 저장 API가 없어 목록·수정 모두 useState 목업이다. 새로고침하면 사라진다.
-   API 연동 시 목록 상태를 서버 응답으로 교체하고 Pagination의 currentPage/totalPages만 연결한다. */
-export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
+/* UUID 프로젝트는 판매자 주문을 조회한다. 배송 상태 조회 계약 전까지 등록은 잠근다. */
+export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProps) {
+  const orders = useQuery({
+    queryKey: ["seller-shipping-orders", projectId],
+    queryFn: ({ signal }) => getSellerOrders(projectId!, signal),
+    enabled: Boolean(projectId),
+  });
+  const apiShipments = useMemo<Shipment[]>(() => {
+    if (!orders.data) return [];
+    return orders.data.map((order) => {
+      const lines = order.lineItems.map((line) => {
+        const option = line.options
+          .map((item) => `${item.optionGroupName}: ${item.optionValue}`)
+          .join(", ");
+        return `${line.rewardName}${option ? ` (${option})` : ""}`;
+      });
+      return {
+        id: order.orderId,
+        orderNo: order.orderId,
+        supporter: order.shippingAddress.recipientName,
+        option: lines.join(" / "),
+        quantity: order.lineItems.reduce((total, line) => total + line.quantity, 0),
+        address: [order.shippingAddress.addressLine1, order.shippingAddress.addressLine2]
+          .filter(Boolean)
+          .join(" "),
+        courier: "",
+        trackingNo: "",
+        // ShipmentControllerV2 GET verifies buyer ownership; no seller status contract exists yet.
+        status: "unknown",
+      };
+    });
+  }, [orders.data]);
   const [shipments, setShipments] = useState<Shipment[]>(
     () => initialShipments ?? figmaShippingShipments(),
   );
@@ -47,6 +79,7 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
   const [bulkCourier, setBulkCourier] = useState<Courier | "">("");
   const [toastMessage, setToastMessage] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visibleShipments = projectId ? apiShipments : shipments;
 
   useEffect(
     () => () => {
@@ -59,7 +92,10 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
      직접 해제·전체 해제·저장·발송 등 선택을 비우는 모든 경로를 여기 한곳에서 덮는다. */
   if (selected.size === 0 && bulkCourier !== "") setBulkCourier("");
 
-  const searched = useMemo(() => searchShipments(shipments, query), [shipments, query]);
+  const searched = useMemo(
+    () => searchShipments(visibleShipments, query),
+    [visibleShipments, query],
+  );
   const counts = countByFilter(searched);
   const visible = filterByStatus(searched, filter);
 
@@ -87,7 +123,8 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
   }
 
   function ship(ids: ReadonlySet<string>) {
-    const result = markShipped(shipments, ids);
+    const result = markShipped(visibleShipments, ids);
+    if (projectId) return;
     setShipments(result.shipments);
     setSelected((current) => {
       const next = new Set(current);
@@ -102,6 +139,15 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
         : `${result.shipped}건을 발송 처리했어요.`,
     );
   }
+
+  if (projectId && orders.isPending) return <p role="status">발송 대상을 불러오고 있습니다.</p>;
+  if (projectId && orders.isError)
+    return (
+      <p role="alert">
+        발송 대상을 불러오지 못했습니다.{" "}
+        <button onClick={() => void orders.refetch()}>다시 시도</button>
+      </p>
+    );
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col lg:min-h-[766px]">
@@ -186,7 +232,7 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 <button
                   className={`${bulkActionClasses} bg-layer-surface-disabled text-text-default hover:bg-layer-surface-disabled-hover min-w-0 flex-1 sm:w-[114px] sm:flex-none`}
-                  onClick={() => ship(selected)}
+                  onClick={() => void ship(selected)}
                   type="button"
                 >
                   발송 처리
@@ -212,7 +258,7 @@ export function ShippingBoard({ initialShipments }: ShippingBoardProps) {
       <div id="shipping-table" className="mt-[7px]">
         <ShippingTable
           onChange={(id, patch) => setShipments((current) => updateShipment(current, id, patch))}
-          onShip={(id) => ship(new Set([id]))}
+          onShip={(id) => void ship(new Set([id]))}
           onToggle={toggle}
           onToggleAll={toggleAll}
           selected={selected}

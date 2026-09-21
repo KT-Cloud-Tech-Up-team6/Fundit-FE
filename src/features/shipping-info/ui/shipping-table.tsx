@@ -82,7 +82,7 @@ export function ShippingTable({
         </thead>
         <tbody>
           {shipments.map((shipment) => {
-            const shipped = shipment.status === "shipped";
+            const shipped = shipment.status !== "pending";
 
             return (
               <tr

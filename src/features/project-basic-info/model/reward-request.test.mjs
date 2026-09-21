@@ -17,11 +17,15 @@ const reward = {
   isEarlyBird: true,
   earlyBirdDiscountType: "RATE",
   earlyBirdDiscountValue: 10,
+  simpleRefundDisabled: true,
+  options: [{ groupId: 7, groupName: "색상", values: [{ valueId: 8, value: "블랙" }] }],
 };
 test("서버 숫자 ID와 옵션 유무를 복원하고 편집하지 않은 옵션·배송·이미지는 보내지 않는다", () => {
   const draft = rewardToDraft(reward);
   assert.equal(draft.id, 42);
   assert.equal(draft.options, true);
+  assert.equal(draft.optionSummary, "색상: 블랙");
+  assert.equal(draft.simpleRefundDisabled, true);
   assert.equal(draft.quantity, "");
   const body = rewardRequest(draft);
   assert.equal(body.quantity, null);

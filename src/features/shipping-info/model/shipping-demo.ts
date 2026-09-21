@@ -15,11 +15,12 @@ export const couriers = [
 export type Courier = (typeof couriers)[number];
 
 /** Figma 상태 명세: 배송 전 → `발송 처리`(활성), 배송 후 → `발송 완료`(비활성). */
-export type ShipmentStatus = "pending" | "shipped";
+export type ShipmentStatus = "pending" | "shipped" | "unknown";
 
 export const shipmentActionLabel: Record<ShipmentStatus, string> = {
   pending: "발송 처리",
   shipped: "발송 완료",
+  unknown: "배송 상태 확인 대기",
 };
 
 export type Shipment = {
