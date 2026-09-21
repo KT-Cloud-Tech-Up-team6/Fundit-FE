@@ -21,7 +21,15 @@ import { AuthScreen, AuthTitle } from "./auth-screen";
 
 export type SignupProfileView = "email" | "password" | "address";
 
-const emailDomains = ["@gmail.com", "@naver.com", "@daum.com"];
+/* 국내 실사용 비중 순. 목록은 입력 편의용이라 서버에서 받지 않는다. 여기 없는 도메인은 "직접 입력"으로 받는다. */
+const emailDomains = [
+  "@naver.com",
+  "@gmail.com",
+  "@daum.net",
+  "@hanmail.net",
+  "@kakao.com",
+  "@nate.com",
+];
 const CUSTOM_DOMAIN = "custom";
 
 export { passwordSchema } from "@/features/auth/model/auth-input";
