@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useId, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { requestIdentityVerification } from "@/features/auth/api/portone-identity-adapter";
@@ -35,6 +35,14 @@ const descriptionByStatus: Record<Exclude<IdentityStatus, "ready">, string> = {
     "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
 };
 
+function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
+  return (
+    <label className="text-label-l text-text-default mb-2 block" htmlFor={htmlFor}>
+      {children}
+    </label>
+  );
+}
+
 type SignupVerifyFlowProps = {
   initialView?: SignupVerifyView;
 };
@@ -43,6 +51,7 @@ type SignupVerifyFlowProps = {
    본인정보를 직접 받고, 같은 draft를 PortOne prefill과 최종 가입 요청에 사용한다. */
 export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFlowProps) {
   const router = useRouter();
+  const fieldId = useId();
   const {
     identityDraft,
     selectedTermCodes,
@@ -108,54 +117,64 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     return (
       <AuthScreen onBack={() => router.back()}>
         <AuthTitle>펀딧에 오신 걸 환영해요</AuthTitle>
-        <p className="text-body-emphasis text-text-secondary mt-2">
-          계속하기 위해 본인확인을 진행해주세요
+        <p className="text-body-s text-text-secondary mt-3 whitespace-pre-line">
+          {"안전한 가입을 위해 휴대폰 본인인증이 필요해요.\n입력한 정보로 본인인증을 진행합니다."}
         </p>
-        <form className="mt-16 flex flex-col gap-6" onSubmit={submitInformation}>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">이름을 입력해주세요</h2>
-            <AuthInput
-              aria-label="이름"
-              autoComplete="name"
-              onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
-              onClear={() => setDraft((value) => ({ ...value, name: "" }))}
-              placeholder="이름"
-              value={draft.name}
-            />
+        <form className="mt-12 flex flex-1 flex-col" onSubmit={submitInformation}>
+          <div className="flex flex-col gap-5">
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-name`}>이름</AuthFieldLabel>
+              <AuthInput
+                aria-label="이름"
+                autoComplete="name"
+                id={`${fieldId}-name`}
+                onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
+                onClear={() => setDraft((value) => ({ ...value, name: "" }))}
+                placeholder="실명을 입력해 주세요"
+                value={draft.name}
+              />
+            </div>
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-birth`}>생년월일</AuthFieldLabel>
+              <AuthInput
+                aria-label="생년월일"
+                autoComplete="bday"
+                id={`${fieldId}-birth`}
+                max="9999-12-31"
+                onChange={(event) =>
+                  setDraft((value) => ({ ...value, birthDate: event.target.value }))
+                }
+                type="date"
+                value={draft.birthDate}
+              />
+            </div>
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-phone`}>휴대폰 번호</AuthFieldLabel>
+              <AuthInput
+                aria-label="휴대폰 번호"
+                autoComplete="tel"
+                id={`${fieldId}-phone`}
+                inputMode="numeric"
+                onChange={(event) =>
+                  setDraft((value) => ({
+                    ...value,
+                    phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 11),
+                  }))
+                }
+                onClear={() => setDraft((value) => ({ ...value, phoneNumber: "" }))}
+                placeholder="'-' 없이 숫자만 입력해 주세요"
+                value={draft.phoneNumber}
+              />
+            </div>
           </div>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">생년월일을 입력해주세요</h2>
-            <AuthInput
-              aria-label="생년월일"
-              autoComplete="bday"
-              max="9999-12-31"
-              onChange={(event) =>
-                setDraft((value) => ({ ...value, birthDate: event.target.value }))
-              }
-              type="date"
-              value={draft.birthDate}
-            />
-          </div>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">휴대폰 번호를 입력해주세요</h2>
-            <AuthInput
-              aria-label="휴대폰 번호"
-              autoComplete="tel"
-              inputMode="numeric"
-              onChange={(event) =>
-                setDraft((value) => ({
-                  ...value,
-                  phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 11),
-                }))
-              }
-              onClear={() => setDraft((value) => ({ ...value, phoneNumber: "" }))}
-              placeholder="휴대폰 번호 ('-' 제외)"
-              value={draft.phoneNumber}
-            />
-          </div>
-          <AuthButton disabled={!valid} type="submit">
-            본인인증하기
-          </AuthButton>
+          <AuthBottomAction>
+            <p className="text-caption-s text-text-secondary mb-3 text-center">
+              버튼을 누르면 포트원 본인인증 화면이 열립니다.
+            </p>
+            <AuthButton disabled={!valid} type="submit">
+              본인인증하기
+            </AuthButton>
+          </AuthBottomAction>
         </form>
       </AuthScreen>
     );
