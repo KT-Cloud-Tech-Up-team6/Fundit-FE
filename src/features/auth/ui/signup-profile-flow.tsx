@@ -97,11 +97,8 @@ export function SignupProfileFlow({
   const form = useForm<ProfileFormValues>({
     defaultValues: {
       customDomain: "",
-      domain: initialEmailParts?.[1]
-        ? `@${initialEmailParts[1]}`
-        : initialEmailTaken
-          ? emailDomains[0]
-          : "",
+      /* 이어하기가 아니면 목록 첫 항목을 기본 선택으로 둔다. "@ 선택"은 직접 되돌릴 때만 남는다. */
+      domain: initialEmailParts?.[1] ? `@${initialEmailParts[1]}` : emailDomains[0],
       emailLocal: initialEmailParts?.[0] ?? (initialEmailTaken ? "taken" : ""),
       nickname: profileDraft?.nickname ?? "",
       password: profileDraft?.password ?? "",
