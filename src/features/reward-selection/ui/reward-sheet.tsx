@@ -132,15 +132,15 @@ export function RewardSheet({
               key={reward.id}
               className={`bg-layer-bg rounded-xs px-3 ${inlineFormId ? "py-4" : "py-2"}`}
             >
-              <div className="mb-1 flex items-start justify-between gap-2">
+              <div className="relative mb-1 flex items-start gap-2 pr-10">
                 <h3 className="text-body-strong min-w-0 truncate">{reward.name}</h3>
                 <button
                   type="button"
                   aria-label={`${reward.name} 삭제`}
                   onClick={() => removeReward(reward.id)}
-                  className="focus-visible:outline-border-primary flex size-4 shrink-0 items-center justify-center focus-visible:outline-2"
+                  className="focus-visible:outline-border-primary absolute top-0 right-0 flex size-8 items-start justify-end focus-visible:outline-2"
                 >
-                  <Icon name="close" className="size-4" />
+                  <Icon name="close" className="size-3.5" />
                 </button>
               </div>
               <p className={`text-caption-s text-text-secondary ${inlineFormId ? "mb-4" : "mb-1"}`}>
