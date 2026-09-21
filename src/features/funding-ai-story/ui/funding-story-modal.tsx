@@ -31,6 +31,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { applyStory } from "../model/apply-story";
+import { resolveFundingStoryRunId } from "../model/run-resume";
 
 type FundingStoryModalProps = {
   projectTitle: string;
@@ -82,6 +83,7 @@ export function FundingStoryModal({
   const [apiError, setApiError] = useState("");
   const [apiBusy, setApiBusy] = useState(false);
   const [pendingSessionSync, setPendingSessionSync] = useState<PendingSessionSync | null>(null);
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
   const apiBusyRef = useRef(false);
   const lifecycleRef = useRef<AbortController | null>(null);
   const remoteBlocks = run?.result?.intro_content;
@@ -173,33 +175,43 @@ export function FundingStoryModal({
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
+    let runId = pendingRunId;
     try {
       const controller = lifecycleRef.current ?? new AbortController();
-      const confirmed = await confirmFundingStorySession(
-        projectId,
-        session.session_id,
-        session.revision,
-        controller.signal,
-      );
+      runId = await resolveFundingStoryRunId(pendingRunId, async () => {
+        const confirmed = await confirmFundingStorySession(
+          projectId,
+          session.session_id,
+          session.revision,
+          controller.signal,
+        );
+        return createFundingStoryRun(
+          projectId,
+          session.session_id,
+          confirmed.confirmed_revision,
+          crypto.randomUUID(),
+          controller.signal,
+        );
+      });
+      setPendingRunId(runId);
       setRemoteStage("generating");
-      const accepted = await createFundingStoryRun(
-        projectId,
-        session.session_id,
-        confirmed.confirmed_revision,
-        crypto.randomUUID(),
-        controller.signal,
-      );
-      const completed = await waitForFundingStoryRun(projectId, accepted.run_id, controller.signal);
+      const completed = await waitForFundingStoryRun(projectId, runId, controller.signal);
       if (completed.status === "failed" || !completed.result) {
+        setPendingRunId(null);
+        runId = null;
         throw new Error(completed.error?.message ?? "상세페이지 생성에 실패했습니다.");
       }
+      setPendingRunId(null);
       setRun(completed);
       setRemoteStage("result");
       if (completed.status === "partially_succeeded") {
         setApiError("일부 이미지를 만들지 못해 생성된 나머지 결과만 표시합니다.");
       }
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "생성 요청에 실패했습니다.");
+      const message = error instanceof Error ? error.message : "생성 요청에 실패했습니다.";
+      setApiError(
+        runId ? `${message} 다시 시도하면 같은 생성 작업의 상태를 이어서 확인합니다.` : message,
+      );
       setRemoteStage("summary");
     } finally {
       apiBusyRef.current = false;
@@ -233,7 +245,10 @@ export function FundingStoryModal({
   const displayStage = projectId ? remoteStage : state.stage;
   const stageRef = useRef(displayStage);
   const busy = projectId
-    ? apiBusy || pendingSessionSync !== null || ["connecting", "generating"].includes(remoteStage)
+    ? apiBusy ||
+      pendingSessionSync !== null ||
+      pendingRunId !== null ||
+      ["connecting", "generating"].includes(remoteStage)
     : apiBusy || ["summarizing", "generating", "ready"].includes(state.stage);
   const result = displayStage === "result";
   const loading = displayStage === "generating" || displayStage === "ready";
