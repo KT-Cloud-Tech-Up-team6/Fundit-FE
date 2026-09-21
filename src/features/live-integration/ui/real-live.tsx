@@ -35,7 +35,7 @@ function QueryError({
       {status === 409
         ? "VOD를 준비 중입니다. 잠시 후 다시 시도해 주세요."
         : status === 401 || status === 403
-          ? "로그인이 필요하거나 이 라이브의 판매자 권한이 없습니다."
+          ? "로그인이 필요하거나 이 라이브에 접근할 권한이 없습니다."
           : `정보를 불러오지 못했습니다${status ? ` (${status})` : ""}.`}{" "}
       <button
         type="button"
@@ -105,7 +105,7 @@ export function RealBuyerLive({
   ) : questions.data?.length ? undefined : (
     <p>등록된 답변이 없습니다.</p>
   );
-  const isVod = playback.data?.type === "VOD";
+  const isVod = replay || playback.data?.type === "VOD";
   if (desktop)
     return (
       <BuyerLiveDesktop
