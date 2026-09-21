@@ -86,7 +86,7 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 ### 2.2. 경로와 버전
 
 - URL 경로 버전 `/api/v1/...`을 사용한다.
-- project-service는 `/projects/**`로 통일되지 않는다. `/rewards/**`, `/notices/**`, `/community/posts/**`, `/ai/funding-story/sessions/**`, `/sellers/**`, `/live-verifications/**`, `/admin/projects/**`도 사용한다.
+- project-service는 `/projects/**`로 통일되지 않는다. `/rewards/**`, `/notices/**`, `/community/posts/**`, `/api/v1/ai/**`, `/sellers/**`, `/live-verifications/**`, `/admin/projects/**`도 사용한다.
 - 필드 추가만으로 버전을 올리지 않으며 FE는 모르는 응답 필드를 무시해야 한다. 실제 파서에서 이 호환성을 검증해야 한다.
 - 필드 삭제·이름 변경·타입 변경 등 브레이킹 체인지는 `/api/v2/...`로 병행 운영한다.
 - 구버전 최소 유지 기간과 종료 공지는 팀 협의 후 확정한다.
@@ -390,17 +390,26 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 ### 5.5. AI 스토리
 
-명세에는 아래 API가 있으나 실제 AI 연동 완료를 뜻하지 않는다.
+모든 공개 요청은 `X-Project-Id: <project UUID>`를 포함하고 `/api/v1/ai`를 사용한다.
 
-| 동작 | Method·Path                                                   |
-| ---- | ------------------------------------------------------------- |
-| 생성 | POST `/api/v1/projects/{projectId}/ai/funding-story/sessions` |
-| 조회 | GET `/api/v1/ai/funding-story/sessions/{sessionId}`           |
-| 반영 | PATCH `/api/v1/ai/funding-story/sessions/{sessionId}/apply`   |
+| 동작        | Method·Path                                     |
+| ----------- | ----------------------------------------------- |
+| 최신 세션   | GET `/api/v1/ai/sessions/latest`                |
+| 세션 생성   | POST `/api/v1/ai/sessions` + `{}`               |
+| 세션 조회   | GET `/api/v1/ai/sessions/{sessionId}`           |
+| 첫 질문     | POST `/api/v1/ai/sessions/{sessionId}/start`    |
+| 메시지      | POST `/api/v1/ai/sessions/{sessionId}/messages` |
+| 채팅 스트림 | GET `/api/v1/ai/chats/{chatId}/events` (SSE)    |
+| 요약 확인   | POST `/api/v1/ai/sessions/{sessionId}/confirm`  |
+| 전체 생성   | POST `/api/v1/ai/runs`                          |
+| 상태·결과   | GET `/api/v1/ai/runs/{runId}`                   |
 
-생성 요청은 productDescription, productImageUrls, answers의 questionId/answer이며 응답 예시는 sessionId·GENERATING 상태다. 조회는 GENERATING/COMPLETED/FAILED와 additionalQuestions·result를 설명하지만 질문 스키마, 후속 답변 제출, 재시도 플래그·오류·폴링 주기 계약이 충분하지 않다. 생성된 result.sections와 introContent는 다른 구조이며 변환을 추측하지 않는다.
-
-apply는 mode(OVERWRITE/COPY), edits를 받고 스토리에 임시저장하는 명세다. 현재 FE의 “불러오기”는 로컬 반영뿐이므로 서버 저장과 같은 동작으로 설명하지 않는다.
+- FE는 Core 프로젝트·리워드 DTO를 만들지 않는다. BE가 최신 Core 사실을 AI 요청에 추가한다.
+- 메시지는 `message_id`, 현재 `revision`, `text`를 보내며 SSE `message`·`done`을 처리한다.
+- 전체 생성은 `session_id`, `confirmed_revision`, 새 `idempotency_key`만 보낸다. 부분 재생성 API는 없다.
+- run 상태는 `queued|running|succeeded|partially_succeeded|failed`다. 부분 성공도 `result`를 표시·불러오고 실패 슬롯을 안내한다.
+- 완료 callback 시 BE가 검증된 결과를 프로젝트에 저장한다. 별도 export/apply API는 없으며 FE의 “불러오기”는 현재 에디터와 캐시를 BE 결과에 맞춘다.
+- 확인 뒤 Core 정보가 바뀐 `409`의 `detail.action=reconfirm_summary`는 새 요약 확인이 필요한 상태다.
 
 ## 6. 최신 답변으로 정리한 차이
 

@@ -8,27 +8,40 @@ const old = {
   title: "제목",
   introContent: [{ type: "TEXT", value: "이전 스토리" }],
 };
-const session = { sessionId: "session", result: { sections: [{ body: "새 스토리", images: [] }] } };
-test("AI 적용 성공 후 재진입에 사용하는 캐시를 갱신하고 다른 사용자는 보존", async (t) => {
+const run = {
+  run_id: "run",
+  status: "partially_succeeded",
+  result: {
+    cover_image_url: "https://cdn/cover.png",
+    intro_content: [
+      { type: "IMAGE", value: "https://cdn/body.png" },
+      { type: "TEXT", value: "새 스토리" },
+    ],
+  },
+  failed_slots: [{ slot_id: "benefit", stage: "generation", error: {} }],
+  error: null,
+};
+test("AI 적용 성공 후 재진입에 사용하는 캐시를 갱신하고 다른 사용자는 보존", async () => {
   const cache = new QueryClient();
   cache.setQueryData(key, old);
   const other = ["seller-project-preview", "other", "project"];
   cache.setQueryData(other, old);
-  t.mock.method(globalThis, "fetch", async () => Response.json({ projectId: "project" }));
-  await applyStory(cache, "owner", "project", session);
-  assert.deepEqual(cache.getQueryData(key).introContent, [{ type: "TEXT", value: "새 스토리" }]);
+  await applyStory(cache, "owner", "project", run);
+  assert.deepEqual(cache.getQueryData(key).introContent, run.result.intro_content);
+  assert.equal(cache.getQueryData(key).coverImageUrl, "https://cdn/cover.png");
   assert.deepEqual(cache.getQueryData(other), old);
   cache.clear();
 });
-test("AI 적용 실패 시 기존 스토리를 유지", async (t) => {
+test("전체 실패 결과는 기존 스토리를 유지", async () => {
   const cache = new QueryClient();
   cache.setQueryData(key, old);
-  t.mock.method(globalThis, "fetch", async () => new Response("", { status: 503 }));
-  await assert.rejects(applyStory(cache, "owner", "project", session));
+  await assert.rejects(
+    applyStory(cache, "owner", "project", { ...run, status: "failed", result: null }),
+  );
   assert.deepEqual(cache.getQueryData(key), old);
   cache.clear();
 });
-test("진행 중인 이전 조회가 적용 후 캐시를 덮어쓰지 않도록 취소", async (t) => {
+test("진행 중인 이전 조회가 적용 후 캐시를 덮어쓰지 않도록 취소", async () => {
   const cache = new QueryClient();
   cache.setQueryData(key, old);
   let release;
@@ -41,10 +54,9 @@ test("진행 중인 이전 조회가 적용 후 캐시를 덮어쓰지 않도록
         }),
     })
     .catch(() => {});
-  t.mock.method(globalThis, "fetch", async () => Response.json({}));
-  await applyStory(cache, "owner", "project", session);
+  await applyStory(cache, "owner", "project", run);
   release(old);
   await request;
-  assert.equal(cache.getQueryData(key).introContent[0].value, "새 스토리");
+  assert.deepEqual(cache.getQueryData(key).introContent, run.result.intro_content);
   cache.clear();
 });

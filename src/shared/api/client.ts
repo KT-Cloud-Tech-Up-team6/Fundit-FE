@@ -124,6 +124,40 @@ export function apiRequest<T>(path: string, options: ApiRequestOptions = {}) {
   return request<T>(path, options, false);
 }
 
+async function streamRequest(
+  path: string,
+  options: ApiRequestOptions,
+  retried: boolean,
+): Promise<Response> {
+  const { auth = false, body, ...requestInit } = options;
+  const generation = authTokenStore.getSessionGeneration();
+  const assertSession = () => {
+    if (auth && authTokenStore.getSessionGeneration() !== generation) {
+      throw new DOMException("Session changed", "AbortError");
+    }
+  };
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...requestInit,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "include",
+    headers: makeHeaders(options, auth ? authTokenStore.get() : null),
+  });
+  assertSession();
+  if (auth && response.status === 401 && !retried) {
+    await refreshOnce();
+    assertSession();
+    return streamRequest(path, options, true);
+  }
+  if (!response.ok) await parseResponse<never>(response);
+  assertSession();
+  return response;
+}
+
+/** JSON으로 끝나지 않는 SSE 응답용. 인증 갱신 규칙은 apiRequest와 동일하다. */
+export function apiStreamRequest(path: string, options: ApiRequestOptions = {}) {
+  return streamRequest(path, options, false);
+}
+
 async function withAuthLock<T>(run: () => Promise<T>): Promise<T> {
   const locks = globalThis.navigator?.locks;
   return await (locks ? locks.request("fundit-auth-refresh", run) : run());

@@ -12,19 +12,54 @@ import { createStoryState, storyBody, storyQuestions, storyReducer } from "../mo
 import type { StoryDemoState } from "../model/story-demo";
 import styles from "./funding-story-modal.module.css";
 import { StoryPreview } from "./story-preview";
-import { generateFundingStory, type FundingStorySession } from "@/entities/project/api/story-api";
+import {
+  confirmFundingStorySession,
+  createFundingStoryRun,
+  createFundingStorySession,
+  getFundingStorySession,
+  getLatestFundingStorySession,
+  isFundingStorySessionSynchronized,
+  sendFundingStoryMessage,
+  startFundingStorySession,
+  streamFundingStoryChat,
+  waitForFundingStoryRun,
+  type FundingStoryMessage,
+  type FundingStoryRun,
+  type FundingStorySession,
+  type IntroBlock,
+} from "@/entities/project/api/story-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { applyStory } from "../model/apply-story";
-import { storySummary } from "../model/story-demo";
+import { partialSuccessMessage } from "../model/run-feedback";
+import { resolveFundingStoryRunId } from "../model/run-resume";
 
 type FundingStoryModalProps = {
   projectTitle: string;
   onClose: () => void;
-  onImport: (body: string) => void;
+  onImport: (body: string, introContent?: IntroBlock[], coverImageUrl?: string | null) => void;
   initialState?: StoryDemoState;
   pauseDemo?: boolean;
   projectId?: string;
+};
+
+type PendingSessionSync = {
+  sessionId: string;
+  minimumRevision: number;
+};
+
+const nextRemoteStage = (session: FundingStorySession) =>
+  session.missing.length === 0 && session.summary ? "summary" : "collecting";
+
+const summaryText = (session: FundingStorySession) => {
+  if (!session.summary) return "";
+  return [
+    `제품\n${session.summary.product}`,
+    `스토리\n${session.summary.story}`,
+    `핵심 강점\n${session.summary.strengths
+      .map((strength) => `${strength.title}: ${strength.description}`)
+      .join("\n")}`,
+  ].join("\n\n");
 };
 
 export function FundingStoryModal({
@@ -40,33 +75,145 @@ export function FundingStoryModal({
   const [state, dispatch] = useReducer(storyReducer, initialState ?? createStoryState());
   const [input, setInput] = useState("");
   const [session, setSession] = useState<FundingStorySession | null>(null);
+  const [run, setRun] = useState<FundingStoryRun | null>(null);
+  const [remoteStage, setRemoteStage] = useState<
+    "connecting" | "collecting" | "summary" | "generating" | "result"
+  >("connecting");
+  const [streamingText, setStreamingText] = useState("");
+  const [optimisticMessage, setOptimisticMessage] = useState<FundingStoryMessage | null>(null);
   const [apiError, setApiError] = useState("");
   const [apiBusy, setApiBusy] = useState(false);
+  const [pendingSessionSync, setPendingSessionSync] = useState<PendingSessionSync | null>(null);
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
   const apiBusyRef = useRef(false);
+  const lifecycleRef = useRef<AbortController | null>(null);
+  const remoteBlocks = run?.result?.intro_content;
   const generatedBody = projectId
-    ? (session?.result?.sections.map((section) => section.body).join("\n\n") ?? "")
+    ? (remoteBlocks
+        ?.filter((block) => block.type === "TEXT")
+        .map((block) => block.value)
+        .join("\n\n") ?? "")
     : storyBody(state);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const controller = new AbortController();
+    lifecycleRef.current = controller;
+    const refreshAfterChat = async (current: FundingStorySession, chatId: string) => {
+      setApiBusy(true);
+      setStreamingText("");
+      const done = await streamFundingStoryChat(
+        projectId,
+        chatId,
+        setStreamingText,
+        controller.signal,
+      );
+      const pending = {
+        sessionId: current.session_id,
+        minimumRevision: done.revision,
+      };
+      setPendingSessionSync(pending);
+      const refreshed = await getFundingStorySession(
+        projectId,
+        current.session_id,
+        controller.signal,
+      );
+      if (!isFundingStorySessionSynchronized(refreshed, pending.minimumRevision)) {
+        throw new Error("완료된 AI 응답을 세션과 동기화하지 못했습니다.");
+      }
+      setSession(refreshed);
+      setPendingSessionSync(null);
+      setStreamingText("");
+      setOptimisticMessage(null);
+      setRemoteStage(nextRemoteStage(refreshed));
+    };
+    const bootstrap = async () => {
+      setApiError("");
+      setApiBusy(true);
+      try {
+        const latest = await getLatestFundingStorySession(projectId, controller.signal);
+        const current =
+          latest.session ?? (await createFundingStorySession(projectId, controller.signal));
+        setSession(current);
+        if (current.active_chat_id) {
+          setRemoteStage("collecting");
+          await refreshAfterChat(current, current.active_chat_id);
+        } else if (current.messages.length === 0) {
+          setRemoteStage("collecting");
+          const accepted = await startFundingStorySession(
+            projectId,
+            current.session_id,
+            controller.signal,
+          );
+          await refreshAfterChat(current, accepted.chat_id);
+        } else {
+          setRemoteStage(nextRemoteStage(current));
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setApiError(error instanceof Error ? error.message : "AI 세션을 불러오지 못했습니다.");
+        }
+      } finally {
+        setApiBusy(false);
+      }
+    };
+    // 개발 Strict Mode의 effect 재실행 전에 첫 호출이 서버 세션을 중복 생성하지 않게 다음 tick에 시작한다.
+    const bootstrapTimer = window.setTimeout(() => void bootstrap(), 0);
+    return () => {
+      window.clearTimeout(bootstrapTimer);
+      controller.abort();
+      if (lifecycleRef.current === controller) lifecycleRef.current = null;
+    };
+  }, [projectId]);
+
   async function generate() {
-    if (apiBusyRef.current) return;
+    if (apiBusyRef.current || pendingSessionSync) return;
     if (!projectId) {
       dispatch({ type: "generate" });
       return;
     }
+    if (!session || !session.summary || session.missing.length) return;
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
+    let runId = pendingRunId;
     try {
-      const next = await generateFundingStory(projectId, storySummary(state));
-      if (next.status !== "COMPLETED" || !next.result)
-        throw new Error("생성이 완료되지 않았습니다. 잠시 후 다시 시도해주세요.");
-      if (next.result.sections.some((section) => section.images.length))
-        throw new Error("이미지를 포함한 AI 결과는 아직 불러올 수 없습니다.");
-      setSession(next);
-      dispatch({ type: "generate" });
-      dispatch({ type: "ready" });
-      dispatch({ type: "result" });
+      const controller = lifecycleRef.current ?? new AbortController();
+      runId = await resolveFundingStoryRunId(pendingRunId, async () => {
+        const confirmed = await confirmFundingStorySession(
+          projectId,
+          session.session_id,
+          session.revision,
+          controller.signal,
+        );
+        return createFundingStoryRun(
+          projectId,
+          session.session_id,
+          confirmed.confirmed_revision,
+          crypto.randomUUID(),
+          controller.signal,
+        );
+      });
+      setPendingRunId(runId);
+      setRemoteStage("generating");
+      const completed = await waitForFundingStoryRun(projectId, runId, controller.signal);
+      if (completed.status === "failed" || !completed.result) {
+        setPendingRunId(null);
+        runId = null;
+        throw new Error(completed.error?.message ?? "상세페이지 생성에 실패했습니다.");
+      }
+      setPendingRunId(null);
+      setRun(completed);
+      setRemoteStage("result");
+      if (completed.status === "partially_succeeded") {
+        setApiError(partialSuccessMessage(completed.failed_slots));
+      }
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "생성 요청에 실패했습니다.");
+      const message = error instanceof Error ? error.message : "생성 요청에 실패했습니다.";
+      setApiError(
+        runId ? `${message} 다시 시도하면 같은 생성 작업의 상태를 이어서 확인합니다.` : message,
+      );
+      setRemoteStage("summary");
     } finally {
       apiBusyRef.current = false;
       setApiBusy(false);
@@ -78,14 +225,14 @@ export function FundingStoryModal({
       onImport(generatedBody);
       return;
     }
-    if (!session) return;
+    if (!run?.result) return;
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
     try {
       if (!auth.user?.memberId) throw new Error("로그인이 필요합니다.");
-      await applyStory(cache, auth.user.memberId, projectId, session);
-      onImport(generatedBody);
+      await applyStory(cache, auth.user.memberId, projectId, run);
+      onImport(generatedBody, run.result.intro_content, run.result.cover_image_url);
     } catch {
       setApiError("스토리에 반영하지 못했습니다. 다시 시도해주세요.");
     } finally {
@@ -96,10 +243,16 @@ export function FundingStoryModal({
   const historyRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const followBottom = useRef(true);
-  const stageRef = useRef(state.stage);
-  const busy = apiBusy || ["summarizing", "generating", "ready"].includes(state.stage);
-  const result = state.stage === "result";
-  const loading = state.stage === "generating" || state.stage === "ready";
+  const displayStage = projectId ? remoteStage : state.stage;
+  const stageRef = useRef(displayStage);
+  const busy = projectId
+    ? apiBusy ||
+      pendingSessionSync !== null ||
+      pendingRunId !== null ||
+      ["connecting", "generating"].includes(remoteStage)
+    : apiBusy || ["summarizing", "generating", "ready"].includes(state.stage);
+  const result = displayStage === "result";
+  const loading = displayStage === "generating" || displayStage === "ready";
 
   useEffect(() => {
     const history = historyRef.current;
@@ -107,7 +260,7 @@ export function FundingStoryModal({
   }, []);
 
   useEffect(() => {
-    if (pauseDemo || (projectId && state.stage !== "summarizing")) return;
+    if (pauseDemo || projectId) return;
     const action =
       state.stage === "summarizing"
         ? "summary-ready"
@@ -135,18 +288,123 @@ export function FundingStoryModal({
     window.addEventListener("resize", resizeInput);
     const history = historyRef.current;
     if (history && followBottom.current) history.scrollTop = history.scrollHeight;
-    if (stageRef.current !== state.stage && !busy && !result) textarea?.focus();
-    stageRef.current = state.stage;
+    if (stageRef.current !== displayStage && !busy && !result) textarea?.focus();
+    stageRef.current = displayStage;
     return () => window.removeEventListener("resize", resizeInput);
-  }, [input, state.messages, state.stage, busy, result]);
+  }, [input, state.messages, displayStage, busy, result]);
 
   function send(text: string) {
     if (!text.trim() || busy) return;
+    if (projectId) {
+      void sendRemote(text.trim());
+      return;
+    }
     followBottom.current = true;
     dispatch({ type: "send", text });
     setInput("");
     textareaRef.current?.focus();
   }
+
+  async function sendRemote(text: string) {
+    if (!projectId || !session || apiBusyRef.current) return;
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    setOptimisticMessage({ role: "user", text });
+    setRemoteStage("collecting");
+    setInput("");
+    setStreamingText("");
+    try {
+      const controller = lifecycleRef.current ?? new AbortController();
+      const accepted = await sendFundingStoryMessage(
+        projectId,
+        session.session_id,
+        session.revision,
+        text,
+        controller.signal,
+      );
+      const done = await streamFundingStoryChat(
+        projectId,
+        accepted.chat_id,
+        setStreamingText,
+        controller.signal,
+      );
+      const pending = {
+        sessionId: session.session_id,
+        minimumRevision: done.revision,
+      };
+      setPendingSessionSync(pending);
+      const refreshed = await getFundingStorySession(
+        projectId,
+        session.session_id,
+        controller.signal,
+      );
+      if (!isFundingStorySessionSynchronized(refreshed, pending.minimumRevision)) {
+        throw new Error("완료된 AI 응답을 세션과 동기화하지 못했습니다.");
+      }
+      setSession(refreshed);
+      setPendingSessionSync(null);
+      setRemoteStage(nextRemoteStage(refreshed));
+      setOptimisticMessage(null);
+      setStreamingText("");
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setApiError(error instanceof Error ? error.message : "메시지를 보내지 못했습니다.");
+      }
+      setOptimisticMessage(null);
+      setStreamingText("");
+      setRemoteStage(nextRemoteStage(session));
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+  }
+
+  async function synchronizeSession() {
+    if (!projectId || !pendingSessionSync || apiBusyRef.current) return;
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    try {
+      const controller = lifecycleRef.current ?? new AbortController();
+      const refreshed = await getFundingStorySession(
+        projectId,
+        pendingSessionSync.sessionId,
+        controller.signal,
+      );
+      if (!isFundingStorySessionSynchronized(refreshed, pendingSessionSync.minimumRevision)) {
+        throw new Error("완료된 AI 응답이 아직 세션에 반영되지 않았습니다.");
+      }
+      setSession(refreshed);
+      setPendingSessionSync(null);
+      setOptimisticMessage(null);
+      setStreamingText("");
+      setRemoteStage(nextRemoteStage(refreshed));
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "AI 세션을 다시 동기화하지 못했습니다.");
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+  }
+
+  const displayedMessages: (FundingStoryMessage & { question?: number; isSummary?: boolean })[] =
+    projectId
+      ? [
+          ...(session?.messages ?? []),
+          ...(optimisticMessage ? [optimisticMessage] : []),
+          ...(streamingText ? [{ role: "assistant" as const, text: streamingText }] : []),
+          ...(remoteStage === "summary" && session?.summary
+            ? [
+                {
+                  role: "assistant" as const,
+                  text: `요약본이 준비됐어요!\n\n${summaryText(session)}\n\n확인해보시고, 그대로 진행하시거나 수정해주세요.`,
+                  isSummary: true,
+                },
+              ]
+            : []),
+        ]
+      : state.messages;
 
   return (
     <Modal
@@ -160,12 +418,16 @@ export function FundingStoryModal({
     >
       {projectId && (
         <p className="text-caption-s">
-          BE 목업 생성입니다. 불러오기는 저장된 스토리 전체를 덮어씁니다. 실제 AI 연동은 준비
-          중입니다.
+          전체 생성만 지원합니다. 생성이 끝나면 BE가 검증한 결과를 현재 스토리에 불러옵니다.
         </p>
       )}
       {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
       {apiError && <p role="alert">{apiError}</p>}
+      {pendingSessionSync && !apiBusy && (
+        <Button size="xs" className="self-start" onClick={() => void synchronizeSession()}>
+          세션 다시 동기화
+        </Button>
+      )}
       {loading ? (
         <div className="flex h-full flex-col items-center pt-[139px] text-center" role="status">
           <p className="text-title-s leading-[1.42] font-semibold">AI가 스토리를 생성중이에요...</p>
@@ -189,8 +451,30 @@ export function FundingStoryModal({
             aria-label="AI 스토리 결과 본문"
             tabIndex={0}
           >
-            <p className="text-caption-s mb-2 break-words">{projectTitle} · 목업 결과</p>
-            <StoryPreview body={generatedBody} />
+            <p className="text-caption-s mb-2 break-words">{projectTitle} · AI 생성 결과</p>
+            {projectId && remoteBlocks ? (
+              <article className="border-border-default bg-layer-surface-default space-y-6 rounded-xs border p-6 sm:p-10">
+                {remoteBlocks.map((block, index) =>
+                  block.type === "IMAGE" ? (
+                    <Image
+                      key={`${block.value}-${index}`}
+                      src={block.value}
+                      alt="AI가 생성한 상세페이지 이미지"
+                      width={1200}
+                      height={800}
+                      unoptimized
+                      className="h-auto w-full rounded-xs"
+                    />
+                  ) : (
+                    <p key={index} className="text-body-m break-words whitespace-pre-wrap">
+                      {block.value}
+                    </p>
+                  ),
+                )}
+              </article>
+            ) : (
+              <StoryPreview body={generatedBody} />
+            )}
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3">
             <Button
@@ -198,7 +482,14 @@ export function FundingStoryModal({
               size="xs"
               className="h-10! w-36 leading-[1.42] font-medium"
               disabled={apiBusy}
-              onClick={() => dispatch({ type: "back" })}
+              onClick={() => {
+                if (projectId) {
+                  setRemoteStage("summary");
+                  setRun(null);
+                } else {
+                  dispatch({ type: "back" });
+                }
+              }}
             >
               이전으로
             </Button>
@@ -234,8 +525,8 @@ export function FundingStoryModal({
             }}
           >
             <div className="flex min-h-full flex-col gap-2">
-              {state.messages.map((message, index) => {
-                const latest = index === state.messages.length - 1;
+              {displayedMessages.map((message, index) => {
+                const latest = index === displayedMessages.length - 1;
                 return (
                   <ChatDialogue
                     key={index}
@@ -257,7 +548,29 @@ export function FundingStoryModal({
                       message.question ? `${message.question}/${storyQuestions.length}` : undefined
                     }
                     actions={
-                      message.question ? (
+                      projectId &&
+                      latest &&
+                      message.role === "assistant" &&
+                      remoteStage === "collecting" &&
+                      !streamingText ? (
+                        <Chip
+                          appearance="outline"
+                          className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
+                          disabled={busy}
+                          onClick={() => send("해당 사항 없음")}
+                        >
+                          해당 사항 없음
+                        </Chip>
+                      ) : projectId && message.isSummary ? (
+                        <Chip
+                          appearance="outline"
+                          className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
+                          disabled={apiBusy || pendingSessionSync !== null}
+                          onClick={() => void generate()}
+                        >
+                          그대로 생성하기
+                        </Chip>
+                      ) : message.question ? (
                         <Chip
                           appearance="outline"
                           className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
@@ -266,7 +579,7 @@ export function FundingStoryModal({
                         >
                           해당 사항 없음
                         </Chip>
-                      ) : state.stage === "summary" && latest ? (
+                      ) : displayStage === "summary" && latest ? (
                         <Chip
                           appearance="outline"
                           className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
@@ -289,12 +602,18 @@ export function FundingStoryModal({
             aria-live="polite"
             aria-atomic="true"
             className={
-              state.stage === "summarizing"
+              displayStage === "summarizing" || (projectId && apiBusy)
                 ? "text-caption-s text-text-secondary mb-2 pl-10"
                 : "sr-only"
             }
           >
-            {state.stage === "summarizing" ? "요약 중 …" : ""}
+            {displayStage === "summarizing"
+              ? "요약 중 …"
+              : projectId && remoteStage === "connecting"
+                ? "AI 세션 연결 중 …"
+                : projectId && apiBusy
+                  ? "AI 응답 생성 중 …"
+                  : ""}
           </p>
           <InputChat
             ref={textareaRef}
