@@ -56,7 +56,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build Docker image
-        run: docker build --platform linux/amd64 --tag "$IMAGE" .
+        run: >-
+          docker build --platform linux/amd64
+          --build-arg API_PROXY_TARGET="${{ vars.API_PROXY_TARGET }}"
+          --tag "$IMAGE" .
 
       - name: Verify container
         run: |
@@ -81,7 +84,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build Docker image
-        run: docker build --platform linux/amd64 --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
+        run: >-
+          docker build --platform linux/amd64
+          --build-arg API_PROXY_TARGET="${{ vars.API_PROXY_TARGET }}"
+          --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
 
       - name: Verify container
         run: |

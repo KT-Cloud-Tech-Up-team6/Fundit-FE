@@ -5,7 +5,7 @@
 ## 이미지 구성
 
 - Node.js 24 Debian slim과 pnpm 10.33.2를 사용한다. CI의 Node.js도 이미지와 같은 메이저 버전을 사용한다.
-- 빌드 단계에서 lockfile을 고정해 의존성을 설치하고 `pnpm build`를 실행한다.
+- 빌드 단계에서 lockfile을 고정해 의존성을 설치하고 `pnpm build`를 실행한다. 같은 origin API 프록시가 필요한 이미지는 `API_PROXY_TARGET` build argument를 함께 전달한다. 이 값은 Next.js rewrite에 빌드 시 포함되므로 컨테이너 실행 시에만 주입해도 프록시가 활성화되지 않는다.
 - 실행 단계에는 `.next/standalone`, `.next/static`, `public`만 복사한다.
 - `node` 사용자로 `node server.js`를 실행한다.
 - 기본 주소는 `0.0.0.0:3000`이다. `PORT` 환경변수로 변경할 수 있으며, 포트를 변경하면 호스트 포트 매핑과 인프라 서비스 설정도 함께 맞춰야 한다.
@@ -18,6 +18,12 @@ Docker가 Linux 컨테이너를 실행할 수 있는 환경에서 저장소 루�
 ```powershell
 docker build --platform linux/amd64 --tag fundit-frontend:local .
 docker run --rm --name fundit-frontend-local --publish 127.0.0.1:3000:3000 fundit-frontend:local
+```
+
+Gateway 프록시까지 확인할 때는 Gateway의 공개 가능한 주소를 build argument로 전달한다. 이 주소는 이미지에 포함될 수 있으므로 비밀값을 사용하지 않는다.
+
+```powershell
+docker build --platform linux/amd64 --build-arg API_PROXY_TARGET=http://host.docker.internal:8080 --tag fundit-frontend:local .
 ```
 
 빌드 성공 후 실행하고, 다른 터미널 또는 브라우저에서 `http://localhost:3000/`, `/live`, `/logo.svg`와 화면의 CSS·JavaScript 응답을 확인한다. 실행 터미널에서 Ctrl+C로 종료한다. 포트가 사용 중이면 `127.0.0.1:3100:3000`처럼 호스트 포트만 바꾼다.
@@ -59,7 +65,7 @@ Docker가 없는 환경에서 `pnpm build`와 standalone 서버 실행은 일부
 
 ## 환경변수와 인프라 인계
 
-현재 앱의 필수 환경변수는 없다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 이후 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다. `NEXT_PUBLIC_*`는 빌드 시 고정되므로, 도입 시 빌드 인자 및 환경별 이미지 정책을 함께 정해야 한다.
+현재 앱의 필수 환경변수는 없다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 이후 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다. `NEXT_PUBLIC_*`는 빌드 시 고정되므로, 도입 시 빌드 인자 및 환경별 이미지 정책을 함께 정해야 한다. API 프록시를 운영 이미지에서 사용할 경우 GitHub repository variable `API_PROXY_TARGET`에 Gateway 주소를 설정한다. CI가 이 값을 Docker build argument로 전달한다.
 
 인프라 팀에는 성공한 이미지 URI, Git SHA, 이미지 digest, 플랫폼, 컨테이너 포트, 환경변수 목록과 검증 결과를 전달한다. 별도의 이미지 tar 파일 전달은 필요하지 않다.
 

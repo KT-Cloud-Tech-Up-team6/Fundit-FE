@@ -173,8 +173,9 @@ PowerShell에서는 `Copy-Item .env.example .env.local`을 사용합니다.
 | `NEXT_PUBLIC_MSW_ENABLED`         | 개발 환경에서 목업 응답 활성화 여부. 실제 BE 연결 시 `false`                                               |
 | `NEXT_PUBLIC_PORTONE_STORE_ID`    | PortOne 본인인증용 공개 상점 식별자                                                                        |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | PortOne 본인인증용 공개 채널 식별자                                                                        |
+| `API_PROXY_TARGET`                | `/api/*`를 같은 origin으로 프록시할 Gateway 주소. Docker 이미지 빌드 시 전달하며 비밀값으로 사용하지 않음  |
 
-`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. 현재 Dockerfile·CI에는 이 값들의 빌드 인자 전달이 없으므로 실제 API 이미지 배포 전 환경별 주입 방식을 확정해야 합니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
+`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. `API_PROXY_TARGET`도 Next.js rewrite 설정에 빌드 시 포함되므로, 프록시 이미지에는 Docker build argument로 전달합니다. CI는 GitHub repository variable `API_PROXY_TARGET`을 이 인자로 넘깁니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
 
 ## 사용 가능한 명령어
 

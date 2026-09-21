@@ -8,6 +8,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+ARG API_PROXY_TARGET
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 RUN pnpm build
 
 FROM node:24-bookworm-slim AS runner
