@@ -144,8 +144,16 @@ export function LiveCueSheetApi({
       project={project}
       onClose={onClose}
       autoAdvanceGeneration={false}
+      /* 이미 완성된 큐시트가 있으면 질문부터 다시 받지 않고 편집기로 연다 —
+         데모 모드에서 저장본을 다시 열 때와 같은 자리다. */
       initialStep={
-        server.phase === "generating" ? "generating" : server.phase === "failed" ? "failed" : "chat"
+        server.phase === "generating"
+          ? "generating"
+          : server.phase === "failed"
+            ? "failed"
+            : server.phase === "completed"
+              ? "editor"
+              : "chat"
       }
       initialSavedCueSheet={
         server.phase === "completed"
