@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import type { ReactNode } from "react";
 
-import { getMe, refreshAccessToken } from "@/features/auth/api/auth-api";
+import { getMe, refreshAccessToken, revokeSession } from "@/features/auth/api/auth-api";
 import type { AuthUser } from "@/features/auth/api/auth-types";
 import { authTokenStore } from "@/shared/api/auth-token-store";
 import { ApiError } from "@/shared/api/api-error";
@@ -146,9 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       clearSession() {
         restoreSupersededRef.current = true;
-        authTokenStore.changeSession();
+        /* 로컬 무효화를 먼저 확정한다. 서버 응답을 기다리면 그 사이의 refresh가 세션을 되살리고,
+           네트워크 장애 때는 화면이 로그인 상태로 남는다. */
+        const generation = authTokenStore.changeSession();
         queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
+        /* 서버 폐기가 없으면 쿠키가 남아 새로고침 때 세션이 복구된다. 실패해도 로컬은 이미
+           비로그인이고 BE 로그아웃은 멱등이라 화면 오류로 올리지 않는다. */
+        void revokeSession(generation).catch(() => {});
       },
       state,
     }),
