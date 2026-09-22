@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { EmptyState } from "@/shared/components/ui/empty-state";
 import { Icon } from "@/shared/components/ui/icon";
 import { Toast } from "@/shared/components/ui/toast";
@@ -121,20 +121,21 @@ export function FulfillmentBoard({
     /* Figma page_main_container(1319:40716 등, 22개 프레임 전부)는 792px 고정폭이다.
        flex-1만 두면 남는 공간만큼 계속 늘어나 넓은 화면에서 카드가 지나치게 넓어진다. */
     <div className="max-w-[792px] min-w-0 flex-1">
-      <Breadcrumb items={breadcrumb} />
+      <ProjectPageHeader
+        breadcrumb={breadcrumb}
+        title="제작·배송"
+        action={
+          <Link
+            className="bg-layer-surface-primary text-text-inverse hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary text-body-s flex h-10 w-[180px] shrink-0 items-center justify-center gap-1 rounded-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2"
+            href={`/seller/projects/${projectId}/shipping`}
+          >
+            발송 정보
+            <Icon className="size-5" name="transferVan" />
+          </Link>
+        }
+      />
 
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-heading-l">제작·배송</h1>
-        <Link
-          className="bg-layer-surface-primary text-text-inverse hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary text-body-s flex h-10 w-[180px] shrink-0 items-center justify-center gap-1 rounded-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2"
-          href={`/seller/projects/${projectId}/shipping`}
-        >
-          발송 정보
-          <Icon className="size-5" name="transferVan" />
-        </Link>
-      </div>
-
-      <div className="mt-5 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <StageTabs onSelect={selectStage} selected={selected} state={state} />
 
         <section

@@ -14,9 +14,13 @@ import {
   type Fulfillment,
   type Stage,
 } from "@/entities/fulfillment/api/fulfillment-api";
-import { ProjectSidebar, projectManageTabs } from "@/entities/project/ui/project-sidebar";
+import {
+  ProjectPageHeader,
+  ProjectWorkspaceLayout,
+  projectManageTabs,
+} from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { Icon } from "@/shared/components/ui/icon";
 import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
 import { FulfillmentAccess } from "./fulfillment-access";
@@ -70,32 +74,46 @@ function Seller({
       </p>
     );
   return (
-    <div className="mt-3 flex flex-col gap-6 lg:flex-row">
-      <ProjectSidebar
-        activeTab="fulfillment"
-        projectId={projectId}
-        projectName={owner.data.title}
-        tabs={projectManageTabs}
-        className="lg:mt-9"
-      />
+    <ProjectWorkspaceLayout
+      activeTab="fulfillment"
+      backHref={shipping ? `/seller/projects/${projectId}?tab=fulfillment` : undefined}
+      backLabel={shipping ? "제작 · 배송" : undefined}
+      projectId={projectId}
+      projectName={owner.data.title}
+      tabs={projectManageTabs}
+    >
       <div className="max-w-[792px] min-w-0 flex-1">
-        <Breadcrumb items={["내 프로젝트", "제작 · 배송"]} />
         {shipping ? (
-          <section className="space-y-4 py-8">
-            <ShippingBoard projectId={projectId} />
-          </section>
-        ) : status.isPending ? (
-          <p role="status">제작 현황을 불러오고 있습니다.</p>
-        ) : status.isError ? (
-          <p role="alert">
-            제작 현황이 아직 없거나 조회하지 못했습니다.{" "}
-            <button onClick={() => void status.refetch()}>다시 시도</button>
-          </p>
+          <ShippingBoard projectId={projectId} />
         ) : (
-          <Editor memberId={memberId} projectId={projectId} data={status.data} />
+          <>
+            <ProjectPageHeader
+              breadcrumb={["내 프로젝트", "제작 · 배송"]}
+              title="제작·배송"
+              action={
+                <Link
+                  className="bg-layer-surface-primary text-text-inverse hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary text-body-s flex h-10 w-[180px] shrink-0 items-center justify-center gap-1 rounded-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2"
+                  href={`/seller/projects/${projectId}/shipping`}
+                >
+                  발송 정보
+                  <Icon className="size-5" name="transferVan" />
+                </Link>
+              }
+            />
+            {status.isPending ? (
+              <p role="status">제작 현황을 불러오고 있습니다.</p>
+            ) : status.isError ? (
+              <p role="alert">
+                제작 현황이 아직 없거나 조회하지 못했습니다.{" "}
+                <button onClick={() => void status.refetch()}>다시 시도</button>
+              </p>
+            ) : (
+              <Editor memberId={memberId} projectId={projectId} data={status.data} />
+            )}
+          </>
         )}
       </div>
-    </div>
+    </ProjectWorkspaceLayout>
   );
 }
 function Editor({
@@ -143,8 +161,7 @@ function Editor({
   }
   const fieldClass = "border-border-default w-full rounded-xs border p-3";
   return (
-    <section className="space-y-5 py-6" key={memberId}>
-      <h1 className="text-title-l">제작 · 배송</h1>
+    <section className="mt-3 space-y-5" key={memberId}>
       {data.isUpdateOverdue && (
         <p role="status" className="bg-layer-bg p-4">
           진행 현황 업데이트가 필요합니다.

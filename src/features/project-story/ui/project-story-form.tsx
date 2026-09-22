@@ -7,7 +7,7 @@ import { uploadProjectMedia, validateProjectMedia } from "@/entities/project/api
 import { saveProjectStory } from "@/entities/project/api/story-api";
 import type { StoryPreviewResponse } from "@/entities/project/api/story-api";
 import { fromIntroContent, toIntroContent } from "../model/story-content";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
 import { FormField } from "@/shared/components/ui/form-field";
 import { Input } from "@/shared/components/ui/input";
@@ -16,7 +16,8 @@ import { StoryEditor } from "./story-editor";
 import { StoryPreview } from "./story-preview";
 import { ThumbnailUpload } from "./thumbnail-upload";
 
-const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록", "스토리 작성"];
+const createBreadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록", "스토리 작성"];
+const editBreadcrumb = ["내 프로젝트", "스토리 작성"];
 
 export function ProjectStoryForm({
   projectId,
@@ -86,10 +87,10 @@ export function ProjectStoryForm({
 
   return (
     <fieldset disabled={busy} className="w-full min-w-0 lg:max-w-[792px]">
-      <header className="flex h-20 flex-col justify-center gap-4">
-        <Breadcrumb items={breadcrumb} />
-        <h1 className="text-heading-l">스토리 작성</h1>
-      </header>
+      <ProjectPageHeader
+        breadcrumb={initial ? editBreadcrumb : createBreadcrumb}
+        title="스토리 작성"
+      />
 
       <div className="mt-3 grid gap-6 sm:grid-cols-2">
         <FormField

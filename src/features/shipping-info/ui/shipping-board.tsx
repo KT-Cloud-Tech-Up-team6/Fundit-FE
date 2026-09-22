@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerOrders } from "@/entities/order/api/seller-order-api";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Select } from "@/shared/components/ui/select";
 import { Tab, TabList } from "@/shared/components/ui/tab";
@@ -154,9 +154,7 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col lg:min-h-[766px]">
-      <Breadcrumb items={breadcrumb} />
-
-      <h1 className="text-heading-l mt-3">발송정보</h1>
+      <ProjectPageHeader breadcrumb={breadcrumb} title="발송정보" />
       {readOnly && (
         <p className="text-body-s mt-3" role="status">
           배송 상태를 확인할 수 없어 전체 주문만 표시합니다. 상태별 조회와 발송 정보 편집은 아직

@@ -1,11 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useParams } from "next/navigation";
 import { ProjectRewardManager } from "./project-reward-manager";
 import { ApiError } from "@/shared/api/api-error";
 import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
 import { Dropdown } from "@/shared/components/ui/dropdown";
@@ -31,16 +30,23 @@ import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-req
 import { ProjectCreationUncertainError } from "../model/project-create-attempt";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
-const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
+const createBreadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
+const editBreadcrumb = ["내 프로젝트", "기본 정보 수정"];
 
 export function ProjectBasicInfoForm({
   initialView = "empty",
   initialValues,
+  mode = "create",
   onSave,
+  rewardProjectId,
+  statusMessage,
 }: {
   initialView?: BasicInfoPreview;
   initialValues?: Partial<BasicInfoValues>;
+  mode?: "create" | "edit";
   onSave?: (values: BasicInfoValues) => Promise<void>;
+  rewardProjectId?: string;
+  statusMessage?: string;
 }) {
   const [business, setBusiness] = useState(initialValues?.business ?? "");
   const [title, setTitle] = useState(initialValues?.title ?? "");
@@ -62,12 +68,6 @@ export function ProjectBasicInfoForm({
   const [formMessage, setFormMessage] = useState("");
   const [formMessageRole, setFormMessageRole] = useState<"alert" | "status">("status");
   const nextId = useRef(3);
-  const params = useParams<{ projectId?: string }>();
-  const apiProjectId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    params?.projectId ?? "",
-  )
-    ? params.projectId
-    : undefined;
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const values = { business, title, category, subcategory, amount };
   const validation = onSave
@@ -134,7 +134,7 @@ export function ProjectBasicInfoForm({
   return (
     <>
       <form
-        className="flex min-h-[calc(100vh-92px)] flex-col pt-3"
+        className={`flex min-h-[calc(100vh-92px)] flex-col ${mode === "create" ? "pt-3" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           void saveBasicInfo();
@@ -142,9 +142,15 @@ export function ProjectBasicInfoForm({
         onChange={() => setFormMessage("")}
       >
         <fieldset disabled={saving} className="mx-auto w-full max-w-198 min-w-0">
-          <Breadcrumb items={breadcrumb} />
-          {/* breadcrumb 24 + 간격 4 + 제목(상하 8 포함) 52 = Figma page_header 80px */}
-          <h1 className="text-heading-l text-text-title mt-1 w-full py-2">기본 정보 등록</h1>
+          <ProjectPageHeader
+            breadcrumb={mode === "edit" ? editBreadcrumb : createBreadcrumb}
+            title={mode === "edit" ? "기본 정보 수정" : "기본 정보 등록"}
+          />
+          {statusMessage && (
+            <p role="status" className="text-body-s mt-3">
+              {statusMessage}
+            </p>
+          )}
           <div className="mt-3 space-y-6">
             <fieldset>
               <legend className="text-title-s mb-2">사업자 유형</legend>
@@ -259,8 +265,8 @@ export function ProjectBasicInfoForm({
               </div>
             </div>
           </div>
-          {apiProjectId ? (
-            <ProjectRewardManager projectId={apiProjectId} />
+          {rewardProjectId ? (
+            <ProjectRewardManager projectId={rewardProjectId} />
           ) : (
             <section className="mt-[45px]" aria-labelledby="rewards">
               <h2 id="rewards" className="text-title-s text-text-title">

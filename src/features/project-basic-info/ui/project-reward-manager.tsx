@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
   getSellerRewards,
   saveReward as persistReward,
@@ -13,7 +14,11 @@ import { uploadProjectMedia, ProjectMediaValidationError } from "@/entities/proj
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { TextButton } from "@/shared/components/ui/text-button";
-import { ProjectSidebar, projectEditTabs } from "@/entities/project/ui/project-sidebar";
+import {
+  ProjectPageHeader,
+  ProjectWorkspaceLayout,
+  projectEditTabs,
+} from "@/entities/project/ui/project-sidebar";
 import {
   discountedPrice,
   emptyReward,
@@ -281,18 +286,23 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   );
 }
 export function ProjectRewardsPage({ projectId }: { projectId: string }) {
+  const { state } = useAuth();
+  const project = useQuery({
+    queryKey: ["seller-project-preview", state.user?.memberId, projectId],
+    queryFn: ({ signal }) => getManagementProject(projectId, signal),
+    enabled: state.status === "authenticated" && Boolean(state.user?.memberId),
+  });
   return (
-    <div className="mt-3 flex flex-col gap-6 lg:flex-row">
-      <ProjectSidebar
-        activeTab="rewards"
-        projectId={projectId}
-        projectName="리워드 관리"
-        tabs={projectEditTabs}
-      />
-      <div className="min-w-0 flex-1">
-        <h1 className="text-heading-l">리워드 관리</h1>
+    <ProjectWorkspaceLayout
+      activeTab="rewards"
+      projectId={projectId}
+      projectName={project.data?.title ?? "제목 없음"}
+      tabs={projectEditTabs}
+    >
+      <div className="w-full min-w-0 flex-1 lg:max-w-[792px]">
+        <ProjectPageHeader breadcrumb={["내 프로젝트", "리워드"]} title="리워드 관리" />
         <ProjectRewardManager projectId={projectId} />
       </div>
-    </div>
+    </ProjectWorkspaceLayout>
   );
 }

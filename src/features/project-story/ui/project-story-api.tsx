@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
 import { getStoryPreview } from "@/entities/project/api/story-api";
-import { ProjectSidebar, projectEditTabs } from "@/entities/project/ui/project-sidebar";
+import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
 import { ProjectStoryForm } from "./project-story-form";
 
 export function ProjectStoryApi({ projectId }: { projectId: string }) {
@@ -26,14 +26,13 @@ export function ProjectStoryApi({ projectId }: { projectId: string }) {
       </p>
     );
   return (
-    <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
-      <ProjectSidebar
-        activeTab="story"
-        projectId={projectId}
-        projectName={query.data.title ?? "제목 없음"}
-        tabs={projectEditTabs}
-      />
+    <ProjectWorkspaceLayout
+      activeTab="story"
+      projectId={projectId}
+      projectName={query.data.title ?? "제목 없음"}
+      tabs={projectEditTabs}
+    >
       <ProjectStoryForm key={projectId} projectId={projectId} initial={query.data} />
-    </div>
+    </ProjectWorkspaceLayout>
   );
 }
