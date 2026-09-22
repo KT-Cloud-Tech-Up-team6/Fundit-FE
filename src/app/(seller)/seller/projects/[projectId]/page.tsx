@@ -25,7 +25,6 @@ const allowedTabs = new Set([
   "funding",
   "community",
   "fulfillment",
-  "settlement",
   "live",
 ]);
 
