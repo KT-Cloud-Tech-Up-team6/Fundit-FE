@@ -21,6 +21,7 @@ import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
 import { FulfillmentAccess } from "./fulfillment-access";
 import { fulfillmentState, viewStage, dateInKorea } from "../model/fulfillment-api-state";
+import { ShippingBoard } from "@/features/shipping-info/ui/shipping-board";
 
 export function SellerFulfillmentApi({
   projectId,
@@ -81,11 +82,7 @@ function Seller({
         <Breadcrumb items={["내 프로젝트", "제작 · 배송"]} />
         {shipping ? (
           <section className="space-y-4 py-8">
-            <h1 className="text-title-l">발송 정보</h1>
-            <p>발송 대상 목록 연결을 준비 중입니다.</p>
-            <Link className="underline" href={`/seller/projects/${projectId}?tab=fulfillment`}>
-              제작 · 배송으로 돌아가기
-            </Link>
+            <ShippingBoard projectId={projectId} />
           </section>
         ) : status.isPending ? (
           <p role="status">제작 현황을 불러오고 있습니다.</p>

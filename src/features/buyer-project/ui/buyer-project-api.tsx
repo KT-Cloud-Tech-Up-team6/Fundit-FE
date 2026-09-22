@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Fragment, useMemo, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
+import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import {
   safeStoryHtml,
   isStoryHtml,
@@ -105,6 +106,7 @@ function StoryTextBlock({ value }: { value: string }) {
 
 export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: string }) {
   const { state } = useAuth();
+  const [expandedNoticeId, setExpandedNoticeId] = useState<number | null>(null);
   const params = useSearchParams(),
     router = useRouter();
   const raw = Number(params.get("page") ?? 1),
@@ -223,7 +225,16 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       {notices.data?.content.map((item) => (
         <article key={item.noticeId} className="border-border-default border-b py-3">
           <h2 className="text-title-s">{item.title}</h2>
-          <p>본문 조회는 준비 중입니다.</p>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              setExpandedNoticeId((current) => (current === item.noticeId ? null : item.noticeId))
+            }
+            aria-expanded={expandedNoticeId === item.noticeId}
+          >
+            본문 보기
+          </Button>
+          {expandedNoticeId === item.noticeId && <NoticeDetail noticeId={item.noticeId} />}
         </article>
       ))}
       {!notices.data?.content.length && <p>새 소식이 없습니다.</p>}
