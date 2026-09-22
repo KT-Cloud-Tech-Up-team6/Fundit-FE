@@ -4,6 +4,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { DialogBase } from "@/shared/components/ui/dialog-base";
 import type { roomQuestions } from "../model/room-demo";
 import styles from "./buyer-live-room.module.css";
+import { RoomIcon } from "./room-icon";
 
 export type LiveQuestion = (typeof roomQuestions)[number] & { id?: string; answeredBy?: string };
 export type QuestionSheetState = "closed" | "compact" | "expanded";
@@ -110,16 +111,7 @@ export function LiveQuestionsSheet({
             questions.map((question) => (
               <article key={question.id ?? question.title}>
                 <div className={styles.questionTitle}>
-                  <span
-                    aria-hidden
-                    className="inline-block size-5 shrink-0 bg-current"
-                    style={{
-                      maskImage: "url(/icons/buyer-live-room/question-filled.svg)",
-                      maskSize: "contain",
-                      maskPosition: "center",
-                      maskRepeat: "no-repeat",
-                    }}
-                  />
+                  <RoomIcon name="question-filled" className="size-5" />
                   <h3>{question.title}</h3>
                 </div>
                 <p className={styles.questionCount}>질문 {question.count}건</p>

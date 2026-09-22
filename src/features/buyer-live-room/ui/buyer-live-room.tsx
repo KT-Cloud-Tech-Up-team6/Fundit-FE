@@ -9,27 +9,7 @@ import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-room.module.css";
-
-function RoomIcon({
-  name,
-  className = "size-7",
-}: {
-  name: "expand" | "question" | "question-filled" | "share" | "heart" | "viewers";
-  className?: string;
-}) {
-  return (
-    <span
-      aria-hidden
-      className={`inline-block shrink-0 bg-current ${className}`}
-      style={{
-        maskImage: `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `buyer-live-room/${name}`}.svg)`,
-        maskSize: "contain",
-        maskPosition: "center",
-        maskRepeat: "no-repeat",
-      }}
-    />
-  );
-}
+import { RoomIcon } from "./room-icon";
 
 type BuyerLiveRoomProps = {
   liveId: string;

@@ -149,13 +149,26 @@ export const ConnectedWithoutChapters: Story = {
 };
 
 export const ConnectedClip: Story = {
-  args: { ...connectedArgs, clip: true, liked: false, onToggleLike: fn() },
+  args: {
+    ...connectedArgs,
+    clip: true,
+    liked: false,
+    onToggleLike: fn(),
+    /* 클립에는 Q&A 버튼이 없다. 데이터를 줘도 열 수 없는 시트를 그리지 않는다. */
+    questionsData: [
+      { id: "q1", title: "질문", count: 1, answer: "답변", answeredBy: "판매자 답변" },
+    ],
+  },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "좋아요" }));
     expect(args.onToggleLike).toHaveBeenCalled();
     // 좋아요 상태는 바깥(방송 좋아요 API)이 소유해 로컬로 켜지지 않는다.
     expect(canvas.getByRole("button", { name: "좋아요" })).toHaveAttribute("aria-pressed", "false");
+    expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    // 실제 경로에서는 내부 용어("목업")를 쓰지 않는다.
+    await userEvent.click(canvas.getByRole("button", { name: "채팅" }));
+    expect(await canvas.findByText("숏 클립 채팅은 아직 제공되지 않습니다.")).toBeVisible();
   },
 };
 

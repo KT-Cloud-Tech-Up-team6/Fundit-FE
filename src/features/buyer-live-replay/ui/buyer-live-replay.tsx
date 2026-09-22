@@ -274,7 +274,13 @@ export function BuyerLiveReplay({
             )}
             <button
               type="button"
-              onClick={() => announce("숏 클립 채팅은 아직 연결되지 않은 목업입니다.")}
+              onClick={() =>
+                announce(
+                  demoMode
+                    ? "숏 클립 채팅은 아직 연결되지 않은 목업입니다."
+                    : "숏 클립 채팅은 아직 제공되지 않습니다.",
+                )
+              }
             >
               <ReplayIcon name="chat" small />
               채팅
@@ -476,7 +482,8 @@ export function BuyerLiveReplay({
           </div>
         )}
       </main>
-      {questionsData && (
+      {/* 클립 레일에는 Q&A 버튼이 없어 열 수 없다. 시트도 그리지 않는다. */}
+      {!clip && questionsData && (
         <LiveQuestionsSheet
           state={questionSheet}
           onStateChange={setQuestionSheet}

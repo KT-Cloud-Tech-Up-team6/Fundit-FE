@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { BuyerLiveReplay } from "@/features/buyer-live-replay/ui/buyer-live-replay";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
@@ -151,11 +151,17 @@ export function RealBuyerLive({
     enabled: isVod && range !== null,
     retry: false,
   });
-  const vodChatMessages = (vodChat.data ?? []).map((message, index) => ({
-    id: `${message.offsetSec}:${index}`,
-    author: "시청자",
-    text: message.content,
-  }));
+  /* 렌더마다 새 배열을 만들면 이 트리가 초당 한 번(timeupdate) 다시 그려질 때 다시보기
+     화면의 채팅 자동 스크롤이 매번 다시 돌아 사용자가 위로 올려 둔 위치가 풀린다. */
+  const vodChatMessages = useMemo(
+    () =>
+      (vodChat.data ?? []).map((message, index) => ({
+        id: `${message.offsetSec}:${index}`,
+        author: "시청자",
+        text: message.content,
+      })),
+    [vodChat.data],
+  );
   const questions = useQuery({
     queryKey: ["live", liveId, "answered-questions"],
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
