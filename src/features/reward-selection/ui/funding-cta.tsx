@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { OrderCheckoutApi } from "@/features/order-checkout/ui/order-checkout-api";
 import { RewardSheet } from "./reward-sheet";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 type FundingCtaProps = {
   projectId: string;
@@ -27,7 +28,7 @@ export function FundingCta({ projectId, className, more = false, desktopFormId }
     return () => desktop.removeEventListener("change", closeMobileSheet);
   }, [desktopFormId]);
 
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId))
+  if (isPublicUuid(projectId))
     return (
       <>
         <Button className={className} onClick={() => setOpen(true)}>
