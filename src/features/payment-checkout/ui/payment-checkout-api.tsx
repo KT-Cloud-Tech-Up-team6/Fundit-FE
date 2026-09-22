@@ -64,22 +64,34 @@ function Payment({ memberId, orderId }: { memberId: string; orderId: string }) {
   useEffect(() => {
     if (!created) return;
     let cancelled = false;
-    const destroyers: (() => Promise<void>)[] = [];
+    let failed = false;
+    const destroyers: (() => void | Promise<void>)[] = [];
+    // 정리 시점(취소·실패)이 이미 지난 뒤에 도착하는 위젯은 큐에 넣지 않고 바로 destroy한다.
+    // 그렇지 않으면 destroyAll()이 이미 끝난 뒤라 새로 쌓인 destroyer가 영영 호출되지 않는다.
+    function registerDestroy(widget: { destroy: () => void | Promise<void> }) {
+      if (cancelled || failed)
+        void Promise.resolve()
+          .then(() => widget.destroy())
+          .catch(() => undefined);
+      else destroyers.push(() => widget.destroy());
+    }
     void (async () => {
       const toss = await loadTossPayments(CLIENT_KEY);
       if (cancelled) return;
       const instance = toss.widgets({ customerKey: memberId });
       await instance.setAmount({ currency: "KRW", value: created.amount });
       if (cancelled) return;
-      // 하나만 실패해도 먼저 렌더된 위젯은 destroyers에 이미 쌓여 있어야 정리 시점에 함께 걷힌다.
-      await Promise.all([
-        instance
-          .renderPaymentMethods({ selector: "#payment-method" })
-          .then((widget) => destroyers.push(() => widget.destroy())),
-        instance
-          .renderAgreement({ selector: "#agreement" })
-          .then((widget) => destroyers.push(() => widget.destroy())),
-      ]);
+      try {
+        await Promise.all([
+          instance.renderPaymentMethods({ selector: "#payment-method" }).then(registerDestroy),
+          instance.renderAgreement({ selector: "#agreement" }).then(registerDestroy),
+        ]);
+      } catch (reason) {
+        // 하나만 실패해도 먼저 렌더된 위젯은 이미 등록됐을 수 있으니 즉시 걷어낸다.
+        failed = true;
+        destroyAll();
+        throw reason;
+      }
       /* 렌더링이 끝나기 전에 정리 함수가 지나갔으면(StrictMode 이중 마운트) 여기서 직접 걷어낸다.
          남겨두면 다음 마운트의 renderPaymentMethods가 "이미 렌더링됨"으로 실패한다. */
       if (cancelled) return destroyAll();
