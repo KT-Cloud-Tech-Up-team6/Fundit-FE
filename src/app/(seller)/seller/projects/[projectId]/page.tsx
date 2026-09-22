@@ -15,6 +15,7 @@ import { getFundingDemo } from "@/features/funding-status/model/funding-demo";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 const allowedTabs = new Set([
   "basic-info",
@@ -41,7 +42,7 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+  if (isPublicUuid(projectId)) {
     if (activeTab === "fulfillment") return <SellerFulfillmentApi projectId={projectId} />;
     if (activeTab === "funding" || activeTab === "news" || activeTab === "community")
       return <ProjectManagementApi key={projectId} projectId={projectId} tab={activeTab} />;
