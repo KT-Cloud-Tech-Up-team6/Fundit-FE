@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { AuthContext } from "@/providers/auth-provider";
 import { refundSummariesDemo } from "../model/refunds-demo.ts";
 import { toRefundEntry } from "../model/refund-history.ts";
 import { BuyerRefunds } from "./buyer-refunds.tsx";
@@ -9,7 +10,23 @@ import { BuyerRefunds } from "./buyer-refunds.tsx";
 const entries = refundSummariesDemo.map(toRefundEntry);
 const [delayed, cancelled, , rejected, degraded] = entries;
 
-const render = (list) => renderToStaticMarkup(createElement(BuyerRefunds, { entries: list }));
+/* BuyerRefunds는 BuyerAccountScreen을 통해 HeaderAuthLink(useAuth 사용)를 그린다. 이 파일은
+   AuthProvider 전체(QueryClientProvider·Next 라우터 필요) 없이 렌더만 확인하는 가벼운 테스트라,
+   useAuth()가 읽는 컨텍스트만 최소로 채운다. */
+const authValue = {
+  authenticate: async () => {},
+  clearSession: () => {},
+  logout: () => {},
+  state: { accessToken: null, status: "checking", user: null },
+};
+const render = (list) =>
+  renderToStaticMarkup(
+    createElement(
+      AuthContext.Provider,
+      { value: authValue },
+      createElement(BuyerRefunds, { entries: list }),
+    ),
+  );
 
 test("취소 완료 내역은 ID와 관계없이 처음 펼쳐진다", () => {
   assert.match(render([{ ...cancelled, id: "another-cancellation" }]), /<details\b[^>]*\bopen=""/);
@@ -45,7 +62,11 @@ test("계약이 없어 비는 자리도 행은 그대로 남는다", () => {
 
 test("총 개수는 필터를 걸지 않은 동안 서버 전체 건수를 쓴다", () => {
   const withTotal = renderToStaticMarkup(
-    createElement(BuyerRefunds, { entries: [cancelled], total: 42 }),
+    createElement(
+      AuthContext.Provider,
+      { value: authValue },
+      createElement(BuyerRefunds, { entries: [cancelled], total: 42 }),
+    ),
   );
   assert.match(withTotal, /총 42개/);
   assert.match(render([cancelled]), /총 1개/);

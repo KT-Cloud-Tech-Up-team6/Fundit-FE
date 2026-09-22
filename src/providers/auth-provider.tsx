@@ -39,7 +39,7 @@ function authReducer(state: AuthSessionState, event: AuthEvent): AuthSessionStat
   }
 }
 
-type AuthContextValue = {
+export type AuthContextValue = {
   authenticate: (accessToken: string) => Promise<void>;
   clearSession: () => void;
   /** 사용자가 직접 로그아웃할 때 쓴다. 회원 전용 화면에 남아있으면 게이트가 그 화면으로
@@ -48,7 +48,9 @@ type AuthContextValue = {
   state: AuthSessionState;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+/* 컴포넌트 단위 렌더 테스트(예: buyer-refunds.test.mjs)가 헤더를 거칠 때 AuthProvider 전체
+   (QueryClientProvider·Next 라우터까지 요구) 없이 useAuth()만 채울 수 있도록 export한다. */
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 /* 네트워크·CORS·5xx는 일시적 장애라 유효한 세션을 지울 근거가 못 된다(refreshOnce도 401에서만 토큰을 지운다).
    한 번만 더 시도하고, 그래도 실패하면 호출자가 비로그인으로 내려 화면이 checking에 갇히지 않게 한다. */
