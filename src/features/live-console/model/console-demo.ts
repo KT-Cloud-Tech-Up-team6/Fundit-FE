@@ -157,9 +157,7 @@ export function consoleDemoReducer(
         ? { ...state, completedIds: [...new Set([...state.completedIds, action.questionId])] }
         : state;
     case "loaded":
-      return state.phase === "loading"
-        ? { ...createConsoleDemo("live"), messages: state.messages }
-        : state;
+      return state.phase === "loading" ? createConsoleDemo("live") : state;
     case "end":
       return state.phase !== "ended" ? { ...state, phase: "ended" } : state;
     case "chat":

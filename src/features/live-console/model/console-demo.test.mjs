@@ -6,6 +6,9 @@ test("loading completes on data arrival and an ended console cannot resume", () 
   const loading = createConsoleDemo("loading");
   const live = consoleDemoReducer(loading, { type: "loaded" });
   assert.equal(live.phase, "live");
+  assert.equal(live.messages.length, 6);
+  assert.ok(live.messages.every((message) => message.text.trim() && message.author === "아이디"));
+  assert.deepEqual(loading.messages, []);
   assert.equal(consoleDemoReducer(live, { type: "loaded" }), live);
   const ended = consoleDemoReducer(live, { type: "end" });
   assert.equal(ended.phase, "ended");
