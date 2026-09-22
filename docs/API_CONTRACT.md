@@ -4,8 +4,14 @@
 
 - 2026-09-21 BE develop `ae1e032`의 `ProjectCardProjection.projectPublicId`를 사용한다. 숫자 `projectId`는 카드 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
 - `/search`와 `/categories/{major}/{minor}`에서 유효한 UUID가 있는 카드만 `/projects/{UUID}`로 연결한다. 필드 누락·null·잘못된 값은 상세 연결 대기 상태를 유지하며 숫자 ID나 데모 ID로 대체하지 않는다.
-- 찜 목록 `WishListItemResponse`에는 공개 UUID가 없어 이번 연결 범위에서 제외한다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는다.
+- 찜 목록 `WishListItemResponse`에는 당시 공개 UUID가 없어 이 작업의 연결 범위에서 제외했다. 이후 BE PR #110이 필드를 추가해 아래 #250에서 연결했다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는 원칙은 그대로다.
 - 단위 테스트, lint, typecheck, production build와 격리 Playwright의 모바일 390×844·데스크톱 1440×900 검색/카테고리 클릭·새로고침·뒤로/앞으로가기·누락/잘못된 UUID·404 표시를 확인했다. API 응답은 계약 기반 fixture이며 실제 QA 배포·색인 데이터 연결은 미검증이다.
+
+## 찜 목록의 공개 상세 연결 (#250)
+
+- BE PR #110의 `WishListItemResponse.projectPublicId`(nullable UUID)를 사용한다. 숫자 `projectId`는 찜 등록·해제 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
+- `/my/wishlist`의 제목·썸네일은 유효한 UUID가 있는 항목만 `/projects/{UUID}`로 연결한다. #216과 같은 기준으로 필드 누락·null·잘못된 값은 상세 연결 대기로 두고 숫자 ID나 데모 ID로 대체하지 않는다. 형식 검증은 `src/shared/lib/project-detail-id.ts`를 공용으로 쓴다.
+- 기존 찜 데이터의 UUID 스냅샷 동기화와 실제 배포 BE 연동은 미검증이다.
 
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
@@ -227,22 +233,22 @@ Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v
 
 아래는 이번 YAML에 포함된 전체 경로·메서드이며 모두 성공 상태가 200으로 기재돼 있다. 표는 핵심 필드 요약이며 전체 스키마를 대신하지 않는다. 찜 삭제는 코드와의 차이를 4.6에서 확인해야 한다.
 
-| Method·Path                                | 요청                                                                             | 응답·설명                                                                                                                       |
-| ------------------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| POST `/api/v1/auth/login`                  | email, password                                                                  | accessToken, mustChangePassword. 회원정보는 제외.                                                                               |
-| GET `/api/v1/auth/check-email`             | query email                                                                      | available.                                                                                                                      |
-| POST `/api/v1/auth/identity-verifications` | 필수 identityVerificationId, minLength 1                                         | verificationToken, expiresAt(date-time).                                                                                        |
-| POST `/api/v1/auth/signup`                 | password, email, verificationToken, name, phoneNumber, agreedTerms, 선택 address | accountId, memberId, accessToken. 쿠키는 이전 근거로 분리.                                                                      |
-| POST `/api/v1/auth/token/refresh`          | 본문 없음, Refresh 쿠키                                                          | accessToken. 새 쿠키는 이전 근거로 분리.                                                                                        |
-| GET `/api/v1/auth/jwks`                    | 인증 불필요                                                                      | 자유 객체로 정의된 공개키 응답.                                                                                                 |
-| PATCH `/api/v1/auth/password`              | currentPassword, newPassword, Access 인증                                        | message. 로그인 상태 비밀번호 변경.                                                                                             |
-| GET `/api/v1/members/me`                   | 인증, 본문 없음                                                                  | memberId, name, nickname, phoneNumber, isSeller, isBuyer.                                                                       |
-| GET `/api/v1/terms`                        | 인증 불필요                                                                      | code, title, content, required, version의 배열.                                                                                 |
-| GET `/api/v1/addresses`                    | 인증                                                                             | id, recipientName, phoneNumber, zipcode, addressLine1, addressLine2, isDefault의 배열.                                          |
-| POST `/api/v1/addresses`                   | 인증, 주소 입력                                                                  | id, recipientName, isDefault.                                                                                                   |
-| PUT `/api/v1/wishes/{projectId}`           | 인증, int64 projectId, 본문 없음                                                 | projectId, wished.                                                                                                              |
-| DELETE `/api/v1/wishes/{projectId}`        | 인증, int64 projectId, 본문 없음                                                 | 200, 응답 content 정의 없음.                                                                                                    |
-| GET `/api/v1/wishes`                       | 인증, page 기본 0, size 기본 20                                                  | content, page, size, totalElements, totalPages, hasNext. 항목은 projectId(int64), projectTitle, projectThumbnailUrl, createdAt. |
+| Method·Path                                | 요청                                                                             | 응답·설명                                                                                                                                                                        |
+| ------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/login`                  | email, password                                                                  | accessToken, mustChangePassword. 회원정보는 제외.                                                                                                                                |
+| GET `/api/v1/auth/check-email`             | query email                                                                      | available.                                                                                                                                                                       |
+| POST `/api/v1/auth/identity-verifications` | 필수 identityVerificationId, minLength 1                                         | verificationToken, expiresAt(date-time).                                                                                                                                         |
+| POST `/api/v1/auth/signup`                 | password, email, verificationToken, name, phoneNumber, agreedTerms, 선택 address | accountId, memberId, accessToken. 쿠키는 이전 근거로 분리.                                                                                                                       |
+| POST `/api/v1/auth/token/refresh`          | 본문 없음, Refresh 쿠키                                                          | accessToken. 새 쿠키는 이전 근거로 분리.                                                                                                                                         |
+| GET `/api/v1/auth/jwks`                    | 인증 불필요                                                                      | 자유 객체로 정의된 공개키 응답.                                                                                                                                                  |
+| PATCH `/api/v1/auth/password`              | currentPassword, newPassword, Access 인증                                        | message. 로그인 상태 비밀번호 변경.                                                                                                                                              |
+| GET `/api/v1/members/me`                   | 인증, 본문 없음                                                                  | memberId, name, nickname, phoneNumber, isSeller, isBuyer.                                                                                                                        |
+| GET `/api/v1/terms`                        | 인증 불필요                                                                      | code, title, content, required, version의 배열.                                                                                                                                  |
+| GET `/api/v1/addresses`                    | 인증                                                                             | id, recipientName, phoneNumber, zipcode, addressLine1, addressLine2, isDefault의 배열.                                                                                           |
+| POST `/api/v1/addresses`                   | 인증, 주소 입력                                                                  | id, recipientName, isDefault.                                                                                                                                                    |
+| PUT `/api/v1/wishes/{projectId}`           | 인증, int64 projectId, 본문 없음                                                 | projectId, wished.                                                                                                                                                               |
+| DELETE `/api/v1/wishes/{projectId}`        | 인증, int64 projectId, 본문 없음                                                 | 200, 응답 content 정의 없음.                                                                                                                                                     |
+| GET `/api/v1/wishes`                       | 인증, page 기본 0, size 기본 20                                                  | content, page, size, totalElements, totalPages, hasNext. 항목은 projectId(int64), projectPublicId(nullable UUID, BE PR #110 추가), projectTitle, projectThumbnailUrl, createdAt. |
 
 로그인·이메일 중복 확인·일반 가입·본인인증·갱신·JWKS·약관 조회는 YAML에 인증 요구가 없다. 비밀번호 변경과 Member의 회원 조회·주소·찜 API는 bearerAuth를 명시한다.
 
@@ -317,7 +323,7 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 | 반복 찜 등록·해제   | 반복 호출 결과 설명 없음.                        | [WishJpaRepository](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/infrastructure/persistence/wish/WishJpaRepository.java)는 중복 등록을 무시하고 없는 항목 삭제도 정상 처리. 공식 계약 반영 여부 확인.                                                                                                                                                                                                                                          |
 | 가입·갱신 쿠키      | 응답 Set-Cookie 정의 없음.                       | AuthController는 가입·갱신 성공 시 쿠키를 설정. 명세 보완과 실제 환경 대조 필요.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
-마이페이지의 이메일·프로필 이미지·등급·혜택은 MemberMeResponse에 없다. 찜 목록에는 판매자명·달성률·종료 상태가 없으며 판매자 팔로우 API도 이번 파일에 없다. 다른 API에서 조합할지 DTO를 확장할지 확인한다. 프로젝트 공개 UUID와 찜 int64 projectId 연결도 미정이다. 통합 검색·LIVE 알림·취소/환불/교환 내역은 담당 서비스의 별도 명세가 필요하며 Auth·Member 파일에 없다는 이유로 미구현으로 분류하지 않는다.
+마이페이지의 이메일·프로필 이미지·등급·혜택은 MemberMeResponse에 없다. 찜 목록에는 판매자명·달성률·종료 상태가 없으며 판매자 팔로우 API도 이번 파일에 없다. 다른 API에서 조합할지 DTO를 확장할지 확인한다. 프로젝트 공개 UUID와 찜 int64 projectId 연결은 BE PR #110의 projectPublicId로 확정해 #250에서 연결했다. 통합 검색·LIVE 알림·취소/환불/교환 내역은 담당 서비스의 별도 명세가 필요하며 Auth·Member 파일에 없다는 이유로 미구현으로 분류하지 않는다.
 
 ### 4.7. 로그인·계정 복구 코드 대조 (#217)
 
@@ -473,7 +479,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 오류 계약           | detail 설명과 object 스키마 불일치, API별 HTTP 상태·도메인 코드·대표 오류 응답 보완.                                                                           |
 | 화면 데이터         | 회원 이메일·이미지·등급·혜택, 찜 목록 판매자·달성률·종료 상태의 제공 API, 팔로우 목록·등록·해제와 목록 정렬 기준. 검색·LIVE 알림·환불 내역의 별도 서비스 명세. |
 | 프로젝트 DTO 보완   | businessType 전체 enum·카테고리 조회 방식, 성공 상태와 PATCH null 의미.                                                                                        |
-| 교차 서비스 ID      | 프로젝트 UUID와 Member 찜의 숫자 projectId 예시 연결, Long JSON 범위.                                                                                          |
+| 교차 서비스 ID      | Long JSON 범위. 프로젝트 UUID와 Member 찜의 숫자 projectId 연결은 #250에서 확정.                                                                               |
 | AI 세부 계약        | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                                                                        |
 | 결과 불명 복구      | 가입·생성 등 요청 타임아웃 시 성공 여부 확인·중복 방지 방법.                                                                                                   |
 | 재고 조회 실패      | 프로젝트 명세의 remainingStock null 정상 응답과 503 오류 중 실제 응답.                                                                                         |
