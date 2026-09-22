@@ -65,3 +65,8 @@ export function clearIdentityRecoverySession() {
     // 접근 불가 환경에서는 애초에 값도 없으므로 무시한다.
   }
 }
+
+/* 늦게 끝난 이전 인증 요청이 새 요청의 복구 정보를 지우지 않게 한다. */
+export function clearIdentityRecoverySessionIfCurrent(isCurrent: () => boolean) {
+  if (isCurrent()) clearIdentityRecoverySession();
+}
