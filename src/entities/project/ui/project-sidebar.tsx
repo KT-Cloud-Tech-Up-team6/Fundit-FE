@@ -14,7 +14,7 @@ export const projectEditTabs: readonly ProjectSidebarTab[] = [
 
 /* 펀딩 오픈 이후 운영 탭. Figma FL_S_DL_MNG 좌측 사이드바.
    정산 관리(FL_S_PR_CAL)는 기획팀 회신으로 MVP에서 빠졌다 — 화면이 없어 자리 표시만
-   남아 있었다. BE 계약(GET /api/v1/settlements 외)은 그대로 있으니 화면이 생기면 되살린다. */
+   남아 있었다. BE 계약(GET /api/v1/settlements 등)은 그대로 살아 있으니 화면이 생기면 되살린다. */
 export const projectManageTabs: readonly ProjectSidebarTab[] = [
   { value: "funding", label: "펀딩 관리" },
   { value: "community", label: "커뮤니티 관리" },
