@@ -91,8 +91,18 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
 
   const save = useMutation({
     mutationFn: async (mode: "draft" | "next") => {
-      const id = liveId ?? (await createLive(projectId)).liveId;
-      if (!id) throw new Error("LIVE 식별자를 받지 못했습니다.");
+      let id = liveId;
+      if (!id) {
+        id = (await createLive(projectId)).liveId;
+        if (!id) throw new Error("LIVE 식별자를 받지 못했습니다.");
+        /* 설정 저장이 실패해도 여기서 만든 LIVE는 이미 서버에 있다. onSuccess를 기다리면
+           다음 저장이 createLive를 다시 불러 DRAFT가 쌓인다 — 생성 직후 바로 보존한다. */
+        setLiveId(id);
+        cache.setQueryData<LiveCreateResponse>(["live-create", owner, projectId], {
+          liveId: id,
+          status: "DRAFT",
+        });
+      }
       const body = toLiveSettingsBody({
         categoryMajor: preview.data?.categoryMajor,
         categoryMinor: preview.data?.categoryMinor,
@@ -106,10 +116,6 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     },
     onSuccess: ({ id, mode }) => {
       setLiveId(id);
-      cache.setQueryData<LiveCreateResponse>(["live-create", owner, projectId], {
-        liveId: id,
-        status: "DRAFT",
-      });
       void cache.invalidateQueries({ queryKey: ["seller-lives"] });
       void cache.invalidateQueries({ queryKey: ["live-summary", owner, id] });
       if (mode === "draft") {

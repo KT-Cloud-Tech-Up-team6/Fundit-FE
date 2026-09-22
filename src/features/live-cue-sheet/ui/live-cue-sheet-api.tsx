@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
@@ -51,6 +52,8 @@ export function LiveCueSheetApi({
   const owner = state.user?.memberId;
   const enabled = state.status === "authenticated" && Boolean(owner);
   const cueSheetKey = ["live-cue-sheet", owner, liveId];
+  /* 생성 요청 자체가 실패한 사유. 서버에는 아무 상태도 안 남으므로(404=idle) 여기서 들고 있다. */
+  const [generateFailure, setGenerateFailure] = useState<string | null>(null);
 
   const cueSheet = useQuery({
     queryKey: cueSheetKey,
@@ -82,13 +85,20 @@ export function LiveCueSheetApi({
         mode: toCueSheetMode(request.type),
         targetDurationSec: toTargetDurationSec(request.minutes),
       }),
+    onMutate: () => setGenerateFailure(null),
     onSuccess: (response: CueSheetResponse) => {
       /* 202 본문이 이미 GENERATING이다. 캐시에 넣어야 폴링이 곧바로 시작된다. */
       cache.setQueryData(cueSheetKey, response);
     },
-    onError: () => {
-      /* 409(이미 생성 중)일 수 있다. 서버 상태를 다시 읽어 화면을 맞춘다. */
-      void cueSheet.refetch();
+    onError: (error) => {
+      /* 409는 "이미 생성 중"이라 서버 상태를 읽으면 GENERATING으로 화면이 맞는다.
+         그 외 오류는 다시 읽어도 404(=idle)라 phase가 안 바뀌고, 화면은 생성 중에
+         멈춘 채 사유도 못 본다. 실패로 내려 사유를 보여준다. */
+      if (error instanceof ApiError && error.status === 409) {
+        void cueSheet.refetch();
+        return;
+      }
+      setGenerateFailure(errorMessage(error));
     },
   });
 
@@ -115,7 +125,12 @@ export function LiveCueSheetApi({
       </div>
     );
 
-  const server = toCueSheetState(cueSheet.isError ? null : cueSheet.data);
+  const fromServer = toCueSheetState(cueSheet.isError ? null : cueSheet.data);
+  /* 서버가 GENERATING·COMPLETED를 주면 그쪽이 사실이다. 그 외일 때만 요청 실패를 얹는다. */
+  const server =
+    generateFailure && fromServer.phase !== "generating" && fromServer.phase !== "completed"
+      ? { ...fromServer, phase: "failed" as const, failureReason: generateFailure }
+      : fromServer;
   const project: CueSheetProject = {
     title: preview.data?.title || (projectId ? "제목 없음" : "프로젝트 정보 없음"),
     category: preview.data?.categoryMajor ?? "",
