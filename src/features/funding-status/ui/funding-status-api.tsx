@@ -41,6 +41,19 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
       </p>
     );
   const data = status.data;
+  const rewardById = new Map(rewards.data.map((reward) => [reward.rewardId, reward]));
+  const optionLabels = new Map<string, string>();
+  for (const reward of rewards.data) {
+    for (const group of reward.options ?? []) {
+      for (const value of group.values) {
+        if (value.valueId !== null)
+          optionLabels.set(
+            `${reward.rewardId}:${value.valueId}`,
+            `${group.groupName}: ${value.value}`,
+          );
+      }
+    }
+  }
   return (
     <FundingStatusBoard
       summary={{
@@ -67,19 +80,12 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
               : null,
       }}
       rewards={data.rewardStats.map((stat) => {
-        const reward = rewards.data.find((item) => item.rewardId === stat.rewardId);
-        const option = reward?.options
-          .flatMap((group) =>
-            group.values.map((value) => ({
-              valueId: value.valueId,
-              label: `${group.groupName}: ${value.value}`,
-            })),
-          )
-          .find((value) => value.valueId === stat.optionValueId);
+        const reward = rewardById.get(stat.rewardId);
+        const option = optionLabels.get(`${stat.rewardId}:${stat.optionValueId}`);
         return {
           id: `${stat.rewardId}:${stat.optionValueId ?? "total"}`,
           name: reward?.name ?? `리워드 ${stat.rewardId}`,
-          option: stat.optionValueId === null ? "리워드 합계" : (option?.label ?? "옵션 정보 없음"),
+          option: stat.optionValueId === null ? "리워드 합계" : (option ?? "옵션 정보 없음"),
           quantity: stat.purchasedQuantity,
           amount: stat.purchasedAmount,
         };

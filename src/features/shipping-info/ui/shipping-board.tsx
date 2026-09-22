@@ -80,6 +80,7 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
   const [toastMessage, setToastMessage] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibleShipments = projectId ? apiShipments : shipments;
+  const readOnly = Boolean(projectId);
 
   useEffect(
     () => () => {
@@ -97,9 +98,10 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
     [visibleShipments, query],
   );
   const counts = countByFilter(searched);
-  const visible = filterByStatus(searched, filter);
+  const visible = filterByStatus(searched, readOnly ? "all" : filter);
 
   function toggle(id: string) {
+    if (readOnly) return;
     setSelected((current) => {
       const next = new Set(current);
       if (!next.delete(id)) next.add(id);
@@ -108,6 +110,7 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
   }
 
   function toggleAll() {
+    if (readOnly) return;
     const selectable = visible.filter((shipment) => shipment.status === "pending");
     const allSelected =
       selectable.length > 0 && selectable.every((shipment) => selected.has(shipment.id));
@@ -123,8 +126,8 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
   }
 
   function ship(ids: ReadonlySet<string>) {
-    const result = markShipped(visibleShipments, ids);
-    if (projectId) return;
+    if (readOnly) return;
+    const result = markShipped(shipments, ids);
     setShipments(result.shipments);
     setSelected((current) => {
       const next = new Set(current);
@@ -154,20 +157,29 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
       <Breadcrumb items={breadcrumb} />
 
       <h1 className="text-heading-l mt-3">발송정보</h1>
+      {readOnly && (
+        <p className="text-body-s mt-3" role="status">
+          배송 상태를 확인할 수 없어 전체 주문만 표시합니다. 상태별 조회와 발송 정보 편집은 아직
+          이용할 수 없습니다.
+        </p>
+      )}
 
       <div className="mt-4">
         <TabList aria-label="발송 상태" className="gap-0" layout="track">
           {shippingFilters.map((item) => (
             <Tab
               key={item.value}
+              disabled={readOnly && item.value !== "all"}
               onClick={() => setFilter(item.value)}
-              selected={item.value === filter}
+              selected={item.value === (readOnly ? "all" : filter)}
               size="sm"
               className="md:w-[130px]"
             >
               {item.label}
-              <span>{counts[item.value]}</span>
-              <span className="sr-only">건</span>
+              <span>{readOnly && item.value !== "all" ? "—" : counts[item.value]}</span>
+              <span className="sr-only">
+                {readOnly && item.value !== "all" ? "조회 불가" : "건"}
+              </span>
             </Tab>
           ))}
         </TabList>
@@ -204,7 +216,7 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
               />
             </div>
           </div>
-        ) : (
+        ) : !readOnly ? (
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p aria-live="polite" className="text-body-s text-text-default">
               {selected.size} 개 선택 됨
@@ -252,12 +264,15 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       <div id="shipping-table" className="mt-[7px]">
         <ShippingTable
-          onChange={(id, patch) => setShipments((current) => updateShipment(current, id, patch))}
+          readOnly={readOnly}
+          onChange={(id, patch) => {
+            if (!readOnly) setShipments((current) => updateShipment(current, id, patch));
+          }}
           onShip={(id) => void ship(new Set([id]))}
           onToggle={toggle}
           onToggleAll={toggleAll}

@@ -7,6 +7,7 @@ import { canShip, couriers, shipmentActionLabel } from "../model/shipping-demo";
 import type { Courier, Shipment } from "../model/shipping-demo";
 
 type ShippingTableProps = {
+  readOnly?: boolean;
   shipments: Shipment[];
   selected: ReadonlySet<string>;
   onToggle: (id: string) => void;
@@ -23,6 +24,7 @@ const headerClasses = "text-body-m text-text-default h-10 px-2 text-left font-no
 const cellClasses = "text-body-s text-text-default h-10 px-2 py-1 align-middle";
 
 export function ShippingTable({
+  readOnly = false,
   shipments,
   selected,
   onToggle,
@@ -30,7 +32,7 @@ export function ShippingTable({
   onChange,
   onShip,
 }: ShippingTableProps) {
-  const selectable = shipments.filter((shipment) => shipment.status === "pending");
+  const selectable = readOnly ? [] : shipments.filter((shipment) => shipment.status === "pending");
   const selectedCount = selectable.filter((shipment) => selected.has(shipment.id)).length;
   const allSelected = selectable.length > 0 && selectedCount === selectable.length;
 
@@ -82,7 +84,7 @@ export function ShippingTable({
         </thead>
         <tbody>
           {shipments.map((shipment) => {
-            const shipped = shipment.status !== "pending";
+            const shipped = readOnly || shipment.status !== "pending";
 
             return (
               <tr
@@ -142,7 +144,7 @@ export function ShippingTable({
                 <td className={cellClasses}>
                   <button
                     className="bg-layer-surface-disabled text-label-m text-text-default enabled:hover:bg-layer-surface-disabled-hover focus-visible:outline-border-primary disabled:text-text-disabled flex h-8 w-full items-center justify-center rounded-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
-                    disabled={!canShip(shipment)}
+                    disabled={readOnly || !canShip(shipment)}
                     onClick={() => onShip(shipment.id)}
                     type="button"
                   >
