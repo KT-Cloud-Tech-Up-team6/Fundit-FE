@@ -44,7 +44,7 @@ export function ProjectBasicInfoForm({
   initialView?: BasicInfoPreview;
   initialValues?: Partial<BasicInfoValues>;
   mode?: "create" | "edit";
-  onSave?: (values: BasicInfoValues) => Promise<void>;
+  onSave?: (values: BasicInfoValues, partial?: boolean) => Promise<void>;
   rewardProjectId?: string;
   statusMessage?: string;
 }) {
@@ -109,7 +109,7 @@ export function ProjectBasicInfoForm({
       savingRef.current = true;
       setSaving(true);
       try {
-        await onSave(values);
+        await onSave(values, partial);
         setFormMessageRole("status");
         setFormMessage("기본 정보를 저장했습니다. 리워드는 이번 저장에 포함되지 않습니다.");
       } catch (error) {
