@@ -105,7 +105,6 @@ export function BuyerRefunds({
                     className="text-text-disabled size-[14px] group-open:rotate-180"
                   />
                 </div>
-                <p className="text-caption-m">{entry.fundingNumber || "\u00A0"}</p>
                 <h2 className="text-caption-m truncate font-medium">{entry.title || "프로젝트"}</h2>
                 <div className="mt-2 flex items-center gap-2">
                   <Badge variant={refundBadgeVariant(entry)}>{entry.status}</Badge>

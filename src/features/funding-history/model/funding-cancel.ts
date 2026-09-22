@@ -66,9 +66,12 @@ export type RefundSubmission =
   | { supported: true; kind: "shipping-delay" }
   | { supported: false; reason: string };
 
+/* "상품이 잘못 배송됨"은 BE 회신(04-BE팀 요청서, #291)으로 DIFFERENT_FROM_DESCRIPTION과
+   같은 뜻으로 써도 된다고 확인받았다. */
 const defectTypeByReason: Record<string, RefundDefectType> = {
   "불량·하자": "DEFECTIVE",
   "상품 파손": "DAMAGED",
+  "상품이 잘못 배송됨": "DIFFERENT_FROM_DESCRIPTION",
 };
 
 export function refundSubmissionFor(type: ReturnType | "", reason: string): RefundSubmission {
