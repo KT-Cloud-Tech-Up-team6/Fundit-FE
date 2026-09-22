@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -14,9 +15,98 @@ import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
+import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
+import {
+  safeStoryHtml,
+  isStoryHtml,
+  type SafeStoryHtmlNode,
+} from "@/features/project-story/model/story-content";
+
+function renderStoryHtml(nodes: SafeStoryHtmlNode[], keyPrefix = "story"): ReactNode[] {
+  return nodes.map((node, index) => {
+    const key = `${keyPrefix}-${index}`;
+    if (typeof node === "string") return <Fragment key={key}>{node}</Fragment>;
+    const children = renderStoryHtml(node.children, key);
+    const style = node.style
+      ? {
+          color: node.style.color,
+          textAlign: node.style.textAlign,
+          fontWeight: node.style.fontWeight,
+        }
+      : undefined;
+    if (node.tag === "br") return <br key={key} />;
+    if (node.tag === "strong" || node.tag === "b")
+      return (
+        <strong key={key} style={style}>
+          {children}
+        </strong>
+      );
+    if (node.tag === "em" || node.tag === "i")
+      return (
+        <em key={key} style={style}>
+          {children}
+        </em>
+      );
+    if (node.tag === "u")
+      return (
+        <u key={key} style={style}>
+          {children}
+        </u>
+      );
+    if (node.tag === "span")
+      return (
+        <span key={key} style={style}>
+          {children}
+        </span>
+      );
+    if (node.tag === "p")
+      return (
+        <p key={key} style={style}>
+          {children.length ? children : <br />}
+        </p>
+      );
+    if (node.tag === "div")
+      return (
+        <div key={key} style={style}>
+          {children}
+        </div>
+      );
+    if (node.tag === "ul" || node.tag === "ol") {
+      const List = node.tag;
+      return (
+        <List
+          key={key}
+          style={style}
+          className={node.tag === "ul" ? "list-disc pl-5" : "list-decimal pl-5"}
+        >
+          {children}
+        </List>
+      );
+    }
+    if (node.tag === "li")
+      return (
+        <li key={key} style={style}>
+          {children}
+        </li>
+      );
+    return null;
+  });
+}
+
+/* 리워드·환불·라이브 등 무관한 쿼리가 갱신될 때마다 정규식 토크나이저를 다시 돌리지 않도록
+   블록 단위 컴포넌트로 분리해 값이 그대로면 파싱 결과를 재사용한다. */
+function StoryTextBlock({ value }: { value: string }) {
+  const story = useMemo(() => ({ html: isStoryHtml(value), nodes: safeStoryHtml(value) }), [value]);
+  return (
+    <div className={story.html ? "space-y-4" : "whitespace-pre-wrap"}>
+      {renderStoryHtml(story.nodes)}
+    </div>
+  );
+}
 
 export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: string }) {
   const { state } = useAuth();
+  const [expandedNoticeId, setExpandedNoticeId] = useState<number | null>(null);
   const params = useSearchParams(),
     router = useRouter();
   const raw = Number(params.get("page") ?? 1),
@@ -81,9 +171,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     <div className="space-y-4">
       {data.introContent.map((block, index) =>
         block.type === "TEXT" ? (
-          <p className="whitespace-pre-wrap" key={index}>
-            {block.value}
-          </p>
+          <StoryTextBlock key={index} value={block.value} />
         ) : block.type === "IMAGE" && /^https?:\/\//.test(block.value) ? (
           <Image
             unoptimized
@@ -137,7 +225,16 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       {notices.data?.content.map((item) => (
         <article key={item.noticeId} className="border-border-default border-b py-3">
           <h2 className="text-title-s">{item.title}</h2>
-          <p>본문 조회는 준비 중입니다.</p>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              setExpandedNoticeId((current) => (current === item.noticeId ? null : item.noticeId))
+            }
+            aria-expanded={expandedNoticeId === item.noticeId}
+          >
+            본문 보기
+          </Button>
+          {expandedNoticeId === item.noticeId && <NoticeDetail noticeId={item.noticeId} />}
         </article>
       ))}
       {!notices.data?.content.length && <p>새 소식이 없습니다.</p>}
