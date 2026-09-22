@@ -101,7 +101,7 @@ export const demoCues = [
 ];
 
 export type ConsoleDemoState = {
-  phase: "ready" | "live" | "ended";
+  phase: "loading" | "live" | "ended";
   answers: Record<string, string>;
   completedIds: string[];
   messages: { id: number; author: string; text: string }[];
@@ -113,15 +113,15 @@ export function createConsoleDemo(phase: ConsoleDemoState["phase"]): ConsoleDemo
     phase === "ended" ? ["vacuum", "gap", "cleaning", "hair", "carpet"] : ["gap", "cleaning"];
   return {
     phase,
-    completedIds: phase === "ready" ? [] : answeredIds,
+    completedIds: phase === "loading" ? [] : answeredIds,
     answers:
-      phase === "ready"
+      phase === "loading"
         ? {}
         : Object.fromEntries(
             demoQuestions.filter((q) => answeredIds.includes(q.id)).map((q) => [q.id, q.answer]),
           ),
     messages:
-      phase === "ready"
+      phase === "loading"
         ? []
         : [
             "f25 흡입력이랑 물걸레 동시 작동할 때 소음은 어떤가요?",
@@ -140,7 +140,7 @@ export function createConsoleDemo(phase: ConsoleDemoState["phase"]): ConsoleDemo
 }
 
 export type ConsoleDemoAction =
-  | { type: "start" }
+  | { type: "loaded" }
   | { type: "end" }
   | { type: "chat"; text: string }
   | { type: "answer"; questionId: string; text: string }
@@ -156,12 +156,10 @@ export function consoleDemoReducer(
       return state.phase === "live" && demoQuestions.some((q) => q.id === action.questionId)
         ? { ...state, completedIds: [...new Set([...state.completedIds, action.questionId])] }
         : state;
-    case "start":
-      return state.phase === "ready"
-        ? { ...createConsoleDemo("live"), messages: state.messages }
-        : state;
+    case "loaded":
+      return state.phase === "loading" ? createConsoleDemo("live") : state;
     case "end":
-      return state.phase === "live" ? { ...state, phase: "ended" } : state;
+      return state.phase !== "ended" ? { ...state, phase: "ended" } : state;
     case "chat":
     case "answer": {
       const text = action.text.trim();

@@ -381,12 +381,12 @@ export function BuyerLiveMain({
           {(!upcoming || hasFollowing) && (
             <Section
               className={upcoming ? "min-[1200px]:order-3" : "min-[1200px]:order-1"}
-              title={upcoming ? "팔로우한 판매자" : "신규 오픈"}
+              title={upcoming ? "팔로우한 창작자" : "신규 오픈"}
               pending
             >
               <div
                 role="region"
-                aria-label={upcoming ? "팔로우한 판매자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
+                aria-label={upcoming ? "팔로우한 창작자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
                 tabIndex={0}
                 className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
                 {...carouselDrag}
@@ -511,14 +511,14 @@ export function BuyerLiveMain({
           {!upcoming && hasFollowing && (
             <Section
               className="min-[1200px]:order-3"
-              title="팔로우한 판매자"
+              title="팔로우한 창작자"
               viewAllHref="/my/wishlist?tab=sellers"
             >
               <div
                 {...followingDrag}
                 tabIndex={0}
                 role="region"
-                aria-label="팔로우한 판매자 라이브 목록"
+                aria-label="팔로우한 창작자 라이브 목록"
                 className={`${styles.carousel} grid grid-cols-2 gap-3 min-[1200px]:flex min-[1200px]:overflow-x-auto min-[1200px]:[&>article]:w-[226px] min-[1200px]:[&>article]:shrink-0`}
               >
                 {[1, 2, 3, 4].map((n) => (

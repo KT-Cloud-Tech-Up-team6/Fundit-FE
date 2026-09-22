@@ -25,7 +25,12 @@ export type FundingStatus = {
   participantCount: number;
   openNotifyCount: number;
   wishCount: number;
-  rewardStats: { rewardId: number; purchasedQuantity: number }[];
+  rewardStats: {
+    rewardId: number;
+    optionValueId: number | null;
+    purchasedQuantity: number;
+    purchasedAmount: number;
+  }[];
   remainingDays: number | null;
   lastSyncedAt: string | null;
 };
@@ -37,6 +42,7 @@ export type CommunityPost = {
   createdAt: string;
 };
 export type Notice = { noticeId: number; noticeType: string; title: string; createdAt: string };
+export type NoticeDetail = Notice & { content: string };
 export type NoticeComment = { commentId: number; content: string; createdAt: string };
 export const noticeTypes = {
   REWARD_INFO: "리워드 안내",
@@ -104,6 +110,13 @@ export function getNoticeComments(id: number, page: number, signal?: AbortSignal
   return apiRequest<ApiPage<NoticeComment>>(`/api/v1/notices/${id}/comments?page=${page}&size=20`, {
     signal,
   });
+}
+export function getNoticeDetail(id: number, signal?: AbortSignal) {
+  return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { signal });
+}
+
+export function updateNotice(id: number, body: { title?: string; content?: string }) {
+  return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { auth: true, method: "PATCH", body });
 }
 export function createNoticeComment(id: number, content: string) {
   return apiRequest(`/api/v1/notices/${id}/comments`, {

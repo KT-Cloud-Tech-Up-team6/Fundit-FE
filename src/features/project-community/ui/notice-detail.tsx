@@ -1,0 +1,68 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getManagementProject,
+  getNoticeDetail,
+} from "@/entities/project/api/project-management-api";
+import { useAuth } from "@/providers/auth-provider";
+import { Button } from "@/shared/components/ui/button";
+import { NoticeEditor } from "./notice-editor";
+
+export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projectId?: string }) {
+  const { state } = useAuth();
+  const cache = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const owner = useQuery({
+    queryKey: ["seller-project-preview", state.user?.memberId, projectId],
+    queryFn: ({ signal }) => getManagementProject(projectId!, signal),
+    enabled:
+      Boolean(projectId) && state.status === "authenticated" && Boolean(state.user?.memberId),
+    retry: false,
+  });
+  const detail = useQuery({
+    queryKey: ["notice-detail", noticeId],
+    queryFn: ({ signal }) => getNoticeDetail(noticeId, signal),
+  });
+  if (detail.isPending) return <p role="status">본문을 불러오고 있습니다.</p>;
+  if (detail.isError)
+    return (
+      <p role="alert">
+        본문 조회 실패. <button onClick={() => void detail.refetch()}>다시 시도</button>
+      </p>
+    );
+  if (projectId && editing && owner.isSuccess && state.status === "authenticated")
+    return (
+      <NoticeEditor
+        notice={detail.data}
+        onCancel={() => setEditing(false)}
+        onSaved={(notice) => {
+          cache.setQueryData(["notice-detail", noticeId], notice);
+          void cache.invalidateQueries({ queryKey: ["project-notices", projectId] });
+          void cache.invalidateQueries({ queryKey: ["notice-detail", noticeId] });
+          setEditing(false);
+          setSaved(true);
+        }}
+      />
+    );
+  return (
+    <div className="mt-3 space-y-3">
+      <p className="whitespace-pre-wrap">{detail.data.content}</p>
+      {saved && <p role="status">새 소식을 수정했습니다.</p>}
+      {projectId && owner.isSuccess && state.status === "authenticated" && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setSaved(false);
+            setEditing(true);
+          }}
+        >
+          새 소식 수정
+        </Button>
+      )}
+    </div>
+  );
+}

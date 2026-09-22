@@ -1,4 +1,11 @@
-# API 계약 초안
+﻿# API 계약 초안
+
+## 판매자 관리 조회 계약 보완 (#232)
+
+- 2026-09-21 BE develop `ae1e032`와 FE를 대조했다. 후속 `3d23bc7`은 LIVE 변경만 포함해 이 절의 계약은 동일하다. 실제 배포 응답 검증과 소스 대조를 구분한다.
+- preview의 `businessType`으로 사업자 유형을 복원한다. 리워드 목록의 `options`(groupId/groupName/values.valueId/value)를 복원하고 BE PR #108 계약에 따라 그룹 ID를 보존해 편집한다. 옵션 미변경은 생략, 전체 해제는 빈 배열로 전송한다. `simpleRefundDisabled`는 읽기 전용이다.
+- 공지 목록과 별개로 `GET /api/v1/notices/{noticeId}`의 `content`를 조회한다. BE PR #108의 PATCH로 소유 판매자가 제목·본문을 수정한다. 비공개 프로젝트의 GET 제한은 남아 있다.
+- 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId=null은 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다. 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
 
 ## 검색·카테고리 카드의 공개 상세 연결 (#216)
 
@@ -7,33 +14,42 @@
 - 찜 목록 `WishListItemResponse`에는 공개 UUID가 없어 이번 연결 범위에서 제외한다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는다.
 - 단위 테스트, lint, typecheck, production build와 격리 Playwright의 모바일 390×844·데스크톱 1440×900 검색/카테고리 클릭·새로고침·뒤로/앞으로가기·누락/잘못된 UUID·404 표시를 확인했다. API 응답은 계약 기반 fixture이며 실제 QA 배포·색인 데이터 연결은 미검증이다.
 
+## 프로젝트 스토리의 서식 저장 계약 (#234)
+
+- 2026-09-21 BE develop `ae1e032`의 `RichTextSanitizer`를 기준으로 TEXT 블록에 허용 HTML을 저장한다. b/strong/i/em/u/p/br/span/div/ul/ol/li와 제한된 color/text-align/font-weight만 허용한다. 링크·스크립트·이벤트·임의 CSS를 추가로 허용하지 않는다.
+- 기존 일반 텍스트·줄바꿈은 복원 호환을 유지하며 이미지·영상은 별도 IMAGE/VIDEO_URL 블록으로 유지한다. 서버가 보존하지 못하는 레이아웃·서식은 저장 성공으로 가장하지 않는다.
+- 공개 화면은 허용 태그·스타일만 React 요소로 표시하며 API HTML을 그대로 삽입하지 않는다. 편집 저장·재진입·공개 표시를 함께 검증한다. AI 생성 API 및 실제 BE 배포 확인은 이번 범위와 구분한다.
+- 에디터는 저장 계약에 없는 heading·codeBlock·horizontalRule·code·strike·link를 등록하지 않는다.
+- 인용구(blockquote)도 등록하지 않고 툴바 컨트롤을 제거했다(#259). 2026-09-22 BE 확인 결과 `RichTextSanitizer`의 허용 태그는 b·strong·i·em·u·p·br·span·div·ul·ol·li이며 blockquote는 보존되지 않는다. 다 작성한 뒤 저장 단계에서야 막히는 대신 만들 수 없게 한다. 저장할 수 없는 노드·마크가 편집기 스키마에 없다는 것은 `story-extensions.test.mjs`가 확인한다.
+- Figma 스토리 본문 화면(`1403:37656`) 툴바에는 `btn_insert_quote`가 남아 있다. 원본과 저장 계약이 어긋난 상태이므로 디자인 확인이 필요하다. BE가 blockquote를 허용하게 되면 툴바 컨트롤과 `blockHtml`·`htmlBlocks` 직렬화를 함께 되돌린다.
+
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 목록은 `/api/v1/orders`의 UUID 계약으로 통합됐으며 `/api/v2/orders`는 제거됐다. 제작·배송의 `/api/v2/projects/{projectId}/fulfillment` 및 `/api/v2/projects/{projectId}/fundings/{fundingId}/shipment` UUID 계약은 유지한다.
 - `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 첨부와 기록 수정 API는 없어 저장된 것처럼 처리하지 않는다.
 - `/my/fundings/{UUID}/fulfillment`와 `/history`는 내 주문 v1 목록을 페이지 순회해 프로젝트 UUID 관계를 확인한 뒤 제작·배송을 조회한다. 서버 `canConfirmReceipt`가 참일 때 수령 확인을 제공한다. 외부 택배 추적은 연결하지 않는다.
 - 단계 조회는 단계별 최신 상세 1건만 제공한다. 전체 기록 이력이 아닌 최신 기록과 별도의 일정 변경 이력을 표시한다. 미갱신 경고는 서버 `isUpdateOverdue`를 사용한다.
-- 송장 등록 API 클라이언트는 준비했지만 판매자 발송 대상 목록은 내부 API만 있어 UI 연결을 보류한다. `/seller/projects/{UUID}/shipping`에서 목업 주문의 송장을 실제 저장하지 않으며 임의 UUID 입력이나 내부 서비스 우회 호출을 제공하지 않는다.
-- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 목록 공개 API, 전체 기록/첨부 계약과 권한을 확인해야 한다.
+- 판매자 목록 `GET /api/v1/projects/{projectId}/orders`는 페이지 래퍼 없이 목표 달성 주문 배열을 반환하며 #232에서 배송 화면에 연결한다. orderId는 기존 shipment 경로의 fundingId UUID다. 다만 목록에 송장 정보가 없고 `ShipmentService.getShipment`는 구매자 본인만 허용하므로 판매자 송장 상태를 조회할 수 없다. 이 상태를 미발송으로 추정하지 않으며 송장 입력·등록 UI는 조회 계약 보완 전까지 비활성화한다. API 주문은 명시적인 읽기 전용 모드로 표시하며 상태별 필터는 비활성화하고 건수 대신 조회 불가를 안내한다. 전체 주문 검색은 유지한다. 기존 POST 등록 API 클라이언트는 유지한다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록/첨부 계약을 확인해야 한다.
 - 주문 생성 재시도는 사용자·프로젝트별로 요청 내용의 해시와 생성 결과를 보관합니다. 결제 대기 주문의 동일 요청만 재사용하며, 다른 요청은 기존 주문 확인·취소를 안내합니다. 서버에서 확인한 비대기 상태의 주문은 새 요청 결과로 재사용하지 않습니다. 결과가 불확실하거나 상태 조회가 실패하면 추가 생성하지 않습니다. 목표 달성 주문의 상세에서는 제작·배송 API 현황으로 이동합니다.
 
-## 쿠폰 조건 표시 보완 (#218)
+## 쿠폰 조건 표시·발급자별 선택 보완 (#218, #233)
 
 - BE develop `d7ea517`의 `CouponBoxItemResponse`, `Coupon`, `CouponIssuanceService`를 대조했다. `minFundingAmount`는 배송비를 제외한 리워드 합계의 최소 펀딩 금액, `perMemberLimit`은 인당 발급 한도다. 사용 가능 횟수로 해석하지 않는다.
 - 쿠폰 선택 카드에 최소 금액·적용 대상·발급 한도·한국 시간 기준 유효기간을 표시한다. `targetScope`는 ALL/CATEGORY/PROJECT/MAKER이며 카테고리는 BE 대분류명, 프로젝트는 주문의 UUID와 비교한다. 대상 판매자 이름은 응답에 없으므로 임의 ID 매핑 없이 지정 판매자 전용으로 안내한다.
 - BE의 원본 쿠폰 누락 응답(null 대상·유효기간, 0 한도·금액)과 알 수 없는 값은 확인 필요로 표시한다. 최소 금액 0은 대상 메타데이터가 있을 때만 제한 없음으로 표현한다.
-- 조건 표시는 안내이며 선택·적용 판정과 최종 금액은 기존 주문 preview 응답을 유지한다. 최고 할인율·최대 할인액은 응답 필드가 없어 새로 계산하거나 표시하지 않는다.
+- 조건 표시는 안내이며 선택·적용 판정과 최종 금액은 주문 preview 응답을 유지한다. 2026-09-21 BE develop `ae1e032`의 `issuerType`·`maxDiscountAmount`를 반영한다. 발급자는 PLATFORM/MAKER이며 각 1개를 선택해 `couponCodes`에 전달한다. 숫자로 제공된 할인 한도를 표시하며 0은 할인 0원 상한이다. null 한도는 원본 쿠폰 누락에서도 발생하므로 무조건 무제한으로 해석하지 않는다.
 - 디자인 확인 범위: 쿠폰 프레임 `746:7329`·`746:7389`, 화면정의 `737:7172`·`737:7177`·`737:7182`, 이력 `643:9086`, 결제 섹션 `643:9085`의 주변 텍스트 지침. 확인한 쿠폰 노드에는 prototype 연결·annotations가 없다. 문서의 과거 결제 지침 `1132:15072`는 이번 도구 조회에서 찾을 수 없어 최신 해당 노드의 재확인은 미완료다. 이번 작업은 기존 카드의 조건 표시만 보완한다.
 
 ## 주문·결제 코드 대조 및 FE 연결 (#197)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 preview/생성/목록은 `/api/v1/orders`의 UUID 계약을 사용한다. 이전 `/api/v2/orders` 컨트롤러와 Gateway 매핑은 제거됐다. 상세/취소는 기존 `/api/v1/orders/{orderId}`를 유지한다. 리워드·옵션은 조회 응답의 숫자 ID를 전달한다.
-- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 `/my/fundings/{orderId}`로 이동한다. 주문 목록의 `finalAmount`는 BE에서 할인 전 합산하므로 목록에서 최종 결제금액으로 표시하지 않고 상세의 서버 금액을 사용한다.
+- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 `/my/fundings/{orderId}`로 이동한다. BE develop `ae1e032`에서 주문 목록의 `finalAmount`는 리워드 합계+배송비−할인액으로 보완됐다. #233은 목록에도 서버 최종 금액을 표시하며 FE가 할인을 다시 차감하지 않는다.
 - `/my/fundings`는 서버 상태/페이지 필터를 사용하며 기존 목업 검색·기간 필터는 서버 계약에 없어 적용하지 않는다. 상세의 `availableActions`에 CANCEL이 있을 때만 취소를 제공한다. `/payment/result?orderId={UUID}`는 새로고침 가능한 주문 조회다.
 - `/api/v2/payments`의 시도 생성은 서버 주문 UUID를 사용한다. `/confirm`의 `orderId`는 별도의 `pgOrderId`이며 주문 UUID와 혼용하지 않는다.
 - 현재 BE의 결제 승인은 실제 Toss 클라이언트를 호출한다. 목업은 테스트 코드에서만 확인됐으므로 FE는 임의 paymentKey를 생성하거나 결제 성공을 합성하지 않는다. 시도 생성 이후 승인 콜백/PG 위젯은 환경·계약 확인 대기다. PortOne 본인인증과 별개다.
 - 주문 생성에는 BE 멱등 키 계약이 없다. 같은 탭에서 회원·프로젝트별 sessionStorage 기록으로 진행 중/성공 후 재생성을 막는다. 네트워크·5xx·파싱 실패 후에는 생성 여부 확인 없이 재시도하지 않는다. 4xx 확정 실패는 재시도 가능하다. 다중 탭·기기 중복 방지 및 동일 프로젝트 재주문 정책은 BE 보완이 필요하다.
-- 쿠폰은 보유 목록·주문 미리보기·단일 쿠폰 선택을 연결한다. `appliedCoupons` 항목은 BE의 `couponCode`·`issuerType`·`discountType`을 사용하며 쿠폰별 할인액을 가정하지 않는다. 적립금·결제수단 선택·승인 완료 화면의 API 연결은 제외한다. 실제 Gateway/PG 검증은 미완료이며 HTTP 테스트 대역 검증과 구분한다.
+- 쿠폰은 보유 목록·주문 미리보기·플랫폼/메이커 각 1개 선택을 연결한다. `appliedCoupons` 항목은 BE의 `couponCode`·`issuerType`·`discountType`을 사용하며 쿠폰별 할인액을 가정하지 않는다. 적립금·결제수단 선택·승인 완료 화면의 API 연결은 제외한다. 실제 Gateway/PG 검증은 미완료이며 HTTP 테스트 대역 검증과 구분한다.
 
 이하 계약 초안은 2026-09-07 작성, 2026-09-14 갱신 당시 전달 명세를 기록한 내용이다. 이후 구현에 확인한 차이는 위 도메인별 코드 대조 절과 각 기능 문서에 기록하며, 전체 계약 확정을 뜻하지 않는다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
 
@@ -496,3 +512,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 ### 새 소식 입력 검증
 
 새 소식 제목은 제출 전에 공백을 제거해 필수값을 검사한다. 제목이 비어 있으면 등록 버튼과 제출 처리를 막되, 안내는 폼 입력을 변경하거나 제출을 시도한 뒤에 표시한다. 처음 진입하거나 등록에 성공해 입력이 초기화되면 경고를 표시하지 않는다. 본문은 기존 필수 검증을 유지한다.
+
+### 2026-09-22 새 소식 재편집 연결 (#232, BE PR #108)
+
+- 소유 판매자가 조회 가능한 게시글의 제목·본문을 `PATCH /api/v1/notices/{noticeId}`로 수정한다. 변경한 필드만 전송하며 제목은 1~100자, noticeType은 변경하지 않는다.
+- 성공 응답을 본문 캐시에 반영하고 목록·본문을 재조회한다. 403·404·서버 오류에서는 입력을 유지한다. 구매자 상세는 읽기 전용이다.
+- 기존 GET 목록·본문은 공개 프로젝트만 허용하므로 비공개 프로젝트의 재편집 진입은 BE 조회 계약 보완이 필요하다.
+- 격리 브라우저의 API fixture로 저장·재편집·부분 변경·403/503 입력 보존을 검증했다. 실제 배포 서버의 권한·저장 지속성은 미검증이다.
