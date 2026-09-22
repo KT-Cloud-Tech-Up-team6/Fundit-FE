@@ -337,7 +337,7 @@ function SellerQuestion({
             ))}
           </ul>
         ))}
-      {mutation.data?.referenceChunks.length ? (
+      {mutation.data?.referenceChunks?.length ? (
         <ul className="mt-3 text-sm">
           <li>AI 참고 내용</li>
           {mutation.data.referenceChunks.map((chunk, index) => (
@@ -458,7 +458,7 @@ export function RealSellerLive({ liveId }: { liveId: string }) {
               <p>인사이트를 불러오는 중입니다.</p>
             ) : insights.isError ? (
               <QueryError error={insights.error} retry={() => void insights.refetch()} />
-            ) : insights.data?.qna.length ? (
+            ) : insights.data?.qna?.length ? (
               <ul className="space-y-2">
                 {insights.data.qna.map((item) => (
                   <li key={item.questionId} className="rounded border p-2">
@@ -525,7 +525,7 @@ export function RealSellerLive({ liveId }: { liveId: string }) {
               <p>질문을 불러오는 중입니다.</p>
             ) : unanswered.isError ? (
               <QueryError error={unanswered.error} retry={() => void unanswered.refetch()} />
-            ) : unanswered.data?.pending.length ? (
+            ) : unanswered.data?.pending?.length ? (
               <div className="space-y-3">
                 {unanswered.data.pending.map((question) => (
                   <SellerQuestion
