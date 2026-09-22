@@ -48,7 +48,34 @@ test("서버 폐기 실패를 성공으로 바꾸지 않고 로컬 토큰도 되
     Response.json({ message: "잠시 후 다시 시도해 주세요." }, { status: 500 }),
   );
   const generation = authTokenStore.changeSession();
+  /* 실패 응답이 토큰을 되돌리지 않는지 보려면 값이 남아 있는 상태에서 시작해야 한다.
+     changeSession 직후를 그대로 확인하면 무엇을 바꾸든 항상 통과한다. */
+  authTokenStore.set("stale-access-token");
 
-  await assert.rejects(revokeSession(generation), /다시 시도/);
-  assert.equal(authTokenStore.get(), null);
+  try {
+    await assert.rejects(revokeSession(generation), /다시 시도/);
+    assert.equal(authTokenStore.get(), "stale-access-token");
+  } finally {
+    authTokenStore.clear();
+  }
+});
+
+test("응답하지 않는 폐기 요청은 상한에 걸려 잠금을 놓는다", async (t) => {
+  /* 로그인·refresh가 같은 잠금을 쓰므로 여기서 매달리면 이후 로그인까지 막힌다. */
+  let abortName = null;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    (_url, options) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => {
+          abortName = options.signal.reason?.name ?? "aborted";
+          reject(options.signal.reason);
+        });
+      }),
+  );
+  const generation = authTokenStore.changeSession();
+
+  await assert.rejects(revokeSession(generation));
+  assert.equal(abortName, "TimeoutError");
 });

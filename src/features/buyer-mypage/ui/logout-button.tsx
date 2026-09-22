@@ -16,6 +16,7 @@ export function LogoutButton() {
     <button
       type="button"
       disabled={leaving}
+      aria-busy={leaving}
       className={`${textButtonNavigationClasses} underline`}
       onClick={() => {
         setLeaving(true);
