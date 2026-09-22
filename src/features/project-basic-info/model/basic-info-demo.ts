@@ -12,6 +12,9 @@ export type RewardDraft = {
   discountUnit: "won" | "percent";
   imageName: string;
   options: boolean;
+  optionGroups?: { optionGroupId?: number; groupName: string; values: string[] }[];
+  optionSummary?: string;
+  simpleRefundDisabled?: boolean;
 };
 export type DemoReward = RewardDraft & { id: number };
 

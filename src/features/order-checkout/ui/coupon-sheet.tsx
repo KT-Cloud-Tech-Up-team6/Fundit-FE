@@ -105,6 +105,8 @@ export function CouponSheet({
 
 export function CouponRadio({
   label,
+  name = "coupon-choice",
+  inputType = "radio",
   badge,
   condition,
   expiry,
@@ -113,6 +115,8 @@ export function CouponRadio({
   onSelect,
 }: {
   label: string;
+  name?: string;
+  inputType?: "checkbox" | "radio";
   badge?: string;
   condition?: string;
   expiry?: string;
@@ -133,8 +137,8 @@ export function CouponRadio({
       ].join(" ")}
     >
       <input
-        type="radio"
-        name="coupon-choice"
+        type={inputType}
+        name={name}
         className="peer sr-only"
         checked={checked}
         disabled={disabled}

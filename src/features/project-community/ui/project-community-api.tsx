@@ -13,6 +13,7 @@ import {
   getNoticeComments,
   noticeTypes,
 } from "@/entities/project/api/project-management-api";
+import { NoticeDetail } from "./notice-detail";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -283,7 +284,6 @@ export function ProjectCommunityApi({
                     {noticeTypes[notice.noticeType as keyof typeof noticeTypes] ??
                       notice.noticeType}
                   </p>
-                  <p className="text-caption-s">본문 조회는 준비 중입니다.</p>
                   <Button
                     variant="secondary"
                     onClick={() =>
@@ -291,9 +291,18 @@ export function ProjectCommunityApi({
                     }
                     aria-expanded={expanded === notice.noticeId}
                   >
-                    댓글 보기
+                    본문·댓글 보기
                   </Button>
-                  {expanded === notice.noticeId && <NoticeComments noticeId={notice.noticeId} />}
+                  {expanded === notice.noticeId && (
+                    <>
+                      <NoticeDetail
+                        key={`${state.user?.memberId}:${notice.noticeId}`}
+                        noticeId={notice.noticeId}
+                        projectId={projectId}
+                      />
+                      <NoticeComments noticeId={notice.noticeId} />
+                    </>
+                  )}
                 </article>
               ))}
               <PageButtons

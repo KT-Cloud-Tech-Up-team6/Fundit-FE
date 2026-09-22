@@ -62,7 +62,7 @@ export const UpcomingNoFollowing: Story = {
   args: { view: "upcoming", hasFollowing: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.queryByRole("region", { name: "팔로우한 판매자" })).not.toBeInTheDocument();
+    expect(canvas.queryByRole("region", { name: "팔로우한 창작자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "알림 신청한 라이브" })).toBeInTheDocument();
     expect(canvas.getByRole("link", { name: "예정 LIVE" })).toHaveAttribute("aria-current", "page");
   },
@@ -71,7 +71,7 @@ export const UpcomingNoFollowing: Story = {
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.getByRole("region", { name: "팔로우한 판매자" })).toBeInTheDocument();
+    expect(canvas.getByRole("region", { name: "팔로우한 창작자" })).toBeInTheDocument();
     const cards = within(canvas.getByRole("region", { name: "신규 오픈 라이브 목록" }));
     const badge = cards.getAllByText("101")[0];
     badge.scrollIntoView({ block: "center" });
@@ -88,7 +88,7 @@ export const NoFollowing: Story = {
   args: { hasFollowing: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.queryByRole("region", { name: "팔로우한 판매자" })).not.toBeInTheDocument();
+    expect(canvas.queryByRole("region", { name: "팔로우한 창작자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "추천 라이브" })).toBeInTheDocument();
   },
 };
@@ -98,7 +98,7 @@ export const NotificationToggle: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const followCards = within(
-      canvas.getByRole("region", { name: "팔로우한 판매자 예정 라이브 목록" }),
+      canvas.getByRole("region", { name: "팔로우한 창작자 예정 라이브 목록" }),
     ).getAllByRole("article");
     const button = within(followCards[1]).getByRole("button", { name: /알림 받기$/ });
     const title = within(followCards[1]).getByRole("heading").textContent;

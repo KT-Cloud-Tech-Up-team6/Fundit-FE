@@ -3,6 +3,7 @@ import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-scr
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { PendingDestination } from "@/shared/components/ui/pending-destination";
+import { LogoutButton } from "./logout-button";
 
 /* href가 없는 항목은 화면 원본이 없어 목적지가 미정인 자리다(PendingDestination).
    Figma 구매자 프레임에 알림함·고객센터·설정 화면이 없어 임의로 만들지 않는다. */
@@ -74,9 +75,9 @@ export function BuyerMyPage({
             <Link
               href="/seller/projects"
               className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
-              aria-label="판매자 모드로 이동"
+              aria-label="창작자 모드로 이동"
             >
-              판매자 전환
+              창작자 전환
               <span
                 aria-hidden
                 className="size-4 bg-current [mask-image:url('/icons/buyer-account/ab25c.svg')] [mask-size:contain]"
@@ -146,6 +147,12 @@ export function BuyerMyPage({
             </nav>
           ))}
         </div>
+        {/* 2026-09-22 update_history: FL_B_MY_HOME에 로그아웃 버튼 추가. 메뉴 그룹 뒤 좌측 정렬, 상하 12px. */}
+        {member && (
+          <div className="py-3">
+            <LogoutButton />
+          </div>
+        )}
       </div>
       <BuyerBottomNavigation
         compact
