@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
@@ -12,6 +13,7 @@ import {
 } from "@/entities/project/api/seller-project-api";
 import { basicInfoRequest, businessCodes, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectBasicInfoForm } from "./project-basic-info-form";
+import { ProjectSavedModal } from "./project-saved-modal";
 import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
 import {
   ProjectSidebar,
@@ -37,7 +39,10 @@ export function ProjectBasicInfoApi({
     enabled: enabled && Boolean(projectId),
   });
   const saved = cache.getQueryData<BasicInfoResponse>(["seller-project-basic", owner, projectId]);
-  async function save(values: BasicInfoValues) {
+  /* 신규 생성 첫(임시저장 아닌) 저장 직후에만 완료 모달을 띄운다. 값이 있는 동안은
+     방금 만든 프로젝트 id를 들고 있다가 모달 버튼이 눌릴 때 이동한다. */
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  async function save(values: BasicInfoValues, partial = false) {
     if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
     const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
     const response = await saveProjectBasicInfo(id, basicInfoRequest(values));
@@ -49,7 +54,8 @@ export function ProjectBasicInfoApi({
     ]);
     if (!projectId) {
       sessionStorage.removeItem(projectAttemptKey(owner));
-      router.replace(`/seller/projects/${id}?tab=basic-info`);
+      if (partial) router.replace(`/seller/projects/${id}?tab=basic-info`);
+      else setCreatedId(id);
     }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
@@ -73,6 +79,12 @@ export function ProjectBasicInfoApi({
         <Link href="/seller/projects?status=draft" className="block py-4 underline">
           내 프로젝트 목록에서 생성 여부 확인
         </Link>
+        {createdId && (
+          <ProjectSavedModal
+            onLater={() => router.replace(`/seller/projects/${createdId}?tab=basic-info`)}
+            onWriteStory={() => router.replace(`/seller/projects/${createdId}?tab=story`)}
+          />
+        )}
       </>
     );
   const data = preview.data!;
