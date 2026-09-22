@@ -71,14 +71,15 @@ function Payment({ memberId, orderId }: { memberId: string; orderId: string }) {
       const instance = toss.widgets({ customerKey: memberId });
       await instance.setAmount({ currency: "KRW", value: created.amount });
       if (cancelled) return;
-      const [method, agreement] = await Promise.all([
-        instance.renderPaymentMethods({ selector: "#payment-method" }),
-        instance.renderAgreement({ selector: "#agreement" }),
+      // 하나만 실패해도 먼저 렌더된 위젯은 destroyers에 이미 쌓여 있어야 정리 시점에 함께 걷힌다.
+      await Promise.all([
+        instance
+          .renderPaymentMethods({ selector: "#payment-method" })
+          .then((widget) => destroyers.push(() => widget.destroy())),
+        instance
+          .renderAgreement({ selector: "#agreement" })
+          .then((widget) => destroyers.push(() => widget.destroy())),
       ]);
-      destroyers.push(
-        () => method.destroy(),
-        () => agreement.destroy(),
-      );
       /* 렌더링이 끝나기 전에 정리 함수가 지나갔으면(StrictMode 이중 마운트) 여기서 직접 걷어낸다.
          남겨두면 다음 마운트의 renderPaymentMethods가 "이미 렌더링됨"으로 실패한다. */
       if (cancelled) return destroyAll();
