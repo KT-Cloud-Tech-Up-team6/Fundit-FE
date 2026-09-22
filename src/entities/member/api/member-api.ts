@@ -12,6 +12,9 @@ export type Address = {
 export type AddressInput = Omit<Address, "id">;
 export type Wish = {
   projectId: number;
+  /* BE 스냅샷 동기화 전에는 필드가 없을 수 있다. 상세 연결은 projectDetailId로
+     형식까지 검증한 뒤에만 연다. */
+  projectPublicId?: string | null;
   projectTitle: string | null;
   projectThumbnailUrl: string | null;
   createdAt: string;

@@ -20,7 +20,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 - 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
 
-- 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
+- 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹이며 회원 인증과 찜 목록 API를 연결했다(#196, #250).
 
 - 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
 
@@ -123,7 +123,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 펀딩 반품·교환           | owner + eligible | implemented (목업) |
 | `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented (목업) |
-| `/my/wishlist`                                 | 관심 목록                | member           | implemented (목업) |
+| `/my/wishlist`                                 | 관심 목록                | member           | implemented        |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
 | `/my/notifications/settings`                   | 알림 설정                | member           | placeholder        |
 | `/my/preferences`                              | 맞춤 정보                | member           | placeholder        |

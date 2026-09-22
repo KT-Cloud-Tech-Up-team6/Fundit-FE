@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
 import { Tab, TabList } from "@/shared/components/ui/tab";
+import { projectDetailId } from "@/shared/lib/project-detail-id";
 
 export function BuyerWishlistApi() {
   return (
@@ -110,40 +112,60 @@ function Wishlist({ memberId }: { memberId: string }) {
                 {!list.data.content.length && (
                   <p className="py-24 text-center">찜한 프로젝트가 없습니다.</p>
                 )}
-                {list.data.content.map((item) => (
-                  <article key={item.projectId} className="flex items-center gap-3">
-                    <div className="bg-layer-bg relative aspect-[144/106] w-[41.14%] shrink-0 overflow-hidden rounded-xs">
-                      {item.projectThumbnailUrl && (
-                        <Image
-                          unoptimized
-                          fill
-                          sizes="144px"
-                          src={item.projectThumbnailUrl}
-                          alt=""
-                          className="object-cover"
+                {list.data.content.map((item) => {
+                  const detailId = projectDetailId(item.projectPublicId);
+                  return (
+                    <article key={item.projectId} className="flex items-center gap-3">
+                      <div className="bg-layer-bg relative aspect-[144/106] w-[41.14%] shrink-0 overflow-hidden rounded-xs">
+                        {item.projectThumbnailUrl && (
+                          <Image
+                            unoptimized
+                            fill
+                            sizes="144px"
+                            src={item.projectThumbnailUrl}
+                            alt=""
+                            className="object-cover"
+                          />
+                        )}
+                        {detailId && (
+                          <Link
+                            href={`/projects/${detailId}`}
+                            aria-label={`${item.projectTitle || "프로젝트"} 상세 보기`}
+                            className="focus-visible:outline-border-primary absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-body-m line-clamp-2">
+                          {detailId ? (
+                            <Link href={`/projects/${detailId}`}>
+                              {item.projectTitle || "프로젝트"}
+                            </Link>
+                          ) : (
+                            item.projectTitle || "프로젝트"
+                          )}
+                        </h2>
+                        {!detailId && (
+                          <p className="text-caption-s text-text-disabled mt-2">
+                            프로젝트 정보를 준비 중입니다.
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        aria-label={`${item.projectTitle || "프로젝트"} 찜 해제`}
+                        onClick={() => void change(item, false)}
+                        className="bg-layer-surface-primary text-text-inverse flex size-9 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
+                      >
+                        <span
+                          aria-hidden
+                          className="size-4 bg-current [mask-image:url('/icons/buyer-account/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
                         />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-body-m line-clamp-2">
-                        {item.projectTitle || "프로젝트"}
-                      </h2>
-                      <p className="text-caption-s text-text-disabled mt-2">상세 연결 준비 중</p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      aria-label={`${item.projectTitle || "프로젝트"} 찜 해제`}
-                      onClick={() => void change(item, false)}
-                      className="bg-layer-surface-primary text-text-inverse flex size-9 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
-                    >
-                      <span
-                        aria-hidden
-                        className="size-4 bg-current [mask-image:url('/icons/buyer-account/heart.svg')] [mask-size:contain] [mask-repeat:no-repeat]"
-                      />
-                    </button>
-                  </article>
-                ))}
+                      </button>
+                    </article>
+                  );
+                })}
                 <div className="flex justify-between">
                   <Button
                     disabled={page === 0}
