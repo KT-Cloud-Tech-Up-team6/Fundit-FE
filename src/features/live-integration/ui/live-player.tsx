@@ -1,9 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type RefObject } from "react";
 
-export function LivePlayer({ src, title }: { src: string; title: string }) {
+/** 바깥에서 재생 위치를 옮기기 위한 손잡이. 다시보기 구간 탐색이 쓴다. */
+export type LivePlayerHandle = { seek: (sec: number) => void };
+
+export function LivePlayer({
+  src,
+  title,
+  handleRef,
+  onProgress,
+}: {
+  src: string;
+  title: string;
+  handleRef?: RefObject<LivePlayerHandle | null>;
+  /* 재생 위치·길이를 알 방법이 <video> 안에만 있어 바깥으로 올려준다. 길이를 아직 모르면 0이다. */
+  onProgress?: (currentSec: number, durationSec: number) => void;
+}) {
   const video = useRef<HTMLVideoElement>(null);
+  useImperativeHandle(handleRef, () => ({
+    seek(sec) {
+      const element = video.current;
+      if (!element) return;
+      element.currentTime = sec;
+      void element.play().catch(() => {});
+    },
+  }));
+  function reportProgress() {
+    const element = video.current;
+    if (!element) return;
+    onProgress?.(element.currentTime, Number.isFinite(element.duration) ? element.duration : 0);
+  }
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"loading" | "playing" | "ended">("loading");
   const [attempt, setAttempt] = useState(0);
@@ -54,6 +81,9 @@ export function LivePlayer({ src, title }: { src: string; title: string }) {
         playsInline
         aria-label={`${title} 영상`}
         onError={() => setError("영상 재생에 실패했습니다. 다시 시도해 주세요.")}
+        onLoadedMetadata={reportProgress}
+        onTimeUpdate={reportProgress}
+        onSeeked={reportProgress}
         onCanPlay={() => setStatus("playing")}
         onPlaying={() => setStatus("playing")}
         onEnded={() => setStatus("ended")}
