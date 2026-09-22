@@ -149,7 +149,7 @@ function Checkout({
     setError("");
     try {
       const order = await submitOrderOnce(sessionStorage, memberId, body);
-      router.replace(`/my/fundings/${order.orderId}`);
+      router.replace(`/payment/${order.orderId}`);
     } catch (error) {
       setError(
         error instanceof OrderAttemptError
@@ -385,9 +385,7 @@ function Checkout({
               </dl>
             )}
             {error && <p role="alert">{error}</p>}
-            <p className="text-body-s">
-              주문을 생성한 뒤 참여 내역에서 결제 준비 상태를 확인합니다.
-            </p>
+            <p className="text-body-s">주문을 생성하면 바로 결제 화면으로 이동합니다.</p>
             <Button
               disabled={
                 busy ||
