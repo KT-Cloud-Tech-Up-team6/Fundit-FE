@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import { ProjectRewardManager } from "./project-reward-manager";
 import { ApiError } from "@/shared/api/api-error";
 import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
@@ -28,6 +29,7 @@ import {
 import { RewardFormModal } from "./reward-form-modal";
 import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectCreationUncertainError } from "../model/project-create-attempt";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
 const createBreadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
@@ -38,14 +40,12 @@ export function ProjectBasicInfoForm({
   initialValues,
   mode = "create",
   onSave,
-  rewardProjectId,
   statusMessage,
 }: {
   initialView?: BasicInfoPreview;
   initialValues?: Partial<BasicInfoValues>;
   mode?: "create" | "edit";
   onSave?: (values: BasicInfoValues, partial?: boolean) => Promise<void>;
-  rewardProjectId?: string;
   statusMessage?: string;
 }) {
   const [business, setBusiness] = useState(initialValues?.business ?? "");
@@ -68,6 +68,8 @@ export function ProjectBasicInfoForm({
   const [formMessage, setFormMessage] = useState("");
   const [formMessageRole, setFormMessageRole] = useState<"alert" | "status">("status");
   const nextId = useRef(3);
+  const params = useParams<{ projectId?: string }>();
+  const apiProjectId = isPublicUuid(params?.projectId) ? params.projectId : undefined;
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const values = { business, title, category, subcategory, amount };
   const validation = onSave
@@ -265,8 +267,8 @@ export function ProjectBasicInfoForm({
               </div>
             </div>
           </div>
-          {rewardProjectId ? (
-            <ProjectRewardManager projectId={rewardProjectId} />
+          {apiProjectId ? (
+            <ProjectRewardManager projectId={apiProjectId} />
           ) : (
             <section className="mt-[45px]" aria-labelledby="rewards">
               <h2 id="rewards" className="text-title-s text-text-title">

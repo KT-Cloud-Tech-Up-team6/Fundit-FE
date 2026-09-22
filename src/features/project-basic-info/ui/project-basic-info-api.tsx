@@ -115,7 +115,7 @@ export function ProjectBasicInfoApi({
       projectId={projectId}
       projectName={data.title || "제목 없음"}
       tabs={
-        tab === "community" || tab === "settlement"
+        tab === "community"
           ? projectManageTabs
           : tab === "basic-info" || tab === "refund-policy" || data.status === "DRAFT"
             ? projectEditTabs
@@ -129,7 +129,6 @@ export function ProjectBasicInfoApi({
             initialValues={initialValues}
             mode="edit"
             onSave={save}
-            rewardProjectId={projectId}
             statusMessage={
               initialValues.business
                 ? undefined
