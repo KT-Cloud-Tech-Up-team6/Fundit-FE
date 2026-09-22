@@ -25,7 +25,7 @@ test("successUrl 쿼리는 승인 요청으로, 금액은 양의 정수 문자�
     parseResultParams({ paymentKey: "pk", orderId: "fundit-abc", amount: "73100" }),
     { kind: "confirm", paymentKey: "pk", orderId: "fundit-abc", amount: 73100 },
   );
-  for (const amount of ["", "-1", "1.5", "1e3", "abc", "99999999999999999999"])
+  for (const amount of ["", "0", "-1", "1.5", "1e3", "abc", "99999999999999999999"])
     assert.equal(
       parseResultParams({ paymentKey: "pk", orderId: "fundit-abc", amount }).kind,
       "invalid",

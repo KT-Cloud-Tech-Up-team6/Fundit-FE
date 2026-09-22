@@ -24,7 +24,12 @@ export function parseResultParams(query: Query): PaymentResultParams {
     const paymentType = text(query.paymentType);
     if (paymentType && paymentType !== "NORMAL") return { kind: "invalid" };
     const value = Number(amount);
-    return paymentKey && orderId && amount && /^\d+$/.test(amount) && Number.isSafeInteger(value)
+    return paymentKey &&
+      orderId &&
+      amount &&
+      /^\d+$/.test(amount) &&
+      Number.isSafeInteger(value) &&
+      value > 0
       ? { kind: "confirm", paymentKey, orderId, amount: value }
       : { kind: "invalid" };
   }
