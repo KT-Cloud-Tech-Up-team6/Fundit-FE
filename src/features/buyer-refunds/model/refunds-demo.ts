@@ -1,92 +1,71 @@
-export const refundTypeOptions = [
-  { value: "전체", label: "전체" },
-  { value: "취소", label: "취소" },
-  { value: "교환", label: "교환" },
-  { value: "환불", label: "환불" },
-] as const;
+import type { RefundSummary } from "@/entities/refund/api/refund-api";
 
-export type RefundFilterType = (typeof refundTypeOptions)[number]["value"];
-
-export const refundHistory = [
+/** Storybook·테스트에서만 쓰는 `GET /api/v2/refunds` 응답 예시다. 화면은 실제 응답만 그린다. */
+export const refundSummariesDemo: RefundSummary[] = [
   {
-    id: "cancel-pending",
-    type: "취소",
-    status: "취소 진행 중",
-    completedAt: "",
-    cash: null,
-    points: null,
-    fundingNumber: "FD20260901-000123",
-    title: "키친모먼트 스테인리스 전기주전자",
-    requestedAt: "2026.09.01",
-    reason: "단순 변심",
-    product: "얼리버드 스타터 세트",
-    option: "단일 옵션",
-    price: 199000,
-    quantity: 1,
+    refundId: 1041,
+    fundingId: "6f1a0d6e-2c2b-4d0a-9a62-9f3a1b5c7d01",
+    triggerType: "SHIPPING_DELAY",
+    status: "REQUESTED",
+    amount: 199000,
+    requestedAt: "2026-09-01T02:13:00Z",
+    reasonDetail: null,
+    rejectedReason: null,
+    completedAt: null,
+    projectTitle: "키친모먼트 스테인리스 전기주전자",
+    lineItems: [{ rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000 }],
   },
   {
-    id: "cancel-complete",
-    type: "취소",
-    status: "취소 완료",
-    completedAt: "2026.09.13",
-    cash: 199000,
-    points: 0,
-    fundingNumber: "FD20260820-000089",
-    title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
-    requestedAt: "2026.09.01",
-    reason: "단순 변심",
-    product: "얼리버드 스타터 세트",
-    option: "단일 옵션",
-    price: 199000,
-    quantity: 1,
+    refundId: 1042,
+    fundingId: "0b7c8a91-3f45-4e7a-8d21-5c9e6a4b2f10",
+    triggerType: "SIMPLE_CHANGE_OF_MIND",
+    status: "COMPLETED",
+    amount: 199000,
+    requestedAt: "2026-09-01T05:40:00Z",
+    reasonDetail: "단순 변심",
+    rejectedReason: null,
+    completedAt: "2026-09-13T01:02:00Z",
+    projectTitle: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
+    lineItems: [{ rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000 }],
   },
   {
-    id: "refund-complete",
-    type: "환불",
-    status: "환불 완료",
-    completedAt: "2026.09.05",
-    cash: 23000,
-    points: 0,
-    fundingNumber: "FD20260815-000047",
-    title: "벨라포뮬라 데일리 콜라겐 크림",
-    requestedAt: "2026.09.01",
-    reason: "단순 변심",
-    product: "데일리 콜라겐 크림",
-    option: "단일 옵션",
-    price: 23000,
-    quantity: 1,
+    refundId: 1043,
+    fundingId: "c4d5e6f7-8a9b-4c1d-9e2f-3a4b5c6d7e80",
+    triggerType: "DEFECT",
+    status: "COMPLETED",
+    amount: 23000,
+    requestedAt: "2026-09-01T07:22:00Z",
+    reasonDetail: "[DAMAGED] 배송 중 뚜껑이 깨졌습니다",
+    rejectedReason: null,
+    completedAt: "2026-09-05T08:30:00Z",
+    projectTitle: "벨라포뮬라 데일리 콜라겐 크림",
+    lineItems: [{ rewardName: "데일리 콜라겐 크림", quantity: 1, unitPrice: 23000 }],
   },
   {
-    id: "exchange-complete",
-    type: "교환",
-    status: "교환 완료",
-    completedAt: "2026.09.05",
-    cash: null,
-    points: null,
-    fundingNumber: "FD20260828-000162",
-    title: "센트모먼트 바디미스트",
-    requestedAt: "2026.09.01",
-    reason: "상품 불량",
-    product: "센트모먼트 바디미스트",
-    option: "단일 옵션",
-    price: 24000,
-    quantity: 1,
+    refundId: 1044,
+    fundingId: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c60",
+    triggerType: "DEFECT",
+    status: "REJECTED",
+    amount: 24000,
+    requestedAt: "2026-09-02T04:10:00Z",
+    reasonDetail: "[DEFECTIVE] 향이 나지 않습니다",
+    rejectedReason: "제품 하자가 확인되지 않았습니다",
+    completedAt: "2026-09-06T02:00:00Z",
+    projectTitle: "센트모먼트 바디미스트",
+    lineItems: [{ rewardName: "센트모먼트 바디미스트", quantity: 2, unitPrice: 12000 }],
+  },
+  /* order-service 배치 조회가 실패해 프로젝트명·상품이 비어 내려온 응답. */
+  {
+    refundId: 1045,
+    fundingId: "2b3c4d5e-6f70-4812-9a3b-4c5d6e7f8090",
+    triggerType: "GOAL_FAILED_AUTO",
+    status: "PROCESSING",
+    amount: 45000,
+    requestedAt: "2026-09-03T09:00:00Z",
+    reasonDetail: null,
+    rejectedReason: null,
+    completedAt: null,
+    projectTitle: null,
+    lineItems: null,
   },
 ];
-
-/** 유형(전체/취소/교환/환불)과 "진행 중만 보기" 토글을 함께 적용한 목록. */
-export function filterRefundHistory(
-  entries: typeof refundHistory,
-  type: RefundFilterType,
-  inProgressOnly: boolean,
-): typeof refundHistory {
-  return entries.filter((entry) => {
-    const matchesType = type === "전체" || entry.type === type;
-    const matchesProgress = !inProgressOnly || entry.status.includes("진행 중");
-    return matchesType && matchesProgress;
-  });
-}
-
-export function refundBadgeVariant(status: string): "warning" | "neutral" {
-  return status.includes("진행 중") ? "warning" : "neutral";
-}

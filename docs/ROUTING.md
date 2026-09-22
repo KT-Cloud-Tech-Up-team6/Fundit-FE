@@ -16,7 +16,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 - PDF 다운로드는 비활성화합니다. 하단은 1페이지와 비활성 이전·다음만 표시하며, PDF 출력 범위와 페이지네이션 대상·크기·정렬 규칙은 정의 확정 후 연결합니다. 실제 집계 API·권한 검증은 미연동입니다. 커뮤니티·정산 링크의 목적지는 기존 placeholder이며 해당 화면 구현은 포함하지 않습니다. 모바일 별도 원본은 지정 섹션에 없으므로 기존 반응형 관례로 카드 줄바꿈과 표 내부 가로 스크롤을 적용합니다.
 - #169에서 최신 섹션·화면 정의·히스토리와 기존 승인 결정을 재대조했습니다. 모델 검사 7개와 실제 앱의 목록 진입·탭 이동·뒤로 가기·목록 복귀·기존 URL 리다이렉트, 128%·68%·종료 상태, 상세 집계 없음, 잘못된 ID·준비중 프로젝트의 404를 검증했습니다. 1440px·390px에서 금액 정합성·PDF/페이지 비활성·카드 배치·표 내부 키보드 스크롤·페이지 가로 넘침 없음을 확인했습니다. 추가 소스 변경은 필요하지 않았으며 공통 반응형 #165의 통합 검증과 실제 API 연동은 별도입니다.
 
-- 구매자 취소·환불·교환 내역은 [BUYER_REFUNDS.md](./BUYER_REFUNDS.md)를 참고한다. `/my/refunds`는 전용 `(buyer-refunds)` 그룹의 조회 목업이며 삭제된 저장 버튼은 포함하지 않는다.
+- 구매자 취소·환불·교환 내역은 [BUYER_REFUNDS.md](./BUYER_REFUNDS.md)를 참고한다. `/my/refunds`는 전용 `(buyer-refunds)` 그룹에 있고 #261에서 `GET /api/v2/refunds` 응답만 그리도록 연결했다. 삭제된 저장 버튼은 포함하지 않는다.
 
 - 구매자 마이페이지 메인은 [BUYER_MYPAGE.md](./BUYER_MYPAGE.md)를 참고한다. `/my`는 전용 `(buyer-mypage)` 그룹에서 공통 계정 상단바와 기존 구매자 하단 메뉴를 사용하는 목업 화면이다.
 
@@ -123,7 +123,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/refund/new`          | 펀딩 반품·교환           | owner + eligible | implemented (목업) |
-| `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented (목업) |
+| `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented        |
 | `/my/wishlist`                                 | 관심 목록                | member           | implemented        |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
 | `/my/notifications/settings`                   | 알림 설정                | member           | placeholder        |

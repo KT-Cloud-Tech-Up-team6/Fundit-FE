@@ -581,3 +581,60 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 성공 응답을 본문 캐시에 반영하고 목록·본문을 재조회한다. 403·404·서버 오류에서는 입력을 유지한다. 구매자 상세는 읽기 전용이다.
 - 기존 GET 목록·본문은 공개 프로젝트만 허용하므로 비공개 프로젝트의 재편집 진입은 BE 조회 계약 보완이 필요하다.
 - 격리 브라우저의 API fixture로 저장·재편집·부분 변경·403/503 입력 보존을 검증했다. 실제 배포 서버의 권한·저장 지속성은 미검증이다.
+
+### 2026-09-22 구매자 환불 내역 조회 연결 (#261)
+
+Gateway가 `/api/v1/refunds/**`와 `/api/v2/refunds/**`를 payment-service로 보낸다. 목록은 **v2를 쓴다** — v1 `RefundSummaryResponse`의 `fundingId`는 결제 도메인이 UUID만 저장해 항상 null이다.
+
+`GET /api/v2/refunds?page&size` → `PageResponse<RefundSummaryResponseV2>`
+
+| 필드             | 형                                            | 비고                                                                                         |
+| ---------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `refundId`       | Long                                          | 하자환불 결정(`PATCH /api/v1/refunds/{refundId}/decision`)의 경로 값과 같다                  |
+| `fundingId`      | UUID                                          | order-service publicId                                                                       |
+| `triggerType`    | String                                        | `SIMPLE_CHANGE_OF_MIND`·`GOAL_FAILED_AUTO`·`DEFECT`·`SHIPPING_DELAY`·`SYSTEM_RECONCILIATION` |
+| `status`         | String                                        | `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`·`COMPLETED`·`REJECTED`                    |
+| `amount`         | long                                          | `payment.amount`. 반품비 차감 정책이 없어 현재는 전액이다                                    |
+| `requestedAt`    | Instant                                       | 서버 정렬은 이 값 내림차순 고정                                                              |
+| `completedAt`    | Instant \| null                               | 최종 결정 전이면 null                                                                        |
+| `reasonDetail`   | String \| null                                | DEFECT는 `[DEFECTIVE] 설명`처럼 하자 유형 태그가 앞에 붙어 저장된다                          |
+| `rejectedReason` | String \| null                                | 반려된 건에만 채워진다                                                                       |
+| `projectTitle`   | String \| null                                | order-service 배치 조회 결과                                                                 |
+| `lineItems`      | `{rewardName, quantity, unitPrice}[]` \| null | 위와 같음                                                                                    |
+
+`projectTitle`·`lineItems`는 **부가 정보라 order-service 조회가 실패하면 목록은 그대로 내려오고 이 둘만 null이 된다**(`RefundQueryService`). FE는 이 응답에서도 화면이 깨지지 않게 처리한다.
+
+**서버 필터·정렬 파라미터가 없다.** 유형·진행 여부 필터는 현재 페이지 안에서만 동작한다.
+
+#### 표시 매핑
+
+`RefundTriggerType.toOrderServiceReason()`의 매핑을 근거로 원본의 유형 문구에 대응시킨다.
+
+| triggerType                                           | 유형 |
+| ----------------------------------------------------- | ---- |
+| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`             | 취소 |
+| `DEFECT`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
+
+| status                                                | 표시                      | Badge     |
+| ----------------------------------------------------- | ------------------------- | --------- |
+| `REQUESTED`, `UNDER_REVIEW`, `APPROVED`, `PROCESSING` | `{유형} 진행 중`          | `warning` |
+| `COMPLETED`                                           | `{유형} 완료`             | `neutral` |
+| `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `neutral` |
+
+실 환불 금액은 `COMPLETED`에서만 고지한다. 진행 중·반려는 확정 금액이 아니다.
+
+#### 아직 계약이 없어 채우지 못하는 값
+
+원본에 자리가 있으나 응답에 대응 필드가 없다. 값을 만들지 않고 자리만 유지한다.
+
+| 화면 요소                       | 필요한 것                                                             |
+| ------------------------------- | --------------------------------------------------------------------- |
+| 유형 필터 "교환"                | 교환 신청·조회 계약 일체. `RefundTriggerType`에 교환이 없다           |
+| 펀딩번호 `FD<yyyyMMdd>-<6자리>` | 목록 응답의 주문번호 필드. 현재는 `fundingId`(UUID)뿐이다             |
+| 옵션                            | `lineItems`의 옵션명·옵션값                                           |
+| 적립금 환불 금액                | 적립금 환불 계약                                                      |
+| 유형·진행 여부 서버 필터        | 목록의 필터 파라미터. `totalElements`는 제공되므로 총 개수와는 별개다 |
+
+환불 **신청**(`POST /api/v2/refunds/defect`, `POST /api/v2/refunds/shipping-delay`, `GET /api/v1/refunds/estimate`, `POST /api/v1/refunds/evidence/upload-url`)은 이번 연결 범위가 아니다.
+
+조사 기준은 BE `origin/develop` `ce5d882`다. 실제 서버 응답과의 대조는 BE QA 서버가 뜬 뒤에 한다.
