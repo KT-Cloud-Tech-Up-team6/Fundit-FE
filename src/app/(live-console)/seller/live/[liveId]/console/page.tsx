@@ -6,10 +6,9 @@ export default async function LiveConsolePage({
   params,
 }: PageProps<"/seller/live/[liveId]/console">) {
   const { liveId } = await params;
-  if (
-    !liveId.startsWith("demo") &&
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(liveId)
-  )
+  /* BE는 UuidCreator.getTimeOrderedEpoch()로 UUIDv7을 발급한다. 버전 자리를 [1-5]로
+     제한하면 실제 LIVE ID가 전부 404가 되므로 형식만 본다(시청 화면과 같은 기준). */
+  if (!liveId.startsWith("demo") && !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(liveId))
     notFound();
   if (!liveId.startsWith("demo")) return <RealSellerLive key={liveId} liveId={liveId} />;
   return <LiveConsole key={liveId} liveId={liveId} />;
