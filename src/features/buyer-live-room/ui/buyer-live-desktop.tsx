@@ -21,7 +21,7 @@ import { roomDemo } from "../model/room-demo";
 import styles from "./buyer-live-desktop.module.css";
 
 type Chapter = { time: string; title: string; label: string; progress: number };
-type Question = { title: string; answer: string };
+type Question = { id?: string; title: string; answer: string; count?: number; answeredBy?: string };
 
 function WatchIcon({
   name,
@@ -67,6 +67,11 @@ export function BuyerLiveDesktop({
   chapters,
   initialPanel,
   initialMessage = "",
+  video,
+  videoConnected = Boolean(video),
+  demoMode = true,
+  questionsState,
+  onRefreshQuestions,
 }: {
   liveId: string;
   product?: typeof roomDemo;
@@ -77,6 +82,11 @@ export function BuyerLiveDesktop({
   chapters: Chapter[];
   initialPanel?: "chat" | "chapters";
   initialMessage?: string;
+  video?: ReactNode;
+  videoConnected?: boolean;
+  demoMode?: boolean;
+  questionsState?: ReactNode;
+  onRefreshQuestions?: () => void;
 }) {
   const [following, setFollowing] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -88,7 +98,7 @@ export function BuyerLiveDesktop({
   const [draft, setDraft] = useState(initialMessage);
   const [blocked, setBlocked] = useState(false);
   const [messages, setMessages] = useState(() =>
-    desktopMessages.map((text, id) => ({ id, text, author: "아이디" })),
+    demoMode ? desktopMessages.map((text, id) => ({ id, text, author: "아이디" })) : [],
   );
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -170,69 +180,94 @@ export function BuyerLiveDesktop({
     <div className={`${styles.screen} bg-layer-bg text-text-default min-h-dvh`}>
       <BuyerDesktopHeader exitHref="/live" />
       <main
-        aria-label={replay ? (clip ? "숏 클립 목업" : "라이브 다시보기 목업") : "라이브 시청 목업"}
+        aria-label={`${replay ? (demoMode && clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
         className="mx-auto grid w-full max-w-300 grid-cols-3 items-start gap-6 pt-10 pb-16"
       >
-        <section
-          aria-label="상품 정보"
-          className="bg-layer-surface-default border-border-default h-[726px] rounded-sm border px-4 py-3"
-        >
-          <div className="flex gap-2">
-            <Badge variant={replay ? "neutral" : "accent"}>
-              <Icon name={replay ? "calendar" : "funding"} className="size-4" />
-              {replay ? "09.07" : "000,000"}
-            </Badge>
-            <Badge variant={replay ? "neutral" : "accent"}>
-              <WatchIcon name="viewers" className="size-4" />
-              000,000
-            </Badge>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <Avatar size={32}>
-              <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
-            </Avatar>
-            <span className="text-body-s text-text-secondary">{product.seller}</span>
-            <Button
-              size="sm"
-              variant={following ? "primary" : "secondary"}
-              className="text-body-s! ml-auto h-9! px-3"
-              aria-pressed={following}
-              onClick={() => setFollowing(!following)}
-            >
-              {following ? "팔로잉" : "팔로우"}
-            </Button>
-          </div>
-          <h1 className="text-title-s mt-6">{clip ? "[제품명] AI 생성 제목" : product.title}</h1>
-          <h2 className="text-label-m text-text-secondary mt-6">상품 정보</h2>
-          <div className="text-body-s mt-1 space-y-5">
-            {desktopProductDescription.map((text) => (
-              <p key={text}>{text}</p>
-            ))}
-          </div>
-        </section>
-        <section
-          aria-label="방송 영상 · 실제 재생 미연결"
-          className="text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black]"
-        >
-          <Image
-            src="/images/buyer-live-room/desktop-poster.png"
-            alt="라이브 방송 포스터"
-            fill
-            sizes="560px"
-            className={styles.poster}
-            priority
-          />
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-[rgba(0,0,0,0.5)] to-transparent" />
-          <Badge
-            size="md"
-            variant={replay && !clip ? "accent" : "primaryLive"}
-            shape={replay ? "square" : "rounded"}
-            className="absolute top-3 left-3"
+        {demoMode && (
+          <section
+            aria-label="상품 정보"
+            className="bg-layer-surface-default border-border-default h-[726px] rounded-sm border px-4 py-3"
           >
-            {!replay && <Icon name="live" className="size-4" />}
-            {replay ? (clip ? "시연 영상" : "다시보기") : "LIVE"}
-          </Badge>
-          {clip && (
+            {demoMode && (
+              <div className="flex gap-2">
+                <Badge variant={replay ? "neutral" : "accent"}>
+                  <Icon name={replay ? "calendar" : "funding"} className="size-4" />
+                  {replay ? "09.07" : "000,000"}
+                </Badge>
+                <Badge variant={replay ? "neutral" : "accent"}>
+                  <WatchIcon name="viewers" className="size-4" />
+                  000,000
+                </Badge>
+              </div>
+            )}
+            {demoMode && (
+              <>
+                <div className="mt-2 flex items-center gap-2">
+                  <Avatar size={32}>
+                    <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
+                  </Avatar>
+                  <span className="text-body-s text-text-secondary">{product.seller}</span>
+                  <Button
+                    size="sm"
+                    variant={following ? "primary" : "secondary"}
+                    className="text-body-s! ml-auto h-9! px-3"
+                    aria-pressed={following}
+                    onClick={() => setFollowing(!following)}
+                  >
+                    {following ? "팔로잉" : "팔로우"}
+                  </Button>
+                </div>
+                <h1 className="text-title-s mt-6">
+                  {clip ? "[제품명] AI 생성 제목" : product.title}
+                </h1>
+              </>
+            )}
+            {demoMode && (
+              <>
+                <h2 className="text-label-m text-text-secondary mt-6">상품 정보</h2>
+                <div className="text-body-s mt-1 space-y-5">
+                  {desktopProductDescription.map((text) => (
+                    <p key={text}>{text}</p>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+        <section
+          aria-label={videoConnected ? "방송 영상" : "방송 영상 · 실제 재생 미연결"}
+          className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode ? "" : "col-start-2"}`}
+        >
+          {video ? (
+            <div className="relative h-full w-full">{video}</div>
+          ) : (
+            <Image
+              src="/images/buyer-live-room/desktop-poster.png"
+              alt="라이브 방송 포스터"
+              fill
+              sizes="560px"
+              className={styles.poster}
+              priority
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-[rgba(0,0,0,0.5)] to-transparent" />
+          {demoMode && (
+            <Badge
+              size="md"
+              variant={replay && !clip ? "accent" : "primaryLive"}
+              shape={replay ? "square" : "rounded"}
+              className="absolute top-3 left-3"
+            >
+              {!replay && <Icon name="live" className="size-4" />}
+              {replay ? (clip ? "시연 영상" : "다시보기") : "LIVE"}
+            </Badge>
+          )}
+          {!demoMode && replay && (
+            <p className="absolute top-3 left-3 z-20 rounded-sm bg-black/70 px-2 py-1 text-sm">
+              다시보기
+            </p>
+          )}
+          {demoMode && clip && (
             <>
               <p className={styles.subtitle}>
                 안녕하세요. 오늘은 로보락 F25를 직접 보면서, 왜 물걸레 청소기와 진공청소기를 하나로
@@ -243,7 +278,7 @@ export function BuyerLiveDesktop({
             </>
           )}
           <div
-            className={`absolute right-3 flex w-[58px] flex-col gap-3 ${replay ? "bottom-[106px]" : "bottom-8"}`}
+            className={`absolute right-3 z-20 flex w-[58px] flex-col gap-3 ${replay ? "bottom-[106px]" : "bottom-8"}`}
           >
             <button
               type="button"
@@ -254,7 +289,7 @@ export function BuyerLiveDesktop({
               <WatchIcon name="question" />
               Q&amp;A
             </button>
-            {replay ? (
+            {demoMode && replay ? (
               <>
                 <button
                   type="button"
@@ -275,26 +310,28 @@ export function BuyerLiveDesktop({
                   타임라인
                 </button>
               </>
-            ) : (
+            ) : !replay ? (
               <>
                 <button type="button" className={styles.action} onClick={share}>
                   <WatchIcon name="share" />
                   공유
                 </button>
-                <button
-                  type="button"
-                  className={styles.action}
-                  aria-label={liked ? "좋아요 취소" : "좋아요"}
-                  aria-pressed={liked}
-                  onClick={() => setLiked(!liked)}
-                >
-                  <WatchIcon name="heart" />
-                  {liked ? "2.4천+" : "2.4천"}
-                </button>
+                {demoMode && (
+                  <button
+                    type="button"
+                    className={styles.action}
+                    aria-label={liked ? "좋아요 취소" : "좋아요"}
+                    aria-pressed={liked}
+                    onClick={() => setLiked(!liked)}
+                  >
+                    <WatchIcon name="heart" />
+                    {liked ? "2.4천+" : "2.4천"}
+                  </button>
+                )}
               </>
-            )}
+            ) : null}
           </div>
-          {replay && (
+          {demoMode && replay && (
             <div className="absolute inset-x-5 bottom-10">
               <input
                 className={styles.range}
@@ -341,146 +378,157 @@ export function BuyerLiveDesktop({
             </div>
           )}
         </section>
-        <aside className="flex min-w-0 flex-col gap-4" aria-label="리워드와 방송 소통">
-          {rewardSummary}
-          {replay && panel === "chapters" ? (
-            <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
-              <div
-                ref={chapterList}
-                role="region"
-                aria-label="영상 구간 목록"
-                tabIndex={0}
-                className="relative flex h-full [scrollbar-gutter:stable] flex-col gap-2 overflow-y-scroll overscroll-contain pr-2"
-              >
-                {chapters.map((chapter, index) => (
-                  <button
-                    key={chapter.time}
-                    type="button"
-                    aria-label={`구간 ${index + 1} 재생`}
-                    aria-pressed={selectedChapter === index}
-                    onClick={() => seek(chapter.progress)}
-                    className="bg-layer-bg aria-pressed:bg-status-accent aria-pressed:border-border-primary-live text-body-s flex shrink-0 flex-col items-start gap-1 rounded-xs border border-transparent p-2 text-left"
-                  >
-                    <b
-                      className={
-                        selectedChapter === index ? "text-text-primary-live" : "text-text-secondary"
-                      }
-                    >
-                      {chapter.time}
-                    </b>
-                    <span className="w-full truncate">{chapter.title}</span>
-                    <Badge
-                      variant={selectedChapter === index ? "primaryLive" : "neutral"}
-                      className="mt-2"
-                    >
-                      {chapter.label}
-                    </Badge>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <section
-              aria-label={replay ? "다시보기 채팅" : "실시간 채팅"}
-              className="bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border"
-            >
-              <Badge variant="neutral" className="absolute top-3 right-3 z-10">
-                <Icon name="chat" className="size-4" />
-                53
-              </Badge>
-              <div
-                ref={chat}
-                role="log"
-                aria-label="채팅 메시지"
-                aria-live="polite"
-                aria-relevant="additions"
-                tabIndex={0}
-                className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
-              >
-                {messages.map((message) => (
-                  <p key={message.id} className="flex items-start gap-2">
-                    <span className="text-label-m text-text-secondary mt-0.5 shrink-0">
-                      {message.author}
-                    </span>
-                    <span className="min-w-0 wrap-anywhere whitespace-pre-wrap">
-                      {message.text}
-                    </span>
-                  </p>
-                ))}
-              </div>
-              <form
-                className="border-layer-bg relative flex shrink-0 items-end gap-2 border-t-4 p-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  send();
-                }}
-              >
-                <div className={styles.inputBox}>
-                  <div aria-hidden ref={mirror} className={styles.mirror}>
-                    {draft.split(/(바보|멍청이)/g).map((part, index) => (
-                      <span
-                        key={index}
-                        className={/^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined}
-                      >
-                        {part}
-                      </span>
-                    ))}
-                    {"\n"}
-                  </div>
-                  <textarea
-                    ref={input}
-                    rows={1}
-                    value={draft}
-                    aria-label="메시지 입력"
-                    placeholder="메시지 입력"
-                    aria-invalid={blocked && invalid}
-                    aria-describedby={blocked && invalid ? errorId : undefined}
-                    onChange={(event) => {
-                      setDraft(event.target.value);
-                      setBlocked(false);
-                    }}
-                    onScroll={(event) => {
-                      if (mirror.current) mirror.current.scrollTop = event.currentTarget.scrollTop;
-                    }}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key === "Enter" &&
-                        !event.shiftKey &&
-                        !event.nativeEvent.isComposing &&
-                        event.keyCode !== 229
-                      ) {
-                        event.preventDefault();
-                        send();
-                      }
-                    }}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  aria-label="메시지 전송"
-                  disabled={!draft.trim()}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-xs disabled:opacity-40"
+        {demoMode && (
+          <aside className="flex min-w-0 flex-col gap-4" aria-label="리워드와 방송 소통">
+            {rewardSummary}
+            {demoMode && replay && panel === "chapters" ? (
+              <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
+                <div
+                  ref={chapterList}
+                  role="region"
+                  aria-label="영상 구간 목록"
+                  tabIndex={0}
+                  className="relative flex h-full [scrollbar-gutter:stable] flex-col gap-2 overflow-y-scroll overscroll-contain pr-2"
                 >
-                  <span
-                    aria-hidden
-                    className="size-6 bg-current [mask:url(/icons/buyer-live-room/send.svg)_center/contain_no-repeat]"
-                  />
-                </button>
-                {blocked && invalid && (
-                  <p
-                    id={errorId}
-                    role="alert"
-                    className="text-body-s text-text-static-white absolute right-11 bottom-[calc(100%+16px)] z-20 w-75 rounded-sm bg-[rgba(0,0,0,0.7)] px-3 py-3 text-center"
-                  >
-                    부적절한 단어가 포함되어 있어
-                    <br />
-                    메시지를 전송할 수 없습니다
-                  </p>
+                  {chapters.map((chapter, index) => (
+                    <button
+                      key={chapter.time}
+                      type="button"
+                      aria-label={`구간 ${index + 1} 재생`}
+                      aria-pressed={selectedChapter === index}
+                      onClick={() => seek(chapter.progress)}
+                      className="bg-layer-bg aria-pressed:bg-status-accent aria-pressed:border-border-primary-live text-body-s flex shrink-0 flex-col items-start gap-1 rounded-xs border border-transparent p-2 text-left"
+                    >
+                      <b
+                        className={
+                          selectedChapter === index
+                            ? "text-text-primary-live"
+                            : "text-text-secondary"
+                        }
+                      >
+                        {chapter.time}
+                      </b>
+                      <span className="w-full truncate">{chapter.title}</span>
+                      <Badge
+                        variant={selectedChapter === index ? "primaryLive" : "neutral"}
+                        className="mt-2"
+                      >
+                        {chapter.label}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <section
+                aria-label={replay ? "다시보기 채팅" : "실시간 채팅"}
+                className="bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border"
+              >
+                {demoMode && (
+                  <Badge variant="neutral" className="absolute top-3 right-3 z-10">
+                    <Icon name="chat" className="size-4" />
+                    53
+                  </Badge>
                 )}
-              </form>
-            </section>
-          )}
-        </aside>
+                <div
+                  ref={chat}
+                  role="log"
+                  aria-label="채팅 메시지"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                  tabIndex={0}
+                  className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
+                >
+                  {messages.map((message) => (
+                    <p key={message.id} className="flex items-start gap-2">
+                      <span className="text-label-m text-text-secondary mt-0.5 shrink-0">
+                        {message.author}
+                      </span>
+                      <span className="min-w-0 wrap-anywhere whitespace-pre-wrap">
+                        {message.text}
+                      </span>
+                    </p>
+                  ))}
+                </div>
+                {demoMode && (
+                  <form
+                    className="border-layer-bg relative flex shrink-0 items-end gap-2 border-t-4 p-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      send();
+                    }}
+                  >
+                    <div className={styles.inputBox}>
+                      <div aria-hidden ref={mirror} className={styles.mirror}>
+                        {draft.split(/(바보|멍청이)/g).map((part, index) => (
+                          <span
+                            key={index}
+                            className={
+                              /^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined
+                            }
+                          >
+                            {part}
+                          </span>
+                        ))}
+                        {"\n"}
+                      </div>
+                      <textarea
+                        ref={input}
+                        rows={1}
+                        value={draft}
+                        aria-label="메시지 입력"
+                        placeholder="메시지 입력"
+                        aria-invalid={blocked && invalid}
+                        aria-describedby={blocked && invalid ? errorId : undefined}
+                        onChange={(event) => {
+                          setDraft(event.target.value);
+                          setBlocked(false);
+                        }}
+                        onScroll={(event) => {
+                          if (mirror.current)
+                            mirror.current.scrollTop = event.currentTarget.scrollTop;
+                        }}
+                        onKeyDown={(event) => {
+                          if (
+                            event.key === "Enter" &&
+                            !event.shiftKey &&
+                            !event.nativeEvent.isComposing &&
+                            event.keyCode !== 229
+                          ) {
+                            event.preventDefault();
+                            send();
+                          }
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      aria-label="메시지 전송"
+                      disabled={!draft.trim()}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-xs disabled:opacity-40"
+                    >
+                      <span
+                        aria-hidden
+                        className="size-6 bg-current [mask:url(/icons/buyer-live-room/send.svg)_center/contain_no-repeat]"
+                      />
+                    </button>
+                    {blocked && invalid && (
+                      <p
+                        id={errorId}
+                        role="alert"
+                        className="text-body-s text-text-static-white absolute right-11 bottom-[calc(100%+16px)] z-20 w-75 rounded-sm bg-[rgba(0,0,0,0.7)] px-3 py-3 text-center"
+                      >
+                        부적절한 단어가 포함되어 있어
+                        <br />
+                        메시지를 전송할 수 없습니다
+                      </p>
+                    )}
+                  </form>
+                )}
+              </section>
+            )}
+          </aside>
+        )}
       </main>
       <Modal
         open={questionsOpen}
@@ -489,21 +537,29 @@ export function BuyerLiveDesktop({
         className={`${styles.questions} h-[672px]`}
       >
         <div className="mt-6 space-y-6 pr-2" role="region" aria-label="Q&A 질문 목록" tabIndex={0}>
-          {questions.map((question, index) => (
-            <article key={question.title}>
-              <div className="flex items-start gap-2">
-                <WatchIcon name="question-filled" className="mt-1 size-5" />
-                <h3 className="text-body-strong">{question.title}</h3>
-              </div>
-              <p className="text-label-m text-text-secondary mt-1 ml-7">
-                질문 {index === 0 ? 12 : 11}건
-              </p>
-              <div className="border-border-default text-body-s mt-2 rounded-xs border px-3 py-2">
-                <p>{question.answer}</p>
-                <p className="text-label-m text-text-secondary mt-1">판매자 · 1분 전</p>
-              </div>
-            </article>
-          ))}
+          {onRefreshQuestions && (
+            <button type="button" className="text-caption-s underline" onClick={onRefreshQuestions}>
+              새로고침
+            </button>
+          )}
+          {questionsState ??
+            questions.map((question, index) => (
+              <article key={question.id ?? question.title}>
+                <div className="flex items-start gap-2">
+                  <WatchIcon name="question-filled" className="mt-1 size-5" />
+                  <h3 className="text-body-strong">{question.title}</h3>
+                </div>
+                <p className="text-label-m text-text-secondary mt-1 ml-7">
+                  질문 {question.count ?? (index === 0 ? 12 : 11)}건
+                </p>
+                <div className="border-border-default text-body-s mt-2 rounded-xs border px-3 py-2">
+                  <p>{question.answer}</p>
+                  <p className="text-label-m text-text-secondary mt-1">
+                    {question.answeredBy ?? "판매자"}
+                  </p>
+                </div>
+              </article>
+            ))}
         </div>
       </Modal>
       <p
