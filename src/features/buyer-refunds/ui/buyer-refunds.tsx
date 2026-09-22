@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Badge } from "@/shared/components/ui/badge";
@@ -8,17 +8,39 @@ import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Icon } from "@/shared/components/ui/icon";
 import { Radio } from "@/shared/components/ui/radio";
 import {
-  filterRefundHistory,
+  filterRefundEntries,
   refundBadgeVariant,
-  refundHistory,
   refundTypeOptions,
+  type RefundEntry,
   type RefundFilterType,
-} from "../model/refunds-demo";
+} from "../model/refund-history";
 
-export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof refundHistory }) {
+/* 값이 비어도 원본(891:9152)의 행 수는 유지한다. 빈 칸은 계약이 없어 채우지 못한 자리다. */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[94px_1fr] gap-2">
+      <dt className="text-text-secondary">{label}</dt>
+      <dd className="min-w-0 break-words">{value || "\u00A0"}</dd>
+    </div>
+  );
+}
+
+export function BuyerRefunds({
+  entries,
+  total,
+  children,
+}: {
+  entries: RefundEntry[];
+  /** 서버 전체 건수. 필터를 걸지 않은 동안에만 쓴다. */
+  total?: number;
+  /** 페이지 이동처럼 목록 아래에 덧붙일 요소. */
+  children?: ReactNode;
+}) {
   const [type, setType] = useState<RefundFilterType>("전체");
   const [inProgressOnly, setInProgressOnly] = useState(false);
-  const filtered = filterRefundHistory(entries, type, inProgressOnly);
+  const filtered = filterRefundEntries(entries, type, inProgressOnly);
+  const filtering = type !== "전체" || inProgressOnly;
+  const count = !filtering && total !== undefined ? total : filtered.length;
 
   return (
     <BuyerAccountScreen
@@ -27,7 +49,7 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
     >
       <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         <div className="bg-layer-surface-default flex w-full items-center justify-between gap-1 px-5 py-3">
-          <p className="text-caption-m text-text-secondary">총 {filtered.length}개</p>
+          <p className="text-caption-m text-text-secondary">총 {count}개</p>
           <div className="flex items-center gap-1">
             <Radio
               className="[&>span:last-child]:!text-caption-m px-2 py-1"
@@ -49,13 +71,15 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
         </div>
         {filtered.length === 0 ? (
           <p className="bg-layer-surface-default text-body-s px-5 py-24 text-center">
-            취소/환불/교환 내역이 없습니다.
+            {type === "교환"
+              ? "교환 내역은 아직 제공되지 않습니다."
+              : "취소/환불/교환 내역이 없습니다."}
           </p>
         ) : (
           filtered.map((entry) => (
             <details
               key={entry.id}
-              open={entry.type === "취소" && entry.status === "취소 완료"}
+              open={entry.type === "취소" && entry.stage === "완료"}
               className="group border-border-default bg-layer-surface-default flex w-full flex-col border-b px-5 py-3"
             >
               <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -66,10 +90,10 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
                     className="text-text-disabled size-[14px] group-open:rotate-180"
                   />
                 </div>
-                <p className="text-caption-m">{entry.fundingNumber}</p>
-                <h2 className="text-caption-m truncate font-medium">{entry.title}</h2>
+                <p className="text-caption-m">{entry.fundingNumber || "\u00A0"}</p>
+                <h2 className="text-caption-m truncate font-medium">{entry.title || "프로젝트"}</h2>
                 <div className="mt-2 flex items-center gap-2">
-                  <Badge variant={refundBadgeVariant(entry.status)}>{entry.status}</Badge>
+                  <Badge variant={refundBadgeVariant(entry)}>{entry.status}</Badge>
                   {entry.completedAt && (
                     <span className="text-caption-m text-text-secondary">{entry.completedAt}</span>
                   )}
@@ -77,18 +101,24 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
               </summary>
               <div className="pt-2">
                 <dl className="bg-layer-surface-disabled space-y-3 rounded-sm p-4 text-[0.875rem] leading-[1.25rem]">
-                  {[
-                    ["신청 일자", entry.requestedAt],
-                    ["접수 사유", entry.reason],
-                    ["접수 상품", entry.product],
-                    ["옵션", entry.option],
-                    ["판매가", `${entry.price.toLocaleString("ko-KR")}원`],
-                    ["신청 수량", `${entry.quantity}개`],
-                  ].map(([label, value]) => (
-                    <div key={label} className="grid grid-cols-[94px_1fr] gap-2">
-                      <dt className="text-text-secondary">{label}</dt>
-                      <dd className="min-w-0 break-words">{value}</dd>
-                    </div>
+                  <DetailRow label="신청 일자" value={entry.requestedAt} />
+                  <DetailRow label="접수 사유" value={entry.reason} />
+                  {entry.stage === "반려" && (
+                    <DetailRow label="반려 사유" value={entry.rejectedReason} />
+                  )}
+                  {entry.items.map((item, index) => (
+                    <Fragment key={index}>
+                      <DetailRow label="접수 상품" value={item.product} />
+                      <DetailRow label="옵션" value={item.option} />
+                      <DetailRow
+                        label="판매가"
+                        value={item.price === null ? "" : `${item.price.toLocaleString("ko-KR")}원`}
+                      />
+                      <DetailRow
+                        label="신청 수량"
+                        value={item.quantity === null ? "" : `${item.quantity}개`}
+                      />
+                    </Fragment>
                   ))}
                 </dl>
                 {entry.cash !== null && (
@@ -113,6 +143,7 @@ export function BuyerRefunds({ entries = refundHistory }: { entries?: typeof ref
             </details>
           ))
         )}
+        {children}
       </div>
       <BuyerBottomNavigation
         activeHref="/my"
