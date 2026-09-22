@@ -7,6 +7,7 @@ import { LiveRewardSummary } from "@/features/reward-selection/ui/live-reward-su
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { questionDemos } from "@/features/buyer-project/model/project-demo";
 import { chapterDemos } from "@/features/buyer-live-replay/model/replay-demo";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { LiveViewport } from "./live-viewport";
 import { notFound } from "next/navigation";
 import { RealBuyerLive } from "@/features/live-integration/ui/real-live";
@@ -15,9 +16,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
   const { liveId } = await params;
   const query = await searchParams;
   const connection = getLiveDemoConnection(liveId);
-  /* BE는 UuidCreator.getTimeOrderedEpoch()로 UUIDv7을 발급한다. 버전 자리를 [1-5]로
-     제한하면 실제 LIVE ID가 전부 404가 되므로 형식만 본다(projectDetailId와 같은 기준). */
-  if (!connection && !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(liveId)) notFound();
+  if (!connection && !isPublicUuid(liveId)) notFound();
   if (!connection)
     return (
       <LiveViewport
