@@ -72,8 +72,17 @@ export const recallAttemptAmount = (store: Store, pgOrderId: string) =>
    그때는 pgOrderId로 찾을 수 없으니 가장 최근 시도로 복원한다. 링크만 만들고 재진입 때 다시 검증한다. */
 export const recallLastAttempt = (store: Store) => safe(() => store.getItem(lastAttemptKey), null);
 
-export const markConfirmed = (store: Store, orderId: string) =>
-  safe(() => store.setItem(confirmedKey(orderId), "1"), undefined);
+/* 승인 직후 주문 상태가 반영되기를 기다리는 동안만 쓰는 표시다. 반영이 끝내 오지 않으면 이 표시가
+   남아 재결제도 재시도도 영영 막으므로 유효기간을 둔다. 지난 값(숫자가 아닌 과거 형식 포함)은
+   만료로 보고 주문 상태를 다시 따른다. */
+const confirmedTtlMs = 60 * 60 * 1000;
 
-export const isConfirmed = (store: Store, orderId: string) =>
-  safe(() => store.getItem(confirmedKey(orderId)) === "1", false);
+export const markConfirmed = (store: Store, orderId: string, now = Date.now()) =>
+  safe(() => store.setItem(confirmedKey(orderId), String(now)), undefined);
+
+export const isConfirmed = (store: Store, orderId: string, now = Date.now()) =>
+  safe(() => {
+    const markedAt = Number(store.getItem(confirmedKey(orderId)));
+    const age = now - markedAt;
+    return markedAt > 0 && age >= 0 && age < confirmedTtlMs;
+  }, false);

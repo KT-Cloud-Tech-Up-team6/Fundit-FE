@@ -15,8 +15,8 @@ export const messages = [
   "로보락이 뭐예요?",
 ];
 export const chapterDemos = [
-  { time: "00:11", title: "로보락 F25 방송 시작", label: "도입" },
-  { time: "02:34", title: "방송 한정 20만원 할인", label: "질문 응답" },
-  { time: "03:15", title: "F25 주요 스펙 및 특징", label: "기능 설명" },
-  { time: "04:04", title: "건식 및 습식 동시 청소", label: "시연" },
+  { id: "c1", time: "00:11", title: "로보락 F25 방송 시작", label: "도입" },
+  { id: "c2", time: "02:34", title: "방송 한정 20만원 할인", label: "질문 응답" },
+  { id: "c3", time: "03:15", title: "F25 주요 스펙 및 특징", label: "기능 설명" },
+  { id: "c4", time: "04:04", title: "건식 및 습식 동시 청소", label: "시연" },
 ];
