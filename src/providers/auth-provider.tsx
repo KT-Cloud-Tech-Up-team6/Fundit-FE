@@ -1,7 +1,16 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+} from "react";
 import type { ReactNode } from "react";
 
 import { getMe, refreshAccessToken, revokeSession } from "@/features/auth/api/auth-api";
@@ -30,13 +39,19 @@ function authReducer(state: AuthSessionState, event: AuthEvent): AuthSessionStat
   }
 }
 
-type AuthContextValue = {
+export type AuthContextValue = {
   authenticate: (accessToken: string) => Promise<void>;
   clearSession: () => void;
+  /** 사용자가 직접 로그아웃할 때 쓴다. 회원 전용 화면이라 그 자리에 남을 수 없으면 `to`로 갈 곳을
+      준다(세션 종료와 이동을 한 transition에 묶어 게이트의 로그인 이동보다 먼저 반영한다).
+      공개 화면이면 주지 않아 보던 곳에 그대로 둔다. */
+  logout: (to?: string) => void;
   state: AuthSessionState;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+/* 컴포넌트 단위 렌더 테스트(예: buyer-refunds.test.mjs)가 헤더를 거칠 때 AuthProvider 전체
+   (QueryClientProvider·Next 라우터까지 요구) 없이 useAuth()만 채울 수 있도록 export한다. */
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 /* 네트워크·CORS·5xx는 일시적 장애라 유효한 세션을 지울 근거가 못 된다(refreshOnce도 401에서만 토큰을 지운다).
    한 번만 더 시도하고, 그래도 실패하면 호출자가 비로그인으로 내려 화면이 checking에 갇히지 않게 한다. */
@@ -73,6 +88,7 @@ export async function getRestoredUser() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [state, dispatch] = useReducer(authReducer, {
     accessToken: null,
     status: "checking",
@@ -155,9 +171,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
            비로그인이고 BE 로그아웃은 멱등이라 화면 오류로 올리지 않는다. */
         void revokeSession(generation).catch(() => {});
       },
+      logout(to?: string) {
+        restoreSupersededRef.current = true;
+        /* 이동과 세션 정리를 같은 transition 안에서 실행해야 한다. changeSession()은 아래
+           authTokenStore.subscribe 구독자(SESSION_FAILED 디스패치)를 동기 호출하므로, transition
+           밖에서 부르면 그 디스패치가 일반 우선순위로 먼저 반영되어 회원 전용 화면이 비회원
+           상태로 먼저 그려지고, 게이트의 로그인 이동이 아래 이동보다 먼저 커밋돼버린다.
+           공개 화면(to 없음)에서는 이동하지 않고 그 자리에 남는다. */
+        startTransition(() => {
+          if (to) router.replace(to);
+          const generation = authTokenStore.changeSession();
+          void revokeSession(generation).catch(() => {});
+        });
+      },
       state,
     }),
-    [queryClient, state],
+    [queryClient, router, state],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

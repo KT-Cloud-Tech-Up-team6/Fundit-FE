@@ -1,9 +1,11 @@
 import type { Highlight } from "../api/live-api";
 
 export function formatClock(totalSec: number): string {
-  const minutes = Math.floor(totalSec / 60);
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
   const seconds = Math.floor(totalSec % 60);
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  const clock = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return hours ? `${hours}:${clock}` : clock;
 }
 
 /* 응답 순서를 그대로 믿지 않는다. 타임라인 표시도 이전·다음 이동도 배열 순서를 시간 순서로 본다. */
@@ -31,6 +33,7 @@ export function chapterRange(
 export function toChapters(markers: Highlight[], durationSec: number) {
   if (!durationSec) return [];
   return byStart(markers).map((marker) => ({
+    id: marker.highlightId,
     time: formatClock(marker.startSec),
     title: marker.title,
     label: marker.sceneLabel,

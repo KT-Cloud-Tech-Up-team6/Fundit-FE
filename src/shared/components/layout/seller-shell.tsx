@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ModeSwitchLink } from "@/features/mode-switch/ui/mode-switch-link";
+import { HeaderAuthLink } from "@/shared/components/layout/header-auth-link";
 import { HeaderWeb } from "@/shared/components/layout/header-web";
 import { SellerNavLink } from "@/shared/components/layout/seller-nav-link";
 import { Icon } from "@/shared/components/ui/icon";
@@ -37,6 +38,7 @@ export function SellerShell({
         }
         actions={
           <>
+            <HeaderAuthLink />
             {headerActions.map((action) => (
               <button
                 key={action.name}
