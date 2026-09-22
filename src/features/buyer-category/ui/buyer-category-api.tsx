@@ -80,7 +80,6 @@ export function BuyerCategoryApi({ slug, minor }: { slug: string; minor?: string
               key={row.projectId}
               project={projectCard(row)}
               thumbnailClassName="w-[36.57%]"
-              unavailable
             />
           ))}
           {!list.data.content.length && <p>프로젝트가 없습니다.</p>}
