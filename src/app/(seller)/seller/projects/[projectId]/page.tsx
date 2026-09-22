@@ -15,6 +15,7 @@ import { getFundingDemo } from "@/features/funding-status/model/funding-demo";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 const allowedTabs = new Set([
   "basic-info",
@@ -25,7 +26,6 @@ const allowedTabs = new Set([
   "funding",
   "community",
   "fulfillment",
-  "settlement",
   "live",
 ]);
 
@@ -42,7 +42,7 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+  if (isPublicUuid(projectId)) {
     if (activeTab === "fulfillment") return <SellerFulfillmentApi projectId={projectId} />;
     if (activeTab === "funding" || activeTab === "news" || activeTab === "community")
       return <ProjectManagementApi key={projectId} projectId={projectId} tab={activeTab} />;
@@ -131,8 +131,8 @@ export default async function SellerProjectPage({
           <PagePlaceholder
             eyebrow="Seller · Project"
             title={`프로젝트 관리 · ${projectId}`}
-            description="커뮤니티·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
-            screenIds="FL_S_FD_COMM, FL_S_PR_CAL"
+            description="커뮤니티 탭은 아직 화면이 없어 자리만 잡아둡니다."
+            screenIds="FL_S_FD_COMM"
             access="owner"
             sections={[`${activeTab} 탭`]}
           />
