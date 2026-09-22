@@ -21,7 +21,7 @@ test("예상 환불액은 서버 값을 그대로 옮기고 계약 없는 자리
       discountAmount: 0,
       refundAmount: 23_000,
     }),
-    { pointRefundAmount: null, shippingFee: 5_000, cancelFee: null, actualRefundAmount: 23_000 },
+    { pointRefundAmount: null, shippingFee: null, cancelFee: null, actualRefundAmount: 23_000 },
   );
 });
 

@@ -48,11 +48,13 @@ export type RefundInfo = {
 };
 
 /* 적립금 환불 금액(1165:16879 인접 2382)과 취소 수수료(2404)에 대응하는 응답 필드가 없다.
-   서버가 계산한 refundAmount를 그대로 고지하고 나머지는 비운다. */
+   배송비 행도 비운다 — `estimate.shippingFee`는 주문 때 낸 배송비이고 `refundAmount`에 이미
+   포함돼 있어(BE RefundEstimateService) 차감액으로 쓰면 실 환불 금액과 어긋난다. 반품비
+   차감(R04) 정책이 생기면 그 값을 넣는다. 서버가 계산한 refundAmount만 그대로 고지한다. */
 export function toRefundInfo(estimate: RefundEstimate): RefundInfo {
   return {
     pointRefundAmount: null,
-    shippingFee: estimate.shippingFee,
+    shippingFee: null,
     cancelFee: null,
     actualRefundAmount: estimate.refundAmount,
   };

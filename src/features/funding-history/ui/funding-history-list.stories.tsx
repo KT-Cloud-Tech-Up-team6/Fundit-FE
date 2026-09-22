@@ -74,7 +74,7 @@ export const FilterByStatus: Story = {
     await expect(canvas.queryByRole("heading", { name: "펀딩 진행 중" })).toBeNull();
     await expect(canvas.getByRole("link", { name: /펀딩 환불/ })).toHaveAttribute(
       "href",
-      "/my/fundings/delivered/refund/new?type=cancel",
+      "/my/fundings/delivered/refund/new?type=defect",
     );
   },
 };

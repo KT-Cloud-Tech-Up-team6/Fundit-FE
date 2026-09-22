@@ -81,7 +81,10 @@ export function FundingCancel({
   /* 하자 환불은 evidenceUrls가 필수라(DefectRefundRequestV2) 사진 없이 보내면 400이 된다.
      원본은 "(선택)"으로 그려져 있어 디자인 확인이 필요하다(docs/OPEN_DECISIONS.md). */
   const needsEvidence = submission?.supported === true && submission.kind === "defect";
-  const blocked = submission !== null && !submission.supported && reason !== "";
+  /* 배송 지연 계약은 fundingId만 받는다. 첨부·상세가 서버로 가지 않는다는 것을 알린다. */
+  const unsentAttachments = submission?.supported === true && submission.kind === "shipping-delay";
+  const blockedReason =
+    submission !== null && !submission.supported && reason !== "" ? submission.reason : "";
   const canSubmit =
     canSubmitCancel(reason) &&
     !pending &&
@@ -250,9 +253,9 @@ export function FundingCancel({
                     ))}
                   </Select>
                 )}
-                {blocked && (
+                {blockedReason && (
                   <p role="status" className="text-caption-m text-text-secondary">
-                    {submission!.supported ? "" : submission!.reason}
+                    {blockedReason}
                   </p>
                 )}
                 <Textarea
@@ -270,6 +273,11 @@ export function FundingCancel({
                 <h2 className="text-title-s text-text-default">
                   사진 첨부 {needsEvidence ? "(필수)" : "(선택)"}
                 </h2>
+                {unsentAttachments && (
+                  <p role="status" className="text-caption-m text-text-secondary">
+                    배송 지연 접수에는 사진과 상세 내용이 함께 전달되지 않습니다.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"

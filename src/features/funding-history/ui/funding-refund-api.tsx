@@ -75,6 +75,8 @@ function RefundRequest({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const saving = useRef(false);
+  /* 업로드가 끝난 증빙의 fileUrl. 제출 재시도에서 중복 업로드를 막는다. */
+  const uploadedRef = useRef(new Map<File, string>());
 
   async function submit({ submission, reasonDetail, files }: FundingCancelSubmit) {
     if (!submission.supported || saving.current) return;
@@ -86,7 +88,14 @@ function RefundRequest({
         await requestShippingDelayRefund(fundingId);
       } else {
         const evidenceUrls: string[] = [];
-        for (const file of files) evidenceUrls.push(await uploadRefundEvidence(fundingId, file));
+        for (const file of files) {
+          /* 제출이 실패해 다시 보낼 때 같은 파일을 또 올리지 않는다. 발급 주소는 5분 뒤
+             만료되지만 올라간 fileUrl은 그대로 쓸 수 있다. */
+          const uploaded =
+            uploadedRef.current.get(file) ?? (await uploadRefundEvidence(fundingId, file));
+          uploadedRef.current.set(file, uploaded);
+          evidenceUrls.push(uploaded);
+        }
         await requestDefectRefund({
           fundingId,
           defectType: submission.defectType,

@@ -10,10 +10,10 @@ const detail = {
   amount: 32000,
 };
 
-/** `GET /api/v1/refunds/estimate` 응답을 옮긴 값. 적립금·취소 수수료는 계약이 없어 비어 있다. */
+/** `GET /api/v1/refunds/estimate` 응답을 옮긴 값. 적립금·취소 수수료·배송비는 계약이 없어 비어 있다. */
 const refund = {
   pointRefundAmount: null,
-  shippingFee: 5000,
+  shippingFee: null,
   cancelFee: null,
   actualRefundAmount: 32000,
 };
@@ -92,12 +92,17 @@ export const ReturnVariant: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "펀딩 반품/교환" })).toBeVisible();
     await expect(canvas.getByText("사진 첨부 (선택)")).toBeVisible();
-    await expect(canvas.getByText("배송비").nextElementSibling).toHaveTextContent("-5,000원");
+    await expect(canvas.getByText("배송비")).toBeVisible();
+    /* 반품비 차감 계약이 없어 값은 비어 있다. estimate.shippingFee는 환불액에 포함된 금액이다. */
+    await expect(canvas.getByText("배송비").nextElementSibling).not.toHaveTextContent("5,000");
 
     const submit = canvas.getByRole("button", { name: "반품/교환 신청" });
     await expect(submit).toBeDisabled();
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "배송 지연");
+    await expect(
+      canvas.getByText("배송 지연 접수에는 사진과 상세 내용이 함께 전달되지 않습니다."),
+    ).toBeVisible();
     await expect(submit).toBeEnabled();
     await userEvent.click(submit);
 

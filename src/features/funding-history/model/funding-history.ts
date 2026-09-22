@@ -76,7 +76,7 @@ export function actionsForStatus(id: string, status: FundingHistoryStatus): Fund
       return [fulfillment];
     case "delivered":
       return [
-        { label: "펀딩 환불", href: `/my/fundings/${id}/refund/new?type=cancel` },
+        { label: "펀딩 환불", href: `/my/fundings/${id}/refund/new?type=defect` },
         fulfillment,
       ];
   }

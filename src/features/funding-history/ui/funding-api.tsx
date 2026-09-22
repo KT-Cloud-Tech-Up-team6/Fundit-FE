@@ -210,6 +210,23 @@ function Detail({
                     참여 취소
                   </Link>
                 )}
+                {/* BE가 상태·배송 여부로 정한 신청 가능 액션이다(Funding.availableActions). */}
+                {detail.data.availableActions.includes("DEFECT_REFUND_REQUEST") && (
+                  <Link
+                    className="block underline"
+                    href={`/my/fundings/${fundingId}/refund/new?type=defect`}
+                  >
+                    반품·교환 신청
+                  </Link>
+                )}
+                {detail.data.availableActions.includes("SHIPPING_DELAY_REFUND_REQUEST") && (
+                  <Link
+                    className="block underline"
+                    href={`/my/fundings/${fundingId}/refund/new?type=delay`}
+                  >
+                    배송 지연 취소 신청
+                  </Link>
+                )}
                 {detail.data.status === "PENDING" &&
                   (isConfirmed(localStore(), fundingId) ? (
                     <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>

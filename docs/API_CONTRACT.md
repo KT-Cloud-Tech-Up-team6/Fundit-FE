@@ -662,6 +662,10 @@ Gateway가 `/api/v1/refunds/**`와 `/api/v2/refunds/**`를 payment-service로 �
 
 `RefundEstimateService`는 결제가 `COMPLETED`인 주문에만 응답하고 본인 확인에 실패하면 403이다. 반품비 차감(R04) 정책이 없어 **`refundAmount`는 현재 항상 `payment.amount`와 같다.** FE는 이 값을 그대로 고지하고 금액을 직접 계산하지 않는다.
 
+`shippingFee`는 **주문 때 낸 배송비**이고 `refundAmount`에 이미 포함돼 있다. 환불에서 빠지는 금액이 아니므로 화면의 "배송비" 행은 비워 둔다 — 반품비 차감(R04) 정책이 생기면 그 값으로 채운다.
+
+신청 화면 진입은 `GET /api/v1/orders/{orderId}`의 `availableActions`를 따른다(`Funding.availableActions`). 배송 완료면 `DEFECT_REFUND_REQUEST`, 목표 달성 후 미발송이면 `SHIPPING_DELAY_REFUND_REQUEST`, 진행 중·대기면 `CANCEL`이다. FE는 이 값에 맞는 링크만 노출한다.
+
 #### 증빙 업로드 제약
 
 `RefundEvidenceUploadService` 기준이다.
