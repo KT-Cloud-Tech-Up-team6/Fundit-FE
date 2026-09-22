@@ -149,7 +149,10 @@ export function LiveConsole({
   const chatListRef = useRef<HTMLDivElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const answered = demoQuestions.filter((q) => state.answers[q.id]);
-  /* 목업 화면이라 실제 프로젝트가 없다 — 구매자 쪽 데모 매핑을 그대로 빌려 상세페이지 링크를 만든다. */
+  /* 목업 화면이라 실제 프로젝트가 없다 — 구매자 쪽 데모 매핑을 그대로 빌려 상세페이지 링크를 만든다.
+     ponytail: 매핑이 실패하는 demo-* id(실제 진입 경로인 "demo-live" 외)는 무관한
+     "demo-project"로 조용히 대체된다. 콘솔 라우트가 demo-live 하나만 쓰는 동안은 괜찮지만,
+     다른 demo-* id도 실제로 열리게 하려면 매핑을 넓히거나 여기서 명시적으로 경고해야 한다. */
   const projectId = getLiveDemoConnection(liveId)?.projectId ?? "demo-project";
   const detail =
     dialog && "questionId" in dialog

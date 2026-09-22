@@ -53,10 +53,21 @@ export function ProjectBasicInfoApi({
       cache.invalidateQueries({ queryKey: ["seller-project-preview", owner, id] }),
     ]);
     if (!projectId) {
-      sessionStorage.removeItem(projectAttemptKey(owner));
-      if (partial) router.replace(`/seller/projects/${id}?tab=basic-info`);
-      else setCreatedId(id);
+      /* 완료 모달을 거치는 저장은 모달 버튼을 눌러 실제로 떠날 때까지 시도 키를 지우지 않는다.
+         새로고침 시에도 같은 프로젝트로 복귀시키는 createProjectOnce의 중복 생성 방지가
+         모달이 떠 있는 동안에도 계속 걸려 있어야 한다. */
+      if (partial) {
+        sessionStorage.removeItem(projectAttemptKey(owner));
+        router.replace(`/seller/projects/${id}?tab=basic-info`);
+      } else {
+        setCreatedId(id);
+      }
     }
+  }
+  function leaveAfterCreate(destination: "basic-info" | "story") {
+    if (!owner || !createdId) return;
+    sessionStorage.removeItem(projectAttemptKey(owner));
+    router.replace(`/seller/projects/${createdId}?tab=${destination}`);
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
   if (state.status === "guest") return <LoginRedirect />;
@@ -81,8 +92,8 @@ export function ProjectBasicInfoApi({
         </Link>
         {createdId && (
           <ProjectSavedModal
-            onLater={() => router.replace(`/seller/projects/${createdId}?tab=basic-info`)}
-            onWriteStory={() => router.replace(`/seller/projects/${createdId}?tab=story`)}
+            onLater={() => leaveAfterCreate("basic-info")}
+            onWriteStory={() => leaveAfterCreate("story")}
           />
         )}
       </>

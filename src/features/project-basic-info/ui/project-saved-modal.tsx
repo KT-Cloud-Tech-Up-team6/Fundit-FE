@@ -3,7 +3,9 @@
 import { Button } from "@/shared/components/ui/button";
 import { Modal } from "@/shared/components/ui/modal";
 
-/** Figma FL_S_PR_CREATE_22(node 1240:26544). 신규 프로젝트 첫 저장 직후에만 띄운다. */
+/** Figma FL_S_PR_CREATE_22, 프레임 1958:44217(모달 인스턴스 1958:44361).
+ *  이슈 #267 본문의 1240:26544는 같은 화면의 구버전 참조라 실제 조회로 확인된 노드를 쓴다.
+ *  신규 프로젝트 첫 저장 직후에만 띄운다. */
 export function ProjectSavedModal({
   onLater,
   onWriteStory,
