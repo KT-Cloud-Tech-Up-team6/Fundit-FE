@@ -1,0 +1,8 @@
+# 편집기 저장 시 기본값. 실제 방어는 `pnpm lint:bom`과 CI의 BOM 검사이고,
+# 이 파일은 BOM이 붙는 것을 편집기 단계에서 미리 막는 예방 수단이다(#260).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
