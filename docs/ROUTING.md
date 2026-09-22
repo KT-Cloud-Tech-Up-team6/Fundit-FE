@@ -129,7 +129,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/my/support/inquiries`                        | 1:1 문의                 | member           | placeholder        |
 | `/my/settings`                                 | 설정                     | member           | placeholder        |
 | `/my/profile`                                  | 회원정보 관리            | member           | placeholder        |
-| `/my/addresses`                                | 배송지 관리              | member           | placeholder        |
+| `/my/addresses`                                | 배송지 관리              | member           | implemented        |
 | `/support/faq`                                 | FAQ                      | public           | placeholder        |
 | `/support/notices`                             | 공지사항                 | public           | placeholder        |
 

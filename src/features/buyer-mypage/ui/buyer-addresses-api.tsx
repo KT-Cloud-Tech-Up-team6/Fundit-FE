@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeDefaultAddress,
@@ -57,6 +57,12 @@ function Addresses({ memberId }: { memberId: string }) {
   const [listError, setListError] = useState("");
   /* 목록 전체가 한 자원이라 수정·삭제·기본 지정을 겹쳐 보내면 마지막 응답만 남는다. */
   const running = useRef(false);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  /* 확인 단계로 바뀌면 방금 누른 삭제 버튼이 언마운트돼 포커스가 body로 빠진다.
+     되돌릴 수 없는 작업이라 확인 버튼으로 포커스를 이어 준다. */
+  useEffect(() => {
+    if (confirmingId !== null) confirmRef.current?.focus();
+  }, [confirmingId]);
 
   async function run(work: () => Promise<unknown>, failure: string, onError: (m: string) => void) {
     if (running.current) return false;
@@ -67,6 +73,11 @@ function Addresses({ memberId }: { memberId: string }) {
       await work();
       // 서버가 다른 항목의 기본값까지 바꾸므로 응답 한 건이 아니라 목록을 다시 받는다.
       await client.invalidateQueries({ queryKey: key });
+      /* 주문서도 같은 GET /api/v1/addresses를 별도 키로 캐시한다. 여기서 비워 두지 않으면
+         결제 화면이 재조회 전까지 삭제된 배송지를 보여 준다. */
+      await client.invalidateQueries({ queryKey: ["checkout-addresses", memberId] });
+      /* 다른 항목을 건드린 뒤 남아 있던 삭제 확인 단계는 목록이 바뀌면 의미가 없다. */
+      setConfirmingId(null);
       return true;
     } catch {
       onError(failure);
@@ -91,12 +102,12 @@ function Addresses({ memberId }: { memberId: string }) {
     if (done) setSheet(null);
   }
   async function remove(addressId: number) {
-    const done = await run(
+    // 성공 시 확인 단계 해제는 run이 맡는다. 실패하면 확인 단계를 유지해 재시도할 수 있다.
+    await run(
       () => deleteAddress(addressId),
       "배송지를 삭제하지 못했습니다. 다시 시도해주세요.",
       setListError,
     );
-    if (done) setConfirmingId(null);
   }
   function openSheet(address: Address | null) {
     setError("");
@@ -134,8 +145,11 @@ function Addresses({ memberId }: { memberId: string }) {
                 </p>
                 {confirmingId === address.id ? (
                   <div className="flex items-center gap-3">
-                    <p className="text-body-s">이 배송지를 삭제할까요?</p>
+                    <p role="alert" className="text-body-s">
+                      이 배송지를 삭제할까요?
+                    </p>
                     <TextButton
+                      ref={confirmRef}
                       showIcon={false}
                       disabled={busy}
                       aria-label={`${address.recipientName} 배송지 삭제 확인`}
