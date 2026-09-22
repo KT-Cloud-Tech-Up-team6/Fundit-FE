@@ -30,10 +30,11 @@ export function ProjectRow({
   project,
   thumbnailClassName,
   children,
-  unavailable = false,
+  unavailable = project.detailId === null,
 }: {
   project: {
     id: string;
+    detailId?: string | null;
     title: string;
     seller: string;
     progress: number;
@@ -49,7 +50,7 @@ export function ProjectRow({
     <article aria-label={project.title} className="flex items-start gap-3">
       <ProjectLink
         unavailable={unavailable}
-        href={`/projects/${project.id}`}
+        href={`/projects/${project.detailId ?? project.id}`}
         aria-label={`${project.title} 상세 보기`}
         className={`bg-layer-surface-default relative flex aspect-[4/3] shrink-0 items-center justify-center overflow-hidden rounded-xs ${thumbnailClassName}`}
       >
@@ -72,7 +73,7 @@ export function ProjectRow({
       <div className="min-w-0 flex-1 pt-1">
         <ProjectLink
           unavailable={unavailable}
-          href={`/projects/${project.id}`}
+          href={`/projects/${project.detailId ?? project.id}`}
           className={`block ${project.closed ? "text-text-disabled" : ""}`}
         >
           <p className="text-label-m text-text-disabled mb-1">{project.seller}</p>
