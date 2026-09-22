@@ -83,5 +83,6 @@ export const markConfirmed = (store: Store, orderId: string, now = Date.now()) =
 export const isConfirmed = (store: Store, orderId: string, now = Date.now()) =>
   safe(() => {
     const markedAt = Number(store.getItem(confirmedKey(orderId)));
-    return markedAt > 0 && now - markedAt < confirmedTtlMs;
+    const age = now - markedAt;
+    return markedAt > 0 && age >= 0 && age < confirmedTtlMs;
   }, false);

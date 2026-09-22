@@ -129,10 +129,13 @@ test("결제 시도·승인 표시는 저장소 접근이 실패해도 예외 �
   assert.equal(recallAttempt(store, "other"), null);
   assert.equal(recallAttemptAmount(store, "other"), null);
   assert.equal(isConfirmed(store, "order-uuid"), false);
-  markConfirmed(store, "order-uuid");
-  assert.equal(isConfirmed(store, "order-uuid"), true);
+  const confirmedAt = Date.now();
+  markConfirmed(store, "order-uuid", confirmedAt);
+  assert.equal(isConfirmed(store, "order-uuid", confirmedAt), true);
   // 주문 상태 반영이 끝내 오지 않아도 승인 표시가 영구히 남아 재시도를 막지는 않는다.
-  assert.equal(isConfirmed(store, "order-uuid", Date.now() + 2 * 60 * 60 * 1000), false);
+  assert.equal(isConfirmed(store, "order-uuid", confirmedAt + 2 * 60 * 60 * 1000), false);
+  // 기기 시각이 뒤로 보정되어 저장 시각이 미래가 된 경우에도 승인 표시를 유지하지 않는다.
+  assert.equal(isConfirmed(store, "order-uuid", confirmedAt - 1), false);
   // 과거 형식("1")도 만료로 본다.
   store.setItem("fundit-payment-confirmed:legacy", "1");
   assert.equal(isConfirmed(store, "legacy"), false);
