@@ -40,13 +40,34 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 /* 네트워크·CORS·5xx는 일시적 장애라 유효한 세션을 지울 근거가 못 된다(refreshOnce도 401에서만 토큰을 지운다).
    한 번만 더 시도하고, 그래도 실패하면 호출자가 비로그인으로 내려 화면이 checking에 갇히지 않게 한다. */
-async function restoreAccessToken(superseded: { current: boolean }) {
+type RestoreSuperseded = { current: boolean };
+
+export async function restoreAccessToken(
+  superseded: RestoreSuperseded,
+  waitForRetry = () => new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+) {
   try {
     return (await refreshAccessToken()).accessToken;
   } catch (error) {
     if (superseded.current || (error instanceof ApiError && error.status < 500)) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await waitForRetry();
+    // 대기 중 로그인·로그아웃이 끝났다면 이전 세션의 refresh가 새 토큰을 덮어쓰지 않게 한다.
+    if (superseded.current) throw new DOMException("Session changed", "AbortError");
     return (await refreshAccessToken()).accessToken;
+  }
+}
+
+export async function getRestoredUser() {
+  try {
+    return await getMe();
+  } catch (error) {
+    /* getMe는 첫 401에서 refresh 후 재시도한다. 재시도도 401이면 토큰이 더는 유효하지 않으므로,
+       일시 장애와 달리 세션을 종료한다. */
+    if (error instanceof ApiError && error.status === 401) {
+      authTokenStore.clear();
+      throw error;
+    }
+    return null;
   }
 }
 
@@ -89,9 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (restoreSupersededRef.current) return;
       let user: AuthUser | null = null;
       try {
-        user = await getMe();
+        user = await getRestoredUser();
       } catch {
-        // 토큰은 유효하다. 사용자 요약 실패는 MemberAccess의 "다시 시도"가 받는다. 401이면 store 구독이 guest로 내린다.
+        // 최종 401은 getRestoredUser가 store를 비우고 구독자가 guest로 전환한다.
+        return;
       }
       if (restoreSupersededRef.current) return;
       // getMe()가 401을 만나 토큰이 회전했을 수 있다. "다시 시도"가 store와 대조하므로 현재 토큰을 싣는다.
