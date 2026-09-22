@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { PaymentCheckoutApi } from "@/features/payment-checkout/ui/payment-checkout-api";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 export default async function PaymentPage({ params }: PageProps<"/payment/[orderId]">) {
   const { orderId } = await params;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) notFound();
+  if (!isPublicUuid(orderId)) notFound();
   return <PaymentCheckoutApi orderId={orderId} />;
 }

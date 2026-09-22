@@ -29,6 +29,7 @@ import {
 import { RewardFormModal } from "./reward-form-modal";
 import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectCreationUncertainError } from "../model/project-create-attempt";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
 const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
@@ -63,11 +64,7 @@ export function ProjectBasicInfoForm({
   const [formMessageRole, setFormMessageRole] = useState<"alert" | "status">("status");
   const nextId = useRef(3);
   const params = useParams<{ projectId?: string }>();
-  const apiProjectId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    params?.projectId ?? "",
-  )
-    ? params.projectId
-    : undefined;
+  const apiProjectId = isPublicUuid(params?.projectId) ? params.projectId : undefined;
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const values = { business, title, category, subcategory, amount };
   const validation = onSave
