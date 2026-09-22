@@ -40,7 +40,8 @@ export function parseResultParams(query: Query): PaymentResultParams {
 
 export type PaymentOutcome = {
   message: string;
-  /* retry: 결제를 다시 시도해도 이중 청구 위험이 없다. check: 결제 여부를 서버 상태로 먼저 확인해야 한다. */
+  /* retry: 결제를 다시 시도해도 이중 청구 위험이 없다. check: 결제 여부를 서버 상태로 먼저 확인해야 한다.
+     recheck: 같은 paymentKey로 승인을 다시 확인한다(새 결제 아님). */
   next: "retry" | "check" | "recheck";
 };
 

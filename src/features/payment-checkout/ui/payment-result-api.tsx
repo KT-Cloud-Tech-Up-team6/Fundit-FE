@@ -30,7 +30,7 @@ const INVALID: PaymentOutcome = {
   next: "check",
 };
 const AMOUNT_MISMATCH: PaymentOutcome = {
-  message: "결제 금액 정보를 확인할 수 없습니다. 다시 결제해주세요.",
+  message: "결제 금액이 주문 금액과 달라 승인하지 못했습니다. 다시 결제해주세요.",
   next: "retry",
 };
 
