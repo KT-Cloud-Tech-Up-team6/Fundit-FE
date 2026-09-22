@@ -56,7 +56,9 @@ export function BuyerRefunds({
   const [inProgressOnly, setInProgressOnly] = useState(false);
   const filtered = filterRefundEntries(entries, type, inProgressOnly);
   const filtering = type !== "전체" || inProgressOnly;
-  const count = !filtering && total !== undefined ? total : filtered.length;
+  /* 서버 전체 건수는 이 페이지에 실제로 내역이 있을 때만 쓴다. 범위를 벗어난 page로 들어오면
+     content가 비어 있는데 totalElements는 그대로라, "총 45개" 아래에 "내역이 없습니다"가 붙는다. */
+  const count = !filtering && total !== undefined && entries.length > 0 ? total : filtered.length;
 
   return (
     <RefundsScreen>
