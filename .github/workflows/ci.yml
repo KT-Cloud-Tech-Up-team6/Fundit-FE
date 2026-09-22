@@ -51,9 +51,10 @@ jobs:
       contents: read
     env:
       IMAGE: fundit-frontend:pr-${{ github.sha }}
-      # PR images use fixtures, not live PortOne configuration.
+      # PR images use fixtures, not live PortOne/Toss configuration.
       NEXT_PUBLIC_PORTONE_STORE_ID: store-ci-build-check
       NEXT_PUBLIC_PORTONE_CHANNEL_KEY: channel-key-ci-build-check
+      NEXT_PUBLIC_TOSS_CLIENT_KEY: client-key-ci-build-check
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -63,6 +64,7 @@ jobs:
           docker build --platform linux/amd64 \
             --build-arg NEXT_PUBLIC_PORTONE_STORE_ID \
             --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY \
+            --build-arg NEXT_PUBLIC_TOSS_CLIENT_KEY \
             --tag "$IMAGE" .
 
       - name: Verify container
@@ -85,13 +87,14 @@ jobs:
       IMAGE_TAG: sha-${{ github.sha }}
       NEXT_PUBLIC_PORTONE_STORE_ID: ${{ vars.NEXT_PUBLIC_PORTONE_STORE_ID }}
       NEXT_PUBLIC_PORTONE_CHANNEL_KEY: ${{ vars.NEXT_PUBLIC_PORTONE_CHANNEL_KEY }}
+      NEXT_PUBLIC_TOSS_CLIENT_KEY: ${{ vars.NEXT_PUBLIC_TOSS_CLIENT_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Check PortOne build configuration
+      - name: Check PortOne/Toss build configuration
         run: |
-          for name in NEXT_PUBLIC_PORTONE_STORE_ID NEXT_PUBLIC_PORTONE_CHANNEL_KEY; do
+          for name in NEXT_PUBLIC_PORTONE_STORE_ID NEXT_PUBLIC_PORTONE_CHANNEL_KEY NEXT_PUBLIC_TOSS_CLIENT_KEY; do
             if [[ -z "${!name//[[:space:]]/}" ]]; then
               echo "::error::Missing repository variable: $name. Set it under Settings > Secrets and variables > Actions > Variables."
               exit 1
@@ -103,6 +106,7 @@ jobs:
           docker build --platform linux/amd64 \
             --build-arg NEXT_PUBLIC_PORTONE_STORE_ID \
             --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY \
+            --build-arg NEXT_PUBLIC_TOSS_CLIENT_KEY \
             --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
 
       - name: Verify container

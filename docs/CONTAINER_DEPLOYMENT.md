@@ -59,7 +59,7 @@ Docker가 없는 환경에서 `pnpm build`와 standalone 서버 실행은 일부
 
 ## 환경변수와 인프라 인계
 
-화면 기동 검증은 실제 PortOne 설정 없이 가능하지만, 실제 본인인증과 main 이미지 발행에는 아래 두 공개 설정이 필요하다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다.
+화면 기동 검증은 실제 PortOne·Toss 설정 없이 가능하지만, 실제 본인인증·결제와 main 이미지 발행에는 아래 세 공개 설정이 필요하다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다.
 
 인프라 팀에는 성공한 이미지 URI, Git SHA, 이미지 digest, 플랫폼, 컨테이너 포트, 환경변수 목록과 검증 결과를 전달한다. 별도의 이미지 tar 파일 전달은 필요하지 않다.
 
@@ -91,3 +91,23 @@ docker build --platform linux/amd64 --build-arg NEXT_PUBLIC_PORTONE_STORE_ID --b
 값을 바꾸면 새 이미지 빌드와 배포가 필요하다. Repository Variables 변경만으로 Actions가 자동 실행되지는 않는다. 기존 main push 실행의 `publish-image` 재실행 또는 새 main 커밋으로 이미지를 다시 빌드하고, 이미지 digest를 확인해 인프라 배포를 진행한다. 같은 커밋 재실행은 동일한 sha 태그를 사용하므로 인프라 담당자가 새 digest 반영을 확인한다. 컨테이너 런타임 env 변경이나 재시작만으로 이미 만들어진 브라우저 번들은 바뀌지 않는다.
 
 배포 후 실제 회원가입에서 PortOne 인증창/모바일 리다이렉트와 BE 인증 결과 검증까지 확인해야 한다. 이 작업은 #236의 회원가입 화면 변경과 독립적이며, 상점·채널·도메인 설정 및 BE 환경의 실제 유효성은 별도로 확인한다.
+
+## Toss 결제위젯 빌드 설정
+
+GitHub 저장소의 **Settings → Secrets and variables → Actions → Variables → New repository variable**에서 다음 이름으로 등록한다. Repository Variables를 사용하며, 같은 이름의 Secrets나 서버 실행 환경에만 등록한 값은 이 워크플로에서 읽지 않는다.
+
+- `NEXT_PUBLIC_TOSS_CLIENT_KEY`: 결제위젯에 사용할 Toss Payments 클라이언트 키.
+
+브라우저에 공개되는 식별자다. Toss 시크릿 키를 넣지 않는다. 코드·PR 본문에 실제 값을 기록하지 않는다.
+
+main의 `publish-image`는 이 값이 비어 있으면 PortOne 두 값과 함께 빌드와 ECR 업로드 전에 실패한다. 설정값은 Actions env → `docker build --build-arg` → Dockerfile builder ARG → `pnpm build` 순서로 전달된다. PR의 `verify-image`는 고정된 테스트용 값만 사용하므로 빌드 통과는 실제 Toss 결제 성공을 뜻하지 않는다. 값이 비어 있으면 `next build`가 빈 문자열을 번들에 굽고, 결제 화면은 "결제 환경이 설정되지 않아 결제를 진행할 수 없습니다."만 표시한다.
+
+로컬 개발은 `.env.local`에 값을 설정하고 개발 서버를 재시작한다. 로컬 Docker 빌드는 값을 현재 셸 환경변수에 설정한 후 다음과 같이 이름만 전달한다. `.env.local`을 Docker에 복사하지 않는다.
+
+```powershell
+docker build --platform linux/amd64 --build-arg NEXT_PUBLIC_TOSS_CLIENT_KEY --tag fundit-frontend:local .
+```
+
+값을 바꾸면 새 이미지 빌드와 배포가 필요하다. 재빌드·재배포 절차는 PortOne과 동일하다.
+
+배포 후 실제 결제에서 Toss 위젯 렌더링, 승인 요청, BE 승인 결과 검증까지 확인해야 한다. 상점·채널·도메인 설정 및 BE 환경의 실제 유효성은 별도로 확인한다.
