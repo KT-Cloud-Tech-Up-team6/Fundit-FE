@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { confirmPayment, getOrder } from "@/entities/order/api/order-api";
@@ -51,12 +51,11 @@ function Result({ memberId, params }: { memberId: string; params: Params }) {
   const requested = useRef(false);
   // SDK도 requestPayment에 설정한 금액과 successUrl 금액 대조를 요구한다. 저장소가 막힌 경우에는
   // 기존처럼 BE의 금액 검증에 맡기되, 같은 탭에서 기억한 시도라면 승인 요청 전에 차단한다.
-  const amountMismatch =
-    params.kind === "confirm" &&
-    (() => {
-      const expectedAmount = recallAttemptAmount(sessionStore(), params.orderId);
-      return expectedAmount !== null && expectedAmount !== params.amount;
-    })();
+  const amountMismatch = useMemo(() => {
+    if (params.kind !== "confirm") return false;
+    const expectedAmount = recallAttemptAmount(sessionStore(), params.orderId);
+    return expectedAmount !== null && expectedAmount !== params.amount;
+  }, [params]);
 
   useEffect(() => {
     // 새로고침·StrictMode 재실행에도 승인 요청은 한 번만 보낸다. 같은 paymentKey는 BE에서도 멱등이다.
