@@ -118,6 +118,7 @@ chore: configure CI workflow
 ### 형식과 품질
 
 - Prettier 결과를 코드 형식의 기준으로 사용한다.
+- 추적 파일을 UTF-8 BOM으로 시작하지 않게 한다. Prettier는 BOM을 보존해 `format:check`로 걸러지지 않으므로 `pnpm lint:bom`과 CI가 따로 검사한다. PowerShell 리다이렉션(`>`, `Out-File`)은 기본으로 BOM을 붙이니 `Out-File -Encoding utf8NoBOM`을 쓰거나 저장 후 확인한다.
 - ESLint 경고를 임의로 비활성화하지 않는다.
 - 비즈니스 상태값과 API 응답을 문서 없이 추측하지 않는다.
 - 접근 가능한 시맨틱 HTML과 반응형 레이아웃을 기본으로 고려한다.

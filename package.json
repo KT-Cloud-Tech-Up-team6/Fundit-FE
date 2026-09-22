@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "lint:bom": "node scripts/check-bom.mjs",
     "test": "tsx --test",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
