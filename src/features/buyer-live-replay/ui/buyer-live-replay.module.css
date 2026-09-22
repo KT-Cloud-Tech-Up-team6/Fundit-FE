@@ -337,6 +337,22 @@
   }
 }
 
+/* 실제 영상은 포스터 자리(화면 배경)에 들어가되 기본 재생 컨트롤을 쓸 수 있어야 해서
+   포스터와 달리 pointer-events를 살려 둔다. */
+.video {
+  position: absolute;
+  inset: 0;
+  /* 포스터 래퍼와 같은 -10이다. 숏 클립 그라데이션(.screen[data-clip] ::before, z-index -1)이
+     영상 위에 깔려야 액션 레일의 가독성 보정이 남는다. */
+  z-index: -10;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.video > * {
+  width: 100%;
+}
+
 .poster {
   width: 145% !important;
   max-width: none;

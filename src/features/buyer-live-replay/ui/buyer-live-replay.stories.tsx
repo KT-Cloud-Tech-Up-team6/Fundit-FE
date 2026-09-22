@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { BuyerLiveReplay } from "./buyer-live-replay";
 
 const meta = {
@@ -99,5 +99,103 @@ export const Clip: Story = {
     expect(canvas.getByRole("button", { name: "좋아요" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(canvas.getByRole("button", { name: "채팅" }));
     expect(canvas.getByRole("status")).toHaveTextContent("숏 클립 채팅은 아직 연결되지 않은 목업");
+  },
+};
+
+/* 아래는 실제 경로(RealBuyerLive)가 쓰는 연결 상태다. 구간·채팅·재생 위치를 바깥이 소유한다. */
+const connectedChapters = [
+  { time: "00:00", title: "방송 시작", label: "도입", progress: 0 },
+  { time: "01:00", title: "제품 소개", label: "기능 설명", progress: 50 },
+];
+const connectedArgs = {
+  demoMode: false,
+  chapters: connectedChapters,
+  progress: 0,
+  video: <div data-testid="player">영상 자리</div>,
+  replayMessages: [
+    { id: "0:0", author: "시청자", text: "구간 채팅입니다" },
+    { id: "10:1", author: "시청자", text: "두 번째 메시지" },
+  ],
+};
+
+export const Connected: Story = {
+  args: { ...connectedArgs, onSeek: fn() },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.getByTestId("player")).toBeVisible();
+    expect(canvas.queryByRole("slider")).not.toBeInTheDocument();
+    expect(canvas.queryByRole("button", { name: "팔로우" })).not.toBeInTheDocument();
+    expect(canvas.queryByLabelText("연결된 프로젝트 목업")).not.toBeInTheDocument();
+    expect(canvas.getByText("구간 채팅입니다")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "타임라인" }));
+    await userEvent.click(canvas.getByRole("button", { name: "구간 2 재생" }));
+    expect(args.onSeek).toHaveBeenCalledWith(50);
+    // 위치는 바깥이 소유하므로 progress가 그대로면 선택 구간도 그대로다.
+    expect(canvas.getByRole("button", { name: "구간 1 재생" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  },
+};
+
+export const ConnectedWithoutChapters: Story = {
+  args: { ...connectedArgs, chapters: [], onSeek: fn() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.queryByRole("button", { name: "타임라인" })).not.toBeInTheDocument();
+    expect(canvas.queryByRole("region", { name: "영상 구간 목록" })).not.toBeInTheDocument();
+    expect(canvas.getByRole("region", { name: "다시보기 채팅 기록" })).toBeVisible();
+  },
+};
+
+export const ConnectedClip: Story = {
+  args: { ...connectedArgs, clip: true, liked: false, onToggleLike: fn() },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "좋아요" }));
+    expect(args.onToggleLike).toHaveBeenCalled();
+    // 좋아요 상태는 바깥(방송 좋아요 API)이 소유해 로컬로 켜지지 않는다.
+    expect(canvas.getByRole("button", { name: "좋아요" })).toHaveAttribute("aria-pressed", "false");
+  },
+};
+
+export const ConnectedQuestions: Story = {
+  args: {
+    ...connectedArgs,
+    questionsData: [
+      {
+        id: "q1",
+        title: "카펫에도 쓸 수 있나요?",
+        count: 7,
+        answer: "하드 플로어 전용입니다.",
+        answeredBy: "판매자 답변",
+      },
+    ],
+    onRefreshQuestions: fn(),
+    onSeek: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Q&A" }));
+    const dialog = await canvas.findByRole("dialog");
+    expect(dialog).toHaveAccessibleName("Q&A");
+    expect(within(dialog).getByText("카펫에도 쓸 수 있나요?")).toBeVisible();
+    expect(within(dialog).getByText("하드 플로어 전용입니다.")).toBeVisible();
+    // demoMode=false라 "판매자 · 1분 전" 목업 서명 대신 실제 답변자를 쓴다.
+    expect(within(dialog).getByText("판매자 답변")).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "새로고침" }));
+    expect(args.onRefreshQuestions).toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Q&A 닫기" }));
+    expect(dialog).not.toBeVisible();
+  },
+};
+
+export const DemoQuestionsNotice: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Q&A" }));
+    // 데모 경로는 #156에서 정한 안내 동작을 그대로 유지한다.
+    expect(canvas.getByRole("status")).toHaveTextContent("다시보기 Q&A는 아직 연결되지 않은 목업");
+    expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
   },
 };
