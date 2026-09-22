@@ -72,6 +72,12 @@ export function BuyerLiveDesktop({
   demoMode = true,
   questionsState,
   onRefreshQuestions,
+  progress: progressProp,
+  onSeek,
+  liked: likedProp,
+  likeCount,
+  onToggleLike,
+  replayMessages,
 }: {
   liveId: string;
   product?: typeof roomDemo;
@@ -86,14 +92,27 @@ export function BuyerLiveDesktop({
   videoConnected?: boolean;
   demoMode?: boolean;
   questionsState?: ReactNode;
+  /* 진행바는 목업(0~100 고정값)과 실제 영상 둘 다를 그린다. onSeek를 주면 실제 영상이
+     위치를 소유하고 이 컴포넌트는 표시만 한다. 주지 않으면 기존 목업 동작을 유지한다. */
+  progress?: number;
+  onSeek?: (progressPercent: number) => void;
+  liked?: boolean;
+  likeCount?: number;
+  onToggleLike?: () => void;
+  /** 다시보기 구간 채팅. 주면 목업 채팅 대신 이 목록을 그린다. */
+  replayMessages?: { id: string; author: string; text: string }[];
   onRefreshQuestions?: () => void;
 }) {
   const [following, setFollowing] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [internalLiked, setInternalLiked] = useState(false);
+  const liked = likedProp ?? internalLiked;
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [panel, setPanel] = useState(initialPanel ?? (clip ? "chapters" : "chat"));
   const [playing, setPlaying] = useState(true);
-  const [progress, setProgress] = useState(37.5);
+  /* 실제 경로에서는 받아온 구간이 있을 때만 사이드 패널을 연다. 없으면 기존처럼 영상만 그린다. */
+  const sidePanel = replay && chapters.length > 0;
+  const [internalProgress, setInternalProgress] = useState(37.5);
+  const progress = onSeek ? (progressProp ?? 0) : internalProgress;
   const selectedChapter = chapters.filter((chapter) => chapter.progress <= progress).length - 1;
   const [draft, setDraft] = useState(initialMessage);
   const [blocked, setBlocked] = useState(false);
@@ -168,7 +187,11 @@ export function BuyerLiveDesktop({
     input.current?.focus();
   }
   function seek(value: number) {
-    setProgress(value);
+    if (onSeek) {
+      onSeek(value);
+      return;
+    }
+    setInternalProgress(value);
     setPlaying(true);
   }
   function moveChapter(index: number) {
@@ -236,7 +259,7 @@ export function BuyerLiveDesktop({
         )}
         <section
           aria-label={videoConnected ? "방송 영상" : "방송 영상 · 실제 재생 미연결"}
-          className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode ? "" : "col-start-2"}`}
+          className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode || sidePanel ? "" : "col-start-2"}`}
         >
           {video ? (
             <div className="relative h-full w-full">{video}</div>
@@ -289,7 +312,7 @@ export function BuyerLiveDesktop({
               <WatchIcon name="question" />
               Q&amp;A
             </button>
-            {demoMode && replay ? (
+            {replay && (demoMode || chapters.length > 0) ? (
               <>
                 <button
                   type="button"
@@ -316,16 +339,20 @@ export function BuyerLiveDesktop({
                   <WatchIcon name="share" />
                   공유
                 </button>
-                {demoMode && (
+                {(demoMode || onToggleLike) && (
                   <button
                     type="button"
                     className={styles.action}
                     aria-label={liked ? "좋아요 취소" : "좋아요"}
                     aria-pressed={liked}
-                    onClick={() => setLiked(!liked)}
+                    onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
                   >
                     <WatchIcon name="heart" />
-                    {liked ? "2.4천+" : "2.4천"}
+                    {likeCount === undefined
+                      ? liked
+                        ? "2.4천+"
+                        : "2.4천"
+                      : likeCount.toLocaleString("ko-KR")}
                   </button>
                 )}
               </>
@@ -378,10 +405,10 @@ export function BuyerLiveDesktop({
             </div>
           )}
         </section>
-        {demoMode && (
+        {(demoMode || sidePanel) && (
           <aside className="flex min-w-0 flex-col gap-4" aria-label="리워드와 방송 소통">
             {rewardSummary}
-            {demoMode && replay && panel === "chapters" ? (
+            {replay && (demoMode || chapters.length > 0) && panel === "chapters" ? (
               <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
                 <div
                   ref={chapterList}
@@ -439,7 +466,7 @@ export function BuyerLiveDesktop({
                   tabIndex={0}
                   className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
                 >
-                  {messages.map((message) => (
+                  {(replayMessages ?? messages).map((message) => (
                     <p key={message.id} className="flex items-start gap-2">
                       <span className="text-label-m text-text-secondary mt-0.5 shrink-0">
                         {message.author}

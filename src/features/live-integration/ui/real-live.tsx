@@ -13,12 +13,17 @@ import {
   getInsights,
   getOriginals,
   getPlayback,
+  getPublicHighlights,
   getUnanswered,
   getVod,
+  getVodChat,
+  likeLive,
   requestAnswer,
+  unlikeLive,
   type PendingQuestion,
 } from "../api/live-api";
-import { LivePlayer } from "./live-player";
+import { LivePlayer, type LivePlayerHandle } from "./live-player";
+import { chapterRange, toChapters } from "../model/vod-chapters";
 
 function QueryError({
   error,
@@ -70,11 +75,72 @@ export function RealBuyerLive({
   replay?: boolean;
   desktop?: boolean;
 }) {
+  const client = useQueryClient();
+  const { state } = useAuth();
+  const playbackKey = ["live", liveId, replay ? "vod" : "playback"];
   const playback = useQuery({
-    queryKey: ["live", liveId, replay ? "vod" : "playback"],
+    queryKey: playbackKey,
     queryFn: ({ signal }) => (replay ? getVod(liveId, signal) : getPlayback(liveId, signal)),
     retry: false,
   });
+  const isVod = replay || playback.data?.type === "VOD";
+
+  /* 좋아요 응답이 204라 갱신된 수를 받을 수 없고, "내가 눌렀는지"를 주는 경로도 없다.
+     낙관적으로 그린 뒤 playback을 다시 읽어 서버 수에 맞춘다. */
+  const [liked, setLiked] = useState(false);
+  const [likeDelta, setLikeDelta] = useState(0);
+  const toggleLike = useMutation({
+    mutationFn: (next: boolean) => (next ? likeLive(liveId) : unlikeLive(liveId)),
+    onSuccess: async () => {
+      /* 갱신된 수가 playback으로 돌아오면 낙관적 보정은 걷는다. 안 걷으면 +1이 두 번 더해진다. */
+      await client.invalidateQueries({ queryKey: playbackKey });
+      setLikeDelta(0);
+    },
+  });
+  function onToggleLike() {
+    if (toggleLike.isPending) return;
+    const next = !liked;
+    setLiked(next);
+    setLikeDelta(next ? 1 : 0);
+    toggleLike.mutate(next, {
+      onError: () => {
+        setLiked(!next);
+        setLikeDelta(next ? 0 : 1);
+      },
+    });
+  }
+  const likeCount = (playback.data?.likeCount ?? 0) + likeDelta;
+
+  /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
+  const seekRef = useRef<LivePlayerHandle | null>(null);
+  const [position, setPosition] = useState({ currentSec: 0, durationSec: 0 });
+  const highlights = useQuery({
+    queryKey: ["live", liveId, "highlights-public"],
+    /* 이 호출이 조회 수로 잡힌다(BE 주석). signal을 넘기지 않는다 — 뷰포트 전환(LiveViewport가
+       모바일로 먼저 그린 뒤 데스크톱으로 바꾼다)으로 언마운트되면 요청이 취소되고 새 요청이
+       나가는데, 서버는 이미 첫 요청을 받아 조회가 두 번 잡힌다. staleTime으로 재조회도 막는다. */
+    queryFn: () => getPublicHighlights(liveId),
+    enabled: isVod,
+    retry: false,
+    staleTime: Infinity,
+  });
+  const markers = highlights.data?.markers ?? [];
+  const chapters = toChapters(markers, position.durationSec);
+  const progress = position.durationSec
+    ? Math.min(100, (position.currentSec / position.durationSec) * 100)
+    : 0;
+  const range = chapterRange(markers, position.currentSec, position.durationSec);
+  const vodChat = useQuery({
+    queryKey: ["live", liveId, "vod-chat", range?.fromSec, range?.toSec],
+    queryFn: ({ signal }) => getVodChat(liveId, range!.fromSec, range!.toSec, signal),
+    enabled: isVod && range !== null,
+    retry: false,
+  });
+  const vodChatMessages = (vodChat.data ?? []).map((message, index) => ({
+    id: `${message.offsetSec}:${index}`,
+    author: "시청자",
+    text: message.content,
+  }));
   const questions = useQuery({
     queryKey: ["live", liveId, "answered-questions"],
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
@@ -88,6 +154,8 @@ export function RealBuyerLive({
     <LivePlayer
       src={playback.data.playbackUrl}
       title={playback.data.type === "VOD" ? "다시보기" : "라이브"}
+      handleRef={seekRef}
+      onProgress={(currentSec, durationSec) => setPosition({ currentSec, durationSec })}
     />
   );
   const questionData =
@@ -105,7 +173,6 @@ export function RealBuyerLive({
   ) : questions.data?.length ? undefined : (
     <p>등록된 답변이 없습니다.</p>
   );
-  const isVod = replay || playback.data?.type === "VOD";
   if (desktop)
     return (
       <BuyerLiveDesktop
@@ -117,7 +184,13 @@ export function RealBuyerLive({
         questions={questionData}
         questionsState={questionState}
         onRefreshQuestions={() => void questions.refetch()}
-        chapters={[]}
+        chapters={chapters}
+        progress={progress}
+        onSeek={(percent) => seekRef.current?.seek((percent / 100) * position.durationSec)}
+        liked={liked}
+        likeCount={likeCount}
+        onToggleLike={state.status === "authenticated" ? onToggleLike : undefined}
+        replayMessages={isVod ? vodChatMessages : undefined}
         video={video}
         videoConnected={playback.isSuccess}
         demoMode={false}
@@ -132,6 +205,9 @@ export function RealBuyerLive({
       questionsState={questionState}
       demoMode={false}
       onRefreshQuestions={() => void questions.refetch()}
+      liked={liked}
+      likeCount={likeCount}
+      onToggleLike={state.status === "authenticated" ? onToggleLike : undefined}
     />
   );
 }

@@ -44,6 +44,10 @@ type BuyerLiveRoomProps = {
   questionsState?: ReactNode;
   demoMode?: boolean;
   onRefreshQuestions?: () => void;
+  liked?: boolean;
+  likeCount?: number;
+  /** 주면 실제 경로에서도 좋아요 버튼을 노출하고 서버에 보낸다. */
+  onToggleLike?: () => void;
 };
 
 export function BuyerLiveRoom({
@@ -59,9 +63,13 @@ export function BuyerLiveRoom({
   questionsState,
   demoMode = true,
   onRefreshQuestions,
+  liked: likedProp,
+  likeCount,
+  onToggleLike,
 }: BuyerLiveRoomProps) {
   const [following, setFollowing] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [internalLiked, setInternalLiked] = useState(false);
+  const liked = likedProp ?? internalLiked;
   const [chatExpanded, setChatExpanded] = useState(initialChatExpanded);
   const [questions, setQuestions] = useState(initialQuestions);
   const [draft, setDraft] = useState(initialMessage);
@@ -341,10 +349,21 @@ export function BuyerLiveRoom({
                 <RoomIcon name="share" />
                 <span>공유</span>
               </button>
-              {demoMode && (
-                <button type="button" aria-pressed={liked} onClick={() => setLiked(!liked)}>
+              {(demoMode || onToggleLike) && (
+                <button
+                  type="button"
+                  aria-pressed={liked}
+                  aria-label={liked ? "좋아요 취소" : "좋아요"}
+                  onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
+                >
                   <RoomIcon name="heart" />
-                  <span>{liked ? "좋아요 취소" : "좋아요"}</span>
+                  <span>
+                    {likeCount === undefined
+                      ? liked
+                        ? "좋아요 취소"
+                        : "좋아요"
+                      : likeCount.toLocaleString("ko-KR")}
+                  </span>
                 </button>
               )}
             </div>
