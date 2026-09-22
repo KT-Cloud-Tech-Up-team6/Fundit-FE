@@ -22,10 +22,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Information: Story = {};
 
-export const Ready: Story = {
-  args: { initialView: "ready" },
-};
-
 export const Requesting: Story = {
   args: { initialView: "requesting" },
 };

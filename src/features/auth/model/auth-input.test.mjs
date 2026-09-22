@@ -23,6 +23,7 @@ test("login returns only to allowed internal routes and preserves checkout/searc
     "/seller/projects",
     "/search?q=%ED%8E%80%EB%94%A9",
     "/funding/uuid/checkout?items=%5B%5D#address",
+    "/payment/result?orderId=0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b",
   ])
     assert.equal(safeReturnTo(input), input);
 });
