@@ -203,7 +203,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       <p>
         목표 미달 자동 환불. {refund.data?.commonPolicy.goalFailedAutoRefund ? "적용" : "미적용"}
       </p>
-      {refund.data?.rewardPolicies.map((item) => (
+      {refund.data?.rewardPolicies?.map((item) => (
         <p key={item.rewardId}>
           리워드 {item.rewardId}. 간편환불 {item.simpleRefundDisabled ? "불가" : "가능"}
         </p>
@@ -212,17 +212,17 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   ) : tab === "live-proof" ? (
     <>
       <p className="mb-3">LIVE 검증 정보입니다. 영상 송출 연결은 준비 중입니다.</p>
-      {live.data?.content.map((item) => (
+      {live.data?.content?.map((item) => (
         <article key={item.liveVerificationId} className="border-border-default border-b py-3">
           <p>질문 {item.questionCount}건</p>
           <p className="whitespace-pre-wrap">{item.answer}</p>
         </article>
       ))}
-      {!live.data?.content.length && <p>등록된 검증 정보가 없습니다.</p>}
+      {!live.data?.content?.length && <p>등록된 검증 정보가 없습니다.</p>}
     </>
   ) : tab === "news" ? (
     <>
-      {notices.data?.content.map((item) => (
+      {notices.data?.content?.map((item) => (
         <article key={item.noticeId} className="border-border-default border-b py-3">
           <h2 className="text-title-s">{item.title}</h2>
           <Button
@@ -237,11 +237,11 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           {expandedNoticeId === item.noticeId && <NoticeDetail noticeId={item.noticeId} />}
         </article>
       ))}
-      {!notices.data?.content.length && <p>새 소식이 없습니다.</p>}
+      {!notices.data?.content?.length && <p>새 소식이 없습니다.</p>}
     </>
   ) : tab === "community" ? (
     <>
-      {posts.data?.content.map((item) => (
+      {posts.data?.content?.map((item) => (
         <article className="border-border-default border-b py-3" key={item.postId}>
           <p className="whitespace-pre-wrap">{item.content}</p>
           {item.answer && (
@@ -251,7 +251,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           )}
         </article>
       ))}
-      {!posts.data?.content.length && <p>게시글이 없습니다.</p>}
+      {!posts.data?.content?.length && <p>게시글이 없습니다.</p>}
     </>
   ) : (
     <p>이 정보는 아직 조회할 수 없습니다.</p>
