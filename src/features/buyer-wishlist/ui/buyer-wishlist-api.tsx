@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -123,12 +124,29 @@ function Wishlist({ memberId }: { memberId: string }) {
                           className="object-cover"
                         />
                       )}
+                      {item.projectPublicId && (
+                        <Link
+                          href={`/projects/${encodeURIComponent(item.projectPublicId)}`}
+                          aria-label={`${item.projectTitle || "프로젝트"} 상세 보기`}
+                          className="focus-visible:outline-border-primary absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                        />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h2 className="text-body-m line-clamp-2">
-                        {item.projectTitle || "프로젝트"}
+                        {item.projectPublicId ? (
+                          <Link href={`/projects/${encodeURIComponent(item.projectPublicId)}`}>
+                            {item.projectTitle || "프로젝트"}
+                          </Link>
+                        ) : (
+                          item.projectTitle || "프로젝트"
+                        )}
                       </h2>
-                      <p className="text-caption-s text-text-disabled mt-2">상세 연결 준비 중</p>
+                      {!item.projectPublicId && (
+                        <p className="text-caption-s text-text-disabled mt-2">
+                          프로젝트 정보를 준비 중입니다.
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"

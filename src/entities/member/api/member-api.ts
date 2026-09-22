@@ -12,6 +12,7 @@ export type Address = {
 export type AddressInput = Omit<Address, "id">;
 export type Wish = {
   projectId: number;
+  projectPublicId: string | null;
   projectTitle: string | null;
   projectThumbnailUrl: string | null;
   createdAt: string;
