@@ -131,6 +131,11 @@ test("결제 시도·승인 표시는 저장소 접근이 실패해도 예외 �
   assert.equal(isConfirmed(store, "order-uuid"), false);
   markConfirmed(store, "order-uuid");
   assert.equal(isConfirmed(store, "order-uuid"), true);
+  // 주문 상태 반영이 끝내 오지 않아도 승인 표시가 영구히 남아 재시도를 막지는 않는다.
+  assert.equal(isConfirmed(store, "order-uuid", Date.now() + 2 * 60 * 60 * 1000), false);
+  // 과거 형식("1")도 만료로 본다.
+  store.setItem("fundit-payment-confirmed:legacy", "1");
+  assert.equal(isConfirmed(store, "legacy"), false);
   // 취소로 orderId가 오지 않는 경우: 가장 최근 시도로 복원한다.
   assert.equal(recallLastAttempt(store), "order-uuid");
   rememberAttempt(store, "fundit-def", "order-2", 1000);
