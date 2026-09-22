@@ -11,6 +11,7 @@ COPY . .
 # Public browser identifiers are fixed into the bundle by next build.
 ARG NEXT_PUBLIC_PORTONE_STORE_ID
 ARG NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+ARG NEXT_PUBLIC_TOSS_CLIENT_KEY
 RUN pnpm build
 
 FROM node:24-bookworm-slim AS runner

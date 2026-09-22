@@ -7,10 +7,9 @@ import {
   getOrders,
   getOrder,
   cancelOrder,
-  createPayment,
   orderStatusLabels,
-  type PaymentAttempt,
 } from "@/entities/order/api/order-api";
+import { isConfirmed, localStore } from "@/features/payment-checkout/model/payment-attempt";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
@@ -122,23 +121,18 @@ function Detail({
     queryFn: ({ signal }) => getOrder(fundingId, signal),
   });
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [payment, setPayment] = useState<PaymentAttempt | null>(null);
+    [error, setError] = useState("");
   const saving = useRef(false);
-  async function act(isCancel: boolean) {
+  async function cancelFunding() {
     if (saving.current) return;
     saving.current = true;
     setBusy(true);
     setError("");
     try {
-      if (isCancel) {
-        await cancelOrder(fundingId);
-        await client.invalidateQueries({ queryKey: ["order", memberId, fundingId] });
-        await client.invalidateQueries({ queryKey: ["orders", memberId] });
-        router.replace(`/my/fundings/${fundingId}`);
-      } else {
-        setPayment(await createPayment(fundingId));
-      }
+      await cancelOrder(fundingId);
+      await client.invalidateQueries({ queryKey: ["order", memberId, fundingId] });
+      await client.invalidateQueries({ queryKey: ["orders", memberId] });
+      router.replace(`/my/fundings/${fundingId}`);
     } catch {
       setError("처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요.");
       await detail.refetch();
@@ -197,7 +191,7 @@ function Detail({
               detail.data.availableActions.includes("CANCEL") ? (
                 <>
                   <p>펀딩 참여를 취소하시겠습니까?</p>
-                  <Button disabled={busy} onClick={() => void act(true)}>
+                  <Button disabled={busy} onClick={() => void cancelFunding()}>
                     참여 취소 확인
                   </Button>
                 </>
@@ -216,17 +210,12 @@ function Detail({
                     참여 취소
                   </Link>
                 )}
-                {detail.data.status === "PENDING" && (
-                  <Button disabled={busy} onClick={() => void act(false)}>
-                    결제 준비
-                  </Button>
-                )}
-                {payment && (
-                  <section role="status">
-                    <p>결제 준비 금액 {payment.amount.toLocaleString("ko-KR")}원</p>
-                    <p>결제 수단 연결을 준비 중입니다. 아직 결제되지 않았습니다.</p>
-                  </section>
-                )}
+                {detail.data.status === "PENDING" &&
+                  (isConfirmed(localStore(), fundingId) ? (
+                    <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
+                  ) : (
+                    <Button href={`/payment/${fundingId}`}>결제하기</Button>
+                  ))}
                 <Button disabled={busy || detail.isFetching} onClick={() => void detail.refetch()}>
                   주문 상태 새로고침
                 </Button>
