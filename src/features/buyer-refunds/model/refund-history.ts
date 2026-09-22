@@ -29,7 +29,6 @@ export type RefundEntry = {
   type: "취소" | "환불";
   stage: "진행 중" | "완료" | "반려";
   status: string;
-  fundingNumber: string;
   title: string;
   requestedAt: string;
   completedAt: string;
@@ -75,8 +74,6 @@ export function toRefundEntry(summary: RefundSummary): RefundEntry {
     type,
     stage,
     status: `${type} ${stage}`,
-    /* 원본 891:9127의 FD 형식 주문번호를 채울 필드가 계약에 없다. 자리만 남기고 비운다. */
-    fundingNumber: "",
     title: summary.projectTitle ?? "",
     requestedAt: isoDate(summary.requestedAt),
     completedAt: isoDate(summary.completedAt),
