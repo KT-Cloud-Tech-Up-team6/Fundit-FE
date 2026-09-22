@@ -86,6 +86,53 @@ test("public rich text drops malicious markup and non-contract styles", () => {
   ]);
 });
 
+test("self-closing script·style 뒤의 본문이 사라지지 않는다", () => {
+  assert.deepEqual(safeStoryHtml("<p>before</p><script/><p>after</p>"), [
+    { tag: "p", children: ["before"] },
+    { tag: "p", children: ["after"] },
+  ]);
+  assert.deepEqual(safeStoryHtml("<p>before</p><style />after"), [
+    { tag: "p", children: ["before"] },
+    "after",
+  ]);
+  /* 여는 태그와 짝이 맞는 형태는 그대로 본문에서 제외한다. */
+  assert.deepEqual(safeStoryHtml("<p>before</p><script>evil()</script><p>after</p>"), [
+    { tag: "p", children: ["before"] },
+    { tag: "p", children: ["after"] },
+  ]);
+});
+
+test("bold로 대체할 수 없는 굵기는 편집 왕복에서 유지된다", () => {
+  const value = '<p><span style="font-weight: 500">중요 안내</span></p>';
+  const document = fromIntroContent([{ type: "TEXT", value }]);
+  assert.deepEqual(document.content[0].content[0].marks, [
+    { type: "textStyle", attrs: { fontWeight: "500" } },
+  ]);
+  assert.deepEqual(toIntroContent(document), [{ type: "TEXT", value }]);
+  const both = '<p><span style="color: #123abc; font-weight: 300">색과 굵기</span></p>';
+  assert.deepEqual(toIntroContent(fromIntroContent([{ type: "TEXT", value: both }])), [
+    { type: "TEXT", value: both },
+  ]);
+  /* 굵기 700은 bold 마크로 표현되므로 <strong>으로 정규화한다. */
+  assert.deepEqual(
+    toIntroContent(
+      fromIntroContent([
+        { type: "TEXT", value: '<p><span style="font-weight: 700">굵게</span></p>' },
+      ]),
+    ),
+    [{ type: "TEXT", value: "<p><strong>굵게</strong></p>" }],
+  );
+});
+
+test("문자열 중간의 태그 모양은 과거 평문으로 취급한다", () => {
+  const legacy = "설명 <b>예시</b> 참고해주세요";
+  assert.deepEqual(safeStoryHtml(legacy), [legacy]);
+  assert.deepEqual(toIntroContent(fromIntroContent([{ type: "TEXT", value: legacy }])), [
+    { type: "TEXT", value: "<p>설명 &lt;b&gt;예시&lt;/b&gt; 참고해주세요</p>" },
+  ]);
+  assert.equal(safeStoryHtml("<p>서식</p>")[0].tag, "p");
+});
+
 test("텍스트·줄바꿈·이미지·영상은 저장과 복원 왕복에 유지된다", () => {
   const blocks = [
     { type: "TEXT", value: "첫 문단\n다음 줄" },

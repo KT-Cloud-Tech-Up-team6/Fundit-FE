@@ -35,7 +35,7 @@ function mediaUrl(value: unknown) {
   return value;
 }
 
-const escapeHtml = (value: string) =>
+export const escapeHtml = (value: string) =>
   value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -106,7 +106,9 @@ function parseHtml(html: string): SafeStoryHtmlNode[] {
       if (!match) continue;
       const tag = match[1].toLowerCase();
       if (["script", "style"].includes(tag)) {
-        ignoredDepth++;
+        /* <script/>처럼 닫는 태그가 따라오지 않는 형태에서 depth가 풀리지 않으면
+           뒤따르는 본문이 통째로 사라진다. */
+        if (!/\/\s*>$/.test(token)) ignoredDepth++;
         continue;
       }
       if (ignoredDepth || !allowedTags.has(tag)) continue;
@@ -128,14 +130,20 @@ function markHtml(node: JSONContent, content: string) {
     if (mark.type === "bold") return `<strong>${result}</strong>`;
     if (mark.type === "italic") return `<em>${result}</em>`;
     if (mark.type === "underline") return `<u>${result}</u>`;
-    if (
-      mark.type === "textStyle" &&
-      mark.attrs?.color &&
-      /^#[\da-f]{3,6}$/i.test(mark.attrs.color)
-    ) {
-      return `<span style="color: ${mark.attrs.color}">${result}</span>`;
+    if (mark.type === "textStyle") {
+      const declarations: string[] = [];
+      const { color, fontWeight } = mark.attrs ?? {};
+      if (color) {
+        if (!/^#[\da-f]{3,6}$/i.test(color)) throw unsupported();
+        declarations.push(`color: ${color}`);
+      }
+      if (fontWeight) {
+        if (!/^(bold|normal|[1-9]00)$/.test(String(fontWeight))) throw unsupported();
+        declarations.push(`font-weight: ${fontWeight}`);
+      }
+      if (declarations.length) return `<span style="${declarations.join("; ")}">${result}</span>`;
+      if (!Object.values(mark.attrs ?? {}).some(Boolean)) return result;
     }
-    if (mark.type === "textStyle" && !Object.values(mark.attrs ?? {}).some(Boolean)) return result;
     throw unsupported();
   }, content);
 }
@@ -206,11 +214,17 @@ type Marks = {
 const withMarks = (text: string, marks: Marks): JSONContent | null => {
   if (!text) return null;
   const outputMarks: { type: string; attrs?: Record<string, string> }[] = [];
-  if (marks.bold || marks.fontWeight === "bold" || Number(marks.fontWeight) >= 600)
-    outputMarks.push({ type: "bold" });
+  const boldWeight = marks.fontWeight === "bold" || Number(marks.fontWeight) >= 600;
+  if (marks.bold || boldWeight) outputMarks.push({ type: "bold" });
   if (marks.italic) outputMarks.push({ type: "italic" });
   if (marks.underline) outputMarks.push({ type: "underline" });
-  if (marks.color) outputMarks.push({ type: "textStyle", attrs: { color: marks.color } });
+  /* 서버는 100~900 굵기를 보존하지만 bold 마크로는 굵게/보통만 표현된다.
+     bold로 대체할 수 없는 굵기는 textStyle에 실어 편집 왕복에서 잃지 않는다. */
+  const textStyle = {
+    ...(marks.color ? { color: marks.color } : {}),
+    ...(marks.fontWeight && !boldWeight ? { fontWeight: marks.fontWeight } : {}),
+  };
+  if (Object.keys(textStyle).length) outputMarks.push({ type: "textStyle", attrs: textStyle });
   return { type: "text", text, ...(outputMarks.length ? { marks: outputMarks } : {}) };
 };
 
@@ -298,8 +312,10 @@ function htmlBlocks(nodes: SafeStoryHtmlNode[], inherited: TextStyle = {}): JSON
   return output;
 }
 
+/* 에디터가 만든 TEXT 블록은 항상 태그로 시작한다. 문자열 중간의 태그 모양까지 서식으로 보면
+   `<b>` 같은 글자를 담은 과거 평문이 서식으로 오인돼 재저장 시 HTML로 굳으므로 시작만 본다. */
 export function isStoryHtml(value: string) {
-  return /<\/?(?:b|strong|i|em|u|p|br|span|div|ul|ol|li)\b[^>]*>/i.test(value);
+  return /^\s*<(?:b|strong|i|em|u|p|br|span|div|ul|ol|li)\b[^>]*>/i.test(value);
 }
 
 export function fromIntroContent(blocks: IntroBlock[]): JSONContent {

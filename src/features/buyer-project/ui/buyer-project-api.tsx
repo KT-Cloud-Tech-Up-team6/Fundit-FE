@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -92,6 +92,17 @@ function renderStoryHtml(nodes: SafeStoryHtmlNode[], keyPrefix = "story"): React
   });
 }
 
+/* 리워드·환불·라이브 등 무관한 쿼리가 갱신될 때마다 정규식 토크나이저를 다시 돌리지 않도록
+   블록 단위 컴포넌트로 분리해 값이 그대로면 파싱 결과를 재사용한다. */
+function StoryTextBlock({ value }: { value: string }) {
+  const story = useMemo(() => ({ html: isStoryHtml(value), nodes: safeStoryHtml(value) }), [value]);
+  return (
+    <div className={story.html ? "space-y-4" : "whitespace-pre-wrap"}>
+      {renderStoryHtml(story.nodes)}
+    </div>
+  );
+}
+
 export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: string }) {
   const { state } = useAuth();
   const params = useSearchParams(),
@@ -158,12 +169,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     <div className="space-y-4">
       {data.introContent.map((block, index) =>
         block.type === "TEXT" ? (
-          <div
-            className={isStoryHtml(block.value) ? "space-y-4" : "whitespace-pre-wrap"}
-            key={index}
-          >
-            {renderStoryHtml(safeStoryHtml(block.value), `story-${index}`)}
-          </div>
+          <StoryTextBlock key={index} value={block.value} />
         ) : block.type === "IMAGE" && /^https?:\/\//.test(block.value) ? (
           <Image
             unoptimized

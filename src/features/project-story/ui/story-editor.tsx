@@ -9,14 +9,11 @@ import { FundingStoryModal } from "@/features/funding-ai-story/ui/funding-story-
 import { Button } from "@/shared/components/ui/button";
 import { Icon, type IconName } from "@/shared/components/ui/icon";
 import { storyExtensions } from "../model/story-extensions";
-import { fromIntroContent } from "../model/story-content";
+import { escapeHtml, fromIntroContent } from "../model/story-content";
 import styles from "./story-editor.module.css";
 
 /* ponytail: #38(펀딩 AI 스토리 챗봇) 목업 결과는 일반 텍스트라 문단(\n\n)·줄바꿈(\n)만 있다.
    Tiptap에 그대로 setContent하면 개행이 사라져서 <p>/<br>로 변환해 붙인다. */
-const escapeHtml = (text: string) =>
-  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-
 const storyBodyToHtml = (body: string) =>
   body
     .split("\n\n")
