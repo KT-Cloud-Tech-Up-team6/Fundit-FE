@@ -52,10 +52,10 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
             <Icon name="profile" className="size-6" />
           </Link>
           <Link
-            href={exitHref ?? "/my"}
-            className="bg-layer-surface-disabled text-body-s ml-3 flex h-10 items-center gap-2 rounded-xs px-3"
+            href={exitHref ?? "/seller/projects"}
+            className="bg-layer-surface-disabled text-body-s text-text-default ml-3 flex h-10 items-center gap-2 rounded-xs px-3"
           >
-            {exitHref ? "나가기" : "참여자 센터"}
+            {exitHref ? "나가기" : "창작자 전환"}
             <Icon name={exitHref ? "close" : "swap"} className="size-4" />
           </Link>
         </>

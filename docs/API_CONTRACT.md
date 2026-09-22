@@ -1,10 +1,18 @@
 # API 계약 초안
 
+## 검색·카테고리 카드의 공개 상세 연결 (#216)
+
+- 2026-09-21 BE develop `ae1e032`의 `ProjectCardProjection.projectPublicId`를 사용한다. 숫자 `projectId`는 카드 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
+- `/search`와 `/categories/{major}/{minor}`에서 유효한 UUID가 있는 카드만 `/projects/{UUID}`로 연결한다. 필드 누락·null·잘못된 값은 상세 연결 대기 상태를 유지하며 숫자 ID나 데모 ID로 대체하지 않는다.
+- 찜 목록 `WishListItemResponse`에는 공개 UUID가 없어 이번 연결 범위에서 제외한다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는다.
+- 단위 테스트, lint, typecheck, production build와 격리 Playwright의 모바일 390×844·데스크톱 1440×900 검색/카테고리 클릭·새로고침·뒤로/앞으로가기·누락/잘못된 UUID·404 표시를 확인했다. API 응답은 계약 기반 fixture이며 실제 QA 배포·색인 데이터 연결은 미검증이다.
+
 ## 프로젝트 스토리의 서식 저장 계약 (#234)
 
 - 2026-09-21 BE develop `ae1e032`의 `RichTextSanitizer`를 기준으로 TEXT 블록에 허용 HTML을 저장한다. b/strong/i/em/u/p/br/span/div/ul/ol/li와 제한된 color/text-align/font-weight만 허용한다. 링크·스크립트·이벤트·임의 CSS를 추가로 허용하지 않는다.
 - 기존 일반 텍스트·줄바꿈은 복원 호환을 유지하며 이미지·영상은 별도 IMAGE/VIDEO_URL 블록으로 유지한다. 서버가 보존하지 못하는 레이아웃·서식은 저장 성공으로 가장하지 않는다.
 - 공개 화면은 허용 태그·스타일만 React 요소로 표시하며 API HTML을 그대로 삽입하지 않는다. 편집 저장·재진입·공개 표시를 함께 검증한다. AI 생성 API 및 실제 BE 배포 확인은 이번 범위와 구분한다.
+- 에디터는 저장 계약에 없는 heading·codeBlock·horizontalRule·code·strike·link를 등록하지 않는다. 툴바에 남은 인용구는 계약에 없어 저장이 거부되며 UI 정리는 별도 범위로 둔다.
 
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
@@ -416,6 +424,28 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - run 상태는 `queued|running|succeeded|partially_succeeded|failed`다. 부분 성공도 `result`를 표시·불러오고 실패 슬롯을 안내한다.
 - 완료 callback 시 BE가 검증된 결과를 프로젝트에 저장한다. 별도 export/apply API는 없으며 FE의 “불러오기”는 현재 에디터와 캐시를 BE 결과에 맞춘다.
 - 확인 뒤 Core 정보가 바뀐 `409`의 `detail.action=reconfirm_summary`는 새 요약 확인이 필요한 상태다.
+
+### 5.6. 라이브 플레이어·AI Q&A (#227)
+
+기준은 [BE PR #95](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/pull/95)의 병합 커밋 `b1f3b23d17f1726b900e7e06f8edc981e6ddeff9`에 있는 공개 컨트롤러·DTO다. 아래 경로의 접두사는 `/api/v1/lives/{liveId}`이며 `liveId`와 공개 `questionId`는 UUID다. FE는 AI 내부 `qid`를 요청 식별자로 사용하지 않는다.
+
+| 동작                | Method·Path                                   | 인증·결과                                                                                     |
+| ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`. |
+| 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                          |
+| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{qna: [...]}`.                                                           |
+| 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                      |
+| 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                           |
+| 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}` 또는 `{action: "SEND", finalAnswer}`.              |
+| 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
+
+- 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
+- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. 초안이 없어도 판매자가 직접 답변을 작성할 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
+- `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
+- `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
+- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. FE 자동 폴링 주기는 이 계약에서 확정하지 않는다.
+- IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
+- 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
 
 ## 6. 최신 답변으로 정리한 차이
 
