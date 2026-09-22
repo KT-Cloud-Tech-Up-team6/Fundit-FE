@@ -8,6 +8,7 @@ import { confirmPayment, getOrder } from "@/entities/order/api/order-api";
 import { Button } from "@/shared/components/ui/button";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import {
+  localStore,
   markConfirmed,
   recallAttempt,
   recallAttemptAmount,
@@ -69,7 +70,7 @@ function Result({ memberId, params }: { memberId: string; params: Params }) {
     })
       .then((result) => {
         if (result.status !== "COMPLETED") throw new Error("unexpected payment status");
-        markConfirmed(sessionStore(), result.fundingId);
+        markConfirmed(localStore(), result.fundingId);
         setFundingId(result.fundingId);
       })
       .catch((reason: unknown) => setConfirmFailure(confirmOutcome(reason)));

@@ -7,7 +7,7 @@ import { loadTossPayments, type TossPaymentsWidgets } from "@tosspayments/tosspa
 import { createPayment, getOrder, orderStatusLabels } from "@/entities/order/api/order-api";
 import { Button } from "@/shared/components/ui/button";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
-import { isConfirmed, rememberAttempt, sessionStore } from "../model/payment-attempt";
+import { isConfirmed, localStore, rememberAttempt, sessionStore } from "../model/payment-attempt";
 import {
   createAttemptOutcome,
   isUserCancel,
@@ -40,7 +40,7 @@ function Payment({ memberId, orderId }: { memberId: string; orderId: string }) {
     refetchOnWindowFocus: false,
     queryFn: async ({ signal }) => {
       // 승인 직후 주문 상태 반영(비동기) 전에는 서버도 PENDING이라 재결제를 여기서 막는다.
-      if (isConfirmed(sessionStore(), orderId))
+      if (isConfirmed(localStore(), orderId))
         throw new NotPayableError(
           "이미 결제가 완료되었습니다. 주문 상태를 반영하는 중이니 참여 내역에서 확인해주세요.",
         );

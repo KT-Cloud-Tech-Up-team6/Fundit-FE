@@ -15,9 +15,18 @@ function safe<T>(run: () => T, fallback: T): T {
   }
 }
 
-/* `sessionStorage` 식별자 접근 자체가 던지는 환경이 있어 호출 지점에서 직접 참조하지 않는다. */
+/* `sessionStorage`/`localStorage` 식별자 접근 자체가 던지는 환경이 있어 호출 지점에서 직접 참조하지 않는다. */
 export function sessionStore(): Store {
   return safe<Store>(() => window.sessionStorage, {
+    getItem: () => null,
+    setItem: () => undefined,
+  });
+}
+
+/* 결제 완료 여부는 탭이 아니라 주문에 속한 사실이라 같은 기기의 다른 탭에서도 재결제를 막으려면
+   `localStorage`에 둔다. pgOrderId↔주문 UUID 매핑(복귀 URL 복원용)은 탭 범위가 맞아 sessionStorage에 남긴다. */
+export function localStore(): Store {
+  return safe<Store>(() => window.localStorage, {
     getItem: () => null,
     setItem: () => undefined,
   });
