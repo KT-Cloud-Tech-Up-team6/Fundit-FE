@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
+import { LoginRedirect } from "@/providers/login-redirect";
 import {
   getProjectPreview,
   saveProjectBasicInfo,
@@ -52,15 +53,7 @@ export function ProjectBasicInfoApi({
     }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
-  if (state.status === "guest")
-    return (
-      <p role="alert">
-        로그인이 필요합니다.{" "}
-        <Link href="/auth/login" className="underline">
-          로그인
-        </Link>
-      </p>
-    );
+  if (state.status === "guest") return <LoginRedirect />;
   if (!owner)
     return <p role="alert">회원 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.</p>;
   if (projectId && preview.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;

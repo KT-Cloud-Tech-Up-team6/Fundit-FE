@@ -414,7 +414,6 @@ export function BuyerSearch({
                       key={project.id}
                       project={project}
                       thumbnailClassName="w-[36.57%] min-[1200px]:w-[200px]"
-                      unavailable={Boolean(server)}
                     />
                   ))}
                 </div>

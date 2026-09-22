@@ -8,11 +8,37 @@ import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-deskt
 import { questionDemos } from "@/features/buyer-project/model/project-demo";
 import { chapterDemos } from "@/features/buyer-live-replay/model/replay-demo";
 import { LiveViewport } from "./live-viewport";
+import { notFound } from "next/navigation";
+import { RealBuyerLive } from "@/features/live-integration/ui/real-live";
 
 export default async function LivePage({ params, searchParams }: PageProps<"/live/[liveId]">) {
   const { liveId } = await params;
   const query = await searchParams;
   const connection = getLiveDemoConnection(liveId);
+  if (
+    !connection &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(liveId)
+  )
+    notFound();
+  if (!connection)
+    return (
+      <LiveViewport
+        desktop={
+          <RealBuyerLive
+            key={`${liveId}:desktop:${query.mode === "replay"}`}
+            liveId={liveId}
+            replay={query.mode === "replay"}
+            desktop
+          />
+        }
+      >
+        <RealBuyerLive
+          key={`${liveId}:mobile:${query.mode === "replay"}`}
+          liveId={liveId}
+          replay={query.mode === "replay"}
+        />
+      </LiveViewport>
+    );
   const product = connection
     ? {
         ...roomDemo,

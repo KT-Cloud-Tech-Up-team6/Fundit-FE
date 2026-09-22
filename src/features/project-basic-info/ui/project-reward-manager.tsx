@@ -1,8 +1,8 @@
 "use client";
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
+import { LoginRedirect } from "@/providers/login-redirect";
 import {
   getSellerRewards,
   saveReward as persistReward,
@@ -119,12 +119,9 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
-  if (state.status !== "authenticated" || !state.user?.memberId)
-    return (
-      <p role="alert">
-        로그인이 필요합니다. <Link href="/auth/login">로그인</Link>
-      </p>
-    );
+  if (state.status === "guest") return <LoginRedirect />;
+  if (!state.user?.memberId)
+    return <p role="alert">회원 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.</p>;
   if (query.isPending) return <p role="status">리워드를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
