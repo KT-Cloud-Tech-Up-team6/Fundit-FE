@@ -150,10 +150,9 @@ export function LiveConsole({
   const consoleRef = useRef<HTMLDivElement>(null);
   const answered = demoQuestions.filter((q) => state.answers[q.id]);
   /* 목업 화면이라 실제 프로젝트가 없다 — 구매자 쪽 데모 매핑을 그대로 빌려 상세페이지 링크를 만든다.
-     ponytail: 매핑이 실패하는 demo-* id(실제 진입 경로인 "demo-live" 외)는 무관한
-     "demo-project"로 조용히 대체된다. 콘솔 라우트가 demo-live 하나만 쓰는 동안은 괜찮지만,
-     다른 demo-* id도 실제로 열리게 하려면 매핑을 넓히거나 여기서 명시적으로 경고해야 한다. */
-  const projectId = getLiveDemoConnection(liveId)?.projectId ?? "demo-project";
+     콘솔 라우트는 "demo" 접두만 검사해 매핑 없는 demo-* id도 들어올 수 있으므로, 매핑이
+     실패하면 무관한 프로젝트로 보내는 대신 링크 자체를 비활성화한다. */
+  const projectId = getLiveDemoConnection(liveId)?.projectId;
   const detail =
     dialog && "questionId" in dialog
       ? demoQuestions.find((q) => q.id === dialog.questionId)
@@ -388,7 +387,8 @@ export function LiveConsole({
                     나가기
                   </Button>
                   <Button
-                    href={`/projects/${projectId}?tab=live-proof`}
+                    href={projectId ? `/projects/${projectId}?tab=live-proof` : "#"}
+                    disabled={!projectId}
                     size="sm"
                     variant="primaryLive"
                     className="h-10! flex-1"
