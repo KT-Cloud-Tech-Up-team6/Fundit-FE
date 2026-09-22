@@ -22,6 +22,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 - 구매자 관심 목록은 [BUYER_WISHLIST.md](./BUYER_WISHLIST.md)를 참고한다. `/my/wishlist`는 전용 `(buyer-wishlist)` 그룹이며 회원 인증과 찜 목록 API를 연결했다(#196, #250).
 
+- 구매자 배송지 관리 `/my/addresses`는 전용 `(buyer-addresses)` 그룹에 둔다(#273). 원래 `(buyer)` 그룹에 남아있어 그 레이아웃의 `BuyerShell` 헤더와 화면 자체의 `BuyerAccountScreen` 헤더가 이중으로 렌더링되던 문제를, 같은 계정 화면들(`(buyer-wishlist)`, `(buyer-mypage)`, `(buyer-fulfillment)`, `(buyer-refunds)`)과 같은 패턴으로 맞춰 해결했다.
+
 - 구매자 통합 검색은 [BUYER_SEARCH.md](./BUYER_SEARCH.md)를 참고한다. `/search`는 전용 `(buyer-search)` 그룹의 목업 화면이며 인증·API는 후속 구현한다.
 
 - 구매자 프로젝트 상세는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다. `(buyer-project)` 그룹의 story·live-proof 탭은 전용 화면이며 나머지 탭은 기존 BuyerShell을 유지한다.
