@@ -50,3 +50,13 @@ test("총 개수는 필터를 걸지 않은 동안 서버 전체 건수를 쓴�
   assert.match(withTotal, /총 42개/);
   assert.match(render([cancelled]), /총 1개/);
 });
+
+test("반려 일자는 상세에만 두고 카드 상단 날짜는 완료된 건에만 쓴다", () => {
+  const denied = render([rejected]);
+  assert.match(denied, /반려 일자<\/dt><dd[^>]*>2026\.09\.06<\/dd>/);
+  assert.equal(denied.split("2026.09.06").length - 1, 1);
+
+  const done = render([cancelled]);
+  assert.match(done, /<span[^>]*>2026\.09\.13<\/span>/);
+  assert.doesNotMatch(done, /반려 일자/);
+});

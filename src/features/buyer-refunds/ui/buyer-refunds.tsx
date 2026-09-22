@@ -15,6 +15,22 @@ import {
   type RefundFilterType,
 } from "../model/refund-history";
 
+const screenTitle = "취소/환불/교환 내역";
+
+/** 목록·로딩·오류가 같은 껍데기를 쓰도록 제목·breadcrumb·하단 메뉴를 한곳에 둔다. */
+export function RefundsScreen({ children }: { children: ReactNode }) {
+  return (
+    <BuyerAccountScreen title={screenTitle} breadcrumb={["마이페이지", "펀딩내역", screenTitle]}>
+      {children}
+      <BuyerBottomNavigation
+        activeHref="/my"
+        compact
+        className="fixed inset-x-0 bottom-0 z-20 w-full min-[1200px]:hidden"
+      />
+    </BuyerAccountScreen>
+  );
+}
+
 /* 값이 비어도 원본(891:9152)의 행 수는 유지한다. 빈 칸은 계약이 없어 채우지 못한 자리다. */
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -43,10 +59,7 @@ export function BuyerRefunds({
   const count = !filtering && total !== undefined ? total : filtered.length;
 
   return (
-    <BuyerAccountScreen
-      title="취소/환불/교환 내역"
-      breadcrumb={["마이페이지", "펀딩내역", "취소/환불/교환 내역"]}
-    >
+    <RefundsScreen>
       <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         <div className="bg-layer-surface-default flex w-full items-center justify-between gap-1 px-5 py-3">
           <p className="text-caption-m text-text-secondary">총 {count}개</p>
@@ -94,7 +107,8 @@ export function BuyerRefunds({
                 <h2 className="text-caption-m truncate font-medium">{entry.title || "프로젝트"}</h2>
                 <div className="mt-2 flex items-center gap-2">
                   <Badge variant={refundBadgeVariant(entry)}>{entry.status}</Badge>
-                  {entry.completedAt && (
+                  {/* completedAt은 반려 처리 시각도 담으므로 완료된 건에만 날짜로 세운다. */}
+                  {entry.stage === "완료" && entry.completedAt && (
                     <span className="text-caption-m text-text-secondary">{entry.completedAt}</span>
                   )}
                 </div>
@@ -104,7 +118,10 @@ export function BuyerRefunds({
                   <DetailRow label="신청 일자" value={entry.requestedAt} />
                   <DetailRow label="접수 사유" value={entry.reason} />
                   {entry.stage === "반려" && (
-                    <DetailRow label="반려 사유" value={entry.rejectedReason} />
+                    <>
+                      <DetailRow label="반려 일자" value={entry.completedAt} />
+                      <DetailRow label="반려 사유" value={entry.rejectedReason} />
+                    </>
                   )}
                   {entry.items.map((item, index) => (
                     <Fragment key={index}>
@@ -145,11 +162,6 @@ export function BuyerRefunds({
         )}
         {children}
       </div>
-      <BuyerBottomNavigation
-        activeHref="/my"
-        compact
-        className="fixed inset-x-0 bottom-0 z-20 w-full min-[1200px]:hidden"
-      />
-    </BuyerAccountScreen>
+    </RefundsScreen>
   );
 }
