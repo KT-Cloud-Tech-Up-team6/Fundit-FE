@@ -15,6 +15,11 @@ const preview: Preview = {
     document.documentElement.dataset.theme = globals.theme === "dark" ? "dark" : "light";
   },
   parameters: {
+    /* 아래 decorators의 AppProviders가 AuthProvider를 마운트하고, AuthProvider는 useRouter를 쓴다.
+       app router 목킹이 없으면 "invariant expected app router to be mounted"로 스토리가
+       렌더되지 않는다. 스토리마다 붙이면 빠뜨린 파일이 조용히 깨지므로 여기서 한 번만 켠다.
+       개별 스토리가 parameters.nextjs로 덮어쓰는 것은 그대로 동작한다. */
+    nextjs: { appDirectory: true },
     controls: {
       matchers: {
         color: /(background|color)$/i,

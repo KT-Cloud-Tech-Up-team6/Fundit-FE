@@ -18,7 +18,21 @@ import {
 import { CueSheetEditor } from "./cue-sheet-editor";
 import styles from "./cue-sheet.module.css";
 
-type Step = "closed" | "chat" | "summary" | "options" | "generating" | "ready" | "editor";
+type Step =
+  "closed" | "chat" | "summary" | "options" | "generating" | "ready" | "editor" | "failed";
+
+/**
+ * 서버가 아는 큐시트 상태. `onGenerate`와 함께 주면 이 화면은 **API 모드**로 동작한다 —
+ * 생성은 서버가 하고, 생성 중·성공·실패 단계 전환은 이 값이 끈다.
+ */
+export type CueSheetGenerationView = {
+  phase: "idle" | "generating" | "completed" | "failed";
+  scenes: CueScene[];
+  type: CueSheetType | null;
+  minutes: number | null;
+  failureReason: string | null;
+};
+
 type LiveCueSheetFlowProps = {
   liveId?: string;
   project?: CueSheetProject;
@@ -30,6 +44,12 @@ type LiveCueSheetFlowProps = {
   initialMinutes?: number;
   initialSavedCueSheet?: SavedCueSheet;
   autoAdvanceGeneration?: boolean;
+  generation?: CueSheetGenerationView;
+  /** 주면 API 모드다. 데모 장면을 만들지 않고 서버에 생성을 요청한다. */
+  onGenerate?: (request: { type: CueSheetType; minutes: number }) => void;
+  saving?: boolean;
+  /** 저장·생성 결과처럼 화면 밖에서 온 안내. 내부 안내보다 우선한다. */
+  notice?: string;
 };
 
 function ProjectInfo({ project }: { project: CueSheetProject }) {
@@ -48,19 +68,28 @@ function ProjectInfo({ project }: { project: CueSheetProject }) {
           이미지 없음
         </div>
       )}
+      {/* 값이 없으면 지어내지 않고 자리만 남긴 채 없다고 적는다. */}
       <div className="min-w-0">
         <h4 className="text-body-strong">{project.title}</h4>
         <div className="text-caption-s text-text-secondary flex flex-col gap-1">
-          <span>{project.category}</span>
-          <span>{project.period}</span>
+          <span>{project.category || "카테고리 정보 없음"}</span>
+          <span>{project.period || "기간 정보 없음"}</span>
           <span className="flex items-center gap-1">
             <Icon name="people" className="size-3.5" />
-            {project.participantCount}명
+            {project.participantCount === null
+              ? "참여자 정보 없음"
+              : `${project.participantCount}명`}
           </span>
         </div>
-        <p className="text-title-s mt-2">{project.currentAmount.toLocaleString("ko-KR")}원</p>
+        <p className="text-title-s mt-2">
+          {project.currentAmount === null
+            ? "모금액 정보 없음"
+            : `${project.currentAmount.toLocaleString("ko-KR")}원`}
+        </p>
         <p className="text-body-s text-text-secondary">
-          / {project.goalAmount.toLocaleString("ko-KR")}원
+          {project.goalAmount === null
+            ? "목표액 정보 없음"
+            : `/ ${project.goalAmount.toLocaleString("ko-KR")}원`}
         </p>
       </div>
     </div>
@@ -78,6 +107,10 @@ export function LiveCueSheetFlow({
   initialMinutes,
   initialSavedCueSheet,
   autoAdvanceGeneration = true,
+  generation,
+  onGenerate,
+  saving = false,
+  notice: externalNotice = "",
 }: LiveCueSheetFlowProps) {
   const [step, setStep] = useState<Step>(initialStep);
   const [answers, setAnswers] = useState(initialSavedCueSheet?.answers ?? initialAnswers);
@@ -106,6 +139,11 @@ export function LiveCueSheetFlow({
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const open = step !== "closed";
   const complete = answers.length === demoQuestions.length;
+  const apiMode = Boolean(onGenerate);
+  const message = externalNotice || notice;
+  /* 서버 상태가 "바뀐 순간"에만 단계를 옮긴다. 매 렌더마다 옮기면 판매자가 편집기에서
+     뒤로 간 직후 다시 편집기로 끌려온다. */
+  const [appliedPhase, setAppliedPhase] = useState(generation?.phase ?? null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -132,6 +170,28 @@ export function LiveCueSheetFlow({
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [answers, step]);
 
+  /* API 모드의 단계 전환. 폴링이 GENERATING → COMPLETED/FAILED를 알려주면 여기서 받는다.
+     렌더 중에 맞추는 이유는 React 문서의 "prop이 바뀔 때 state 조정"과 같다 — effect로
+     하면 생성 화면이 한 번 그려진 뒤에야 편집기로 바뀐다.
+     COMPLETED여도 구간이 비어 있으면 toCueSheetState가 failed로 넘겨 주므로
+     빈 편집기가 열리는 일은 없다. */
+  if (generation && generation.phase !== appliedPhase) {
+    const previous = appliedPhase;
+    setAppliedPhase(generation.phase);
+    if (generation.phase === "generating") setStep("generating");
+    /* 생성을 기다리던 중일 때만 화면을 뺏는다. 판매자가 채팅·요약을 다시 보고 있는데
+       뒤늦게 도착한 결과가 편집기를 열어버리면 안 된다. */
+    else if (previous === "generating") {
+      if (generation.phase === "completed" && generation.scenes.length) {
+        setScenes(generation.scenes.map((scene) => ({ ...scene })));
+        if (generation.type) setType(generation.type);
+        if (generation.minutes) setMinutes(generation.minutes);
+        setStep("editor");
+      }
+      if (generation.phase === "failed") setStep("failed");
+    }
+  }
+
   useEffect(() => {
     if (!autoAdvanceGeneration || (step !== "generating" && step !== "ready")) return;
     const timer = window.setTimeout(
@@ -157,6 +217,14 @@ export function LiveCueSheetFlow({
 
   function generate() {
     if (!type || minutes < 1 || minutes > 10) return;
+    if (onGenerate) {
+      /* 서버가 GENERATING을 확인해 줄 때까지 기다리지 않고 먼저 생성 화면으로 넘긴다 —
+         요청이 거절되면 컨테이너가 notice로 사유를 준다. */
+      setStep("generating");
+      setNotice("");
+      onGenerate({ type, minutes });
+      return;
+    }
     setScenes(createDemoScenes(minutes, answers, project));
     setStep("generating");
   }
@@ -187,6 +255,12 @@ export function LiveCueSheetFlow({
       answers: [...answers],
     };
     setSaved(next);
+    if (apiMode) {
+      /* 서버 저장 결과를 모른 채 닫지 않는다. 성공·실패 안내는 컨테이너가 notice로 준다. */
+      setNotice("");
+      onSave?.(next);
+      return;
+    }
     setNotice("큐시트를 목업으로 저장했습니다. 새로고침 시 초기화됩니다.");
     setStep("closed");
     onSave?.(next);
@@ -198,7 +272,9 @@ export function LiveCueSheetFlow({
         <section className="space-y-4 py-9">
           <h1 className="text-heading-s">AI 큐시트</h1>
           <p className="text-body-s">
-            목업 큐시트 · {liveId} · 실제 AI 생성 및 서버 저장은 하지 않습니다.
+            {apiMode
+              ? `LIVE ${liveId}`
+              : `목업 큐시트 · ${liveId} · 실제 AI 생성 및 서버 저장은 하지 않습니다.`}
           </p>
           <Link href="/seller/live" className="text-body-s underline">
             LIVE 스튜디오로 돌아가기
@@ -207,7 +283,7 @@ export function LiveCueSheetFlow({
             큐시트 열기
           </Button>
           <p role="status" className="text-body-s">
-            {notice}
+            {message}
           </p>
         </section>
       )}
@@ -224,7 +300,9 @@ export function LiveCueSheetFlow({
         }}
       >
         <div
-          className={`${styles.frame} ${step === "generating" || step === "ready" ? styles.loading : ""}`}
+          className={`${styles.frame} ${
+            step === "generating" || step === "ready" || step === "failed" ? styles.loading : ""
+          }`}
         >
           <header className="grid grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-2">
             <span />
@@ -263,10 +341,35 @@ export function LiveCueSheetFlow({
                 />
               </div>
             </div>
+          ) : step === "failed" ? (
+            /* FL_S_LVS_AIC_FAIL — 원본에 실패 화면이 없어 새로 부여한 화면 ID다.
+               생성 중 화면(FL_S_LVS_AIC)과 같은 자리·배경을 쓰고 사유와 재시도만 둔다 —
+               생성 중·성공과 구분되지 않으면 판매자가 기다리기만 하게 된다(#289 필수 계약 2). */
+            <div
+              role="alert"
+              className="flex min-h-[540px] flex-col items-center justify-center gap-6 px-6 text-center"
+            >
+              <h3 className="text-title-s">AI 큐시트를 만들지 못했어요</h3>
+              <p className="text-body-s text-text-secondary max-w-md break-words">
+                {generation?.failureReason || "잠시 후 다시 시도해 주세요."}
+              </p>
+              {/* 직전 조건(유형·길이)이 남아 있으면 그대로 다시 요청한다. 유형을 고르려고
+                  돌아가는 건 실패했을 때 사용자가 원하는 동작이 아니다. 조건이 비어 있을
+                  때만 선택 화면으로 보낸다. */}
+              <Button
+                size="md"
+                className="text-body-s! h-10! w-36"
+                onClick={() => (type && minutes >= 1 ? generate() : setStep("options"))}
+              >
+                다시 시도
+              </Button>
+            </div>
           ) : step === "editor" ? (
             <CueSheetEditor
               scenes={scenes}
               type={type ?? "script"}
+              saving={saving}
+              notice={message}
               onChange={setScenes}
               onBack={() => setStep("options")}
               onRegenerate={generate}
@@ -531,7 +634,7 @@ export function LiveCueSheetFlow({
                     </Button>
                   </div>
                   <p role="status" className="sr-only">
-                    {notice}
+                    {message}
                   </p>
                 </section>
               </div>

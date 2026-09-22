@@ -148,7 +148,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
 | `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder                                                             |
 | `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                             |
-| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | placeholder                                                             |
+| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | implemented                                                             |
 | `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                             |
 | `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                             |
 | `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                             |

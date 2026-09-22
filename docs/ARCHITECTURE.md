@@ -68,9 +68,19 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 - `CreateLiveButton`은 선택한 프로젝트와 소개 문구, 생성 확인 단계와 저장한 목업 큐시트를 소유합니다. AI 큐시트 버튼은 이 정보를 `LiveCueSheetFlow`의 props로 전달합니다.
 - `LiveCueSheetFlow`는 질문·요약·유형·생성·편집만 담당합니다. 저장 시 장면·유형·방송 시간·답변 snapshot을 상위로 반환하고 생성 확인 화면으로 돌아갑니다. 다시 열면 저장한 편집 내용과 답변을 복원합니다.
 - 생성 창을 닫으면 프로젝트 입력과 저장 큐시트는 초기화됩니다. 서버 저장·브라우저 저장소·가상의 생성 API는 사용하지 않습니다. 프로젝트별 실사용 ID를 발급하거나 실제 방송을 시작하지 않습니다.
-- `/seller/live/[liveId]/cue-sheet` 직접 진입은 기존 데모 프로젝트로 확인할 수 있습니다. 해당 경로의 안내 화면은 중복 스튜디오가 아니라 큐시트 재열기와 스튜디오 복귀 링크만 제공합니다.
 - 선택한 프로젝트의 소개·카테고리·모금액을 사용하며, 미입력 답변·리워드를 다른 상품의 예시 정보로 대체하지 않습니다. 이 타입은 UI 목업 전용이며 API 계약이 아닙니다.
 - 회귀 검증은 `create-live-button.stories.tsx`의 `ProjectToSavedCueSheet`와 `cue-sheet-demo.test.mjs`에 둡니다.
+
+### LIVE 생성과 AI 큐시트 API 연결 (#289)
+
+- `/seller/projects/[projectId]/live/new`는 `LiveCreateApi`가 소유합니다. 프로젝트가 주소에 박혀 있어 원본(FL_S_LV_CREATE)의 카테고리·프로젝트 선택 단계는 끝난 상태로 시작하고, 소개 문구·예약 입력과 생성 확인 단계만 그립니다.
+- LIVE는 화면 진입이 아니라 **다음·임시저장을 처음 누를 때** `POST /api/v1/lives`로 만듭니다. 이후 같은 `liveId`에 `PATCH /settings`만 덮어써 재시도가 LIVE를 늘리지 않습니다. 연결 프로젝트는 BE가 변경 불가로 정해 설정 본문에 넣지 않습니다.
+- `LiveCueSheetApi`가 `/seller/live/[liveId]/cue-sheet`와 생성 확인 화면의 큐시트 모달을 함께 담당합니다. `LiveCueSheetFlow`의 표현은 그대로 두고 데이터원만 API로 바꿉니다 — `generation`·`onGenerate`를 주면 API 모드, 주지 않으면 기존 데모 모드입니다.
+- 생성은 비동기입니다. `POST /cue-sheet`가 202와 `GENERATING`을 주고 결과는 BE가 AI를 호출해 채우므로, 생성 중일 때만 3초 간격으로 `GET`을 폴링합니다. 생성 중·성공·실패를 각각 다른 화면으로 그리고 실패에는 서버가 준 사유를 그대로 싣습니다. `COMPLETED`인데 구간이 비어 있으면(스텁 모드) 성공으로 그리지 않습니다.
+- 큐시트가 한 번도 없으면 `GET`이 404입니다. 오류 화면이 아니라 "아직 없음"으로 다룹니다.
+- LIVE에는 `liveId` 단건 조회가 없어 프로젝트 정보는 `/lives/mine`에서 찾아 `projectId`를 얻은 뒤 프로젝트 preview로 채웁니다. preview에 없는 펀딩 기간·참여자 수·현재 모금액은 0으로 채우지 않고 "정보 없음"으로 표시합니다.
+- 송출 시작은 스트림 키 조회 API가 없어 `LIVE 시작` 버튼을 잠근 상태로 둡니다.
+- 순수 계산은 `entities/live/model/live-cue-sheet.ts`·`live-settings.ts`에 두고 같은 이름의 `.test.ts`로 검증합니다.
 
 ### 공통 연결 원칙
 

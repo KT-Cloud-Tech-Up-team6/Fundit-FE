@@ -40,10 +40,15 @@ test("하자 사유는 DefectType으로, 배송 지연은 전용 계약으로 �
     supported: true,
     kind: "shipping-delay",
   });
+  assert.deepEqual(refundSubmissionFor("반품", "상품이 잘못 배송됨"), {
+    supported: true,
+    kind: "defect",
+    defectType: "DIFFERENT_FROM_DESCRIPTION",
+  });
 });
 
 test("계약이 없는 조합은 이유와 함께 막힌다", () => {
-  for (const reason of ["단순변심", "상품이 잘못 배송됨", "구성품 누락", "기타"]) {
+  for (const reason of ["단순변심", "구성품 누락", "기타"]) {
     assert.equal(refundSubmissionFor("반품", reason).supported, false, reason);
   }
   for (const reason of returnReasonsByType["교환"]) {
