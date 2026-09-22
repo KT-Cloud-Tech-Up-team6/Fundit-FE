@@ -37,7 +37,7 @@ export function safeReturnTo(value: unknown) {
   const url = new URL(value, "https://fundit.invalid");
   if (url.origin !== "https://fundit.invalid") return "/";
   if (
-    !/^\/(?:$|(?:projects|categories|search|live|my|seller|funding|support)(?:\/|$))/.test(
+    !/^\/(?:$|(?:projects|categories|search|live|my|seller|funding|payment|support)(?:\/|$))/.test(
       url.pathname,
     )
   )

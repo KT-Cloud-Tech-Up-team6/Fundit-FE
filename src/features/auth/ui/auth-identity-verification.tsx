@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+
+import { Icon } from "@/shared/components/ui/icon";
+
 import { AuthButton } from "./auth-form-controls";
 import { AuthBottomAction, AuthTitle } from "./auth-screen";
 
@@ -73,14 +79,38 @@ export function AuthIdentityVerification({
   const copy = copyByStatus[status];
   const isPending = isPendingIdentityStatus(status);
 
+  const isRetry = isRetryIdentityStatus(status);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  /* 이 영역은 상태가 바뀌는 순간 처음 마운트되기도 한다. 라이브 영역은 초기 내용을 읽어주지
+     않으므로, 화면 전환을 알리도록 포커스를 옮긴다. */
+  useEffect(() => {
+    statusRef.current?.focus();
+  }, [status]);
+
   return (
     <>
-      <div aria-busy={isPending} aria-live="polite">
+      <div
+        aria-busy={isPending}
+        aria-live="polite"
+        className="flex flex-col items-center pt-6 text-center outline-none"
+        ref={statusRef}
+        tabIndex={-1}
+      >
+        {/* 인증 완료 화면과 같은 가운데 정렬이다. 진행 중은 회전 인디케이터, 재시도가 필요한
+            상태는 경고 아이콘으로 결과를 먼저 보여주고 문장은 보조로 둔다. */}
+        {isPending ? (
+          <span className="border-w-xl border-border-default border-t-border-primary mb-10 size-11 animate-spin rounded-full" />
+        ) : isRetry ? (
+          /* 사용자가 직접 취소한 경우는 오류가 아니므로 경고색을 쓰지 않는다. */
+          <Icon
+            className={`mb-10 size-11 ${status === "cancelled" ? "text-text-secondary" : "text-text-warning"}`}
+            name="warning"
+          />
+        ) : null}
         <AuthTitle>{copy.title}</AuthTitle>
-        <p className="text-body-m mt-3 whitespace-pre-line">{description}</p>
-        <div className="bg-layer-surface-disabled text-body-m mt-12 flex min-h-[118px] items-center justify-center rounded-sm px-6 text-center">
-          {copy.status}
-        </div>
+        <p className="text-body-m text-text-secondary mt-3 whitespace-pre-line">{description}</p>
+        <p className="text-caption-s text-text-secondary mt-8">{copy.status}</p>
       </div>
       <AuthBottomAction>
         <AuthButton disabled={actionDisabled || isPending} onClick={onAction}>

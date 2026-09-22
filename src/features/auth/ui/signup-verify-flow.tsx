@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useId, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { requestIdentityVerification } from "@/features/auth/api/portone-identity-adapter";
@@ -11,22 +11,22 @@ import { verifyIdentity } from "@/features/auth/api/auth-api";
 import type { IdentityDraft } from "@/features/auth/api/auth-types";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
 import {
-  clearIdentityRecoverySession,
+  clearIdentityRecoverySessionIfCurrent,
   saveIdentityRecoverySession,
 } from "@/features/auth/model/auth-flow-session";
 import { isApiError } from "@/shared/api/api-error";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
-import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
+import { AuthIdentityVerification } from "./auth-identity-verification";
 import type { IdentityStatus } from "./auth-identity-verification";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 
-export type SignupVerifyView = IdentityStatus | "information" | "done";
+/* 본인정보를 받은 즉시 PortOne을 열기 때문에 회원가입에는 안내만 하는 ready 화면이 없다. */
+export type SignupVerifyView = Exclude<IdentityStatus, "ready"> | "information" | "done";
 
 /* 제목·상태 문구·버튼 라벨은 AuthIdentityVerification이 소유한다. 여기서는 회원가입
    맥락에서만 달라지는 안내 문구를 준다. */
-const descriptionByStatus: Record<IdentityStatus, string> = {
-  ready: "안전한 가입을 위해\n휴대폰 본인인증이 필요해요.",
+const descriptionByStatus: Record<Exclude<IdentityStatus, "ready">, string> = {
   requesting: "열린 인증 창에서\n본인인증을 완료해 주세요.",
   cancelled: "회원가입을 계속하려면\n본인인증을 다시 진행해 주세요.",
   failed: "인증 과정에서 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
@@ -34,6 +34,18 @@ const descriptionByStatus: Record<IdentityStatus, string> = {
   "verification-failed":
     "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
 };
+
+/* aria-label이 label 요소보다 우선하므로 두 값이 갈라지지 않게 한 곳에서만 정의한다.
+   aria-label은 AuthInput이 지우기 버튼 이름을 만드는 데도 쓴다. */
+const fieldLabels = { birthDate: "생년월일", name: "이름", phoneNumber: "휴대폰 번호" } as const;
+
+function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
+  return (
+    <label className="text-label-l text-text-default mb-2 block" htmlFor={htmlFor}>
+      {children}
+    </label>
+  );
+}
 
 type SignupVerifyFlowProps = {
   initialView?: SignupVerifyView;
@@ -43,6 +55,7 @@ type SignupVerifyFlowProps = {
    본인정보를 직접 받고, 같은 draft를 PortOne prefill과 최종 가입 요청에 사용한다. */
 export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFlowProps) {
   const router = useRouter();
+  const fieldId = useId();
   const {
     identityDraft,
     selectedTermCodes,
@@ -58,6 +71,13 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   const [draft, setDraft] = useState<IdentityDraft>(
     identityDraft ?? { birthDate: "", name: "", phoneNumber: "" },
   );
+  /* 인증이 끝나기 전에 뒤로 가거나 다시 제출하면 앞선 요청의 결과는 버린다.
+     남겨두면 수정 중인 폼을 덮고, 고치기 전 draft로 가입이 이어진다. */
+  const runIdRef = useRef(0);
+  function abandonVerification() {
+    runIdRef.current++;
+  }
+
   const identityMutation = useMutation({
     mutationFn: (input: { draft: IdentityDraft; redirectUrl: string }) =>
       requestIdentityVerification(input.draft, { redirectUrl: input.redirectUrl }),
@@ -65,6 +85,36 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   const verificationMutation = useMutation({
     mutationFn: (identityVerificationId: string) => verifyIdentity({ identityVerificationId }),
   });
+
+  /* 본인정보를 받은 직후 바로 인증창을 연다. 취소·실패 뒤 "다시 시도"도 같은 경로로 즉시 다시 연다. */
+  async function startVerification(input: IdentityDraft) {
+    const runId = ++runIdRef.current;
+    const current = () => runId === runIdRef.current;
+    setView("requesting");
+    /* 모바일에서는 이 호출이 페이지 전체 리다이렉트로 이어질 수 있어, 이 함수가 이어서
+       실행된다는 보장 없이 미리 복구용 정보를 남겨둔다. 같은 페이지에서 끝나면 아래에서
+       바로 지운다. */
+    saveIdentityRecoverySession({ agreedTerms: selectedTermCodes, identityDraft: input });
+    try {
+      const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
+      const identityResult = await identityMutation.mutateAsync({ draft: input, redirectUrl });
+      clearIdentityRecoverySessionIfCurrent(current);
+      if (!current()) return;
+      if (identityResult.status === "cancelled") {
+        setView("cancelled");
+        return;
+      }
+      setView("verifying");
+      const result = await verificationMutation.mutateAsync(identityResult.identityVerificationId);
+      if (!current()) return;
+      setVerificationToken(result.verificationToken);
+      setView("done");
+    } catch (error) {
+      clearIdentityRecoverySessionIfCurrent(current);
+      if (!current()) return;
+      setView(isApiError(error) ? "verification-failed" : "failed");
+    }
+  }
 
   if (view === "information") {
     const valid =
@@ -75,61 +125,74 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     function submitInformation(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (!valid) return;
-      setIdentityDraft({ ...draft, name: draft.name.trim() });
-      setView("ready");
+      const verified = { ...draft, name: draft.name.trim() };
+      setIdentityDraft(verified);
+      void startVerification(verified);
     }
 
     return (
       <AuthScreen onBack={() => router.back()}>
         <AuthTitle>펀딧에 오신 걸 환영해요</AuthTitle>
-        <p className="text-body-emphasis text-text-secondary mt-2">
-          계속하기 위해 본인확인을 진행해주세요
+        <p className="text-body-s text-text-secondary mt-3 whitespace-pre-line">
+          {"안전한 가입을 위해 휴대폰 본인인증이 필요해요.\n입력한 정보로 본인인증을 진행합니다."}
         </p>
-        <form className="mt-16 flex flex-col gap-6" onSubmit={submitInformation}>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">이름을 입력해주세요</h2>
-            <AuthInput
-              aria-label="이름"
-              autoComplete="name"
-              onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
-              onClear={() => setDraft((value) => ({ ...value, name: "" }))}
-              placeholder="이름"
-              value={draft.name}
-            />
+        <form className="mt-12 flex flex-1 flex-col" onSubmit={submitInformation}>
+          <div className="flex flex-col gap-5">
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-name`}>{fieldLabels.name}</AuthFieldLabel>
+              <AuthInput
+                aria-label={fieldLabels.name}
+                autoComplete="name"
+                id={`${fieldId}-name`}
+                onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
+                onClear={() => setDraft((value) => ({ ...value, name: "" }))}
+                placeholder="실명을 입력해 주세요"
+                value={draft.name}
+              />
+            </div>
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-birth`}>{fieldLabels.birthDate}</AuthFieldLabel>
+              <AuthInput
+                aria-label={fieldLabels.birthDate}
+                autoComplete="bday"
+                id={`${fieldId}-birth`}
+                max="9999-12-31"
+                onChange={(event) =>
+                  setDraft((value) => ({ ...value, birthDate: event.target.value }))
+                }
+                type="date"
+                value={draft.birthDate}
+              />
+            </div>
+            <div>
+              <AuthFieldLabel htmlFor={`${fieldId}-phone`}>
+                {fieldLabels.phoneNumber}
+              </AuthFieldLabel>
+              <AuthInput
+                aria-label={fieldLabels.phoneNumber}
+                autoComplete="tel"
+                id={`${fieldId}-phone`}
+                inputMode="numeric"
+                onChange={(event) =>
+                  setDraft((value) => ({
+                    ...value,
+                    phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 11),
+                  }))
+                }
+                onClear={() => setDraft((value) => ({ ...value, phoneNumber: "" }))}
+                placeholder="'-' 없이 숫자만 입력해 주세요"
+                value={draft.phoneNumber}
+              />
+            </div>
           </div>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">생년월일을 입력해주세요</h2>
-            <AuthInput
-              aria-label="생년월일"
-              autoComplete="bday"
-              max="9999-12-31"
-              onChange={(event) =>
-                setDraft((value) => ({ ...value, birthDate: event.target.value }))
-              }
-              type="date"
-              value={draft.birthDate}
-            />
-          </div>
-          <div>
-            <h2 className="text-title-s text-text-default mb-3">휴대폰 번호를 입력해주세요</h2>
-            <AuthInput
-              aria-label="휴대폰 번호"
-              autoComplete="tel"
-              inputMode="numeric"
-              onChange={(event) =>
-                setDraft((value) => ({
-                  ...value,
-                  phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 11),
-                }))
-              }
-              onClear={() => setDraft((value) => ({ ...value, phoneNumber: "" }))}
-              placeholder="휴대폰 번호 ('-' 제외)"
-              value={draft.phoneNumber}
-            />
-          </div>
-          <AuthButton disabled={!valid} type="submit">
-            다음
-          </AuthButton>
+          <AuthBottomAction>
+            <p className="text-caption-s text-text-secondary mb-3 text-center">
+              버튼을 누르면 포트원 본인인증 화면이 열립니다.
+            </p>
+            <AuthButton disabled={!valid} type="submit">
+              본인인증하기
+            </AuthButton>
+          </AuthBottomAction>
         </form>
       </AuthScreen>
     );
@@ -159,48 +222,18 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
 
   const status = view;
 
-  async function handleAction() {
-    if (isRetryIdentityStatus(status)) {
-      setView("ready");
-      return;
-    }
-
-    if (!identityDraft) {
-      setView("information");
-      return;
-    }
-
-    setView("requesting");
-    /* 모바일에서는 이 호출이 페이지 전체 리다이렉트로 이어질 수 있어, 이 함수가 이어서
-       실행된다는 보장 없이 미리 복구용 정보를 남겨둔다. 같은 페이지에서 끝나면 아래에서
-       바로 지운다. */
-    saveIdentityRecoverySession({ agreedTerms: selectedTermCodes, identityDraft });
-    try {
-      const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
-      const identityResult = await identityMutation.mutateAsync({
-        draft: identityDraft,
-        redirectUrl,
-      });
-      clearIdentityRecoverySession();
-      if (identityResult.status === "cancelled") {
-        setView("cancelled");
-        return;
-      }
-      setView("verifying");
-      const result = await verificationMutation.mutateAsync(identityResult.identityVerificationId);
-      setVerificationToken(result.verificationToken);
-      setView("done");
-    } catch (error) {
-      clearIdentityRecoverySession();
-      setView(isApiError(error) ? "verification-failed" : "failed");
-    }
-  }
-
   return (
-    <AuthScreen onBack={() => setView("information")}>
+    <AuthScreen
+      onBack={() => {
+        abandonVerification();
+        setView("information");
+      }}
+    >
       <AuthIdentityVerification
         description={descriptionByStatus[status]}
-        onAction={() => void handleAction()}
+        onAction={() =>
+          identityDraft ? void startVerification(identityDraft) : setView("information")
+        }
         status={status}
       />
     </AuthScreen>

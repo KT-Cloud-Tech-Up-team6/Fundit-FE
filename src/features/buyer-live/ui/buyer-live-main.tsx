@@ -87,17 +87,18 @@ function StatusBadge({
   );
 }
 
-/* pending을 주면 전체보기를 비활성으로 남긴다. 신규·순위·팔로우·알림함은
-   화면 원본이 없어 목적지가 미정이라 현재는 모두 pending이다. 목적지가 정해지면
-   그 자리에 TextLink를 둔다. */
+/* pending을 주면 전체보기를 비활성으로 남긴다. 목적지가 정해진 섹션은
+   viewAllHref로 실제 이동 링크를 전달한다. */
 function Section({
   title,
   pending = false,
+  viewAllHref,
   children,
   className = "",
 }: {
   title: string;
   pending?: boolean;
+  viewAllHref?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -108,11 +109,15 @@ function Section({
     >
       <div className="flex h-7 items-center justify-between gap-2">
         <h2 className="text-title-m text-text-title min-[1200px]:text-heading-l">{title}</h2>
-        {pending && (
+        {viewAllHref ? (
+          <Link href={viewAllHref} className={textButtonNavigationClasses}>
+            전체보기
+          </Link>
+        ) : pending ? (
           <PendingDestination label={title + " 전체보기"} className={textButtonNavigationClasses}>
             전체보기
           </PendingDestination>
-        )}
+        ) : null}
       </div>
       {children}
     </section>
@@ -504,7 +509,11 @@ export function BuyerLiveMain({
         </div>
         <div className="bg-layer-surface-default flex flex-col gap-10 px-5 pt-4 pb-10 min-[1200px]:contents">
           {!upcoming && hasFollowing && (
-            <Section className="min-[1200px]:order-3" title="팔로우한 판매자" pending>
+            <Section
+              className="min-[1200px]:order-3"
+              title="팔로우한 판매자"
+              viewAllHref="/my/wishlist?tab=sellers"
+            >
               <div
                 {...followingDrag}
                 tabIndex={0}
