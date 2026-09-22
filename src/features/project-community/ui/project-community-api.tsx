@@ -14,9 +14,15 @@ import {
   noticeTypes,
 } from "@/entities/project/api/project-management-api";
 import { NoticeDetail } from "./notice-detail";
+import { formatNoticeDate } from "../model/notice-date";
 import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
+import { FormField } from "@/shared/components/ui/form-field";
 import { Input } from "@/shared/components/ui/input";
+import { Pagination } from "@/shared/components/ui/pagination";
+import { Select } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 
 function ContentForm({
   initial = "",
@@ -79,6 +85,129 @@ function ContentForm({
       )}
       {mutation.isSuccess && <p role="status">등록했습니다.</p>}
     </form>
+  );
+}
+
+function NoticeComposer({
+  projectId,
+  onCreated,
+}: {
+  projectId: string;
+  onCreated: () => Promise<void>;
+}) {
+  const [noticeType, setNoticeType] = useState("REWARD_INFO");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [touched, setTouched] = useState({ title: false, content: false });
+  const mutation = useMutation({
+    mutationFn: () =>
+      createNotice(projectId, {
+        noticeType,
+        title: title.trim(),
+        content: content.trim(),
+      }),
+    onSuccess: async () => {
+      setTitle("");
+      setContent("");
+      setTouched({ title: false, content: false });
+      await onCreated();
+    },
+  });
+  const titleError = touched.title && !title.trim();
+  const contentError = touched.content && !content.trim();
+  const valid = Boolean(title.trim() && content.trim());
+
+  return (
+    <section className="border-w-xs border-border-default overflow-hidden rounded-xs">
+      <header className="bg-layer-bg border-border-default border-b px-4 py-3">
+        <h2 className="text-title-s">새 소식 작성</h2>
+        <p className="text-caption-s text-text-secondary mt-1">
+          프로젝트 진행 상황과 후원자에게 필요한 안내를 등록해주세요.
+        </p>
+      </header>
+      <form
+        className="space-y-4 p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setTouched({ title: true, content: true });
+          if (valid && !mutation.isPending) mutation.mutate();
+        }}
+      >
+        <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+          <FormField htmlFor="notice-type" label="유형">
+            <Select
+              id="notice-type"
+              size="md"
+              value={noticeType}
+              disabled={mutation.isPending}
+              onChange={(event) => setNoticeType(event.target.value)}
+            >
+              {Object.entries(noticeTypes).map(([value, label]) => (
+                <option value={value} key={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField
+            htmlFor="notice-title"
+            label="제목"
+            errorMessage={titleError ? "새 소식 제목을 입력해주세요." : undefined}
+          >
+            <Input
+              id="notice-title"
+              maxLength={100}
+              placeholder="제목을 입력해주세요"
+              value={title}
+              disabled={mutation.isPending}
+              error={titleError}
+              aria-describedby={titleError ? "notice-title-error" : undefined}
+              onChange={(event) => setTitle(event.target.value)}
+              onBlur={() => setTouched((current) => ({ ...current, title: true }))}
+            />
+          </FormField>
+        </div>
+        <FormField
+          htmlFor="notice-content"
+          label="내용"
+          errorMessage={contentError ? "새 소식 내용을 입력해주세요." : undefined}
+        >
+          <Textarea
+            id="notice-content"
+            aria-describedby={contentError ? "notice-content-error" : undefined}
+            className="min-h-40"
+            maxLength={3000}
+            placeholder="후원자에게 전달할 내용을 입력해주세요"
+            value={content}
+            disabled={mutation.isPending}
+            error={contentError}
+            onChange={(event) => setContent(event.target.value)}
+            onBlur={() => setTouched((current) => ({ ...current, content: true }))}
+          />
+        </FormField>
+        <div className="flex flex-col items-end gap-2">
+          <Button
+            type="submit"
+            appearance="cta"
+            size="md"
+            className="w-full sm:w-45"
+            disabled={!valid || mutation.isPending}
+          >
+            {mutation.isPending ? "등록 중" : "새 소식 등록"}
+          </Button>
+          {mutation.isError && (
+            <p role="alert" className="text-caption-s text-text-warning">
+              새 소식을 등록하지 못했습니다. 입력 내용을 확인하고 다시 시도해주세요.
+            </p>
+          )}
+          {mutation.isSuccess && (
+            <p role="status" className="text-caption-s text-text-secondary">
+              새 소식을 등록했습니다.
+            </p>
+          )}
+        </div>
+      </form>
+    </section>
   );
 }
 
@@ -178,7 +307,7 @@ export function ProjectCommunityApi({
     router.push(`/seller/projects/${projectId}?${params}`);
   }
   const postsKey = ["project-community", state.user?.memberId, projectId];
-  const noticesKey = ["project-notices", projectId];
+  const noticesKey = ["seller-project-notices", projectId];
   const posts = useQuery({
     queryKey: [...postsKey, page, postType, answeredOnly],
     queryFn: ({ signal }) => getCommunityPosts(projectId, page, postType, answeredOnly, signal),
@@ -189,12 +318,23 @@ export function ProjectCommunityApi({
     queryFn: ({ signal }) => getNotices(projectId, page, signal),
     enabled: tab === "news",
   });
-  const [noticeType, setNoticeType] = useState("REWARD_INFO");
-  const [title, setTitle] = useState("");
+  const noticeTotalElements =
+    notices.data && Number.isFinite(notices.data.totalElements)
+      ? Math.max(0, notices.data.totalElements)
+      : (notices.data?.content.length ?? 0);
+  const noticeTotalPages =
+    notices.data && Number.isFinite(notices.data.totalPages) && notices.data.totalPages >= 1
+      ? Math.floor(notices.data.totalPages)
+      : notices.data?.hasNext
+        ? page + 2
+        : page + 1;
   const [expanded, setExpanded] = useState<number | null>(null);
   return (
-    <section className="max-w-198 space-y-4">
-      <h1 className="text-heading-l">{tab === "news" ? "새 소식" : "커뮤니티"}</h1>
+    <section className="w-full max-w-198">
+      <ProjectPageHeader
+        breadcrumb={["내 프로젝트", tab === "news" ? "새 소식" : "커뮤니티 관리"]}
+        title={tab === "news" ? "새 소식" : "커뮤니티"}
+      />
       {tab === "community" ? (
         <>
           <div className="flex gap-3">
@@ -261,88 +401,109 @@ export function ProjectCommunityApi({
           )}
         </>
       ) : (
-        <>
+        <div className="space-y-6">
           {notices.isPending ? (
-            <p role="status">새 소식을 불러오고 있습니다.</p>
-          ) : notices.isError ? (
-            <p role="alert">
-              새 소식 조회 실패.{" "}
-              <button type="button" onClick={() => void notices.refetch()}>
-                다시 시도
-              </button>
+            <p role="status" className="text-body-s text-text-secondary py-12 text-center">
+              새 소식을 불러오고 있습니다.
             </p>
+          ) : notices.isError ? (
+            <div className="border-w-xs border-border-default flex flex-col items-center gap-3 rounded-xs py-10">
+              <p role="alert" className="text-body-s text-text-secondary">
+                새 소식을 불러오지 못했습니다.
+              </p>
+              <Button size="md" variant="secondary" onClick={() => void notices.refetch()}>
+                다시 시도
+              </Button>
+            </div>
           ) : (
-            <>
-              {!notices.data.content.length && <p>새 소식이 없습니다.</p>}
-              {notices.data.content.map((notice) => (
-                <article
-                  key={notice.noticeId}
-                  className="border-border-default rounded-xs border p-4"
-                >
-                  <h2 className="text-title-s">{notice.title}</h2>
-                  <p className="text-caption-s">
-                    {noticeTypes[notice.noticeType as keyof typeof noticeTypes] ??
-                      notice.noticeType}
-                  </p>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setExpanded(expanded === notice.noticeId ? null : notice.noticeId)
-                    }
-                    aria-expanded={expanded === notice.noticeId}
-                  >
-                    본문·댓글 보기
-                  </Button>
-                  {expanded === notice.noticeId && (
-                    <>
-                      <NoticeDetail
-                        key={`${state.user?.memberId}:${notice.noticeId}`}
-                        noticeId={notice.noticeId}
-                        projectId={projectId}
-                      />
-                      <NoticeComments noticeId={notice.noticeId} />
-                    </>
-                  )}
-                </article>
-              ))}
-              <PageButtons
-                page={page}
-                hasNext={notices.data.hasNext}
-                onChange={(next) => navigate({ page: String(next + 1) })}
+            <section aria-labelledby="notice-list-title">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 id="notice-list-title" className="text-title-s">
+                  등록된 새 소식
+                </h2>
+                <p className="text-caption-s text-text-secondary">
+                  총 {noticeTotalElements.toLocaleString("ko-KR")}건
+                </p>
+              </div>
+              <div className="border-w-xs border-border-default overflow-hidden rounded-xs">
+                {!notices.data.content.length ? (
+                  <div className="flex min-h-36 flex-col items-center justify-center gap-1 px-4 text-center">
+                    <p className="text-body-strong">등록된 새 소식이 없습니다.</p>
+                    <p className="text-caption-s text-text-secondary">
+                      아래 작성 영역에서 첫 소식을 등록해보세요.
+                    </p>
+                  </div>
+                ) : (
+                  notices.data.content.map((notice) => {
+                    const isExpanded = expanded === notice.noticeId;
+                    return (
+                      <article
+                        key={notice.noticeId}
+                        className="border-border-default border-b last:border-b-0"
+                      >
+                        <div className="flex items-center gap-4 px-4 py-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                              <Badge size="sm" variant="neutral" shape="rounded">
+                                {noticeTypes[notice.noticeType as keyof typeof noticeTypes] ??
+                                  notice.noticeType}
+                              </Badge>
+                              <time
+                                className="text-caption-s text-text-secondary"
+                                dateTime={notice.createdAt}
+                              >
+                                {formatNoticeDate(notice.createdAt)}
+                              </time>
+                            </div>
+                            <h3 className="text-body-strong truncate" title={notice.title}>
+                              {notice.title}
+                            </h3>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="shrink-0"
+                            onClick={() => setExpanded(isExpanded ? null : notice.noticeId)}
+                            aria-expanded={isExpanded}
+                          >
+                            {isExpanded ? "접기" : "내용 보기"}
+                          </Button>
+                        </div>
+                        {isExpanded && (
+                          <div className="bg-layer-bg border-border-default border-t px-4 py-3">
+                            <NoticeDetail
+                              key={`${state.user?.memberId}:${notice.noticeId}`}
+                              noticeId={notice.noticeId}
+                              projectId={projectId}
+                            />
+                            <NoticeComments noticeId={notice.noticeId} />
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })
+                )}
+              </div>
+              <Pagination
+                currentPage={page + 1}
+                totalPages={noticeTotalPages}
+                buildHref={(nextPage) => {
+                  const params = new URLSearchParams(search.toString());
+                  params.set("tab", "news");
+                  params.set("page", String(nextPage));
+                  return `/seller/projects/${projectId}?${params}`;
+                }}
               />
-            </>
+            </section>
           )}
-          <div className="border-border-default rounded-xs border p-4">
-            <h2 className="text-title-s">새 소식 작성</h2>
-            <ContentForm
-              label="새 소식 등록"
-              validationError={title.trim() ? "" : "새 소식 제목을 입력해주세요."}
-              onSubmit={async (content) => {
-                await createNotice(projectId, { noticeType, title: title.trim(), content });
-                setTitle("");
-                navigate({ page: "1" });
-                await cache.invalidateQueries({ queryKey: noticesKey });
-              }}
-            >
-              <label>
-                유형{" "}
-                <select value={noticeType} onChange={(event) => setNoticeType(event.target.value)}>
-                  {Object.entries(noticeTypes).map(([value, label]) => (
-                    <option value={value} key={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Input
-                aria-label="새 소식 제목"
-                maxLength={100}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </ContentForm>
-          </div>
-        </>
+          <NoticeComposer
+            projectId={projectId}
+            onCreated={async () => {
+              navigate({ page: "1" });
+              await cache.invalidateQueries({ queryKey: noticesKey });
+            }}
+          />
+        </div>
       )}
     </section>
   );

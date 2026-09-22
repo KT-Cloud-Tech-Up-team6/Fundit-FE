@@ -5,6 +5,8 @@ import {
   answerCommunityPost,
   createNotice,
   createNoticeComment,
+  getNoticeComments,
+  getNoticeDetail,
   getNotices,
   updateNotice,
 } from "./project-management-api.ts";
@@ -61,8 +63,26 @@ test("새 소식과 댓글은 다른 서버 경로로 등록하고 권한 실패
   assert.equal(calls[0][0], "/api/v1/projects/project-uuid/notices");
   assert.equal(calls[1][0], "/api/v1/notices/41/comments");
   assert.match(calls[2][0], /page=2.*sort=LATEST/);
+  assert.equal(new Headers(calls[2][1].headers).get("Authorization"), "Bearer test");
   t.mock.method(globalThis, "fetch", async () =>
     Response.json({ code: "FORBIDDEN" }, { status: 403 }),
   );
   await assert.rejects(answerCommunityPost(731, "답변"), { status: 403 });
+});
+
+test("판매자 새 소식 조회만 인증 헤더를 사용한다", async (t) => {
+  authTokenStore.set("seller-token");
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls.push([url, init]);
+    return Response.json({ content: [], page: 0, totalPages: 1, totalElements: 0, hasNext: false });
+  });
+
+  await getNoticeDetail(41, undefined, true);
+  await getNoticeComments(41, 0);
+  await getNoticeDetail(41);
+
+  assert.equal(new Headers(calls[0][1].headers).get("Authorization"), "Bearer seller-token");
+  assert.equal(new Headers(calls[1][1].headers).get("Authorization"), "Bearer seller-token");
+  assert.equal(new Headers(calls[2][1].headers).get("Authorization"), null);
 });
