@@ -9,9 +9,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/", destination: "/live", permanent: false }];
   },
-  /* BE(gateway)를 같은 origin으로 프록시해 CORS·SameSite 쿠키 문제를 피한다.
-     API_PROXY_TARGET은 build 시 읽히므로, 프록시 이미지에는 Docker build arg로 전달한다.
-     사용 시 NEXT_PUBLIC_API_BASE_URL은 비워 둔다. */
+  /* 로컬에서 BE(gateway)를 같은 origin으로 프록시해 CORS·SameSite 쿠키 문제를 피한다.
+     API_PROXY_TARGET이 없으면 꺼진다(운영 영향 없음). 사용 시 NEXT_PUBLIC_API_BASE_URL은 비워 둔다. */
   async rewrites() {
     const target = process.env.API_PROXY_TARGET;
     return target ? [{ source: "/api/:path*", destination: `${target}/api/:path*` }] : [];
