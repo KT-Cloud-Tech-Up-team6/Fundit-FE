@@ -300,7 +300,9 @@ export function LiveCueSheetFlow({
         }}
       >
         <div
-          className={`${styles.frame} ${step === "generating" || step === "ready" ? styles.loading : ""}`}
+          className={`${styles.frame} ${
+            step === "generating" || step === "ready" || step === "failed" ? styles.loading : ""
+          }`}
         >
           <header className="grid grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-2">
             <span />
@@ -350,10 +352,13 @@ export function LiveCueSheetFlow({
               <p className="text-body-s text-text-secondary max-w-md break-words">
                 {generation?.failureReason || "잠시 후 다시 시도해 주세요."}
               </p>
+              {/* 직전 조건(유형·길이)이 남아 있으면 그대로 다시 요청한다. 유형을 고르려고
+                  돌아가는 건 실패했을 때 사용자가 원하는 동작이 아니다. 조건이 비어 있을
+                  때만 선택 화면으로 보낸다. */}
               <Button
                 size="md"
                 className="text-body-s! h-10! w-36"
-                onClick={() => setStep("options")}
+                onClick={() => (type && minutes >= 1 ? generate() : setStep("options"))}
               >
                 다시 시도
               </Button>
