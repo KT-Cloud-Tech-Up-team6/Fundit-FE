@@ -60,8 +60,9 @@ test("failUrl 쿼리는 실패로, 쿼리가 없으면 none으로 해석한다",
 });
 
 test("승인 실패는 확정 오류만 재결제를 권하고 결과 불명은 확인을 먼저 안내한다", () => {
-  for (const code of ["PAYMENT_AMOUNT_MISMATCH", "PG_CONFIRM_FAILED", "PAYMENT_EXPIRED"])
+  for (const code of ["PAYMENT_AMOUNT_MISMATCH", "PAYMENT_EXPIRED"])
     assert.equal(confirmOutcome(apiError(code, 422)).next, "retry", code);
+  assert.equal(confirmOutcome(apiError("PG_CONFIRM_FAILED", 422)).next, "recheck");
   assert.equal(confirmOutcome(apiError("PAYMENT_NOT_PENDING", 409)).next, "check");
   // BE가 ALREADY_PROCESSED_PAYMENT 등 Toss 4xx를 PG_CONFIRM_FAILED로 합치므로 미청구를 단정하지 않는다.
   assert.doesNotMatch(confirmOutcome(apiError("PG_CONFIRM_FAILED", 422)).message, /결제되지 않/);

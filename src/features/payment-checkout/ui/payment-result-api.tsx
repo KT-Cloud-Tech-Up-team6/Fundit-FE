@@ -99,7 +99,7 @@ function Result({ memberId, params }: { memberId: string; params: Params }) {
     if (reflected) router.replace(`/payment/result?orderId=${fundingId}`);
   }, [reflected, fundingId, router]);
 
-  if (params.kind === "confirm" && !confirmFailure) {
+  if (params.kind === "confirm" && !confirmFailure && !amountMismatch) {
     return (
       <PaymentShell title="결제 결과">
         {fundingId ? (

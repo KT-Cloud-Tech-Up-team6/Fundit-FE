@@ -65,7 +65,8 @@ const confirmMessages: Record<string, PaymentOutcome> = {
   PG_CONFIRM_FAILED: {
     message:
       "결제 승인에 실패했습니다. 카드 한도·잔액 등을 확인하고 다시 시도해주세요. 같은 문제가 반복되면 참여 내역에서 결제 여부를 확인해주세요.",
-    next: "retry",
+    // BE가 카드 거절과 이미 처리된 결제를 같은 코드로 합치므로 새 결제 전에 같은 paymentKey를 재확인한다.
+    next: "recheck",
   },
   PAYMENT_EXPIRED: {
     message: "결제 인증 유효 시간이 지났습니다. 다시 결제해주세요.",
