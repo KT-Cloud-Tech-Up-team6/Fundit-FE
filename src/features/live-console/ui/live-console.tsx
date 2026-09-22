@@ -6,6 +6,7 @@ import { SellerShell } from "@/shared/components/layout/seller-shell";
 import { useEffect, useId, useReducer, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
+import { getLiveDemoConnection } from "@/features/buyer-live/model/live-demo";
 import {
   consoleDemoReducer,
   createConsoleDemo,
@@ -27,9 +28,10 @@ export type ConsolePreview =
   | "cue-collapsed"
   | "ended"
   | "check"
-  | "check-detail";
+  | "check-detail"
+  | "added";
 type CheckDialog =
-  | { kind: "ended" | "check" }
+  | { kind: "ended" | "check" | "added" }
   | { kind: "detail"; questionId: string }
   | { kind: "originals"; questionId: string; returnTo: "check" | "detail" };
 
@@ -119,7 +121,7 @@ export function LiveConsole({
   const phase =
     initialView === "loading"
       ? "loading"
-      : ["ended", "check", "check-detail"].includes(initialView)
+      : ["ended", "check", "check-detail", "added"].includes(initialView)
         ? "ended"
         : "live";
   const [state, dispatch] = useReducer(consoleDemoReducer, phase, createConsoleDemo);
@@ -136,7 +138,9 @@ export function LiveConsole({
         ? { kind: "check" }
         : initialView === "check-detail"
           ? { kind: "detail", questionId: "vacuum" }
-          : null,
+          : initialView === "added"
+            ? { kind: "added" }
+            : null,
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [chat, setChat] = useState("");
@@ -145,6 +149,8 @@ export function LiveConsole({
   const chatListRef = useRef<HTMLDivElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const answered = demoQuestions.filter((q) => state.answers[q.id]);
+  /* 목업 화면이라 실제 프로젝트가 없다 — 구매자 쪽 데모 매핑을 그대로 빌려 상세페이지 링크를 만든다. */
+  const projectId = getLiveDemoConnection(liveId)?.projectId ?? "demo-project";
   const detail =
     dialog && "questionId" in dialog
       ? demoQuestions.find((q) => q.id === dialog.questionId)
@@ -341,8 +347,14 @@ export function LiveConsole({
         {dialog && (
           <ConsoleDialog
             key={dialog.kind}
-            title={dialog.kind === "ended" ? "라이브 종료" : "LIVE 체크 추가"}
-            compact={dialog.kind === "ended"}
+            title={
+              dialog.kind === "ended"
+                ? "라이브 종료"
+                : dialog.kind === "added"
+                  ? "LIVE 체크 추가 완료"
+                  : "LIVE 체크 추가"
+            }
+            compact={dialog.kind === "ended" || dialog.kind === "added"}
             onClose={closeDialog}
             footer={
               dialog.kind === "ended" ? (
@@ -362,6 +374,25 @@ export function LiveConsole({
                     LIVE 체크 추가
                   </Button>
                 </>
+              ) : dialog.kind === "added" ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-10! flex-1"
+                    onClick={closeDialog}
+                  >
+                    나가기
+                  </Button>
+                  <Button
+                    href={`/projects/${projectId}?tab=live-proof`}
+                    size="sm"
+                    variant="primaryLive"
+                    className="h-10! flex-1"
+                  >
+                    상세페이지로
+                  </Button>
+                </>
               ) : dialog.kind === "check" || dialog.kind === "originals" ? (
                 <Button
                   size="sm"
@@ -371,10 +402,7 @@ export function LiveConsole({
                   onClick={() => {
                     dispatch({ type: "publish", ids: selectedIds });
                     setSelectedIds([]);
-                    closeDialog();
-                    setNotice(
-                      `목업 LIVE 체크 ${selectedIds.length}건을 생성했습니다. 실제 게시되지 않습니다.`,
-                    );
+                    setDialog({ kind: "added" });
                   }}
                 >
                   LIVE 체크 추가({selectedIds.length})
@@ -395,6 +423,12 @@ export function LiveConsole({
                 라이브가 종료되었습니다.
                 <br />
                 LIVE 체크에 추가하시겠습니까?
+              </p>
+            ) : dialog.kind === "added" ? (
+              <p className="text-body-m pt-4 text-center">
+                선택하신 Q&amp;A 추가가 완료되었습니다.
+                <br />
+                상세페이지의 LIVE 체크 탭으로 이동하시겠습니까?
               </p>
             ) : dialog.kind === "check" ? (
               <div className="flex min-h-full flex-col gap-3">
