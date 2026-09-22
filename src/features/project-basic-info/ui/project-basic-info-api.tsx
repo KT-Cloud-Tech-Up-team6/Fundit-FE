@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
@@ -12,6 +13,7 @@ import {
 } from "@/entities/project/api/seller-project-api";
 import { basicInfoRequest, businessCodes, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectBasicInfoForm } from "./project-basic-info-form";
+import { ProjectSavedModal } from "./project-saved-modal";
 import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
 import {
   ProjectSidebar,
@@ -37,7 +39,10 @@ export function ProjectBasicInfoApi({
     enabled: enabled && Boolean(projectId),
   });
   const saved = cache.getQueryData<BasicInfoResponse>(["seller-project-basic", owner, projectId]);
-  async function save(values: BasicInfoValues) {
+  /* 신규 생성 첫(임시저장 아닌) 저장 직후에만 완료 모달을 띄운다. 값이 있는 동안은
+     방금 만든 프로젝트 id를 들고 있다가 모달 버튼이 눌릴 때 이동한다. */
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  async function save(values: BasicInfoValues, partial = false) {
     if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
     const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
     const response = await saveProjectBasicInfo(id, basicInfoRequest(values));
@@ -48,9 +53,21 @@ export function ProjectBasicInfoApi({
       cache.invalidateQueries({ queryKey: ["seller-project-preview", owner, id] }),
     ]);
     if (!projectId) {
-      sessionStorage.removeItem(projectAttemptKey(owner));
-      router.replace(`/seller/projects/${id}?tab=basic-info`);
+      /* 완료 모달을 거치는 저장은 모달 버튼을 눌러 실제로 떠날 때까지 시도 키를 지우지 않는다.
+         새로고침 시에도 같은 프로젝트로 복귀시키는 createProjectOnce의 중복 생성 방지가
+         모달이 떠 있는 동안에도 계속 걸려 있어야 한다. */
+      if (partial) {
+        sessionStorage.removeItem(projectAttemptKey(owner));
+        router.replace(`/seller/projects/${id}?tab=basic-info`);
+      } else {
+        setCreatedId(id);
+      }
     }
+  }
+  function leaveAfterCreate(destination: "basic-info" | "story") {
+    if (!owner || !createdId) return;
+    sessionStorage.removeItem(projectAttemptKey(owner));
+    router.replace(`/seller/projects/${createdId}?tab=${destination}`);
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
   if (state.status === "guest") return <LoginRedirect />;
@@ -73,6 +90,12 @@ export function ProjectBasicInfoApi({
         <Link href="/seller/projects?status=draft" className="block py-4 underline">
           내 프로젝트 목록에서 생성 여부 확인
         </Link>
+        {createdId && (
+          <ProjectSavedModal
+            onLater={() => leaveAfterCreate("basic-info")}
+            onWriteStory={() => leaveAfterCreate("story")}
+          />
+        )}
       </>
     );
   const data = preview.data!;

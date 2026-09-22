@@ -67,12 +67,18 @@ export const PublishSelectedAnswers: Story = {
     const dialog = within(await canvas.findByRole("dialog"));
     await userEvent.click(dialog.getAllByRole("checkbox")[0]);
     await userEvent.click(dialog.getByRole("button", { name: "LIVE 체크 추가(1)" }));
-    await expect(canvas.getByRole("status")).toHaveTextContent(
-      "목업 LIVE 체크 1건을 생성했습니다.",
+    const added = within(await canvas.findByRole("dialog"));
+    await expect(added.getByText("LIVE 체크 추가 완료")).toBeVisible();
+    await expect(added.getByRole("link", { name: "상세페이지로" })).toHaveAttribute(
+      "href",
+      "/projects/demo-project?tab=live-proof",
     );
+    await userEvent.click(added.getByRole("button", { name: "나가기" }));
     await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
   },
 };
+
+export const CheckAdded: Story = { args: { initialView: "added" } };
 
 export const IndependentCuePanels: Story = {
   render: () => (
