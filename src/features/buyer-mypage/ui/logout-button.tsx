@@ -18,7 +18,8 @@ export function LogoutButton() {
       className={`${textButtonNavigationClasses} underline`}
       onClick={() => {
         setLeaving(true);
-        logout();
+        // 마이페이지는 회원 전용이라 그 자리에 남을 수 없다.
+        logout("/");
       }}
     >
       로그아웃 하기

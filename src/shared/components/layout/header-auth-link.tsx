@@ -38,6 +38,12 @@ export function HeaderAuthLink() {
      패치로 넓힌다. */
   const hash = useSyncExternalStore(subscribeToHashChange, getHash, getServerHash);
   const [loggingOut, setLoggingOut] = useState(false);
+  /* 회원 전용 화면에서 로그아웃하면 그 자리에 남을 수 없어 홈으로 보낸다. 공개 화면(프로젝트
+     상세·라이브·검색)에서는 보던 곳에 그대로 둔다.
+     ponytail: 게이트가 라우트가 아니라 화면 안(MemberAccess)에 있어 경로로 판단한다. 회원 전용
+     경로가 늘면 여기에 더한다. */
+  const memberOnly =
+    /^\/(my|seller|payment)(\/|$)/.test(pathname) || /^\/funding\/[^/]+\/checkout/.test(pathname);
 
   if (state.status === "checking") return null;
 
@@ -59,7 +65,7 @@ export function HeaderAuthLink() {
       className={`${textButtonNavigationClasses} underline`}
       onClick={() => {
         setLoggingOut(true);
-        logout();
+        logout(memberOnly ? "/" : undefined);
       }}
     >
       로그아웃
