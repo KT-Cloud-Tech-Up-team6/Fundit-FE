@@ -9,7 +9,7 @@ import {
   cancelOrder,
   orderStatusLabels,
 } from "@/entities/order/api/order-api";
-import { isConfirmed, sessionStore } from "@/features/payment-checkout/model/payment-attempt";
+import { isConfirmed, localStore } from "@/features/payment-checkout/model/payment-attempt";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
@@ -210,7 +210,7 @@ function Detail({
                   </Link>
                 )}
                 {detail.data.status === "PENDING" &&
-                  (isConfirmed(sessionStore(), fundingId) ? (
+                  (isConfirmed(localStore(), fundingId) ? (
                     <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
                   ) : (
                     <Button href={`/payment/${fundingId}`}>결제하기</Button>
