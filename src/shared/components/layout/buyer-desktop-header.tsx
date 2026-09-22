@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { HeaderAuthLink } from "./header-auth-link";
 import { HeaderWeb } from "./header-web";
 import { Icon } from "../ui/icon";
 import { setCategoryReturnPath } from "@/shared/lib/category-return-path";
@@ -34,6 +35,7 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
       }
       actions={
         <>
+          <HeaderAuthLink />
           <Link
             href="/my/wishlist"
             aria-label="관심 목록"
