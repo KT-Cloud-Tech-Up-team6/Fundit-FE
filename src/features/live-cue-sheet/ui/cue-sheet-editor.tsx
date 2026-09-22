@@ -13,6 +13,10 @@ type CueSheetEditorProps = {
   onBack: () => void;
   onRegenerate: () => void;
   onSave: () => void;
+  /** 서버 저장이 진행 중이면 저장 버튼을 잠근다. 데모 저장에는 쓰지 않는다. */
+  saving?: boolean;
+  /** 저장 결과 안내. 편집기를 닫지 않고 그 자리에서 보여준다. */
+  notice?: string;
 };
 
 export function CueSheetEditor({
@@ -22,6 +26,8 @@ export function CueSheetEditor({
   onBack,
   onRegenerate,
   onSave,
+  saving = false,
+  notice = "",
 }: CueSheetEditorProps) {
   const [selectedId, setSelectedId] = useState(scenes[0].id);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -38,11 +44,16 @@ export function CueSheetEditor({
   const start = scenes.slice(0, selectedIndex).reduce((total, scene) => total + scene.duration, 0);
   const total = scenes.reduce((sum, scene) => sum + scene.duration, 0);
 
+  /* 저장 중에는 편집을 막는다. 저장은 시작 시점의 scenes로 PATCH가 이미 나갔으므로,
+     그 뒤 고친 내용은 화면에만 남고 서버에는 없는데 "저장했습니다"가 뜬다. 편집 관문이
+     이 세 함수뿐이라 여기서 한 번 막으면 텍스트·제목·추가·순서가 모두 걸린다. */
   function updateScene(id: string, patch: Partial<CueScene>) {
+    if (saving) return;
     onChange(scenes.map((scene) => (scene.id === id ? { ...scene, ...patch } : scene)));
   }
 
   function moveScene(id: string, destination: number) {
+    if (saving) return;
     const index = scenes.findIndex((scene) => scene.id === id);
     if (index < 0 || destination < 0 || destination >= scenes.length) return;
     const next = [...scenes];
@@ -52,6 +63,7 @@ export function CueSheetEditor({
   }
 
   function addScene() {
+    if (saving) return;
     const duration = Math.floor(selected.duration / 2);
     if (!duration) return;
     const scene: CueScene = {
@@ -92,7 +104,7 @@ export function CueSheetEditor({
               return (
                 <li
                   key={scene.id}
-                  draggable={renaming !== scene.id}
+                  draggable={!saving && renaming !== scene.id}
                   onDragStart={(event) => {
                     event.dataTransfer.setData("text/plain", scene.id);
                     event.dataTransfer.effectAllowed = "move";
@@ -182,7 +194,8 @@ export function CueSheetEditor({
       <section className="relative min-w-0">
         <button
           type="button"
-          className="text-caption-s text-text-secondary mb-3 flex items-center gap-1 underline md:absolute md:-top-7 md:right-0"
+          disabled={saving}
+          className="text-caption-s text-text-secondary mb-3 flex items-center gap-1 underline disabled:opacity-50 md:absolute md:-top-7 md:right-0"
           onClick={() => {
             if (window.confirm("수정한 내용을 초기화하고 큐시트를 다시 생성할까요?"))
               onRegenerate();
@@ -261,14 +274,23 @@ export function CueSheetEditor({
             </button>
           </div>
         </div>
-        <div className="mt-5 flex justify-between gap-4">
-          <button type="button" className={`${styles.secondary} w-36`} onClick={onBack}>
+        <div className="mt-5 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            disabled={saving}
+            className={`${styles.secondary} w-36 disabled:opacity-50`}
+            onClick={onBack}
+          >
             뒤로가기
           </button>
+          <p role="status" className="text-caption-s text-text-secondary min-w-0 flex-1 text-right">
+            {saving ? "큐시트를 저장하고 있습니다." : notice}
+          </p>
           <Button
             variant="primaryLive"
             size="md"
             className="text-body-s! h-10! w-36"
+            disabled={saving}
             onClick={onSave}
           >
             저장하기
