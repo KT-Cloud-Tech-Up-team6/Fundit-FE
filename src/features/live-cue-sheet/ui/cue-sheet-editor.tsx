@@ -13,6 +13,10 @@ type CueSheetEditorProps = {
   onBack: () => void;
   onRegenerate: () => void;
   onSave: () => void;
+  /** 서버 저장이 진행 중이면 저장 버튼을 잠근다. 데모 저장에는 쓰지 않는다. */
+  saving?: boolean;
+  /** 저장 결과 안내. 편집기를 닫지 않고 그 자리에서 보여준다. */
+  notice?: string;
 };
 
 export function CueSheetEditor({
@@ -22,6 +26,8 @@ export function CueSheetEditor({
   onBack,
   onRegenerate,
   onSave,
+  saving = false,
+  notice = "",
 }: CueSheetEditorProps) {
   const [selectedId, setSelectedId] = useState(scenes[0].id);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -261,14 +267,18 @@ export function CueSheetEditor({
             </button>
           </div>
         </div>
-        <div className="mt-5 flex justify-between gap-4">
+        <div className="mt-5 flex items-center justify-between gap-4">
           <button type="button" className={`${styles.secondary} w-36`} onClick={onBack}>
             뒤로가기
           </button>
+          <p role="status" className="text-caption-s text-text-secondary min-w-0 flex-1 text-right">
+            {saving ? "큐시트를 저장하고 있습니다." : notice}
+          </p>
           <Button
             variant="primaryLive"
             size="md"
             className="text-body-s! h-10! w-36"
+            disabled={saving}
             onClick={onSave}
           >
             저장하기

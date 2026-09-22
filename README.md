@@ -139,7 +139,8 @@ Fundit-FE/
 | 판매자 | `/seller/projects`, `/seller/projects/new`                       | 프로젝트 목록·생성 화면과 목업                                                                 |
 | 판매자 | `/seller/projects/[projectId]?tab=...`                           | 기본정보·리워드·스토리·펀딩관리·제작배송 등. 탭별 구현 범위 상이                               |
 | 판매자 | `/seller/live`                                                   | LIVE 스튜디오의 상태 탭·빈 목록 화면                                                           |
-| 판매자 | `/seller/live/[liveId]/setup`, 같은 ID의 `/cue-sheet`·`/console` | LIVE 설정·큐시트·콘솔 화면과 목업                                                              |
+| 판매자 | `/seller/projects/[projectId]/live/new`                          | LIVE 생성·기본 설정 저장. 이어서 AI 큐시트를 생성할 수 있음                                    |
+| 판매자 | `/seller/live/[liveId]/setup`, 같은 ID의 `/cue-sheet`·`/console` | LIVE 설정·콘솔은 목업, 큐시트는 실제 API 연결(생성 중·성공·실패 구분)                          |
 | 판매자 | `/seller/live/[liveId]/review`                                   | 방송 후 검증·하이라이트 검수 placeholder                                                       |
 
 전체 URL과 접근 조건은 [라우팅 문서](./docs/ROUTING.md)를 확인하세요. 실제 인증·소유권 검증은 서버 연결 여부와 함께 확인해야 합니다.

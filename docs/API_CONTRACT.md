@@ -518,6 +518,28 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
 
+### 5.7. 판매자 LIVE 생성·설정·AI 큐시트 (#289)
+
+기준은 `KT-Cloud-Tech-Up-team6/Fundit-backend`의 `live-service` 공개 컨트롤러·DTO(`LiveController`, `LiveAiController`)다. `liveId`·`projectId`는 UUID이며 인가는 전부 **소유권 검증**이다.
+
+| 동작           | Method·Path                              | 요청 → 응답                                                                                                                                  |
+| -------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| LIVE 생성      | POST `/api/v1/lives`                     | `{projectId}` → 201 `{liveId, status}`. 생성 직후는 항상 `DRAFT`다.                                                                          |
+| 기본 설정 저장 | PATCH `/api/v1/lives/{liveId}/settings`  | `{category:{major,minor}?, introText?, thumbnailUrl?, scheduledStartAt?}` → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}` |
+| 큐시트 생성    | POST `/api/v1/lives/{liveId}/cue-sheet`  | `{mode, targetDurationSec, demoAvailable?, emphasisPoints?, tone?, mandatoryPhrases?}` → 202 `GENERATING`                                    |
+| 큐시트 조회    | GET `/api/v1/lives/{liveId}/cue-sheet`   | `{status, mode, totalDurationSec, segments, failureReason}`                                                                                  |
+| 큐시트 수정    | PATCH `/api/v1/lives/{liveId}/cue-sheet` | `{segments: [...]}` → 같은 조회 DTO                                                                                                          |
+
+- **부분 업데이트다.** `PATCH /settings`에서 보내지 않은 필드는 서버가 건드리지 않는다. 연결 프로젝트는 요청에 없다 — 요구사항정의서 6.2.4.1이 변경 불가로 정했고 바꾸려면 LIVE를 새로 만든다.
+- `introText`는 `@Size(max = 200)`이다. 화면 입력 제한도 같은 값을 쓴다.
+- `mode`는 `SCENARIO`·`SCRIPT`, `targetDurationSec`는 600초 이하다. 넘기면 400이고 이미 생성 중이면 409다.
+- **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이다.
+- `segments`는 **JSON 문자열**이다. BE가 AI 계약을 타입으로 박지 않고 그대로 저장·반환하므로 구조 확인은 FE 몫이다. 현재 구간은 `{id, title, duration, outline, script}`이며 `duration`은 초다.
+- 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
+- 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
+- **`liveId` 단건 조회 API가 없다.** `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404다. LIVE의 `projectId`가 필요한 화면은 `/lives/mine`에서 찾는다 — 단건 조회가 생기면 걷어낼 우회다.
+- 송출 시작(`POST /start`)은 스트림 키 조회 API가 없어 화면에 붙이지 않았다.
+
 ## 6. 최신 답변으로 정리한 차이
 
 아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.

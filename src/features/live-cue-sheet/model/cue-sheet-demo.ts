@@ -8,14 +8,20 @@ export type CueScene = {
   script: string;
 };
 
+/**
+ * 큐시트 화면이 보여주는 프로젝트 정보.
+ *
+ * 숫자 세 개가 `null`을 허용하는 이유: 실제 API로 연결하면 LIVE 하나에서 참여자 수·모금액을
+ * 주는 경로가 없다. 없는 값을 0으로 채우면 화면이 "0명·0원"이라는 사실과 다른 말을 한다.
+ */
 export type CueSheetProject = {
   title: string;
   category: string;
   period: string;
   description: string;
-  participantCount: number;
-  currentAmount: number;
-  goalAmount: number;
+  participantCount: number | null;
+  currentAmount: number | null;
+  goalAmount: number | null;
   reward?: string;
   image?: string;
 };

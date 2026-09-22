@@ -150,7 +150,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                                      |
 | `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                      |
 | `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                      |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                      |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | implemented                                      |
 | `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                      |
 | `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                      |
 | `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                      |

@@ -1,27 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
 import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { LiveCueSheetFlow } from "@/features/live-cue-sheet/ui/live-cue-sheet-flow";
+import { LIVE_INTRO_MAX_LENGTH } from "@/entities/live/model/live-settings";
 import styles from "./create-live.module.css";
+import { ProjectSummary, type LiveProjectSummary } from "./project-summary";
 import type { SavedCueSheet } from "@/features/live-cue-sheet/model/cue-sheet-demo";
 
-type PickableProject = {
-  id: string;
-  title: string;
-  category: string;
-  period: string;
-  participantCount: number;
-  currentAmount: number;
-  goalAmount: number;
-  image: string;
-};
+type PickableProject = LiveProjectSummary;
 
 /* ponytail: 와이어프레임 더미. 판매자 프로젝트 목록 API가 붙으면 통째로 걷어낸다.
    seller/projects/page.tsx의 mockProjects와 같은 이유로 필드 확정이 선행돼야 한다. */
@@ -70,55 +61,9 @@ const mockProjects: PickableProject[] = [
 
 const categories = ["테크·가전", "홈·리빙", "뷰티", "패션", "푸드", "스포츠"];
 
-const INTRO_MAX_LENGTH = 300;
-
-const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
-
-function ProjectSummary({
-  action,
-  project,
-}: {
-  action?: React.ReactNode;
-  project: PickableProject;
-}) {
-  return (
-    <div className="border-w-xs border-border-default flex items-center justify-between gap-3 rounded-xs p-3">
-      <div className="flex min-w-0 flex-1 gap-4">
-        {project.image ? (
-          <Image
-            src={project.image}
-            alt=""
-            width={82}
-            height={82}
-            className="size-[82px] shrink-0 rounded-xs object-cover"
-          />
-        ) : (
-          <span className="bg-layer-bg text-caption-s text-text-secondary flex size-[82px] shrink-0 items-center justify-center rounded-xs">
-            이미지 없음
-          </span>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-body-strong truncate">{project.title}</p>
-          <p className="text-caption-m text-text-secondary flex min-w-0 items-center gap-1 truncate">
-            <span>{project.category}</span>
-            <span aria-hidden>·</span>
-            <span className="truncate">{project.period}</span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <Icon name="people" className="size-3.5" />
-              {project.participantCount}명
-            </span>
-          </p>
-          <p className="mt-3 flex items-baseline gap-1">
-            <span className="text-title-s">{won(project.currentAmount)}</span>
-            <span className="text-body-s text-text-secondary">/ {won(project.goalAmount)}</span>
-          </p>
-        </div>
-      </div>
-      {action}
-    </div>
-  );
-}
+/* BE `LiveSettingsRequest.introText`가 200자까지만 받는다(#289에서 확인). 화면 제한도 같은
+   값을 쓴다 — 더 길게 입력받으면 저장 단계에서만 실패한다. */
+const INTRO_MAX_LENGTH = LIVE_INTRO_MAX_LENGTH;
 
 export function CreateLiveButton() {
   const [open, setOpen] = useState(false);
