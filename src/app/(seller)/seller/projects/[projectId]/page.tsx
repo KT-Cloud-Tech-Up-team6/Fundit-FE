@@ -26,7 +26,6 @@ const allowedTabs = new Set([
   "funding",
   "community",
   "fulfillment",
-  "settlement",
   "live",
 ]);
 
@@ -132,8 +131,8 @@ export default async function SellerProjectPage({
           <PagePlaceholder
             eyebrow="Seller · Project"
             title={`프로젝트 관리 · ${projectId}`}
-            description="커뮤니티·정산 탭은 아직 화면이 없어 자리만 잡아둡니다."
-            screenIds="FL_S_FD_COMM, FL_S_PR_CAL"
+            description="커뮤니티 탭은 아직 화면이 없어 자리만 잡아둡니다."
+            screenIds="FL_S_FD_COMM"
             access="owner"
             sections={[`${activeTab} 탭`]}
           />
