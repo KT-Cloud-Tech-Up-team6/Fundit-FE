@@ -1,12 +1,13 @@
 "use client";
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
+import { LoginRedirect } from "@/providers/login-redirect";
 import {
   getSellerRewards,
   saveReward as persistReward,
   deleteReward,
+  type RewardResponse,
 } from "@/entities/project/api/reward-api";
 import { uploadProjectMedia, ProjectMediaValidationError } from "@/entities/project/api/media-api";
 import { Button } from "@/shared/components/ui/button";
@@ -20,7 +21,7 @@ import {
   type RewardDraft,
   type DemoReward,
 } from "../model/basic-info-demo";
-import { rewardRequest, rewardToDraft } from "../model/reward-request";
+import { rewardOptionsError, rewardRequest, rewardToDraft } from "../model/reward-request";
 import { RewardFormModal } from "./reward-form-modal";
 import { createRewardOnce, RewardCreationUncertainError } from "../model/reward-create-attempt";
 
@@ -41,9 +42,11 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const pending = useRef(false),
     file = useRef<File | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const optionsChanged = useRef(false);
   function openReward(reward?: DemoReward) {
     if (pending.current) return;
     file.current = undefined;
+    optionsChanged.current = !reward;
     setEditing(reward?.id);
     setDraft(reward ?? emptyReward());
     setRewardMessage("");
@@ -55,7 +58,9 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   async function saveReward() {
     if (!draft || pending.current) return;
     const error =
-      rewardError(draft) || (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "");
+      rewardError(draft) ||
+      rewardOptionsError(draft) ||
+      (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "");
     if (error) {
       setRewardMessage(error);
       return;
@@ -66,14 +71,25 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
       const imageUrl = file.current
         ? await uploadProjectMedia(projectId, file.current, "image")
         : undefined;
-      const body = rewardRequest(draft, imageUrl);
+      const body = rewardRequest(draft, imageUrl, optionsChanged.current);
+      let saved: RewardResponse;
       if (editing === undefined) {
         if (!state.user?.memberId) throw new Error("로그인이 필요합니다.");
-        await createRewardOnce(sessionStorage, state.user.memberId, projectId, body);
+        saved = await createRewardOnce(sessionStorage, state.user.memberId, projectId, body);
       } else {
-        await persistReward(projectId, body, editing);
+        saved = await persistReward(projectId, body, editing);
       }
-      await cache.invalidateQueries({ queryKey });
+      cache.setQueryData<RewardResponse[]>(queryKey, (items = []) => {
+        const previous = items.find((item) => item.rewardId === saved.rewardId);
+        const updated = {
+          ...saved,
+          options: !optionsChanged.current && previous ? previous.options : saved.options,
+        };
+        return previous
+          ? items.map((item) => (item.rewardId === saved.rewardId ? updated : item))
+          : [...items, updated];
+      });
+      void cache.invalidateQueries({ queryKey });
       setDraft(null);
     } catch (error) {
       setRewardMessage(
@@ -103,12 +119,9 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
-  if (state.status !== "authenticated" || !state.user?.memberId)
-    return (
-      <p role="alert">
-        로그인이 필요합니다. <Link href="/auth/login">로그인</Link>
-      </p>
-    );
+  if (state.status === "guest") return <LoginRedirect />;
+  if (!state.user?.memberId)
+    return <p role="alert">회원 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.</p>;
   if (query.isPending) return <p role="status">리워드를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
@@ -255,9 +268,11 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
         error={rewardMessage}
         onClose={closeReward}
         onSave={() => void saveReward()}
-        onUpdate={(patch) => setDraft((value) => (value ? { ...value, ...patch } : value))}
+        onUpdate={(patch) => {
+          if ("options" in patch || "optionGroups" in patch) optionsChanged.current = true;
+          setDraft((value) => (value ? { ...value, ...patch } : value));
+        }}
         busy={busy}
-        optionsReadOnly
         onFile={(value) => {
           file.current = value;
         }}

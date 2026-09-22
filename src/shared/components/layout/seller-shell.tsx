@@ -13,7 +13,13 @@ const headerActions = [
   { name: "profile", label: "내 계정" },
 ] as const;
 
-export function SellerShell({ children }: { children: ReactNode }) {
+export function SellerShell({
+  children,
+  headerAction,
+}: {
+  children: ReactNode;
+  headerAction?: ReactNode;
+}) {
   return (
     <div className="bg-layer-surface-default min-h-screen">
       <HeaderWeb
@@ -36,12 +42,12 @@ export function SellerShell({ children }: { children: ReactNode }) {
                 key={action.name}
                 type="button"
                 aria-label={action.label}
-                className="hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex h-9 w-7 items-center justify-center rounded-xs focus-visible:outline-2"
+                className="flex size-9 items-center justify-center"
               >
-                <Icon name={action.name} className="size-5" />
+                <Icon name={action.name} className="size-6" />
               </button>
             ))}
-            <ModeSwitchLink mode="seller" />
+            {headerAction ?? <ModeSwitchLink mode="seller" />}
           </>
         }
       />

@@ -174,7 +174,7 @@ PowerShell에서는 `Copy-Item .env.example .env.local`을 사용합니다.
 | `NEXT_PUBLIC_PORTONE_STORE_ID`    | PortOne 본인인증용 공개 상점 식별자                                                                        |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | PortOne 본인인증용 공개 채널 식별자                                                                        |
 
-`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. 현재 Dockerfile·CI에는 이 값들의 빌드 인자 전달이 없으므로 실제 API 이미지 배포 전 환경별 주입 방식을 확정해야 합니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
+`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. PortOne 두 설정은 GitHub Repository Variables에서 Docker 빌드 인자로 전달합니다. 등록·재빌드 방법은 [컨테이너 배포 문서](./docs/CONTAINER_DEPLOYMENT.md#portone-본인인증-빌드-설정)를 따릅니다. API 주소 등 다른 공개 설정의 이미지 주입은 별도 범위입니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
 
 ## 사용 가능한 명령어
 

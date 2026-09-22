@@ -18,7 +18,7 @@ import { OriginalQuestions, QuestionManager, type ManagerView } from "./question
 import styles from "./console.module.css";
 
 export type ConsolePreview =
-  | "ready"
+  | "loading"
   | "live"
   | "aggregated"
   | "originals"
@@ -111,14 +111,14 @@ function CuePanel({ collapsed: initialCollapsed }: { collapsed: boolean }) {
 
 export function LiveConsole({
   liveId = "demo-live",
-  initialView = "ready",
+  initialView = "loading",
 }: {
   liveId?: string;
   initialView?: ConsolePreview;
 }) {
   const phase =
-    initialView === "ready"
-      ? "ready"
+    initialView === "loading"
+      ? "loading"
       : ["ended", "check", "check-detail"].includes(initialView)
         ? "ended"
         : "live";
@@ -176,7 +176,23 @@ export function LiveConsole({
   }
 
   return (
-    <SellerShell>
+    <SellerShell
+      headerAction={
+        <Button
+          variant="secondary"
+          size="md"
+          className="text-body-s h-10! gap-2 px-3!"
+          disabled={state.phase === "ended"}
+          onClick={() => {
+            dispatch({ type: "end" });
+            setDialog({ kind: "ended" });
+          }}
+        >
+          LIVE 종료
+          <Icon name="close" className="size-4" />
+        </Button>
+      }
+    >
       <div
         className={styles.console}
         ref={consoleRef}
@@ -212,7 +228,7 @@ export function LiveConsole({
               </button>
             </div>
             <div className="bg-layer-surface-disabled relative min-h-0 flex-1 p-3">
-              {state.phase !== "ready" && (
+              {state.phase !== "loading" && (
                 <Image
                   src="/images/seller-live/broadcast.png"
                   alt="LIVE 송출 예시"
@@ -246,7 +262,7 @@ export function LiveConsole({
               aria-label="판매자 채팅"
             >
               <div
-                className={`${state.phase === "ready" ? "bg-layer-surface-disabled" : "bg-layer-surface-default"} relative min-h-0 flex-1`}
+                className={`${state.phase === "loading" ? "bg-layer-surface-disabled" : "bg-layer-surface-default"} relative min-h-0 flex-1`}
               >
                 <span
                   aria-label={`채팅 ${state.messages.length}개`}

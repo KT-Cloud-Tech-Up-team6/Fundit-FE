@@ -59,7 +59,7 @@ Docker가 없는 환경에서 `pnpm build`와 standalone 서버 실행은 일부
 
 ## 환경변수와 인프라 인계
 
-현재 앱의 필수 환경변수는 없다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 이후 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다. `NEXT_PUBLIC_*`는 빌드 시 고정되므로, 도입 시 빌드 인자 및 환경별 이미지 정책을 함께 정해야 한다.
+화면 기동 검증은 실제 PortOne 설정 없이 가능하지만, 실제 본인인증과 main 이미지 발행에는 아래 두 공개 설정이 필요하다. `.env*`는 이미지 빌드 컨텍스트에 포함되지 않는다. 서버 비밀값은 배포 환경에서 주입하며 이미지에 넣지 않는다.
 
 인프라 팀에는 성공한 이미지 URI, Git SHA, 이미지 digest, 플랫폼, 컨테이너 포트, 환경변수 목록과 검증 결과를 전달한다. 별도의 이미지 tar 파일 전달은 필요하지 않다.
 
@@ -70,3 +70,24 @@ Docker가 없는 환경에서 `pnpm build`와 standalone 서버 실행은 일부
 - [Next.js standalone 출력](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
 - [GitHub Actions의 AWS OIDC 인증](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws).
 - [Docker 다단계 빌드](https://docs.docker.com/build/building/multi-stage/).
+
+## PortOne 본인인증 빌드 설정
+
+GitHub 저장소의 **Settings → Secrets and variables → Actions → Variables → New repository variable**에서 다음 이름으로 등록한다. Repository Variables를 사용하며, 같은 이름의 Secrets나 서버 실행 환경에만 등록한 값은 이 워크플로에서 읽지 않는다.
+
+- `NEXT_PUBLIC_PORTONE_STORE_ID`: 본인인증에 사용할 상점 ID.
+- `NEXT_PUBLIC_PORTONE_CHANNEL_KEY`: 해당 상점의 본인인증 채널 키.
+
+두 값은 브라우저에 공개되는 식별자다. PortOne 서버 API Secret을 넣지 않는다. 코드·PR 본문에 실제 값을 기록하지 않는다.
+
+main의 `publish-image`는 두 값이 비어 있으면 빌드와 ECR 업로드 전에 실패한다. 설정값은 Actions env → `docker build --build-arg` → Dockerfile builder ARG → `pnpm build` 순서로 전달된다. PR의 `verify-image`는 고정된 테스트용 값만 사용하므로 빌드 통과는 실제 PortOne 인증 성공을 뜻하지 않는다.
+
+로컬 개발은 `.env.local`에 두 값을 설정하고 개발 서버를 재시작한다. 로컬 Docker 빌드는 두 값을 현재 셸 환경변수에 설정한 후 다음과 같이 이름만 전달한다. `.env.local`을 Docker에 복사하지 않는다.
+
+```powershell
+docker build --platform linux/amd64 --build-arg NEXT_PUBLIC_PORTONE_STORE_ID --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY --tag fundit-frontend:local .
+```
+
+값을 바꾸면 새 이미지 빌드와 배포가 필요하다. Repository Variables 변경만으로 Actions가 자동 실행되지는 않는다. 기존 main push 실행의 `publish-image` 재실행 또는 새 main 커밋으로 이미지를 다시 빌드하고, 이미지 digest를 확인해 인프라 배포를 진행한다. 같은 커밋 재실행은 동일한 sha 태그를 사용하므로 인프라 담당자가 새 digest 반영을 확인한다. 컨테이너 런타임 env 변경이나 재시작만으로 이미 만들어진 브라우저 번들은 바뀌지 않는다.
+
+배포 후 실제 회원가입에서 PortOne 인증창/모바일 리다이렉트와 BE 인증 결과 검증까지 확인해야 한다. 이 작업은 #236의 회원가입 화면 변경과 독립적이며, 상점·채널·도메인 설정 및 BE 환경의 실제 유효성은 별도로 확인한다.

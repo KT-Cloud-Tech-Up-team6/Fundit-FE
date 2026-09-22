@@ -1,11 +1,8 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
-import {
-  getFundingStatus,
-  getWishStats,
-  getRewardNames,
-} from "@/entities/project/api/project-management-api";
+import { getFundingStatus, getWishStats } from "@/entities/project/api/project-management-api";
+import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
 import { FundingStatusBoard } from "./funding-status-board";
 
@@ -23,7 +20,7 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
   });
   const rewards = useQuery({
     queryKey: ["funding-reward-names", owner, id],
-    queryFn: ({ signal }) => getRewardNames(id, signal),
+    queryFn: ({ signal }) => getSellerRewards(id, signal),
   });
   if (status.isPending || wishes.isPending || rewards.isPending)
     return <p role="status">펀딩 현황을 불러오고 있습니다.</p>;
@@ -44,6 +41,19 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
       </p>
     );
   const data = status.data;
+  const rewardById = new Map(rewards.data.map((reward) => [reward.rewardId, reward]));
+  const optionLabels = new Map<string, string>();
+  for (const reward of rewards.data) {
+    for (const group of reward.options ?? []) {
+      for (const value of group.values) {
+        if (value.valueId !== null)
+          optionLabels.set(
+            `${reward.rewardId}:${value.valueId}`,
+            `${group.groupName}: ${value.value}`,
+          );
+      }
+    }
+  }
   return (
     <FundingStatusBoard
       summary={{
@@ -69,15 +79,17 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
               ? { label: "펀딩 실패", variant: "neutral" }
               : null,
       }}
-      rewards={data.rewardStats.map((stat) => ({
-        id: String(stat.rewardId),
-        name:
-          rewards.data.find((reward) => reward.rewardId === stat.rewardId)?.name ??
-          `리워드 ${stat.rewardId}`,
-        option: "—",
-        quantity: stat.purchasedQuantity,
-        amount: null,
-      }))}
+      rewards={data.rewardStats.map((stat) => {
+        const reward = rewardById.get(stat.rewardId);
+        const option = optionLabels.get(`${stat.rewardId}:${stat.optionValueId}`);
+        return {
+          id: `${stat.rewardId}:${stat.optionValueId ?? "total"}`,
+          name: reward?.name ?? `리워드 ${stat.rewardId}`,
+          option: stat.optionValueId === null ? "리워드 합계" : (option ?? "옵션 정보 없음"),
+          quantity: stat.purchasedQuantity,
+          amount: stat.purchasedAmount,
+        };
+      })}
     />
   );
 }

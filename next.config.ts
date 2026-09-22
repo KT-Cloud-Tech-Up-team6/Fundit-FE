@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/", destination: "/live", permanent: false }];
   },
+  /* 로컬에서 BE(gateway)를 같은 origin으로 프록시해 CORS·SameSite 쿠키 문제를 피한다.
+     API_PROXY_TARGET이 없으면 꺼진다(운영 영향 없음). 사용 시 NEXT_PUBLIC_API_BASE_URL은 비워 둔다. */
+  async rewrites() {
+    const target = process.env.API_PROXY_TARGET;
+    return target ? [{ source: "/api/:path*", destination: `${target}/api/:path*` }] : [];
+  },
 };
 
 export default nextConfig;

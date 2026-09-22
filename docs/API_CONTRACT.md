@@ -1,4 +1,18 @@
-# API 계약 초안
+﻿# API 계약 초안
+
+## 판매자 관리 조회 계약 보완 (#232)
+
+- 2026-09-21 BE develop `ae1e032`와 FE를 대조했다. 후속 `3d23bc7`은 LIVE 변경만 포함해 이 절의 계약은 동일하다. 실제 배포 응답 검증과 소스 대조를 구분한다.
+- preview의 `businessType`으로 사업자 유형을 복원한다. 리워드 목록의 `options`(groupId/groupName/values.valueId/value)를 복원하고 BE PR #108 계약에 따라 그룹 ID를 보존해 편집한다. 옵션 미변경은 생략, 전체 해제는 빈 배열로 전송한다. `simpleRefundDisabled`는 읽기 전용이다.
+- 공지 목록과 별개로 `GET /api/v1/notices/{noticeId}`의 `content`를 조회한다. BE PR #108의 PATCH로 소유 판매자가 제목·본문을 수정한다. 비공개 프로젝트의 GET 제한은 남아 있다.
+- 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId=null은 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다. 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
+
+## 검색·카테고리 카드의 공개 상세 연결 (#216)
+
+- 2026-09-21 BE develop `ae1e032`의 `ProjectCardProjection.projectPublicId`를 사용한다. 숫자 `projectId`는 카드 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
+- `/search`와 `/categories/{major}/{minor}`에서 유효한 UUID가 있는 카드만 `/projects/{UUID}`로 연결한다. 필드 누락·null·잘못된 값은 상세 연결 대기 상태를 유지하며 숫자 ID나 데모 ID로 대체하지 않는다.
+- 찜 목록 `WishListItemResponse`에는 공개 UUID가 없어 이번 연결 범위에서 제외한다. 검색 카드 UUID를 찜 ID 변환표로 사용하지 않는다.
+- 단위 테스트, lint, typecheck, production build와 격리 Playwright의 모바일 390×844·데스크톱 1440×900 검색/카테고리 클릭·새로고침·뒤로/앞으로가기·누락/잘못된 UUID·404 표시를 확인했다. API 응답은 계약 기반 fixture이며 실제 QA 배포·색인 데이터 연결은 미검증이다.
 
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
@@ -6,8 +20,8 @@
 - `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 첨부와 기록 수정 API는 없어 저장된 것처럼 처리하지 않는다.
 - `/my/fundings/{UUID}/fulfillment`와 `/history`는 내 주문 v1 목록을 페이지 순회해 프로젝트 UUID 관계를 확인한 뒤 제작·배송을 조회한다. 서버 `canConfirmReceipt`가 참일 때 수령 확인을 제공한다. 외부 택배 추적은 연결하지 않는다.
 - 단계 조회는 단계별 최신 상세 1건만 제공한다. 전체 기록 이력이 아닌 최신 기록과 별도의 일정 변경 이력을 표시한다. 미갱신 경고는 서버 `isUpdateOverdue`를 사용한다.
-- 송장 등록 API 클라이언트는 준비했지만 판매자 발송 대상 목록은 내부 API만 있어 UI 연결을 보류한다. `/seller/projects/{UUID}/shipping`에서 목업 주문의 송장을 실제 저장하지 않으며 임의 UUID 입력이나 내부 서비스 우회 호출을 제공하지 않는다.
-- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 목록 공개 API, 전체 기록/첨부 계약과 권한을 확인해야 한다.
+- 판매자 목록 `GET /api/v1/projects/{projectId}/orders`는 페이지 래퍼 없이 목표 달성 주문 배열을 반환하며 #232에서 배송 화면에 연결한다. orderId는 기존 shipment 경로의 fundingId UUID다. 다만 목록에 송장 정보가 없고 `ShipmentService.getShipment`는 구매자 본인만 허용하므로 판매자 송장 상태를 조회할 수 없다. 이 상태를 미발송으로 추정하지 않으며 송장 입력·등록 UI는 조회 계약 보완 전까지 비활성화한다. API 주문은 명시적인 읽기 전용 모드로 표시하며 상태별 필터는 비활성화하고 건수 대신 조회 불가를 안내한다. 전체 주문 검색은 유지한다. 기존 POST 등록 API 클라이언트는 유지한다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록/첨부 계약을 확인해야 한다.
 - 주문 생성 재시도는 사용자·프로젝트별로 요청 내용의 해시와 생성 결과를 보관합니다. 결제 대기 주문의 동일 요청만 재사용하며, 다른 요청은 기존 주문 확인·취소를 안내합니다. 서버에서 확인한 비대기 상태의 주문은 새 요청 결과로 재사용하지 않습니다. 결과가 불확실하거나 상태 조회가 실패하면 추가 생성하지 않습니다. 목표 달성 주문의 상세에서는 제작·배송 API 현황으로 이동합니다.
 
 ## 쿠폰 조건 표시·발급자별 선택 보완 (#218, #233)
@@ -411,6 +425,28 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 완료 callback 시 BE가 검증된 결과를 프로젝트에 저장한다. 별도 export/apply API는 없으며 FE의 “불러오기”는 현재 에디터와 캐시를 BE 결과에 맞춘다.
 - 확인 뒤 Core 정보가 바뀐 `409`의 `detail.action=reconfirm_summary`는 새 요약 확인이 필요한 상태다.
 
+### 5.6. 라이브 플레이어·AI Q&A (#227)
+
+기준은 [BE PR #95](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/pull/95)의 병합 커밋 `b1f3b23d17f1726b900e7e06f8edc981e6ddeff9`에 있는 공개 컨트롤러·DTO다. 아래 경로의 접두사는 `/api/v1/lives/{liveId}`이며 `liveId`와 공개 `questionId`는 UUID다. FE는 AI 내부 `qid`를 요청 식별자로 사용하지 않는다.
+
+| 동작                | Method·Path                                   | 인증·결과                                                                                     |
+| ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`. |
+| 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                          |
+| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{qna: [...]}`.                                                           |
+| 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                      |
+| 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                           |
+| 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}` 또는 `{action: "SEND", finalAnswer}`.              |
+| 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
+
+- 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
+- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. 초안이 없어도 판매자가 직접 답변을 작성할 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
+- `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
+- `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
+- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. FE 자동 폴링 주기는 이 계약에서 확정하지 않는다.
+- IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
+- 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
+
 ## 6. 최신 답변으로 정리한 차이
 
 아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.
@@ -467,3 +503,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 ### 새 소식 입력 검증
 
 새 소식 제목은 제출 전에 공백을 제거해 필수값을 검사한다. 제목이 비어 있으면 등록 버튼과 제출 처리를 막되, 안내는 폼 입력을 변경하거나 제출을 시도한 뒤에 표시한다. 처음 진입하거나 등록에 성공해 입력이 초기화되면 경고를 표시하지 않는다. 본문은 기존 필수 검증을 유지한다.
+
+### 2026-09-22 새 소식 재편집 연결 (#232, BE PR #108)
+
+- 소유 판매자가 조회 가능한 게시글의 제목·본문을 `PATCH /api/v1/notices/{noticeId}`로 수정한다. 변경한 필드만 전송하며 제목은 1~100자, noticeType은 변경하지 않는다.
+- 성공 응답을 본문 캐시에 반영하고 목록·본문을 재조회한다. 403·404·서버 오류에서는 입력을 유지한다. 구매자 상세는 읽기 전용이다.
+- 기존 GET 목록·본문은 공개 프로젝트만 허용하므로 비공개 프로젝트의 재편집 진입은 BE 조회 계약 보완이 필요하다.
+- 격리 브라우저의 API fixture로 저장·재편집·부분 변경·403/503 입력 보존을 검증했다. 실제 배포 서버의 권한·저장 지속성은 미검증이다.

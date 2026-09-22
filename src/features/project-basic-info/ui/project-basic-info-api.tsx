@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
+import { LoginRedirect } from "@/providers/login-redirect";
 import {
   getProjectPreview,
   saveProjectBasicInfo,
@@ -52,15 +53,7 @@ export function ProjectBasicInfoApi({
     }
   }
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
-  if (state.status === "guest")
-    return (
-      <p role="alert">
-        로그인이 필요합니다.{" "}
-        <Link href="/auth/login" className="underline">
-          로그인
-        </Link>
-      </p>
-    );
+  if (state.status === "guest") return <LoginRedirect />;
   if (!owner)
     return <p role="alert">회원 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.</p>;
   if (projectId && preview.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
@@ -87,8 +80,9 @@ export function ProjectBasicInfoApi({
     title: saved?.title ?? data.title ?? "",
     amount: String(saved?.goalAmount ?? data.goalAmount ?? ""),
     business:
-      Object.keys(businessCodes).find((label) => businessCodes[label] === saved?.businessType) ??
-      "",
+      Object.keys(businessCodes).find(
+        (label) => businessCodes[label] === (saved?.businessType ?? data.businessType),
+      ) ?? "",
     category: saved?.categoryMajor ?? data.categoryMajor ?? "",
     subcategory: saved?.categoryMinor ?? data.categoryMinor ?? "",
   };
@@ -103,10 +97,9 @@ export function ProjectBasicInfoApi({
       <div className="min-w-0 flex-1">
         {tab === "basic-info" ? (
           <>
-            {!saved && (
+            {!initialValues.business && (
               <p role="status" className="text-body-s mb-3">
-                사업자 유형의 기존 선택은 표시되지 않습니다. 변경할 때만 선택하면 기존 값은
-                유지됩니다.
+                저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다.
               </p>
             )}
             <ProjectBasicInfoForm
