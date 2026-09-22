@@ -137,20 +137,20 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 ## 판매자
 
-| URL                                                  | 화면                    | 접근 조건               | 상태                                             |
-| ---------------------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------ |
-| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                      |
-| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                      |
-| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                      |
-| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`funding`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                      |
-| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                                      |
-| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                      |
-| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                      |
-| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                      |
-| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                      |
-| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                      |
-| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                      |
+| URL                                                  | 화면                    | 접근 조건               | 상태                                                                           |
+| ---------------------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `/seller/projects`                                   | 프로젝트 목록           | member + seller consent | implemented                                                                    |
+| `/seller/live`                                       | LIVE 스튜디오 홈        | member + seller consent | implemented                                                                    |
+| `/seller/projects/new`                               | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                                    |
+| `/seller/projects/[projectId]`                       | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`news`·`funding`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]/preview`               | 구매자 화면 미리보기    | owner                   | placeholder                                                                    |
+| `/seller/projects/[projectId]/shipping`              | 발송정보                | owner                   | implemented                                                                    |
+| `/seller/projects/[projectId]/settlement/refunds`    | 환불·교환 관리          | owner                   | placeholder                                                                    |
+| `/seller/projects/[projectId]/settlement/statements` | 정산 내역               | owner                   | placeholder                                                                    |
+| `/seller/projects/[projectId]/live/new`              | LIVE 생성               | owner                   | placeholder                                                                    |
+| `/seller/live/[liveId]/cue-sheet`                    | AI 큐시트               | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/console`                      | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/review`                       | 방송 후 검증·하이라이트 | live owner              | placeholder                                                                    |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #188의 동의 상태는 현재 화면에만 유지하는 프런트엔드 목업이며 서버 동의 기록은 별도 연동합니다.
 
@@ -172,8 +172,8 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
-- 판매자 프로젝트 `tab`은 `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `settlement`, `live`를 허용합니다.
-- 판매자 프로젝트 편집 사이드바의 "기본 정보 수정" 탭은 아직 이 `tab` 값에 대응하는 항목이 없습니다. 값이 정해지면 이 표에 추가합니다(`docs/OPEN_DECISIONS.md` 참고).
+- 판매자 프로젝트 `tab`은 `basic-info`, `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `settlement`, `live`를 허용합니다.
+- `basic-info`·`rewards`·`news` 탭은 데모 프로젝트 id에서도 실제 기본 정보·리워드·새 소식 화면과 API로 연결합니다(placeholder 우회 없음). `refund-policy`·`community`·`settlement` 탭은 실제 화면이 없어 사이드바에서 비활성 처리하고 링크·prefetch를 제거했습니다(#285).
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 
 ## 이전 경로 호환
