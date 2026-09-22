@@ -22,6 +22,7 @@ export function getPublicNotices(id: string, page: number, signal?: AbortSignal)
 
 export type ProjectCardResponse = {
   projectId: number;
+  projectPublicId?: string | null;
   projectDisplayCode: string;
   title: string;
   thumbnailUrl: string | null;

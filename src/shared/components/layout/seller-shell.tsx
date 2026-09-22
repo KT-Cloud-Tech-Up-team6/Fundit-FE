@@ -42,9 +42,9 @@ export function SellerShell({
                 key={action.name}
                 type="button"
                 aria-label={action.label}
-                className="hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex h-9 w-7 items-center justify-center rounded-xs focus-visible:outline-2"
+                className="flex size-9 items-center justify-center"
               >
-                <Icon name={action.name} className="size-5" />
+                <Icon name={action.name} className="size-6" />
               </button>
             ))}
             {headerAction ?? <ModeSwitchLink mode="seller" />}

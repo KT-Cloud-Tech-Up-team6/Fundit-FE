@@ -41,7 +41,10 @@ export function AuthScreen({ children, headerTitle, onBack, withHeader = true }:
 }
 
 export function AuthTitle({ children }: { children: ReactNode }) {
-  return <h1 className="text-heading-l text-text-title whitespace-pre-line">{children}</h1>;
+  /* break-keep: 한글은 어절 단위로 끊어야 "…없어\n요"처럼 갈라지지 않는다. */
+  return (
+    <h1 className="text-heading-l text-text-title break-keep whitespace-pre-line">{children}</h1>
+  );
 }
 
 export function AuthBottomAction({ children }: { children: ReactNode }) {

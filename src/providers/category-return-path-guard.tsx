@@ -16,7 +16,8 @@ import { clearCategoryReturnPath } from "@/shared/lib/category-return-path";
  * 복귀 경로를 정리한다. /categories 내부에서 slug만 바뀌는 전환은 유지한다.
  */
 export function CategoryReturnPathGuard() {
-  const pathname = usePathname();
+  // Storybook처럼 Next 라우터 컨텍스트가 없는 환경에서는 null이 올 수 있다.
+  const pathname = usePathname() ?? "";
   const wasInCategories = useRef(pathname.startsWith("/categories"));
 
   useEffect(() => {

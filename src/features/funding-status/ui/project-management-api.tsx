@@ -1,7 +1,7 @@
 "use client";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
+import { LoginRedirect } from "@/providers/login-redirect";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
   ProjectSidebar,
@@ -25,12 +25,9 @@ export function ProjectManagementApi({
     enabled: state.status === "authenticated" && Boolean(state.user?.memberId),
   });
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
-  if (state.status !== "authenticated" || !state.user?.memberId)
-    return (
-      <p role="alert">
-        로그인이 필요합니다. <Link href="/auth/login">로그인</Link>
-      </p>
-    );
+  if (state.status === "guest") return <LoginRedirect />;
+  if (!state.user?.memberId)
+    return <p role="alert">회원 정보를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.</p>;
   if (query.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
