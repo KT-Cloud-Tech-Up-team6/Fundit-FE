@@ -297,12 +297,13 @@ function htmlBlocks(nodes: SafeStoryHtmlNode[], inherited: TextStyle = {}): JSON
             (child): child is Exclude<SafeStoryHtmlNode, string> =>
               typeof child !== "string" && child.tag === "li",
           )
-          .map((item) => ({
-            type: "listItem",
-            content: htmlBlocks(item.children, inherited).length
-              ? htmlBlocks(item.children, inherited)
-              : [{ type: "paragraph" }],
-          })),
+          .map((item) => {
+            const children = htmlBlocks(item.children, inherited);
+            return {
+              type: "listItem",
+              content: children.length ? children : [{ type: "paragraph" }],
+            };
+          }),
       });
     } else if (node.tag === "br") {
       output.push({ type: "paragraph", content: [{ type: "hardBreak" }] });
