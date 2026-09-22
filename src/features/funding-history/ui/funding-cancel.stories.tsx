@@ -1,11 +1,27 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { FundingCancel } from "./funding-cancel";
+
+const detail = {
+  imageSrc: "",
+  projectTitle: "키친모먼트 스테인리스 전기주전자",
+  rewardOption: "얼리버드 스타터 세트",
+  rewardQuantity: 1,
+  amount: 32000,
+};
+
+/** `GET /api/v1/refunds/estimate` 응답을 옮긴 값. 적립금·취소 수수료는 계약이 없어 비어 있다. */
+const refund = {
+  pointRefundAmount: null,
+  shippingFee: 5000,
+  cancelFee: null,
+  actualRefundAmount: 32000,
+};
 
 const meta = {
   title: "Features/Funding History/Cancel",
   component: FundingCancel,
-  args: { fundingId: "in_progress" },
+  args: { fundingId: "in_progress", detail, refund, onSubmit: fn() },
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
@@ -39,7 +55,7 @@ export const Default: Story = {
     await expect(canvas.getByRole("heading", { name: "펀딩 취소" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "취소 신청" })).toBeDisabled();
     await expect(canvas.getByText("실 환불 금액").nextElementSibling).toHaveTextContent("32,000원");
-    await expect(canvas.queryByText("사진 첨부 (선택)")).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/사진 첨부/)).not.toBeInTheDocument();
   },
 };
 
@@ -69,25 +85,55 @@ export const DismissConfirm: Story = {
   },
 };
 
-/** 반품/교환 variant는 유형·사유를 선택해야 신청할 수 있다. */
+/** 배송 지연은 `POST /api/v2/refunds/shipping-delay`가 있어 사진 없이 바로 신청할 수 있다. */
 export const ReturnVariant: Story = {
   args: { fundingId: "delivered", variant: "return" },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "펀딩 반품/교환" })).toBeVisible();
     await expect(canvas.getByText("사진 첨부 (선택)")).toBeVisible();
-    await expect(canvas.getByText("배송비")).toBeVisible();
+    await expect(canvas.getByText("배송비").nextElementSibling).toHaveTextContent("-5,000원");
 
     const submit = canvas.getByRole("button", { name: "반품/교환 신청" });
     await expect(submit).toBeDisabled();
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
-    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "단순변심");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "배송 지연");
     await expect(submit).toBeEnabled();
     await userEvent.click(submit);
 
     const dialog = within(canvas.getByRole("dialog"));
     await expect(dialog.getByText("반품을 신청할까요?")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "반품 신청" })).toBeVisible();
+    await userEvent.click(dialog.getByRole("button", { name: "반품 신청" }));
+    await expect(args.onSubmit).toHaveBeenCalled();
+  },
+};
+
+/** 하자 유형은 `evidenceUrls`가 필수라 사진을 붙이기 전에는 신청할 수 없다. */
+export const DefectNeedsEvidence: Story = {
+  args: { fundingId: "delivered", variant: "return" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "불량·하자");
+    await expect(canvas.getByText("사진 첨부 (필수)")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeDisabled();
+  },
+};
+
+/** 계약이 없는 조합은 원본 옵션을 남기되 제출만 막고 이유를 알린다. */
+export const UnsupportedReasons: Story = {
+  args: { fundingId: "delivered", variant: "return" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "단순변심");
+    await expect(canvas.getByText("단순변심 반품은 아직 제공되지 않습니다.")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeDisabled();
+
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "교환");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "구성품 누락");
+    await expect(canvas.getByText("교환 신청은 아직 제공되지 않습니다.")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "교환 신청" })).toBeDisabled();
   },
 };
 

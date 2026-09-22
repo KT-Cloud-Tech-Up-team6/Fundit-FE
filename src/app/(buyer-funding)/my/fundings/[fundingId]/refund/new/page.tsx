@@ -1,4 +1,4 @@
-import { FundingCancel } from "@/features/funding-history/ui/funding-cancel";
+import { FundingRefundApi } from "@/features/funding-history/ui/funding-refund-api";
 import { returnDefaultsByQueryType } from "@/features/funding-history/model/funding-cancel";
 
 export default async function FundingReturnPage({
@@ -10,11 +10,6 @@ export default async function FundingReturnPage({
   const type = query.type === "cancel" || query.type === "delay" ? query.type : "defect";
   const { returnType, reason } = returnDefaultsByQueryType[type];
   return (
-    <FundingCancel
-      fundingId={fundingId}
-      variant="return"
-      initialReturnType={returnType}
-      initialReason={reason}
-    />
+    <FundingRefundApi fundingId={fundingId} initialReturnType={returnType} initialReason={reason} />
   );
 }

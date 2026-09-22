@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
@@ -9,49 +8,85 @@ import { Icon } from "@/shared/components/ui/icon";
 import { Select } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
+  RefundEvidenceValidationError,
+  validateRefundEvidence,
+} from "@/entities/refund/api/refund-request-api";
+import {
   addCancelPhotos,
-  calculateRefund,
   cancelDetailMaxLength,
   cancelReasons,
   canSubmitCancel,
+  refundSubmissionFor,
   removeCancelPhoto,
   returnReasonsByType,
-  returnShippingFee,
   returnTypes,
   type CancelPhoto,
+  type RefundInfo,
+  type RefundSubmission,
   type ReturnType,
 } from "../model/funding-cancel";
-import { demoFundingDetail, formatWon } from "../model/funding-history";
+import { formatWon } from "../model/funding-history";
 
-/* ponytail: 참여 취소·반품/교환 제출 API가 없어(docs/OPEN_DECISIONS.md P0 환불) 확인 모달에서
-   버튼을 누르면 목록으로 돌아가는 것으로 갈음한다. API가 생기면 여기서 서버에 제출한다. */
+/** 신청 화면 상단(1165:16087)이 보여주는 주문 정보. 채우지 못하는 값은 빈 문자열로 둔다. */
+export type FundingCancelDetail = {
+  imageSrc: string;
+  projectTitle: string;
+  rewardOption: string;
+  rewardQuantity: number | null;
+  amount: number | null;
+};
+
+export type FundingCancelSubmit = {
+  submission: RefundSubmission;
+  reasonDetail: string;
+  files: File[];
+};
+
+const amountText = (value: number | null) => (value === null ? "" : formatWon(value));
 
 export function FundingCancel({
   fundingId,
   variant = "cancel",
   initialReturnType = "",
   initialReason = "",
+  detail,
+  refund,
+  onSubmit,
+  pending = false,
+  submitError = "",
 }: {
   fundingId: string;
   variant?: "cancel" | "return";
   initialReturnType?: ReturnType | "";
   initialReason?: string;
+  detail: FundingCancelDetail;
+  refund: RefundInfo;
+  onSubmit: (input: FundingCancelSubmit) => void;
+  pending?: boolean;
+  submitError?: string;
 }) {
-  const router = useRouter();
   const titleId = useId();
   const isReturn = variant === "return";
-  const detail = demoFundingDetail(fundingId);
-  const refund = calculateRefund(detail.amount, isReturn ? returnShippingFee : 0);
 
   const [returnType, setReturnType] = useState<ReturnType | "">(initialReturnType);
   const [reason, setReason] = useState(initialReason);
   const [detailText, setDetailText] = useState("");
   const [photos, setPhotos] = useState<CancelPhoto[]>([]);
+  const [photoError, setPhotoError] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<CancelPhoto[]>([]);
 
-  const canSubmit = canSubmitCancel(reason);
+  const submission = isReturn ? refundSubmissionFor(returnType, reason) : null;
+  /* 하자 환불은 evidenceUrls가 필수라(DefectRefundRequestV2) 사진 없이 보내면 400이 된다.
+     원본은 "(선택)"으로 그려져 있어 디자인 확인이 필요하다(docs/OPEN_DECISIONS.md). */
+  const needsEvidence = submission?.supported === true && submission.kind === "defect";
+  const blocked = submission !== null && !submission.supported && reason !== "";
+  const canSubmit =
+    canSubmitCancel(reason) &&
+    !pending &&
+    (!isReturn || (submission!.supported && (!needsEvidence || photos.length > 0)));
+
   const requestLabel = isReturn ? `${returnType || "반품/교환"} 신청` : "취소 신청";
   const confirmationTitle = isReturn
     ? `${returnType || "반품/교환"}을 신청할까요?`
@@ -69,11 +104,25 @@ export function FundingCancel({
 
   function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const incoming: CancelPhoto[] = Array.from(files).map((file) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      name: file.name,
-    }));
+    setPhotoError("");
+    const incoming: CancelPhoto[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        validateRefundEvidence(file);
+      } catch (error) {
+        if (error instanceof RefundEvidenceValidationError) {
+          setPhotoError(error.message);
+          continue;
+        }
+        throw error;
+      }
+      incoming.push({
+        id: crypto.randomUUID(),
+        url: URL.createObjectURL(file),
+        name: file.name,
+        file,
+      });
+    }
     const next = addCancelPhotos(photosRef.current, incoming);
     const acceptedIds = new Set(next.map((photo) => photo.id));
     for (const photo of incoming) {
@@ -93,7 +142,11 @@ export function FundingCancel({
 
   function handleConfirmSubmit() {
     setConfirmOpen(false);
-    router.push("/my/fundings");
+    onSubmit({
+      submission: submission ?? { supported: false, reason: "" },
+      reasonDetail: detailText,
+      files: photos.map((photo) => photo.file),
+    });
   }
 
   return (
@@ -107,23 +160,34 @@ export function FundingCancel({
       <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-1 flex-col min-[1200px]:pb-16">
         <div className="flex flex-1 flex-col gap-2">
           <section className="bg-layer-surface-default flex gap-3 px-5 py-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={detail.imageSrc}
-              alt=""
-              className="size-20 shrink-0 rounded-xs object-cover"
-            />
+            {detail.imageSrc ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={detail.imageSrc}
+                alt=""
+                className="size-20 shrink-0 rounded-xs object-cover"
+              />
+            ) : (
+              /* 주문 상세에 썸네일이 없다. 자리만 유지한다. */
+              <div className="bg-layer-bg size-20 shrink-0 rounded-xs" />
+            )}
             <div className="flex min-w-0 flex-1 flex-col justify-between">
               <div className="flex flex-col gap-1">
-                <p className="text-body-m text-text-default truncate">{detail.projectTitle}</p>
+                <p className="text-body-m text-text-default truncate">
+                  {detail.projectTitle || " "}
+                </p>
                 <p className="text-caption-m text-text-default flex gap-1">
-                  <span className="truncate">{detail.rewardOption}</span>
-                  <span aria-hidden>·</span>
-                  <span className="shrink-0">{detail.rewardQuantity}개</span>
+                  <span className="truncate">{detail.rewardOption || " "}</span>
+                  {detail.rewardQuantity !== null && (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span className="shrink-0">{detail.rewardQuantity}개</span>
+                    </>
+                  )}
                 </p>
               </div>
               <p className="text-title-s text-text-default text-right">
-                {formatWon(detail.amount)}
+                {amountText(detail.amount) || " "}
               </p>
             </div>
           </section>
@@ -186,6 +250,11 @@ export function FundingCancel({
                     ))}
                   </Select>
                 )}
+                {blocked && (
+                  <p role="status" className="text-caption-m text-text-secondary">
+                    {submission!.supported ? "" : submission!.reason}
+                  </p>
+                )}
                 <Textarea
                   className="h-[222px]"
                   placeholder="내용을 입력해주세요 (선택)"
@@ -198,7 +267,9 @@ export function FundingCancel({
 
             {isReturn && (
               <div className="flex flex-col gap-3">
-                <h2 className="text-title-s text-text-default">사진 첨부 (선택)</h2>
+                <h2 className="text-title-s text-text-default">
+                  사진 첨부 {needsEvidence ? "(필수)" : "(선택)"}
+                </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -229,7 +300,7 @@ export function FundingCancel({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     multiple
                     className="hidden"
                     onChange={(event) => {
@@ -238,6 +309,11 @@ export function FundingCancel({
                     }}
                   />
                 </div>
+                {photoError && (
+                  <p role="alert" className="text-caption-m text-text-secondary">
+                    {photoError}
+                  </p>
+                )}
               </div>
             )}
           </section>
@@ -248,31 +324,37 @@ export function FundingCancel({
               <div className="flex items-center gap-2">
                 <dt className="text-body-m text-text-default">적립금 환불 금액</dt>
                 <dd className="text-body-strong text-text-default flex-1 text-right">
-                  {formatWon(refund.pointRefundAmount)}
+                  {amountText(refund.pointRefundAmount) || " "}
                 </dd>
               </div>
               {isReturn && (
                 <div className="flex items-center gap-2">
                   <dt className="text-body-m text-text-default">배송비</dt>
                   <dd className="text-body-strong text-text-default flex-1 text-right">
-                    -{formatWon(refund.shippingFee)}
+                    {refund.shippingFee === null ? " " : `-${formatWon(refund.shippingFee)}`}
                   </dd>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <dt className="text-body-m text-text-default">취소 수수료</dt>
                 <dd className="text-body-strong text-text-default flex-1 text-right">
-                  -{formatWon(refund.cancelFee)}
+                  {refund.cancelFee === null ? " " : `-${formatWon(refund.cancelFee)}`}
                 </dd>
               </div>
               <div className="flex items-center gap-2">
                 <dt className="text-body-m text-text-default">실 환불 금액</dt>
                 <dd className="text-body-strong text-text-default flex-1 text-right">
-                  {formatWon(refund.actualRefundAmount)}
+                  {amountText(refund.actualRefundAmount) || " "}
                 </dd>
               </div>
             </dl>
           </section>
+
+          {submitError && (
+            <p role="alert" className="text-body-s text-text-default px-5">
+              {submitError}
+            </p>
+          )}
         </div>
 
         <div className="bg-layer-surface-default px-5 py-2 min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:w-[386px] min-[1200px]:gap-2 min-[1200px]:px-0 min-[1200px]:py-5">
@@ -295,7 +377,7 @@ export function FundingCancel({
             disabled={!canSubmit}
             onClick={() => setConfirmOpen(true)}
           >
-            {requestLabel}
+            {pending ? "신청 중" : requestLabel}
           </Button>
         </div>
       </div>

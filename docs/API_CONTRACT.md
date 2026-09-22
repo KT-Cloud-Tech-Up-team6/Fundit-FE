@@ -581,3 +581,63 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 성공 응답을 본문 캐시에 반영하고 목록·본문을 재조회한다. 403·404·서버 오류에서는 입력을 유지한다. 구매자 상세는 읽기 전용이다.
 - 기존 GET 목록·본문은 공개 프로젝트만 허용하므로 비공개 프로젝트의 재편집 진입은 BE 조회 계약 보완이 필요하다.
 - 격리 브라우저의 API fixture로 저장·재편집·부분 변경·403/503 입력 보존을 검증했다. 실제 배포 서버의 권한·저장 지속성은 미검증이다.
+
+### 2026-09-22 환불 신청 제출 연결 (#263)
+
+조회(#261)와 같은 payment-service이며 Gateway 경로도 같다. 신청은 v2를 쓴다 — v1 요청의 `fundingId`가 Long이라 컨트롤러가 order-service를 한 번 더 조회해 UUID로 바꾸는데, FE는 이미 UUID를 들고 있다.
+
+| 동작              | 경로                                       | 요청                                                           | 응답                                                                 |
+| ----------------- | ------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 하자 환불 신청    | `POST /api/v2/refunds/defect`              | `{fundingId(UUID), defectType, reasonDetail?, evidenceUrls[]}` | 201 `{refundId, status}`                                             |
+| 발송지연 결제취소 | `POST /api/v2/refunds/shipping-delay`      | `{fundingId(UUID)}`                                            | 201 `{refundId, status}`                                             |
+| 예상 환불액       | `GET /api/v1/refunds/estimate?orderId=`    | —                                                              | `{orderId, rewardAmount, shippingFee, discountAmount, refundAmount}` |
+| 증빙 업로드 주소  | `POST /api/v1/refunds/evidence/upload-url` | `{orderId(UUID), fileName, contentType, fileSize}`             | `{uploadUrl, fileUrl}`                                               |
+
+`fundingId`와 `orderId`는 같은 값(order-service publicId)이다.
+
+`defectType`은 `DEFECTIVE`·`DAMAGED`·`DIFFERENT_FROM_DESCRIPTION` 3종이다. BE는 `reasonDetail` 앞에 `[DEFECTIVE] `처럼 태그를 붙여 한 컬럼에 저장한다(별도 컬럼이 없다).
+
+`evidenceUrls`는 `@NotEmpty`다. 하자 환불은 증빙 없이 제출하면 400이다.
+
+신청은 `REQUESTED` 상태로 접수될 뿐 이 시점에 결제가 취소되지 않는다. 취소 실행은 판매자 승인(`PATCH /api/v1/refunds/{refundId}/decision`) 이후다.
+
+#### 예상 환불액
+
+`RefundEstimateService`는 결제가 `COMPLETED`인 주문에만 응답하고 본인 확인에 실패하면 403이다. 반품비 차감(R04) 정책이 없어 **`refundAmount`는 현재 항상 `payment.amount`와 같다.** FE는 이 값을 그대로 고지하고 금액을 직접 계산하지 않는다.
+
+#### 증빙 업로드 제약
+
+`RefundEvidenceUploadService` 기준이다.
+
+| 항목               | 값                                                     |
+| ------------------ | ------------------------------------------------------ |
+| 확장자             | `jpg`·`jpeg`·`png`·`webp`                              |
+| Content-Type       | `image/jpeg`·`image/png`·`image/webp`                  |
+| 최대 크기          | 10MB                                                   |
+| 발급 주소 유효기간 | 5분(`media.upload.presign-ttl-minutes`)                |
+| 권한               | 해당 `orderId`의 구매자 본인                           |
+| 오류               | `UNSUPPORTED_MEDIA_TYPE`·`MEDIA_TOO_LARGE`·`FORBIDDEN` |
+
+저장 키는 서버가 `refunds/{orderId}/{UUID}.{ext}`로 새로 만든다. FE가 보낸 `fileName`은 확장자만 쓰인다.
+
+프로젝트 미디어 업로드와 값이 겹치지만 서비스도 상수도 따로 관리돼 한쪽이 바뀌어도 다른 쪽을 따르지 않는다. FE도 검증을 공유하지 않는다.
+
+#### 사유 → 계약 매핑
+
+원본 반품 사유 7종·교환 사유 5종 중 계약이 있는 것은 셋뿐이다.
+
+| 유형 | 사유                                         | 보내는 요청           |
+| ---- | -------------------------------------------- | --------------------- |
+| 반품 | 불량·하자                                    | `/defect` `DEFECTIVE` |
+| 반품 | 상품 파손                                    | `/defect` `DAMAGED`   |
+| 반품 | 배송 지연                                    | `/shipping-delay`     |
+| 반품 | 단순변심·상품이 잘못 배송됨·구성품 누락·기타 | 계약 없음             |
+| 교환 | 전체                                         | 계약 없음             |
+
+`DIFFERENT_FROM_DESCRIPTION`은 "표시광고상이"라 "상품이 잘못 배송됨"과 의미가 겹치지만 같지 않아 매핑하지 않았다. 확인이 필요하다.
+
+`SIMPLE_CHANGE_OF_MIND`는 `RefundTriggerType`에 값만 있고 구매자 신청 엔드포인트가 없다. 펀딩 진행 중 참여 취소는 별개 계약(`POST /api/v1/orders/{orderId}/cancel`)이다.
+
+#### 주문 상세에 없는 값
+
+신청 화면 헤더는 이미지·프로젝트명·리워드옵션·수량·금액을 보여준다. `GET /api/v1/orders/{orderId}`의 `OrderDetailResponse`에는 `projectTitle`·`thumbnailUrl`이 없고 목록 응답(`OrderSummaryResponse`)에만 있다. 리워드명·옵션·수량·금액만 채우고 나머지는 자리를 비운다.
