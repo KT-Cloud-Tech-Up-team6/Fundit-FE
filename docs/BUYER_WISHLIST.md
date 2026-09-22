@@ -5,7 +5,12 @@
 - `/my/wishlist`는 회원별 `GET /api/v1/wishes`를 조회한다. `page` 쿼리와 뒤로가기를 유지하며 해제(DELETE)·해제 취소 등록(PUT) 후 재조회한다. 실패 시 성공 상태로 바꾸지 않는다.
 - BE PR #110의 `projectPublicId` UUID로 제목·썸네일에서 공개 상세로 이동한다(#250). 찜 해제·재등록에는 기존 숫자 `projectId`를 유지한다. UUID가 null이면 상세 링크 대신 정보 준비 중 안내를 표시하며 임의로 ID를 변환하지 않는다.
 - 응답에 없는 달성률·판매자·광고를 예시 데이터로 채우지 않는다. 제목·썸네일은 nullable로 처리한다.
-- 팔로우는 Gateway 계약이 없어 연결 대기로 표시한다. 계정별 캐시와 컴포넌트 상태를 분리하며 기존 디자인 확인용 컴포넌트는 유지한다.
+- 팔로우는 연결 대기로 표시한다. 계정별 캐시와 컴포넌트 상태를 분리하며 기존 디자인 확인용 컴포넌트는 유지한다.
+
+  2026-09-22 재확인(#257): Gateway 계약이 없다는 서술은 더 이상 맞지 않다. BE develop `ce5d882`에 `GET /api/v1/follows`, `PUT`/`DELETE /follows/{sellerId}`(UUID)가 있고 Gateway도 `/api/v1/follows/**`를 member-service로 라우팅한다. **대기 사유는 계약이 아니라 표시 필드 부족이다.** 목록 응답은 `{sellerId, sellerName, sellerNickname, createdAt}`뿐인데 `FL_B_LK_LIST_2`의 한 행은 아바타·LIVE 배지·판매자명·팔로워 수·좋아요 수를 보여준다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 나머지를 채우지 못한다. 없는 값을 지어내지 않으므로 BE가 아래 필드를 제공할 때까지 목록 연결을 보류한다.
+
+  - 판매자 프로필 이미지 URL(아바타 46px), 팔로워 수, 좋아요 수, 진행 중 LIVE 여부, 판매자 상세 이동에 쓸 식별자.
+  - 판매자 상세 목적지 자체도 아직 미정이다. 자세한 계약은 [API 계약](./API_CONTRACT.md#알림함수신설정과-팔로우-계약-257)에 있다.
 
 ## Design Source
 

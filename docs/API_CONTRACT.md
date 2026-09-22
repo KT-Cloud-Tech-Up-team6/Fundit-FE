@@ -7,6 +7,57 @@
 - 공지 목록과 별개로 `GET /api/v1/notices/{noticeId}`의 `content`를 조회한다. BE PR #108의 PATCH로 소유 판매자가 제목·본문을 수정한다. 비공개 프로젝트의 GET 제한은 남아 있다.
 - 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId=null은 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다. 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
 
+## 알림함·수신설정과 팔로우 계약 (#257)
+
+2026-09-22 BE develop `ce5d882`의 `NotificationController`, `NotificationService`, `NotifType`, `FollowController`, `SellerController`와 Gateway `application.yml`을 확인했다. 코드를 읽은 결과이며 실제 호출 검증은 아니다. 두 영역 모두 **BE와 Gateway는 준비됐고 FE가 막힌 이유는 서로 다르다.**
+
+### 알림함·수신설정
+
+Gateway는 `/api/v1/notifications/**`, `/api/v1/notification-settings/**`를 notification-service로 라우팅한다(live-service보다 먼저 매칭).
+
+| 경로                                                | 요청 → 응답                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------- |
+| GET `/api/v1/notifications`                         | page(기본 0, ≥0), size(기본 20, 1~100) → 페이지 응답. 최신순.     |
+| PATCH `/api/v1/notifications/{notificationId}/read` | → `{notificationId, readAt}`                                      |
+| GET `/api/v1/notifications/unread-count`            | → 안읽음 개수                                                     |
+| GET `/api/v1/notification-settings`                 | → `[{notifType, enabled}]`                                        |
+| PUT `/api/v1/notification-settings`                 | `{notifType, enabled}` → 성공 여부. **한 번에 한 유형만** 바꾼다. |
+
+- 페이지 응답은 `{content, page, size, totalElements, totalPages, hasNext}`다.
+- 목록 항목은 `{notificationId, notifType, title, relatedUrl, readAt, createdAt}`뿐이다. 본문·이미지 필드가 없으므로 목록에서 상세 본문을 기대하지 않는다. **`readAt`이 null이면 안 읽음**이다.
+- `notifType`은 8종이다: `LIVE_START`, `COMMUNITY_ANSWER`, `SHIPPING_UPDATE`, `REFUND_STATUS`, `PROJECT_OPEN`, `REWARD_RESTOCK`, `COUPON_EXPIRING`, `SELLER_UPDATE_DUE`. 배송 알림 3종(단계 변경·진행 내용·일정 변경)은 수신설정이 유형 단위라 BE가 `SHIPPING_UPDATE` 하나로 묶었다. 세부 구분은 문구와 `relatedUrl`로 처리하므로 FE가 유형을 더 쪼개지 않는다.
+- 읽음 처리는 멱등이다. 이미 읽은 알림은 기존 `readAt`을 그대로 돌려주고 덮어쓰지 않는다.
+- **없는 알림과 타인의 알림은 403이 아니라 404다.** 403이면 ID를 넣어보며 타인 알림의 존재 여부를 캐낼 수 있기 때문이다. FE가 이 404를 권한 오류로 표시하지 않는다.
+- 목록이 페이지 단위라 전체 안읽음 개수를 셀 수 없어 `unread-count`가 따로 있다. 목록 응답의 `totalElements`를 안읽음 수로 쓰지 않는다.
+- 수신설정을 한 번도 바꾸지 않은 유형은 `enabled=true`로 나온다. 목록에 없다고 꺼진 것으로 해석하지 않는다.
+
+**연결 대기 사유는 계약이 아니라 화면 원본이다.** Figma `[6하원칙] 공유용_파일`의 화면 ID 246개를 전수 확인했으나 알림함·수신설정에 해당하는 화면이 없다. `FL_B_MY_*`는 DLVR/FUND/HOME/RFND뿐이고, 마이페이지의 "알림함"·"알림 설정"은 목적지 없는 텍스트 항목이다. 화면을 임의로 만들지 않는다.
+
+### 팔로우
+
+Gateway는 `/api/v1/follows/**`를 member-service로 라우팅한다.
+
+| 경로                                | 요청 → 응답                                          |
+| ----------------------------------- | ---------------------------------------------------- |
+| GET `/api/v1/follows`               | page(기본 0, ≥0), size(기본 20, 1~100) → 페이지 응답 |
+| PUT `/api/v1/follows/{sellerId}`    | sellerId는 **UUID** → `{sellerId, following}`        |
+| DELETE `/api/v1/follows/{sellerId}` | → 204                                                |
+
+- 목록 항목은 `{sellerId, sellerName, sellerNickname, createdAt}`뿐이다.
+- 찜 목록(`GET /api/v1/wishes`)과 합치지 않은 이유는 항목 모양이 다르고, 한 엔드포인트에 섞으면 페이지네이션이 하나로 묶여 탭 전환마다 커서가 꼬이기 때문이다. FE도 두 탭의 페이지 상태를 분리한다.
+
+**연결 대기 사유는 표시 필드 부족이다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. 화면의 다섯 정보 중 이름 하나만 채울 수 있어, 값을 지어내지 않는 원칙에 따라 연결을 보류한다.
+
+BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법과 판매자 프로필 조회를 확장하는 방법 모두 가능하다.
+
+| 필요한 값                    | 쓰임                                          |
+| ---------------------------- | --------------------------------------------- |
+| 판매자 프로필 이미지 URL     | 행 좌측 아바타 46px                           |
+| 팔로워 수                    | "팔로워 N"                                    |
+| 좋아요(찜) 수                | 하트 아이콘 옆 수치                           |
+| 진행 중 LIVE 여부            | 아바타 위 LIVE 배지                           |
+| 판매자 상세 경로에 쓸 식별자 | 행 선택 시 이동. 목적지 자체도 아직 미정이다. |
+
 ## 검색·카테고리 카드의 공개 상세 연결 (#216)
 
 - 2026-09-21 BE develop `ae1e032`의 `ProjectCardProjection.projectPublicId`를 사용한다. 숫자 `projectId`는 카드 식별자로 유지하며 상세 URL에는 검증한 공개 UUID만 전달한다.
