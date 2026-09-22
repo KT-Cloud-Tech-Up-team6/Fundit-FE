@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
@@ -76,6 +77,7 @@ export function RealBuyerLive({
   desktop?: boolean;
 }) {
   const client = useQueryClient();
+  const router = useRouter();
   const { state } = useAuth();
   const playbackKey = ["live", liveId, replay ? "vod" : "playback"];
   const playback = useQuery({
@@ -98,14 +100,23 @@ export function RealBuyerLive({
     },
   });
   function onToggleLike() {
+    /* 좋아요는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다.
+       확인 중에는 아직 알 수 없어 아무것도 하지 않는다. */
+    if (state.status === "checking") return;
+    if (state.status === "guest") {
+      const returnTo = window.location.pathname + window.location.search;
+      router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
+      return;
+    }
     if (toggleLike.isPending) return;
     const next = !liked;
     setLiked(next);
-    setLikeDelta(next ? 1 : 0);
+    /* 서버 수는 아직 이전 값이라 누르면 +1, 취소하면 -1로 그린다. 실패하면 서버 값 그대로 둔다. */
+    setLikeDelta(next ? 1 : -1);
     toggleLike.mutate(next, {
       onError: () => {
         setLiked(!next);
-        setLikeDelta(next ? 0 : 1);
+        setLikeDelta(0);
       },
     });
   }
@@ -155,7 +166,15 @@ export function RealBuyerLive({
       src={playback.data.playbackUrl}
       title={playback.data.type === "VOD" ? "다시보기" : "라이브"}
       handleRef={seekRef}
-      onProgress={(currentSec, durationSec) => setPosition({ currentSec, durationSec })}
+      onProgress={(currentSec, durationSec) =>
+        setPosition((previous) =>
+          /* timeupdate는 초당 여러 번 온다. 화면이 쓰는 단위는 1초라 같은 초면 그대로 둬서
+             이 트리 전체가 다시 그려지지 않게 한다. */
+          previous.currentSec === Math.floor(currentSec) && previous.durationSec === durationSec
+            ? previous
+            : { currentSec: Math.floor(currentSec), durationSec },
+        )
+      }
     />
   );
   const questionData =
@@ -189,7 +208,7 @@ export function RealBuyerLive({
         onSeek={(percent) => seekRef.current?.seek((percent / 100) * position.durationSec)}
         liked={liked}
         likeCount={likeCount}
-        onToggleLike={state.status === "authenticated" ? onToggleLike : undefined}
+        onToggleLike={onToggleLike}
         replayMessages={isVod ? vodChatMessages : undefined}
         video={video}
         videoConnected={playback.isSuccess}
@@ -207,7 +226,7 @@ export function RealBuyerLive({
       onRefreshQuestions={() => void questions.refetch()}
       liked={liked}
       likeCount={likeCount}
-      onToggleLike={state.status === "authenticated" ? onToggleLike : undefined}
+      onToggleLike={onToggleLike}
     />
   );
 }

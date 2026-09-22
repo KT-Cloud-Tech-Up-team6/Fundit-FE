@@ -22,12 +22,12 @@ test("시각은 mm:ss로 적는다", () => {
   assert.equal(formatClock(3599.9), "59:59");
 });
 
-test("구간은 정렬 순서대로 진행률로 바뀐다", () => {
+test("응답 순서와 무관하게 시작 시각 순서로 진행률을 매긴다", () => {
   assert.deepEqual(
     toChapters(markers, 600).map((chapter) => [chapter.time, chapter.progress]),
     [
-      ["02:00", 20],
       ["00:00", 0],
+      ["02:00", 20],
       ["05:00", 50],
     ],
   );
@@ -44,8 +44,9 @@ test("현재 위치가 속한 구간의 다음 구간 시작까지를 범위로 
   assert.deepEqual(chapterRange(markers, 590, 600), { fromSec: 300, toSec: 600 });
 });
 
-test("첫 구간보다 앞이면 첫 구간을 쓴다", () => {
-  assert.deepEqual(chapterRange([marker(30, "늦게 시작")], 10, 600), { fromSec: 30, toSec: 600 });
+test("첫 구간에 아직 닿지 않았으면 조회하지 않는다", () => {
+  assert.equal(chapterRange([marker(30, "늦게 시작")], 10, 600), null);
+  assert.deepEqual(chapterRange([marker(30, "늦게 시작")], 30, 600), { fromSec: 30, toSec: 600 });
 });
 
 test("구간이 없거나 길이를 모르면 조회하지 않는다", () => {
