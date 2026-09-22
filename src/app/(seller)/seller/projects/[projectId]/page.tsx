@@ -47,8 +47,6 @@ export default async function SellerProjectPage({
   if (activeTab === "basic-info")
     return <ProjectBasicInfoApi key={projectId} projectId={projectId} />;
   if (activeTab === "rewards") return <ProjectRewardsPage key={projectId} projectId={projectId} />;
-  if (activeTab === "news")
-    return <ProjectManagementApi key={projectId} projectId={projectId} tab="news" />;
 
   if (isPublicUuid(projectId)) {
     if (activeTab === "fulfillment") return <SellerFulfillmentApi projectId={projectId} />;

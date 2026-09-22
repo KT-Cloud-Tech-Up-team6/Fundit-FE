@@ -145,7 +145,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/projects`                       | 프로젝트 목록           | member + seller consent | implemented                                                  |
 | `/seller/live`                           | LIVE 스튜디오 홈        | member + seller consent | implemented                                                  |
 | `/seller/projects/new`                   | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                  |
-| `/seller/projects/[projectId]`           | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`news`·`funding`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]`           | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
 | `/seller/projects/[projectId]/preview`   | 구매자 화면 미리보기    | owner                   | placeholder                                                  |
 | `/seller/projects/[projectId]/shipping`  | 발송정보                | owner                   | implemented                                                  |
 | `/seller/projects/[projectId]/live/new`  | LIVE 생성               | owner                   | placeholder                                                  |
@@ -174,7 +174,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `basic-info`, `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `live`를 허용합니다. 정산 관리(`settlement`)는 MVP에서 빠져 허용 값에서 걷었습니다 — 직접 들어오면 기본 탭으로 보냅니다.
-- `basic-info`·`rewards`·`news` 탭은 데모 프로젝트 id에서도 실제 기본 정보·리워드·새 소식 화면과 API로 연결합니다(placeholder 우회 없음). `refund-policy`·`community` 탭은 실제 화면이 없어 사이드바에서 비활성 처리하고 링크·prefetch를 제거했습니다(#285).
+- `basic-info`·`rewards` 탭은 데모 프로젝트 id에서도 실제 기본 정보·리워드 화면과 API로 연결합니다(placeholder 우회 없음). `refund-policy`·`community`·`news` 탭은 IA상 제외 범위(정산관리와 동일하게 후순위)라 실제 화면 없이 사이드바에서 비활성 처리하고 링크·prefetch를 제거했습니다(#285).
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 
 ## 이전 경로 호환
@@ -220,5 +220,5 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 - `/seller/projects`는 인증 후 서버 목록·검색·상태별 개수·페이지를 조회합니다. API 오류를 로컬 목업 목록으로 대체하지 않습니다.
 - `/seller/projects/[projectId]?tab=basic-info`와 `/edit?section=basic-info`는 서버 UUID의 기본정보 조회·수정으로 연결합니다. 신규 저장 후 같은 UUID 경로로 이동합니다.
-- 기존 데모 ID의 관리 화면은 유지합니다. 서버 UUID는 기본정보·리워드·스토리·펀딩·새 소식·커뮤니티·제작배송 API 화면으로 연결합니다. 환불 정책·정산·LIVE 등 미연결 탭은 준비 중으로 표시하며 다른 프로젝트의 목업을 보여주지 않습니다.
+- 기존 데모 ID의 관리 화면은 유지합니다. 서버 UUID는 기본정보·리워드·스토리·펀딩·제작배송 API 화면으로 연결합니다. 환불 정책·정산·새 소식·커뮤니티·LIVE 등 미연결 탭은 준비 중으로 표시하며 다른 프로젝트의 목업을 보여주지 않습니다.
 - 준비중의 수정일·작성 단계 등 응답에 없는 값은 임의 생성하지 않습니다. 생성일은 수정일로 사용하지 않습니다.

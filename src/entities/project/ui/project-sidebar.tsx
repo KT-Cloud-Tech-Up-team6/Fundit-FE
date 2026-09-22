@@ -10,7 +10,7 @@ export const projectEditTabs: readonly ProjectSidebarTab[] = [
   { value: "story", label: "스토리 작성" },
   { value: "rewards", label: "리워드" },
   { value: "refund-policy", label: "환불 정책", disabled: true },
-  { value: "news", label: "새 소식" },
+  { value: "news", label: "새 소식", disabled: true },
 ];
 
 /* 펀딩 오픈 이후 운영 탭. Figma FL_S_DL_MNG 좌측 사이드바.
