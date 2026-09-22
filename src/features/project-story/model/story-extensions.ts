@@ -46,9 +46,10 @@ const FontWeight = Extension.create({
   },
 });
 
-/* toIntroContent가 직렬화하지 못하는 노드·마크는 저장 단계에서 거부된다. 툴바에 없는데 마크다운
-   입력이나 붙여넣기로만 생기는 것들은 애초에 만들지 못하게 해, 작성 후 저장에서야 막히는 일을
-   줄인다. 인용구는 툴바 컨트롤이 있어 제품 결정 전까지 그대로 둔다. */
+/* toIntroContent가 직렬화하지 못하는 노드·마크는 저장 단계에서 거부된다. 마크다운 입력이나
+   붙여넣기로만 생기는 것들은 애초에 만들지 못하게 해, 작성 후 저장에서야 막히는 일을 줄인다.
+   인용구는 BE RichTextSanitizer의 허용 태그(b·strong·i·em·u·p·br·span·div·ul·ol·li)에 없어
+   저장할 수 없다(#259). 툴바 컨트롤도 함께 제거했다. */
 export const storyExtensions = [
   StarterKit.configure({
     heading: false,
@@ -57,6 +58,7 @@ export const storyExtensions = [
     code: false,
     strike: false,
     link: false,
+    blockquote: false,
   }),
   TextAlign.configure({ types: ["paragraph"] }),
   TextStyle,

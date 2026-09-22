@@ -1,7 +1,6 @@
 "use client";
 
 import { Placeholder } from "@tiptap/extensions";
-import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
 import { useRef, useState } from "react";
@@ -318,29 +317,6 @@ export function StoryEditor({
         <button
           type="button"
           disabled={!editor}
-          aria-label="인용구 삽입"
-          aria-pressed={editor ? editor.isActive("blockquote") : false}
-          onClick={() => {
-            if (!editor) return;
-            const chain = editor.chain().focus();
-            if (editor.state.selection instanceof AllSelection) {
-              // 영상 등 텍스트가 없는 노드를 제외한 유효한 텍스트 경계로 선택한다.
-              const { doc } = editor.state;
-              const start = TextSelection.findFrom(doc.resolve(0), 1, true);
-              const end = TextSelection.findFrom(doc.resolve(doc.content.size), -1, true);
-              if (!start || !end) return;
-              chain.setTextSelection({ from: start.from, to: end.to });
-            }
-            chain.toggleBlockquote().run();
-          }}
-          className={toolbarButtonClasses(editor ? editor.isActive("blockquote") : false)}
-        >
-          <Icon name="insertQuote" className="size-4" />
-        </button>
-
-        <button
-          type="button"
-          disabled={!editor}
           aria-label="글자 색상"
           onClick={() => colorInputRef.current?.click()}
           className={toolbarButtonClasses(false)}
@@ -357,7 +333,7 @@ export function StoryEditor({
 
       <EditorContent
         editor={editor}
-        className={`${styles.editor} text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary [&_.tiptap:focus-visible]:ring-border-primary leading-[1.42] [&_.tiptap]:h-[432px] [&_.tiptap]:overflow-y-auto [&_.tiptap]:px-4 [&_.tiptap]:py-3 [&_.tiptap]:outline-none [&_.tiptap:focus-visible]:ring-2 [&_.tiptap:focus-visible]:ring-inset [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs`}
+        className={`${styles.editor} text-body-s [&_.tiptap:focus-visible]:ring-border-primary leading-[1.42] [&_.tiptap]:h-[432px] [&_.tiptap]:overflow-y-auto [&_.tiptap]:px-4 [&_.tiptap]:py-3 [&_.tiptap]:outline-none [&_.tiptap:focus-visible]:ring-2 [&_.tiptap:focus-visible]:ring-inset [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs`}
       />
 
       {isAiModalOpen && (
