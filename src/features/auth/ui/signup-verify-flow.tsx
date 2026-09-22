@@ -11,7 +11,7 @@ import { verifyIdentity } from "@/features/auth/api/auth-api";
 import type { IdentityDraft } from "@/features/auth/api/auth-types";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
 import {
-  clearIdentityRecoverySession,
+  clearIdentityRecoverySessionIfCurrent,
   saveIdentityRecoverySession,
 } from "@/features/auth/model/auth-flow-session";
 import { isApiError } from "@/shared/api/api-error";
@@ -98,7 +98,7 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     try {
       const redirectUrl = `${window.location.origin}/auth/identity-verification/callback`;
       const identityResult = await identityMutation.mutateAsync({ draft: input, redirectUrl });
-      clearIdentityRecoverySession();
+      clearIdentityRecoverySessionIfCurrent(current);
       if (!current()) return;
       if (identityResult.status === "cancelled") {
         setView("cancelled");
@@ -110,7 +110,7 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
       setVerificationToken(result.verificationToken);
       setView("done");
     } catch (error) {
-      clearIdentityRecoverySession();
+      clearIdentityRecoverySessionIfCurrent(current);
       if (!current()) return;
       setView(isApiError(error) ? "verification-failed" : "failed");
     }
