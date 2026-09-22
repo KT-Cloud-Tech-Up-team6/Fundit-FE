@@ -140,18 +140,18 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 ## 판매자
 
-| URL                                      | 화면                    | 접근 조건               | 상태                                                        |
-| ---------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------------------ |
-| `/seller/projects`                       | 프로젝트 목록           | member + seller consent | implemented                                                  |
-| `/seller/live`                           | LIVE 스튜디오 홈        | member + seller consent | implemented                                                  |
-| `/seller/projects/new`                   | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                  |
-| `/seller/projects/[projectId]`           | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`   | 구매자 화면 미리보기    | owner                   | placeholder                                                  |
-| `/seller/projects/[projectId]/shipping`  | 발송정보                | owner                   | implemented                                                  |
-| `/seller/projects/[projectId]/live/new`  | LIVE 생성               | owner                   | placeholder                                                  |
-| `/seller/live/[liveId]/cue-sheet`        | AI 큐시트               | live owner              | implemented                                                  |
-| `/seller/live/[liveId]/console`          | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                  |
-| `/seller/live/[liveId]/review`           | 방송 후 검증·하이라이트 | live owner              | placeholder                                                  |
+| URL                                     | 화면                    | 접근 조건               | 상태                                                                    |
+| --------------------------------------- | ----------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `/seller/projects`                      | 프로젝트 목록           | member + seller consent | implemented                                                             |
+| `/seller/live`                          | LIVE 스튜디오 홈        | member + seller consent | implemented                                                             |
+| `/seller/projects/new`                  | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                             |
+| `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
+| `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder                                                             |
+| `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                             |
+| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | placeholder                                                             |
+| `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                             |
+| `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                             |
+| `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                             |
 
 `/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #188의 동의 상태는 현재 화면에만 유지하는 프런트엔드 목업이며 서버 동의 기록은 별도 연동합니다.
 
