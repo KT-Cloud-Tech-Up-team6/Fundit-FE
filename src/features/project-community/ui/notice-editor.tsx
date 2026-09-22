@@ -66,7 +66,10 @@ export function NoticeEditor({
             aria-label="수정 제목"
             maxLength={100}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              setError("");
+            }}
           />
         </label>
         <label className="block space-y-1">
@@ -74,7 +77,10 @@ export function NoticeEditor({
           <Textarea
             aria-label="수정 본문"
             value={content}
-            onChange={(event) => setContent(event.target.value)}
+            onChange={(event) => {
+              setContent(event.target.value);
+              setError("");
+            }}
           />
         </label>
         <p className="text-caption-s">새 소식 유형은 변경할 수 없습니다.</p>
