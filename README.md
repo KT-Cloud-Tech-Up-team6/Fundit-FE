@@ -175,7 +175,7 @@ PowerShell에서는 `Copy-Item .env.example .env.local`을 사용합니다.
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | PortOne 본인인증용 공개 채널 식별자                                                                        |
 | `API_PROXY_TARGET`                | `/api/*`를 같은 origin으로 프록시할 Gateway 주소. Docker 이미지 빌드 시 전달하며 비밀값으로 사용하지 않음  |
 
-`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. `API_PROXY_TARGET`도 Next.js rewrite 설정에 빌드 시 포함되므로, 프록시 이미지에는 Docker build argument로 전달합니다. CI는 GitHub repository variable `API_PROXY_TARGET`을 이 인자로 넘깁니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
+`NEXT_PUBLIC_*`는 브라우저에 노출되고 빌드 시 고정됩니다. 비밀키를 넣지 않습니다. PortOne 두 설정은 GitHub Repository Variables에서 Docker 빌드 인자로 전달합니다. 등록·재빌드 방법은 [컨테이너 배포 문서](./docs/CONTAINER_DEPLOYMENT.md#portone-본인인증-빌드-설정)를 따릅니다. API 주소 등 다른 공개 설정의 이미지 주입은 별도 범위입니다. `.env*`는 Docker 빌드 컨텍스트에서 제외됩니다.
 
 ## 사용 가능한 명령어
 

@@ -8,8 +8,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-ARG API_PROXY_TARGET
-ENV API_PROXY_TARGET=$API_PROXY_TARGET
+# Public browser identifiers are fixed into the bundle by next build.
+ARG NEXT_PUBLIC_PORTONE_STORE_ID
+ARG NEXT_PUBLIC_PORTONE_CHANNEL_KEY
 RUN pnpm build
 
 FROM node:24-bookworm-slim AS runner

@@ -51,15 +51,19 @@ jobs:
       contents: read
     env:
       IMAGE: fundit-frontend:pr-${{ github.sha }}
+      # PR images use fixtures, not live PortOne configuration.
+      NEXT_PUBLIC_PORTONE_STORE_ID: store-ci-build-check
+      NEXT_PUBLIC_PORTONE_CHANNEL_KEY: channel-key-ci-build-check
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Build Docker image
-        run: >-
-          docker build --platform linux/amd64
-          --build-arg API_PROXY_TARGET="${{ vars.API_PROXY_TARGET }}"
-          --tag "$IMAGE" .
+        run: |
+          docker build --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_PORTONE_STORE_ID \
+            --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY \
+            --tag "$IMAGE" .
 
       - name: Verify container
         run: |
@@ -79,15 +83,27 @@ jobs:
     env:
       ECR_REPOSITORY: fundit-frontend
       IMAGE_TAG: sha-${{ github.sha }}
+      NEXT_PUBLIC_PORTONE_STORE_ID: ${{ vars.NEXT_PUBLIC_PORTONE_STORE_ID }}
+      NEXT_PUBLIC_PORTONE_CHANNEL_KEY: ${{ vars.NEXT_PUBLIC_PORTONE_CHANNEL_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Check PortOne build configuration
+        run: |
+          for name in NEXT_PUBLIC_PORTONE_STORE_ID NEXT_PUBLIC_PORTONE_CHANNEL_KEY; do
+            if [[ -z "${!name//[[:space:]]/}" ]]; then
+              echo "::error::Missing repository variable: $name. Set it under Settings > Secrets and variables > Actions > Variables."
+              exit 1
+            fi
+          done
+
       - name: Build Docker image
-        run: >-
-          docker build --platform linux/amd64
-          --build-arg API_PROXY_TARGET="${{ vars.API_PROXY_TARGET }}"
-          --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
+        run: |
+          docker build --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_PORTONE_STORE_ID \
+            --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY \
+            --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
 
       - name: Verify container
         run: |
