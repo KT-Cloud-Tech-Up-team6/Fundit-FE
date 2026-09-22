@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
+import { BuyerLiveReplay } from "@/features/buyer-live-replay/ui/buyer-live-replay";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
 import styles from "@/features/live-console/ui/console.module.css";
 import { useAuth } from "@/providers/auth-provider";
@@ -70,10 +71,13 @@ const realProduct = {
 export function RealBuyerLive({
   liveId,
   replay = false,
+  clip = false,
   desktop = false,
 }: {
   liveId: string;
   replay?: boolean;
+  /** 모바일 다시보기의 숏 클립 화면(`?view=clip`). */
+  clip?: boolean;
   desktop?: boolean;
 }) {
   const client = useQueryClient();
@@ -147,11 +151,17 @@ export function RealBuyerLive({
     enabled: isVod && range !== null,
     retry: false,
   });
-  const vodChatMessages = (vodChat.data ?? []).map((message, index) => ({
-    id: `${message.offsetSec}:${index}`,
-    author: "시청자",
-    text: message.content,
-  }));
+  /* 렌더마다 새 배열을 만들면 이 트리가 초당 한 번(timeupdate) 다시 그려질 때 다시보기
+     화면의 채팅 자동 스크롤이 매번 다시 돌아 사용자가 위로 올려 둔 위치가 풀린다. */
+  const vodChatMessages = useMemo(
+    () =>
+      (vodChat.data ?? []).map((message, index) => ({
+        id: `${message.offsetSec}:${index}`,
+        author: "시청자",
+        text: message.content,
+      })),
+    [vodChat.data],
+  );
   const questions = useQuery({
     queryKey: ["live", liveId, "answered-questions"],
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
@@ -215,10 +225,30 @@ export function RealBuyerLive({
         demoMode={false}
       />
     );
+  if (isVod)
+    return (
+      <BuyerLiveReplay
+        key={liveId}
+        liveId={liveId}
+        clip={clip}
+        product={{ ...realProduct, title: "다시보기" }}
+        demoMode={false}
+        video={video}
+        chapters={chapters}
+        progress={progress}
+        onSeek={(percent) => seekRef.current?.seek((percent / 100) * position.durationSec)}
+        liked={liked}
+        onToggleLike={onToggleLike}
+        replayMessages={vodChatMessages}
+        questionsData={questionData}
+        questionsState={questionState}
+        onRefreshQuestions={() => void questions.refetch()}
+      />
+    );
   return (
     <BuyerLiveRoom
       liveId={liveId}
-      product={{ ...realProduct, title: isVod ? "다시보기" : "라이브 방송" }}
+      product={{ ...realProduct, title: "라이브 방송" }}
       video={video}
       questionsData={questionData}
       questionsState={questionState}

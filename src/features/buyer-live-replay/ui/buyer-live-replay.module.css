@@ -111,6 +111,9 @@
   --status-info: var(--layer-surface-primary-live);
   --text-secondary: var(--text-static-white);
 }
+/* 실제 영상은 화면 가운데 16:9 띠로 놓이고 기본 컨트롤바가 그 아래 가장자리에 붙는다.
+   타임라인을 열면 이 오버레이가 커져 짧은 화면(360x640·390x667)에서 컨트롤바를 덮어
+   재생·탐색이 막혔다. 배경은 클릭을 통과시키고 실제 조작 요소만 되살린다. */
 .bottom {
   position: absolute;
   bottom: env(safe-area-inset-bottom);
@@ -121,6 +124,14 @@
   gap: 8px;
   padding: 8px 20px;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.5) 50%);
+  pointer-events: none;
+}
+.chat,
+.project,
+.actions,
+.chapters,
+.playback {
+  pointer-events: auto;
 }
 .contentRow {
   margin-right: -10px;
@@ -335,6 +346,22 @@
   .controls > div {
     gap: 8px;
   }
+}
+
+/* 실제 영상은 포스터 자리(화면 배경)에 들어가되 기본 재생 컨트롤을 쓸 수 있어야 해서
+   포스터와 달리 pointer-events를 살려 둔다. */
+.video {
+  position: absolute;
+  inset: 0;
+  /* 포스터 래퍼와 같은 -10이다. 숏 클립 그라데이션(.screen[data-clip] ::before, z-index -1)이
+     영상 위에 깔려야 액션 레일의 가독성 보정이 남는다. */
+  z-index: -10;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.video > * {
+  width: 100%;
 }
 
 .poster {
