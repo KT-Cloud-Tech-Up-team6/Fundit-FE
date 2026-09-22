@@ -7,6 +7,7 @@ import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Input } from "@/shared/components/ui/input";
 import { Modal } from "@/shared/components/ui/modal";
 import { convertDiscount, type RewardDraft } from "../model/basic-info-demo";
+import { RewardOptionEditor } from "./reward-option-editor";
 
 type RewardFormModalProps = {
   draft: RewardDraft | null;
@@ -46,7 +47,7 @@ export function RewardFormModal({
       title={editing ? "리워드 수정" : "리워드 추가"}
     >
       {/* Figma modal_web content: 필드·옵션·CTA 묶음 사이 간격은 모두 24px이다. */}
-      <fieldset disabled={busy} className="mt-6 space-y-6">
+      <fieldset disabled={busy} className="mt-6 min-w-0 space-y-6">
         <label className="block space-y-2">
           <span className="text-title-s">리워드 명</span>
           <Input
@@ -215,6 +216,12 @@ export function RewardFormModal({
               등록된 옵션은 유지됩니다. 옵션 편집은 연결 준비 중입니다.
               {draft.optionSummary ? ` ${draft.optionSummary}` : ""}
             </p>
+          )}
+          {!optionsReadOnly && draft.options && (
+            <RewardOptionEditor
+              groups={draft.optionGroups ?? []}
+              onChange={(optionGroups) => onUpdate({ optionGroups })}
+            />
           )}
           {editing && draft.simpleRefundDisabled !== undefined && (
             <Checkbox shape="square" checked={Boolean(draft.simpleRefundDisabled)} disabled>

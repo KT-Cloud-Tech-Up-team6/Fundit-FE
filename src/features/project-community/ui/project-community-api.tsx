@@ -295,7 +295,11 @@ export function ProjectCommunityApi({
                   </Button>
                   {expanded === notice.noticeId && (
                     <>
-                      <NoticeDetail noticeId={notice.noticeId} />
+                      <NoticeDetail
+                        key={`${state.user?.memberId}:${notice.noticeId}`}
+                        noticeId={notice.noticeId}
+                        projectId={projectId}
+                      />
                       <NoticeComments noticeId={notice.noticeId} />
                     </>
                   )}

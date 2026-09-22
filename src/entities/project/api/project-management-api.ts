@@ -114,6 +114,10 @@ export function getNoticeComments(id: number, page: number, signal?: AbortSignal
 export function getNoticeDetail(id: number, signal?: AbortSignal) {
   return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { signal });
 }
+
+export function updateNotice(id: number, body: { title?: string; content?: string }) {
+  return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { auth: true, method: "PATCH", body });
+}
 export function createNoticeComment(id: number, content: string) {
   return apiRequest(`/api/v1/notices/${id}/comments`, {
     auth: true,
