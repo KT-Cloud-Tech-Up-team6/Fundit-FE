@@ -66,7 +66,7 @@ export const Delivered: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("link", { name: "펀딩 환불" })).toHaveAttribute(
       "href",
-      "/my/fundings/delivered/refund/new?type=cancel",
+      "/my/fundings/delivered/refund/new?type=defect",
     );
   },
 };
