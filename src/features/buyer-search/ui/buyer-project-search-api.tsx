@@ -93,7 +93,7 @@ function SearchSession({ memberId, ready }: { memberId: string | null; ready: bo
         })),
         sellerCount: sellers.data?.totalElements,
         recent: {
-          words: recent.data?.content.map((item) => item.keyword) ?? [],
+          words: recent.data?.content?.map((item) => item.keyword) ?? [],
           removing: remove.isPending,
           onRemove: (word) => remove.mutate(word),
           state: !ready ? (

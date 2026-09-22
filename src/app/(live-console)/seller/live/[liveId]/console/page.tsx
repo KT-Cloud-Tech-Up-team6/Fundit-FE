@@ -1,16 +1,14 @@
 import { LiveConsole } from "@/features/live-console/ui/live-console";
 import { RealSellerLive } from "@/features/live-integration/ui/real-live";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { notFound } from "next/navigation";
 
 export default async function LiveConsolePage({
   params,
 }: PageProps<"/seller/live/[liveId]/console">) {
   const { liveId } = await params;
-  if (
-    !liveId.startsWith("demo") &&
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(liveId)
-  )
-    notFound();
+  /* 데모 판정은 시청 화면과 다르다 — 여기는 접두 매칭, 시청 화면은 getLiveDemoConnection 조회다. */
+  if (!liveId.startsWith("demo") && !isPublicUuid(liveId)) notFound();
   if (!liveId.startsWith("demo")) return <RealSellerLive key={liveId} liveId={liveId} />;
   return <LiveConsole key={liveId} liveId={liveId} />;
 }
