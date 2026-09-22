@@ -66,6 +66,7 @@ function FundingList({ memberId }: { memberId: string }) {
               >
                 <h2 className="text-title-s">{order.projectTitle || "프로젝트"}</h2>
                 <p>{orderStatusLabels[order.status] ?? order.status}</p>
+                <p>최종 금액 {order.finalAmount.toLocaleString("ko-KR")}원</p>
                 <p>{order.createdAt.slice(0, 10)}</p>
                 <Link className="block underline" href={`/my/fundings/${order.orderId}`}>
                   참여 상세

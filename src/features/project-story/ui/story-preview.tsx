@@ -60,7 +60,7 @@ export function StoryPreview({
             ) : (
               <EditorContent
                 editor={editor}
-                className={`${styles.editor} text-body-s [&_blockquote]:border-border-default [&_blockquote]:text-text-secondary leading-[1.42] [&_.tiptap]:outline-none [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs`}
+                className={`${styles.editor} text-body-s leading-[1.42] [&_.tiptap]:outline-none [&_iframe]:max-w-full [&_img]:max-w-full [&_img]:rounded-xs [&_video]:max-w-full [&_video]:rounded-xs`}
               />
             )
           }

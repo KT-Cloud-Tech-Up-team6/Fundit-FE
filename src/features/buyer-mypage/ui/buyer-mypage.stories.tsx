@@ -31,7 +31,7 @@ export const Default: Story = {
       "href",
       "/my/refunds",
     );
-    await expect(canvas.getByRole("link", { name: "판매자 모드로 이동" })).toHaveAttribute(
+    await expect(canvas.getByRole("link", { name: "창작자 모드로 이동" })).toHaveAttribute(
       "href",
       "/seller/projects",
     );

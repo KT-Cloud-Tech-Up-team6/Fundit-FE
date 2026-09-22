@@ -1,4 +1,5 @@
-import { apiRequest, apiSessionRequest, refreshOnce } from "@/shared/api/client";
+import { apiRequest, apiSessionRequest, refreshOnce, withAuthLock } from "@/shared/api/client";
+import { authTokenStore } from "@/shared/api/auth-token-store";
 
 import type {
   AuthResult,
@@ -138,6 +139,29 @@ export function linkSocial(
 
 export async function refreshAccessToken() {
   return { accessToken: await refreshOnce() };
+}
+
+/* 결과를 버리기로 한 요청이 인증 잠금을 무한히 붙잡지 않도록 상한을 둔다. 로그인·refresh가
+   같은 잠금을 쓰므로, 응답이 없는 로그아웃 하나가 이후 로그인까지 막을 수 있다. */
+const REVOKE_TIMEOUT_MS = 5_000;
+
+/**
+ * 이 기기의 Refresh Token을 서버에서 폐기한다. 인증 헤더를 붙이지 않는다 — BE는 Access Token이
+ * 만료된 뒤에도 로그아웃할 수 있게 이 경로를 열어뒀고, 쿠키가 없어도 200이다.
+ *
+ * 쿠키를 바꾸는 요청이라 로그인·refresh와 같은 잠금으로 직렬화한다. 호출자는 이미 로컬 세션을
+ * 비운 뒤이므로 여기서 실패해도, 상한에 걸려 중단돼도 되돌릴 것이 없다.
+ */
+export function revokeSession(generation: string | null) {
+  return withAuthLock(async () => {
+    /* 잠금을 기다리는 사이 새 로그인이 끝났다면 쿠키는 이미 그 세션의 것이다.
+       그대로 보내면 방금 로그인한 세션을 끊게 되므로 보내지 않는다. */
+    if (authTokenStore.getSessionGeneration() !== generation) return;
+    await apiRequest<{ message: string }>("/api/v1/auth/logout", {
+      method: "POST",
+      signal: AbortSignal.timeout(REVOKE_TIMEOUT_MS),
+    });
+  });
 }
 
 export function getMe(options?: RequestOptions) {

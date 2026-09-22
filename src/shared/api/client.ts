@@ -158,7 +158,8 @@ export function apiStreamRequest(path: string, options: ApiRequestOptions = {}) 
   return streamRequest(path, options, false);
 }
 
-async function withAuthLock<T>(run: () => Promise<T>): Promise<T> {
+/** 쿠키를 바꾸는 요청끼리 순서를 지키게 한다. 로그인·refresh·로그아웃이 같은 잠금을 쓴다. */
+export async function withAuthLock<T>(run: () => Promise<T>): Promise<T> {
   const locks = globalThis.navigator?.locks;
   return await (locks ? locks.request("fundit-auth-refresh", run) : run());
 }

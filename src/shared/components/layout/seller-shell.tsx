@@ -13,7 +13,13 @@ const headerActions = [
   { name: "profile", label: "내 계정" },
 ] as const;
 
-export function SellerShell({ children }: { children: ReactNode }) {
+export function SellerShell({
+  children,
+  headerAction,
+}: {
+  children: ReactNode;
+  headerAction?: ReactNode;
+}) {
   return (
     <div className="bg-layer-surface-default min-h-screen">
       <HeaderWeb
@@ -41,7 +47,7 @@ export function SellerShell({ children }: { children: ReactNode }) {
                 <Icon name={action.name} className="size-6" />
               </button>
             ))}
-            <ModeSwitchLink mode="seller" />
+            {headerAction ?? <ModeSwitchLink mode="seller" />}
           </>
         }
       />

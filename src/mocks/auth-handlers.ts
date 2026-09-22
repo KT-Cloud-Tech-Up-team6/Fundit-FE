@@ -158,7 +158,7 @@ export const authHandlers = [
       {
         headers: {
           "Set-Cookie":
-            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/token/refresh; Max-Age=1209600",
+            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
         },
       },
     );
@@ -170,6 +170,19 @@ export const authHandlers = [
     }
     return HttpResponse.json({ accessToken: `access-${crypto.randomUUID()}` });
   }),
+
+  /* 쿠키가 없어도 200이다(BE와 동일하게 멱등). 인증 헤더를 요구하지 않는다. */
+  http.post("*/api/v1/auth/logout", () =>
+    HttpResponse.json(
+      { message: "로그아웃되었습니다." },
+      {
+        headers: {
+          "Set-Cookie":
+            "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=0",
+        },
+      },
+    ),
+  ),
 
   http.get("*/api/v1/members/me", ({ request }) => {
     const authorization = request.headers.get("Authorization");
