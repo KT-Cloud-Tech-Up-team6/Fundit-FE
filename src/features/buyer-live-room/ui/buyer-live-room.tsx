@@ -5,31 +5,11 @@ import Image from "next/image";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { roomDemo, roomQuestions, sampleMessages } from "../model/room-demo";
+import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { DialogBase } from "@/shared/components/ui/dialog-base";
 import { Icon } from "@/shared/components/ui/icon";
 import styles from "./buyer-live-room.module.css";
-
-function RoomIcon({
-  name,
-  className = "size-7",
-}: {
-  name: "expand" | "question" | "question-filled" | "share" | "heart" | "viewers";
-  className?: string;
-}) {
-  return (
-    <span
-      aria-hidden
-      className={`inline-block shrink-0 bg-current ${className}`}
-      style={{
-        maskImage: `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `buyer-live-room/${name}`}.svg)`,
-        maskSize: "contain",
-        maskPosition: "center",
-        maskRepeat: "no-repeat",
-      }}
-    />
-  );
-}
+import { RoomIcon } from "./room-icon";
 
 type BuyerLiveRoomProps = {
   liveId: string;
@@ -40,7 +20,7 @@ type BuyerLiveRoomProps = {
   initialQuestions?: "closed" | "compact" | "expanded";
   initialMessage?: string;
   video?: ReactNode;
-  questionsData?: ((typeof roomQuestions)[number] & { id?: string; answeredBy?: string })[];
+  questionsData?: LiveQuestion[];
   questionsState?: ReactNode;
   demoMode?: boolean;
   onRefreshQuestions?: () => void;
@@ -91,12 +71,7 @@ export function BuyerLiveRoom({
   const chat = useRef<HTMLDivElement>(null);
   const chatPointerStart = useRef<{ x: number; y: number } | null>(null);
   const chatId = useId();
-  const questionDragY = useRef<number | null>(null);
-  const questionStartHeight = useRef(0);
-  const [questionHeight, setQuestionHeight] = useState<number>();
-  const questionDragged = useRef(false);
   const errorId = useId();
-  const questionsId = useId();
   // Figma의 차단 예시만 재현한다. 실제 금칙어 정책이나 서버 검증이 아니다.
   const invalid = draft.includes("바보");
 
@@ -441,106 +416,14 @@ export function BuyerLiveRoom({
       <p role="status" className={notice ? styles.notice : "sr-only"}>
         {notice}
       </p>
-      <DialogBase
-        open={questions !== "closed"}
-        onClose={() => {
-          setQuestions("closed");
-          setQuestionHeight(undefined);
-          questionDragY.current = null;
-        }}
-        aria-labelledby={questionsId}
-        style={{ height: questionHeight }}
-        className={`${styles.questions} ${questions === "expanded" ? styles.questionsExpanded : ""}`}
-      >
-        <div className={styles.questionContent}>
-          <h2 id={questionsId}>
-            <button
-              type="button"
-              aria-label={questions === "expanded" ? "Q&A 축소" : "Q&A 확대"}
-              aria-expanded={questions === "expanded"}
-              onClick={() => {
-                if (questionDragged.current) {
-                  questionDragged.current = false;
-                  return;
-                }
-                setQuestions(questions === "expanded" ? "compact" : "expanded");
-              }}
-              onPointerDown={(event) => {
-                if (event.button !== 0 || !event.isPrimary) return;
-                questionDragged.current = false;
-                questionDragY.current = event.clientY;
-                questionStartHeight.current = event.currentTarget
-                  .closest("dialog")!
-                  .getBoundingClientRect().height;
-                event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerMove={(event) => {
-                if (questionDragY.current === null) return;
-                const delta = questionDragY.current - event.clientY;
-                if (Math.abs(delta) > 5) questionDragged.current = true;
-                const maximum = window.innerHeight - 64;
-                setQuestionHeight(
-                  Math.max(
-                    Math.min(329, maximum),
-                    Math.min(maximum, questionStartHeight.current + delta),
-                  ),
-                );
-              }}
-              onPointerUp={(event) => {
-                if (
-                  questionDragY.current !== null &&
-                  Math.abs(event.clientY - questionDragY.current) > 30
-                ) {
-                  questionDragged.current = true;
-                  setQuestions(event.clientY < questionDragY.current ? "expanded" : "compact");
-                }
-                questionDragY.current = null;
-                setQuestionHeight(undefined);
-              }}
-              onPointerCancel={() => {
-                questionDragY.current = null;
-                questionDragged.current = false;
-                setQuestionHeight(undefined);
-              }}
-            >
-              Q&amp;A
-            </button>
-          </h2>
-          {onRefreshQuestions && (
-            <button type="button" className="text-caption-s underline" onClick={onRefreshQuestions}>
-              새로고침
-            </button>
-          )}
-          <button
-            type="button"
-            className="sr-only focus:not-sr-only"
-            onClick={() => setQuestions("closed")}
-          >
-            Q&amp;A 닫기
-          </button>
-          <div
-            className={styles.questionList}
-            tabIndex={0}
-            role="region"
-            aria-label="Q&A 질문 목록"
-          >
-            {questionsState ??
-              questionsData.map((question) => (
-                <article key={question.id ?? question.title}>
-                  <div className={styles.questionTitle}>
-                    <RoomIcon name="question-filled" className="size-5" />
-                    <h3>{question.title}</h3>
-                  </div>
-                  <p className={styles.questionCount}>질문 {question.count}건</p>
-                  <div className={styles.answer}>
-                    <p>{question.answer}</p>
-                    <p>{demoMode ? "판매자 · 1분 전" : (question.answeredBy ?? "답변자 미확인")}</p>
-                  </div>
-                </article>
-              ))}
-          </div>
-        </div>
-      </DialogBase>
+      <LiveQuestionsSheet
+        state={questions}
+        onStateChange={setQuestions}
+        questions={questionsData}
+        questionsState={questionsState}
+        onRefresh={onRefreshQuestions}
+        demoMode={demoMode}
+      />
     </div>
   );
 }

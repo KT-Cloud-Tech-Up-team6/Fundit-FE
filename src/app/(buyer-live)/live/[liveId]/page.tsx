@@ -31,9 +31,10 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
         }
       >
         <RealBuyerLive
-          key={`${liveId}:mobile:${query.mode === "replay"}`}
+          key={`${liveId}:mobile:${query.mode === "replay"}:${query.view === "clip"}`}
           liveId={liveId}
           replay={query.mode === "replay"}
+          clip={query.view === "clip"}
         />
       </LiveViewport>
     );
