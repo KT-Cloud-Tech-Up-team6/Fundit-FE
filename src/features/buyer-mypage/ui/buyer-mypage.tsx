@@ -74,9 +74,9 @@ export function BuyerMyPage({
             <Link
               href="/seller/projects"
               className="bg-layer-surface-primary text-body-s text-text-inverse flex h-9 shrink-0 items-center gap-1 rounded-xs px-2 leading-[1.42] font-medium"
-              aria-label="판매자 모드로 이동"
+              aria-label="창작자 모드로 이동"
             >
-              판매자 전환
+              창작자 전환
               <span
                 aria-hidden
                 className="size-4 bg-current [mask-image:url('/icons/buyer-account/ab25c.svg')] [mask-size:contain]"
