@@ -2,19 +2,31 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { consoleDemoReducer, createConsoleDemo } from "./console-demo.ts";
 
-test("only a ready console starts and a live console ends", () => {
-  const ready = createConsoleDemo("ready");
-  assert.equal(consoleDemoReducer(ready, { type: "end" }), ready);
-  const live = consoleDemoReducer(ready, { type: "start" });
+test("loading completes on data arrival and an ended console cannot resume", () => {
+  const loading = createConsoleDemo("loading");
+  const live = consoleDemoReducer(loading, { type: "loaded" });
   assert.equal(live.phase, "live");
-  assert.equal(consoleDemoReducer(live, { type: "start" }), live);
+  assert.equal(live.messages.length, 6);
+  assert.ok(live.messages.every((message) => message.text.trim() && message.author === "아이디"));
+  assert.deepEqual(loading.messages, []);
+  assert.equal(consoleDemoReducer(live, { type: "loaded" }), live);
   const ended = consoleDemoReducer(live, { type: "end" });
   assert.equal(ended.phase, "ended");
-  assert.equal(consoleDemoReducer(ended, { type: "start" }), ended);
+  assert.equal(consoleDemoReducer(ended, { type: "loaded" }), ended);
+});
+
+test("ending during loading preserves empty data and rejects late loading completion", () => {
+  const loading = createConsoleDemo("loading");
+  const ended = consoleDemoReducer(loading, { type: "end" });
+  assert.equal(ended.phase, "ended");
+  assert.deepEqual(ended.messages, []);
+  assert.deepEqual(ended.answers, {});
+  assert.equal(consoleDemoReducer(ended, { type: "loaded" }), ended);
+  assert.equal(consoleDemoReducer(ended, { type: "end" }), ended);
 });
 
 test("chat rejects whitespace and messages outside a live session", () => {
-  for (const phase of ["ready", "ended"]) {
+  for (const phase of ["loading", "ended"]) {
     const state = createConsoleDemo(phase);
     assert.equal(consoleDemoReducer(state, { type: "chat", text: "hello" }), state);
   }
@@ -72,7 +84,7 @@ test("manual completion never invents an answer or sends a chat", () => {
     consoleDemoReducer(ended, { type: "publish", ids: ["models"] }).publishedIds,
     [],
   );
-  for (const phase of ["ready", "ended"]) {
+  for (const phase of ["loading", "ended"]) {
     const state = createConsoleDemo(phase);
     assert.equal(consoleDemoReducer(state, { type: "complete", questionId: "models" }), state);
   }
