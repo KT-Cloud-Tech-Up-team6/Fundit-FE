@@ -23,6 +23,7 @@ const iconFiles = {
   close: "remove_cancel",
   colorPalette: "color_palette",
   funding: "funding",
+  heart: "buyer-live-room/heart",
   linkChain: "link_chain",
   insertImage: "insert_image",
   insertQuote: "insert_quote",
