@@ -13,13 +13,15 @@ const base = {
   perMemberLimit: 2,
   targetScope: "ALL",
   targetRefId: null,
+  issuerType: "PLATFORM",
+  maxDiscountAmount: 5000,
 };
 
 test("coupon explains minimum reward funding, issuance limit and Korean expiry time", () => {
   const result = couponConditions(base, "project");
   assert.equal(
     result.condition,
-    "50,000원 이상 펀딩 시 사용 가능\n전체 프로젝트\n1인당 최대 2장 발급",
+    "50,000원 이상 펀딩 시 사용 가능\n전체 프로젝트\n1인당 최대 2장 발급\n최대 5,000원 할인",
   );
   assert.match(result.expiry, /2026.*10.*01.*00:00.*한국 시간/);
 });
@@ -53,11 +55,13 @@ test("zero minimum is unrestricted but missing coupon metadata is not unlimited"
       perMemberLimit: 0,
       targetScope: null,
       targetRefId: null,
+      issuerType: "PLATFORM",
+      maxDiscountAmount: 5000,
       expiresAt: null,
     },
     "p",
   );
-  assert.match(missing.condition, /인당 발급 한도 확인 필요/);
+  assert.match(missing.condition, /회원당 발급 한도 확인 필요/);
   assert.match(missing.condition, /최소 펀딩 금액 확인 필요/);
   assert.match(missing.condition, /적용 대상 확인 필요/);
   assert.equal(missing.expiry, "유효기간 확인 필요");
@@ -65,4 +69,16 @@ test("zero minimum is unrestricted but missing coupon metadata is not unlimited"
     couponConditions({ ...base, expiresAt: "bad-date" }, "p").expiry,
     "유효기간 확인 필요",
   );
+});
+
+test("shows zero cap as zero discount and unknown caps safely", () => {
+  assert.match(
+    couponConditions({ ...base, maxDiscountAmount: 0 }, "project").condition,
+    /최대 0원 할인/,
+  );
+  for (const maxDiscountAmount of [null, -1, NaN, 1.5, Number.MAX_SAFE_INTEGER + 1])
+    assert.match(
+      couponConditions({ ...base, maxDiscountAmount }, "project").condition,
+      /최대 할인 금액 확인 필요/,
+    );
 });
