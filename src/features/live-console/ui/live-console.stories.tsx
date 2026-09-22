@@ -13,8 +13,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const BeforeStart: Story = {
-  args: { initialView: "ready" },
+export const Loading: Story = {
+  args: { initialView: "loading" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "스트림 상태 확인" }));

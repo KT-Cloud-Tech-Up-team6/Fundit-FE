@@ -188,7 +188,7 @@ export function QuestionManager({
         <h2 ref={headingRef} tabIndex={-1} className="text-title-s">
           AI 라이브 매니저
         </h2>
-        {state.phase !== "ready" && (
+        {state.phase !== "loading" && (
           <span className="text-caption-s text-text-secondary flex items-center gap-1">
             2분 전 <Icon name="swap" className="size-3.5" />
           </span>
@@ -257,7 +257,7 @@ export function QuestionManager({
         <>
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <h3 className="text-body-emphasis">질문 요약</h3>
-            {state.phase === "ready" ? (
+            {state.phase === "loading" ? (
               <div className="bg-layer-surface-disabled text-caption-s text-text-secondary flex flex-1 items-center justify-center rounded-xs">
                 요약할 질문이 부족합니다
               </div>
@@ -318,7 +318,7 @@ export function QuestionManager({
               </>
             )}
           </div>
-          {state.phase !== "ready" && (
+          {state.phase !== "loading" && (
             <Button
               variant="primaryLive"
               size="sm"
