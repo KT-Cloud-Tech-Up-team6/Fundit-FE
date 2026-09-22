@@ -31,7 +31,6 @@ export const Default: Story = {
     await expect(bar).toHaveAttribute("aria-valuetext", "목표 대비 128% 달성");
     await expect(canvas.getByText("128")).toBeVisible();
     await expect(canvas.getAllByRole("row")).toHaveLength(demoRewardRows().length + 1);
-    await expect(canvas.getByRole("button", { name: "PDF 다운로드" })).toBeDisabled();
     await expect(canvas.getByText("목표 달성")).toBeVisible();
   },
 };

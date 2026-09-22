@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { Badge } from "@/shared/components/ui/badge";
 import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
-import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { ProgressBar } from "@/shared/components/ui/progress-bar";
 import {
@@ -51,9 +50,6 @@ export function FundingStatusBoard({
         <Breadcrumb items={breadcrumb} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-heading-l">펀딩 관리</h1>
-          <Button disabled size="md" appearance="cta" className="w-45" title="PDF 다운로드 준비 중">
-            PDF 다운로드
-          </Button>
         </div>
       </header>
 
