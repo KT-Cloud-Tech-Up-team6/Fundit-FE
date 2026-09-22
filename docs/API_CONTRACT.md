@@ -536,6 +536,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이다.
 - `segments`는 **JSON 문자열**이다. BE가 AI 계약을 타입으로 박지 않고 그대로 저장·반환하므로 구조 확인은 FE 몫이다. 현재 구간은 `{id, title, duration, outline, script}`이며 `duration`은 초다.
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
+- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 `failureReason`과 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
 - **`liveId` 단건 조회 API가 없다.** `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404다. LIVE의 `projectId`가 필요한 화면은 `/lives/mine`에서 찾는다 — 단건 조회가 생기면 걷어낼 우회다.
 - 송출 시작(`POST /start`)은 스트림 키 조회 API가 없어 화면에 붙이지 않았다.

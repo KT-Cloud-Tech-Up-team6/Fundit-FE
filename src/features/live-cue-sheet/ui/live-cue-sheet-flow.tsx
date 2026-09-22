@@ -342,7 +342,8 @@ export function LiveCueSheetFlow({
               </div>
             </div>
           ) : step === "failed" ? (
-            /* 원본에 실패 화면이 따로 없다. 생성 중 화면과 같은 자리에 사유와 재시도만 둔다 —
+            /* FL_S_LVS_AIC_FAIL — 원본에 실패 화면이 없어 새로 부여한 화면 ID다.
+               생성 중 화면(FL_S_LVS_AIC)과 같은 자리·배경을 쓰고 사유와 재시도만 둔다 —
                생성 중·성공과 구분되지 않으면 판매자가 기다리기만 하게 된다(#289 필수 계약 2). */
             <div
               role="alert"

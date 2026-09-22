@@ -60,8 +60,8 @@ const failedGeneration = {
   failureReason: "AI 서버가 응답하지 않았습니다. (timeout)",
 } satisfies CueSheetGenerationView;
 
-/* 서버가 FAILED와 사유를 내려준 경우. `generation`을 주면 API 모드로 동작해
-   단계 전환을 서버 상태가 끈다(`live-cue-sheet-flow.tsx` 주석 참고). */
+/* FL_S_LVS_AIC_FAIL — 서버가 FAILED와 사유를 내려준 경우. `generation`을 주면 API 모드로
+   동작해 단계 전환을 서버 상태가 끈다(`live-cue-sheet-flow.tsx` 주석 참고). */
 export const GenerationFailed: Story = {
   args: {
     ...TypeSelected.args,
