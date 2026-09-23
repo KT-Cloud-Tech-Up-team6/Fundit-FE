@@ -37,7 +37,7 @@ test("UUID 주문 미리보기·생성·목록은 통합된 v1 계약으로 요�
     return Response.json({ code: "NOT_FOUND", message: "없는 API 경로" }, { status: 404 });
   });
   assert.equal((await previewOrder(body)).finalAmount, 17000);
-  assert.equal((await createOrder(body)).orderId, orderId);
+  assert.equal((await createOrder(body, "attempt-key")).orderId, orderId);
   const signal = new AbortController().signal;
   await getOrders(1, "GOAL_ACHIEVED", signal);
   await getOrders(0, "");
@@ -55,6 +55,8 @@ test("UUID 주문 미리보기·생성·목록은 통합된 v1 계약으로 요�
     assert.equal(init.headers.get("Authorization"), "Bearer order-test-token");
     assert.equal(init.credentials, "include");
   }
+  assert.equal(calls[0].init.headers.get("Idempotency-Key"), null);
+  assert.equal(calls[1].init.headers.get("Idempotency-Key"), "attempt-key");
   for (const { init } of calls.slice(0, 2)) {
     assert.equal(init.method, "POST");
     assert.deepEqual(JSON.parse(init.body), body);

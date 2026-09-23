@@ -104,8 +104,15 @@ export function getCheckoutAddresses(signal?: AbortSignal) {
 export function previewOrder(body: OrderRequest) {
   return apiRequest<OrderPreview>("/api/v1/orders/preview", { auth: true, method: "POST", body });
 }
-export function createOrder(body: OrderRequest) {
-  return apiRequest<OrderCreated>("/api/v1/orders", { auth: true, method: "POST", body });
+/** 같은 회원이 같은 키로 다시 보내면 BE는 새 주문 대신 기존 주문을 200으로 돌려준다.
+    같은 키에 다른 본문이거나 같은 키 요청이 처리 중이면 409 `CONFLICT`다. */
+export function createOrder(body: OrderRequest, idempotencyKey: string) {
+  return apiRequest<OrderCreated>("/api/v1/orders", {
+    auth: true,
+    method: "POST",
+    body,
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
 }
 export function getOrder(id: string, signal?: AbortSignal) {
   return apiRequest<OrderDetail>(`/api/v1/orders/${id}`, { auth: true, signal });
