@@ -8,12 +8,20 @@ import {
   RefundEvidenceValidationError,
   getRefundEstimate,
   requestDefectRefund,
+  requestExchange,
   requestShippingDelayRefund,
+  requestSimpleChangeOfMindRefund,
   uploadRefundEvidence,
 } from "@/entities/refund/api/refund-request-api";
+import { ApiError } from "@/shared/api/api-error";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
-import { toRefundInfo, type RefundInfo, type ReturnType } from "../model/funding-cancel";
+import {
+  exchangeReasonDetail,
+  toRefundInfo,
+  type RefundInfo,
+  type ReturnType,
+} from "../model/funding-cancel";
 import { FundingCancel, type FundingCancelSubmit } from "./funding-cancel";
 
 const emptyRefund: RefundInfo = {
@@ -78,7 +86,7 @@ function RefundRequest({
   /* 업로드가 끝난 증빙의 fileUrl. 제출 재시도에서 중복 업로드를 막는다. */
   const uploadedRef = useRef(new Map<File, string>());
 
-  async function submit({ submission, reasonDetail, files }: FundingCancelSubmit) {
+  async function submit({ submission, reason, reasonDetail, files }: FundingCancelSubmit) {
     if (!submission.supported || saving.current) return;
     saving.current = true;
     setPending(true);
@@ -86,6 +94,8 @@ function RefundRequest({
     try {
       if (submission.kind === "shipping-delay") {
         await requestShippingDelayRefund(fundingId);
+      } else if (submission.kind === "simple-change-of-mind") {
+        await requestSimpleChangeOfMindRefund(fundingId);
       } else {
         const evidenceUrls: string[] = [];
         for (const file of files) {
@@ -96,12 +106,20 @@ function RefundRequest({
           uploadedRef.current.set(file, uploaded);
           evidenceUrls.push(uploaded);
         }
-        await requestDefectRefund({
-          fundingId,
-          defectType: submission.defectType,
-          reasonDetail,
-          evidenceUrls,
-        });
+        if (submission.kind === "exchange") {
+          await requestExchange({
+            fundingId,
+            reasonDetail: exchangeReasonDetail(reason, reasonDetail),
+            evidenceUrls,
+          });
+        } else {
+          await requestDefectRefund({
+            fundingId,
+            defectType: submission.defectType,
+            reasonDetail,
+            evidenceUrls,
+          });
+        }
       }
       await client.invalidateQueries({ queryKey: ["refunds", memberId] });
       await client.invalidateQueries({ queryKey: ["order", memberId, fundingId] });
@@ -110,7 +128,9 @@ function RefundRequest({
       setError(
         failure instanceof RefundEvidenceValidationError
           ? failure.message
-          : "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요.",
+          : failure instanceof ApiError && failure.code === "ALREADY_SHIPPED"
+            ? "이미 발송이 시작되어 단순변심으로 접수할 수 없습니다. 다른 사유를 선택해주세요."
+            : "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요.",
       );
     } finally {
       saving.current = false;
@@ -155,9 +175,9 @@ function RefundRequest({
       initialReturnType={initialReturnType}
       initialReason={initialReason}
       detail={{
-        /* 주문 상세 응답에 프로젝트명·썸네일이 없다(OrderDetailResponse). 자리만 남긴다. */
-        imageSrc: "",
-        projectTitle: "",
+        /* project-service 조회가 실패하면 둘 다 null로 온다. 그때는 자리만 남긴다. */
+        imageSrc: order.data.thumbnailUrl ?? "",
+        projectTitle: order.data.projectTitle ?? "",
         rewardOption,
         rewardQuantity: first?.quantity ?? null,
         amount: order.data.finalAmount,

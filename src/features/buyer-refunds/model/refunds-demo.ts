@@ -13,7 +13,9 @@ export const refundSummariesDemo: RefundSummary[] = [
     rejectedReason: null,
     completedAt: null,
     projectTitle: "키친모먼트 스테인리스 전기주전자",
-    lineItems: [{ rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000 }],
+    lineItems: [
+      { rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000, options: [] },
+    ],
   },
   {
     refundId: 1042,
@@ -26,7 +28,9 @@ export const refundSummariesDemo: RefundSummary[] = [
     rejectedReason: null,
     completedAt: "2026-09-13T01:02:00Z",
     projectTitle: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
-    lineItems: [{ rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000 }],
+    lineItems: [
+      { rewardName: "얼리버드 스타터 세트", quantity: 1, unitPrice: 199000, options: [] },
+    ],
   },
   {
     refundId: 1043,
@@ -39,7 +43,7 @@ export const refundSummariesDemo: RefundSummary[] = [
     rejectedReason: null,
     completedAt: "2026-09-05T08:30:00Z",
     projectTitle: "벨라포뮬라 데일리 콜라겐 크림",
-    lineItems: [{ rewardName: "데일리 콜라겐 크림", quantity: 1, unitPrice: 23000 }],
+    lineItems: [{ rewardName: "데일리 콜라겐 크림", quantity: 1, unitPrice: 23000, options: [] }],
   },
   {
     refundId: 1044,
@@ -52,7 +56,9 @@ export const refundSummariesDemo: RefundSummary[] = [
     rejectedReason: "제품 하자가 확인되지 않았습니다",
     completedAt: "2026-09-06T02:00:00Z",
     projectTitle: "센트모먼트 바디미스트",
-    lineItems: [{ rewardName: "센트모먼트 바디미스트", quantity: 2, unitPrice: 12000 }],
+    lineItems: [
+      { rewardName: "센트모먼트 바디미스트", quantity: 2, unitPrice: 12000, options: [] },
+    ],
   },
   /* order-service 배치 조회가 실패해 프로젝트명·상품이 비어 내려온 응답. */
   {

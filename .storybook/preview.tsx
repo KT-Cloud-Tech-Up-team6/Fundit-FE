@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite";
 
 import { AuthFlowProvider } from "../src/features/auth/model/auth-flow-context";
+import { startMockWorker } from "../src/mocks/browser";
 import { AppProviders } from "../src/providers/app-providers";
 import "../src/app/globals.css";
 
@@ -11,6 +12,16 @@ import "../src/app/globals.css";
  * React 렌더 밖에서 attribute 를 걸어준다.
  */
 const preview: Preview = {
+  /* Storybook은 loaders를 기다린 뒤 렌더하고, 렌더 직후 play를 실행한다. 워커를 여기서 먼저
+     켜 두면 MswProvider가 첫 렌더부터 스토리를 그려 play가 빈 화면에서 돌지 않는다.
+     시작 실패는 여기서 던지지 않는다. 던지면 스토리가 오류 화면이 되므로, MswProvider가 다시
+     시작해 보고 실패 안내·재시도를 보여 주게 둔다. */
+  loaders: [
+    async () => {
+      await startMockWorker().catch(() => undefined);
+      return {};
+    },
+  ],
   async beforeEach({ globals }) {
     document.documentElement.dataset.theme = globals.theme === "dark" ? "dark" : "light";
   },

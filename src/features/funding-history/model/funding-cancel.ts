@@ -64,27 +64,35 @@ export function toRefundInfo(estimate: RefundEstimate): RefundInfo {
 export type RefundSubmission =
   | { supported: true; kind: "defect"; defectType: RefundDefectType }
   | { supported: true; kind: "shipping-delay" }
+  | { supported: true; kind: "simple-change-of-mind" }
+  | { supported: true; kind: "exchange" }
   | { supported: false; reason: string };
 
 /* "상품이 잘못 배송됨"은 BE 회신(04-BE팀 요청서, #291)으로 DIFFERENT_FROM_DESCRIPTION과
-   같은 뜻으로 써도 된다고 확인받았다. */
+   같은 뜻으로 써도 된다고 확인받았다. 구성품 누락·기타는 BE #124에서 추가됐다. */
 const defectTypeByReason: Record<string, RefundDefectType> = {
   "불량·하자": "DEFECTIVE",
   "상품 파손": "DAMAGED",
   "상품이 잘못 배송됨": "DIFFERENT_FROM_DESCRIPTION",
+  "구성품 누락": "MISSING_COMPONENTS",
+  기타: "OTHER",
 };
 
 export function refundSubmissionFor(type: ReturnType | "", reason: string): RefundSubmission {
-  if (type === "교환") {
-    return { supported: false, reason: "교환 신청은 아직 제공되지 않습니다." };
+  if (type === "교환" && returnReasonsByType.교환.includes(reason)) {
+    return { supported: true, kind: "exchange" };
   }
   if (reason === "배송 지연") return { supported: true, kind: "shipping-delay" };
+  if (reason === "단순변심") return { supported: true, kind: "simple-change-of-mind" };
   const defectType = defectTypeByReason[reason];
   if (defectType) return { supported: true, kind: "defect", defectType };
-  if (reason === "단순변심") {
-    return { supported: false, reason: "단순변심 반품은 아직 제공되지 않습니다." };
-  }
   return { supported: false, reason: `"${reason}" 사유는 아직 접수할 수 없습니다.` };
+}
+
+/** 교환 사유는 BE enum이 없어 사유 라벨과 입력 내용을 한 문자열로 보낸다. 내역에서 같은 규칙으로 나눈다. */
+export function exchangeReasonDetail(reason: string, detail: string): string {
+  const text = detail.trim();
+  return text ? `${reason}: ${text}` : reason;
 }
 
 export function canSubmitCancel(reason: string): boolean {

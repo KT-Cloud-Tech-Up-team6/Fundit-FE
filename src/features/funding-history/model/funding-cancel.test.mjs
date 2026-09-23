@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addCancelPhotos,
+  exchangeReasonDetail,
   refundSubmissionFor,
   toRefundInfo,
   canSubmitCancel,
@@ -47,16 +48,40 @@ test("하자 사유는 DefectType으로, 배송 지연은 전용 계약으로 �
   });
 });
 
-test("계약이 없는 조합은 이유와 함께 막힌다", () => {
-  for (const reason of ["단순변심", "구성품 누락", "기타"]) {
-    assert.equal(refundSubmissionFor("반품", reason).supported, false, reason);
+test("단순변심·구성품 누락·기타 반품도 BE 계약으로 간다", () => {
+  assert.deepEqual(refundSubmissionFor("반품", "단순변심"), {
+    supported: true,
+    kind: "simple-change-of-mind",
+  });
+  assert.deepEqual(refundSubmissionFor("반품", "구성품 누락"), {
+    supported: true,
+    kind: "defect",
+    defectType: "MISSING_COMPONENTS",
+  });
+  assert.deepEqual(refundSubmissionFor("반품", "기타"), {
+    supported: true,
+    kind: "defect",
+    defectType: "OTHER",
+  });
+  for (const reason of returnReasonsByType["반품"]) {
+    assert.equal(refundSubmissionFor("반품", reason).supported, true, reason);
   }
+});
+
+test("교환 사유 5종은 모두 교환 신청으로 간다", () => {
   for (const reason of returnReasonsByType["교환"]) {
-    assert.deepEqual(refundSubmissionFor("교환", reason), {
-      supported: false,
-      reason: "교환 신청은 아직 제공되지 않습니다.",
-    });
+    assert.deepEqual(refundSubmissionFor("교환", reason), { supported: true, kind: "exchange" });
   }
+});
+
+test("사유를 고르지 않으면 접수할 수 없다", () => {
+  assert.equal(refundSubmissionFor("반품", "").supported, false);
+  assert.equal(refundSubmissionFor("교환", "").supported, false);
+});
+
+test("교환 사유는 라벨과 입력 내용을 합쳐 보내고 입력이 없으면 라벨만 보낸다", () => {
+  assert.equal(exchangeReasonDetail("상품 파손", "  모서리 깨짐 "), "상품 파손: 모서리 깨짐");
+  assert.equal(exchangeReasonDetail("기타", "   "), "기타");
 });
 
 test("취소 사유가 선택돼야 제출 가능하다", () => {
