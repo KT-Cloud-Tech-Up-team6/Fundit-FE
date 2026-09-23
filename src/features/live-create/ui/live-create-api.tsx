@@ -215,9 +215,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     ? `저장하지 못했습니다. ${errorMessage(save.error)}`
     : start.isError
       ? startFailure
-      : load.isError
-        ? `임시저장한 LIVE를 불러오지 못했습니다. ${errorMessage(load.error)}`
-        : notice;
+      : notice;
   const draftItems = toSellerLiveList(drafts.data);
 
   return (
@@ -292,7 +290,10 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
               <button
                 className={`${secondaryButtonClasses} h-10 w-23`}
                 disabled={load.isPending}
-                onClick={() => setLoadOpen(true)}
+                onClick={() => {
+                  load.reset();
+                  setLoadOpen(true);
+                }}
                 type="button"
               >
                 불러오기
@@ -391,6 +392,12 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
       {/* 원본에는 불러오기 버튼만 있고 고르는 화면이 없다. 공용 Modal로 최소한만 둔다 —
           이어서 작성할 LIVE를 고르는 자리라 소개 문구와 만든 날짜만 보여 준다. */}
       <Modal onClose={() => setLoadOpen(false)} open={loadOpen} title="임시저장 불러오기">
+        {/* 불러오는 동안 생성 모달은 닫혀 있어, 실패 안내는 고르는 이 자리에 둔다. */}
+        {load.isError && (
+          <p role="alert" className="text-body-s text-text-error mt-6">
+            임시저장한 LIVE를 불러오지 못했습니다. {errorMessage(load.error)}
+          </p>
+        )}
         {drafts.isPending ? (
           <p role="status" className="mt-6">
             임시저장한 LIVE를 불러오고 있습니다.
