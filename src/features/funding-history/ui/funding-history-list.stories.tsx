@@ -5,6 +5,9 @@ import { FundingHistoryList } from "./funding-history-list";
 const meta = {
   title: "Features/Funding History/List",
   component: FundingHistoryList,
+  /* 기본 기간이 "최근 한 달"이라 오늘 날짜로 거르면 고정된 목업 결제일(08-18 ~ 09-15)이 날마다
+     범위를 벗어난다. Figma 카드 4개가 모두 보이는 기준일로 고정한다. */
+  args: { referenceDate: "2026-09-18" },
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },

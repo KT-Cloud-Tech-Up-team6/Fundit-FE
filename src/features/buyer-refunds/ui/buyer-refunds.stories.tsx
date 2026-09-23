@@ -77,8 +77,10 @@ export const ExpandHistory: Story = {
     await expect(within(pending).getByText("발송 지연")).toBeVisible();
     await expect(within(pending).queryByText("실 환불 금액")).not.toBeInTheDocument();
 
-    const denied = canvas.getByText(rejected).closest("details")!;
-    await userEvent.click(canvas.getByText(rejected));
+    /* 이 건은 프로젝트명과 접수 상품명이 같아 텍스트가 두 번 나온다. 카드 제목으로 찾는다. */
+    const deniedTitle = canvas.getByRole("heading", { name: rejected });
+    const denied = deniedTitle.closest("details")!;
+    await userEvent.click(deniedTitle);
     await expect(within(denied).getByText("제품 하자가 확인되지 않았습니다")).toBeVisible();
     await expect(within(denied).queryByText("실 환불 금액")).not.toBeInTheDocument();
     await expect(canvas.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();

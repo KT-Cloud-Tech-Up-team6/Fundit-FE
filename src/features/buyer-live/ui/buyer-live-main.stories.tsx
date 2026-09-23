@@ -16,7 +16,9 @@ export const SubscriptionKeyboard: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const subscriptions = within(canvas.getByRole("region", { name: "알림 신청한 라이브" }));
-    const nextButton = subscriptions.getAllByRole("button")[2];
+    /* 영역 제목 줄에 비활성 "전체보기 (준비중)" 버튼이 있어 카드의 시작 알림 버튼만 고른다. */
+    const alarms = () => subscriptions.queryAllByRole("button", { name: / 시작 알림$/ });
+    const nextButton = alarms()[2];
     await userEvent.tab();
     for (const article of subscriptions.getAllByRole("article")) {
       const card = within(article);
@@ -24,11 +26,11 @@ export const SubscriptionKeyboard: Story = {
       expect(card.getAllByRole("link")[0]).toHaveAccessibleName(`${title} 라이브 보기`);
       expect(card.getByRole("button")).toHaveAccessibleName(`${title} 시작 알림`);
     }
-    subscriptions.getAllByRole("button")[1].focus();
+    alarms()[1].focus();
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(nextButton).toHaveFocus());
-    while (subscriptions.queryAllByRole("button").length) {
-      await userEvent.click(subscriptions.getAllByRole("button")[0]);
+    while (alarms().length) {
+      await userEvent.click(alarms()[0]);
     }
     await waitFor(() =>
       expect(subscriptions.getByText("알림 신청한 라이브가 없습니다.")).toHaveFocus(),
