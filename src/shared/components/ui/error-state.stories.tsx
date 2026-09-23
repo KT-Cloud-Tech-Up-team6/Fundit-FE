@@ -14,6 +14,7 @@ const meta = {
     ),
   ],
   args: {
+    variant: "page",
     status: "notFound",
     action: { onClick: fn() },
   },
@@ -37,7 +38,6 @@ export const Network: Story = { args: { status: "network" } };
 export const Section: Story = {
   args: {
     variant: "section",
-    status: undefined,
     description: "배송지 조회를 실패하였습니다",
     action: { onClick: fn(), label: "다시 시도" },
   },
@@ -46,7 +46,6 @@ export const Section: Story = {
 export const Text: Story = {
   args: {
     variant: "text",
-    status: undefined,
     description: "배송지 조회를 실패하였습니다",
     action: undefined,
   },

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { isApiError } from "@/shared/api/api-error";
 import { Button } from "./button";
@@ -6,6 +7,8 @@ import { Chip } from "./chip";
 
 export type ErrorStatus = "notFound" | "server" | "forbidden" | "unauthorized" | "network";
 
+/** href를 주면 페이지 이동, onClick만 주면 그 자리에서 재시도. 어느 variant든 동일하게
+    지원한다 — section에서 href를 무시하고 반응 없는 버튼을 만들지 않는다. */
 type ErrorAction = { label?: string } & (
   { onClick: () => void; href?: never } | { href: string; onClick?: never }
 );
@@ -85,6 +88,14 @@ function joinClassName(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
 }
 
+/* section의 outline 칩과 동일한 모양을 Link에도 쓴다 — Chip은 button만 렌더해서
+   href로 페이지 이동은 못 시킨다. */
+const chipLikeClassName = [
+  "border-border-primary text-text-default text-label-m inline-flex items-center justify-center",
+  "rounded-full border px-2 py-1 font-semibold whitespace-nowrap",
+  "focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-2",
+].join(" ");
+
 export function ErrorState({
   variant = "page",
   status,
@@ -133,16 +144,21 @@ export function ErrorState({
             {resolvedDescription}
           </p>
         </div>
-        {action && (
-          <Chip
-            type="button"
-            appearance="outline"
-            onClick={action.onClick}
-            className="text-label-m py-1"
-          >
-            {actionLabel}
-          </Chip>
-        )}
+        {action &&
+          (action.href ? (
+            <Link href={action.href} className={chipLikeClassName}>
+              {actionLabel}
+            </Link>
+          ) : (
+            <Chip
+              type="button"
+              appearance="outline"
+              onClick={action.onClick}
+              className="text-label-m py-1"
+            >
+              {actionLabel}
+            </Chip>
+          ))}
       </div>
     );
   }
