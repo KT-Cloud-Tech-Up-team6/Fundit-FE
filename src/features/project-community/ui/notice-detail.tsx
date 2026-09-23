@@ -8,6 +8,7 @@ import {
 } from "@/entities/project/api/project-management-api";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/shared/components/ui/button";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { NoticeEditor } from "./notice-editor";
 
 export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projectId?: string }) {
@@ -30,9 +31,12 @@ export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projec
   if (detail.isPending) return <p role="status">본문을 불러오고 있습니다.</p>;
   if (detail.isError)
     return (
-      <p role="alert">
-        본문 조회 실패. <button onClick={() => void detail.refetch()}>다시 시도</button>
-      </p>
+      <QueryErrorState
+        variant="section"
+        error={detail.error}
+        description="본문을 불러오지 못했습니다."
+        onRetry={() => void detail.refetch()}
+      />
     );
   if (projectId && editing && owner.isSuccess && state.status === "authenticated")
     return (

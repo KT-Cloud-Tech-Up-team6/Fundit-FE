@@ -10,6 +10,7 @@ import styles from "@/features/live-console/ui/console.module.css";
 import { useAuth } from "@/providers/auth-provider";
 import { ApiError } from "@/shared/api/api-error";
 import { SellerShell } from "@/shared/components/layout/seller-shell";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import {
   getAnsweredQuestions,
   getInsights,
@@ -38,14 +39,57 @@ function QueryError({
   retry: () => void;
   disabled?: boolean;
 }) {
+  const router = useRouter();
+  const httpStatus = error instanceof ApiError ? error.status : undefined;
+  const status = toErrorStatus(error);
+  if (httpStatus === 409)
+    return (
+      <ErrorState
+        variant="section"
+        status="server"
+        description="VOD를 준비 중입니다. 잠시 후 다시 시도해 주세요."
+        action={disabled ? undefined : { label: "다시 시도", onClick: retry }}
+      />
+    );
+  if (status === "unauthorized") {
+    const returnTo =
+      typeof window === "undefined" ? "/live" : window.location.pathname + window.location.search;
+    return (
+      <ErrorState
+        variant="section"
+        status={status}
+        action={{ href: `/auth/login?returnTo=${encodeURIComponent(returnTo)}` }}
+      />
+    );
+  }
+  if (status === "forbidden")
+    return (
+      <ErrorState variant="section" status={status} action={{ onClick: () => router.back() }} />
+    );
+  return (
+    <ErrorState
+      variant="section"
+      status={status}
+      description="정보를 불러오지 못했습니다."
+      action={disabled ? undefined : { label: "다시 시도", onClick: retry }}
+    />
+  );
+}
+
+/** 변경 요청 실패는 조회 실패 마이그레이션 대상이 아니다. 입력을 유지한 채 같은 요청만 재시도한다. */
+function MutationError({
+  error,
+  retry,
+  disabled,
+}: {
+  error: unknown;
+  retry: () => void;
+  disabled: boolean;
+}) {
   const status = error instanceof ApiError ? error.status : undefined;
   return (
     <div role="alert" className="border-border-default rounded border p-4">
-      {status === 409
-        ? "VOD를 준비 중입니다. 잠시 후 다시 시도해 주세요."
-        : status === 401 || status === 403
-          ? "로그인이 필요하거나 이 라이브에 접근할 권한이 없습니다."
-          : `정보를 불러오지 못했습니다${status ? ` (${status})` : ""}.`}{" "}
+      {`정보를 처리하지 못했습니다${status ? ` (${status})` : ""}.`}{" "}
       <button
         type="button"
         className="ml-2 underline disabled:opacity-50"
@@ -378,7 +422,7 @@ function SellerQuestion({
         답변 등록
       </button>
       {mutation.isError && (
-        <QueryError
+        <MutationError
           error={mutation.error}
           disabled={mutation.isPending || (mutation.variables?.action === "SEND" && !draft.trim())}
           retry={() => {

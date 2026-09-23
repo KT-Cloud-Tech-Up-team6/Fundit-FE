@@ -14,6 +14,7 @@ import {
   uploadRefundEvidence,
 } from "@/entities/refund/api/refund-request-api";
 import { ApiError } from "@/shared/api/api-error";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import {
@@ -144,19 +145,15 @@ function RefundRequest({
         title="펀딩 반품/교환"
         backHref={`/my/fundings/${fundingId}`}
         breadcrumb={["마이페이지", "펀딩내역", "펀딩 반품/교환"]}
+        fullPage={order.isError}
       >
-        <p className="text-body-s px-5 py-24 text-center">
-          {order.isPending ? (
-            <span role="status">주문을 불러오고 있습니다.</span>
-          ) : (
-            <span role="alert">
-              주문 조회 실패.{" "}
-              <button className="underline" onClick={() => void order.refetch()}>
-                다시 시도
-              </button>
-            </span>
-          )}
-        </p>
+        {order.isPending ? (
+          <p className="text-body-s px-5 py-24 text-center" role="status">
+            주문을 불러오고 있습니다.
+          </p>
+        ) : (
+          <QueryErrorState error={order.error} onRetry={() => void order.refetch()} />
+        )}
       </BuyerAccountScreen>
     );
   }

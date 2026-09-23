@@ -5,6 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMyRefunds } from "@/entities/refund/api/refund-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { Button } from "@/shared/components/ui/button";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { toRefundEntry } from "../model/refund-history";
 import { BuyerRefunds, RefundsScreen } from "./buyer-refunds";
 
@@ -41,19 +42,14 @@ function Refunds({ memberId }: { memberId: string }) {
 
   if (list.isPending || list.isError) {
     return (
-      <RefundsScreen>
-        <p className="text-body-s px-5 py-24 text-center">
-          {list.isPending ? (
-            <span role="status">취소/환불/교환 내역을 불러오고 있습니다.</span>
-          ) : (
-            <span role="alert">
-              취소/환불/교환 내역 조회 실패.{" "}
-              <button className="underline" onClick={() => void list.refetch()}>
-                다시 시도
-              </button>
-            </span>
-          )}
-        </p>
+      <RefundsScreen fullPage={list.isError}>
+        {list.isPending ? (
+          <p className="text-body-s px-5 py-24 text-center" role="status">
+            취소/환불/교환 내역을 불러오고 있습니다.
+          </p>
+        ) : (
+          <QueryErrorState error={list.error} onRetry={() => void list.refetch()} />
+        )}
       </RefundsScreen>
     );
   }

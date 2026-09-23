@@ -18,9 +18,19 @@ import {
 const screenTitle = "취소/환불/교환 내역";
 
 /** 목록·로딩·오류가 같은 껍데기를 쓰도록 제목·breadcrumb·하단 메뉴를 한곳에 둔다. */
-export function RefundsScreen({ children }: { children: ReactNode }) {
+export function RefundsScreen({
+  children,
+  fullPage = false,
+}: {
+  children: ReactNode;
+  fullPage?: boolean;
+}) {
   return (
-    <BuyerAccountScreen title={screenTitle} breadcrumb={["마이페이지", "펀딩내역", screenTitle]}>
+    <BuyerAccountScreen
+      title={screenTitle}
+      breadcrumb={["마이페이지", "펀딩내역", screenTitle]}
+      fullPage={fullPage}
+    >
       {children}
       <BuyerBottomNavigation
         activeHref="/my"

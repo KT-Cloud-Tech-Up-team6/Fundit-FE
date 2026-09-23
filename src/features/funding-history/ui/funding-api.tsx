@@ -13,6 +13,8 @@ import { isConfirmed, localStore } from "@/features/payment-checkout/model/payme
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 export function FundingListApi() {
   return <OrderMemberAccess>{(id) => <FundingList key={id} memberId={id} />}</OrderMemberAccess>;
@@ -29,6 +31,7 @@ function FundingList({ memberId }: { memberId: string }) {
     queryKey: ["orders", memberId, page, status],
     queryFn: ({ signal }) => getOrders(page, status, signal),
   });
+  const listErrorStatus = toErrorStatus(list.error);
   function move(next: number, nextStatus = status) {
     router.push(
       `/my/fundings?${new URLSearchParams({ page: String(next + 1), status: nextStatus })}`,
@@ -52,9 +55,22 @@ function FundingList({ memberId }: { memberId: string }) {
         {list.isPending ? (
           <p role="status">참여 내역을 불러오고 있습니다.</p>
         ) : list.isError ? (
-          <p role="alert">
-            조회 실패. <button onClick={() => void list.refetch()}>다시 시도</button>
-          </p>
+          <ErrorState
+            variant="section"
+            status={listErrorStatus}
+            description={
+              listErrorStatus === "unauthorized" || listErrorStatus === "forbidden"
+                ? undefined
+                : "참여 내역을 불러오지 못했습니다."
+            }
+            action={
+              listErrorStatus === "unauthorized"
+                ? { href: "/auth/login" }
+                : listErrorStatus === "forbidden"
+                  ? { onClick: () => router.back() }
+                  : { label: "다시 시도", onClick: () => void list.refetch() }
+            }
+          />
         ) : (
           <>
             <p>총 {list.data.totalElements}개</p>
@@ -142,105 +158,115 @@ function Detail({
     }
   }
   return (
-    <BuyerAccountScreen title={cancel ? "펀딩 취소" : "펀딩 상세 내역"} backHref="/my/fundings">
-      <div className="space-y-4 p-5">
-        {detail.isPending ? (
-          <p role="status">주문을 불러오고 있습니다.</p>
-        ) : detail.isError ? (
-          <p role="alert">
-            주문 조회 실패. <button onClick={() => void detail.refetch()}>다시 시도</button>
-          </p>
-        ) : (
-          <>
-            <p className="break-all">주문번호 {detail.data.orderId}</p>
-            <p className="text-title-s">
-              {orderStatusLabels[detail.data.status] ?? detail.data.status}
-            </p>
-            {detail.data.lineItems.map((item, index) => (
-              <article className="border-border-default space-y-2 border-b py-3" key={index}>
-                <h2>{item.rewardName}</h2>
+    <BuyerAccountScreen
+      title={cancel ? "펀딩 취소" : "펀딩 상세 내역"}
+      backHref="/my/fundings"
+      fullPage={detail.isError}
+    >
+      {detail.isError ? (
+        <QueryErrorState error={detail.error} onRetry={() => void detail.refetch()} />
+      ) : (
+        <div className="space-y-4 p-5">
+          {detail.isPending ? (
+            <p role="status">주문을 불러오고 있습니다.</p>
+          ) : (
+            <>
+              <p className="break-all">주문번호 {detail.data.orderId}</p>
+              <p className="text-title-s">
+                {orderStatusLabels[detail.data.status] ?? detail.data.status}
+              </p>
+              {detail.data.lineItems.map((item, index) => (
+                <article className="border-border-default space-y-2 border-b py-3" key={index}>
+                  <h2>{item.rewardName}</h2>
+                  <p>
+                    {item.options
+                      .map((option) => `${option.optionGroupName} ${option.optionValue}`)
+                      .join(" · ")}
+                  </p>
+                  <p>
+                    {item.quantity}개 · {item.unitPrice.toLocaleString("ko-KR")}원
+                  </p>
+                </article>
+              ))}
+              <section className="space-y-2">
+                <h2 className="text-title-s">금액</h2>
+                <p>배송비 {detail.data.shippingFee.toLocaleString("ko-KR")}원</p>
+                <p>할인 {detail.data.discountAmount.toLocaleString("ko-KR")}원</p>
+                <p>최종 금액 {detail.data.finalAmount.toLocaleString("ko-KR")}원</p>
+              </section>
+              <section className="space-y-2">
+                <h2 className="text-title-s">배송지</h2>
                 <p>
-                  {item.options
-                    .map((option) => `${option.optionGroupName} ${option.optionValue}`)
-                    .join(" · ")}
+                  {detail.data.shippingAddress.recipientName} ·{" "}
+                  {detail.data.shippingAddress.phoneNumber}
                 </p>
                 <p>
-                  {item.quantity}개 · {item.unitPrice.toLocaleString("ko-KR")}원
+                  {detail.data.shippingAddress.addressLine1}{" "}
+                  {detail.data.shippingAddress.addressLine2}
                 </p>
-              </article>
-            ))}
-            <section className="space-y-2">
-              <h2 className="text-title-s">금액</h2>
-              <p>배송비 {detail.data.shippingFee.toLocaleString("ko-KR")}원</p>
-              <p>할인 {detail.data.discountAmount.toLocaleString("ko-KR")}원</p>
-              <p>최종 금액 {detail.data.finalAmount.toLocaleString("ko-KR")}원</p>
-            </section>
-            <section className="space-y-2">
-              <h2 className="text-title-s">배송지</h2>
-              <p>
-                {detail.data.shippingAddress.recipientName} ·{" "}
-                {detail.data.shippingAddress.phoneNumber}
-              </p>
-              <p>
-                {detail.data.shippingAddress.addressLine1}{" "}
-                {detail.data.shippingAddress.addressLine2}
-              </p>
-            </section>
-            {error && <p role="alert">{error}</p>}
-            {cancel ? (
-              detail.data.availableActions.includes("CANCEL") ? (
+              </section>
+              {error && <p role="alert">{error}</p>}
+              {cancel ? (
+                detail.data.availableActions.includes("CANCEL") ? (
+                  <>
+                    <p>펀딩 참여를 취소하시겠습니까?</p>
+                    <Button disabled={busy} onClick={() => void cancelFunding()}>
+                      참여 취소 확인
+                    </Button>
+                  </>
+                ) : (
+                  <p>이 주문은 취소할 수 없습니다.</p>
+                )
+              ) : (
                 <>
-                  <p>펀딩 참여를 취소하시겠습니까?</p>
-                  <Button disabled={busy} onClick={() => void cancelFunding()}>
-                    참여 취소 확인
+                  {detail.data.status === "GOAL_ACHIEVED" && (
+                    <Link
+                      className="block underline"
+                      href={`/my/fundings/${fundingId}/fulfillment`}
+                    >
+                      제작·배송 현황
+                    </Link>
+                  )}
+                  {detail.data.availableActions.includes("CANCEL") && (
+                    <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
+                      참여 취소
+                    </Link>
+                  )}
+                  {/* BE가 상태·배송 여부로 정한 신청 가능 액션이다(Funding.availableActions). */}
+                  {detail.data.availableActions.includes("DEFECT_REFUND_REQUEST") && (
+                    <Link
+                      className="block underline"
+                      href={`/my/fundings/${fundingId}/refund/new?type=defect`}
+                    >
+                      반품·교환 신청
+                    </Link>
+                  )}
+                  {detail.data.availableActions.includes("SHIPPING_DELAY_REFUND_REQUEST") && (
+                    <Link
+                      className="block underline"
+                      href={`/my/fundings/${fundingId}/refund/new?type=delay`}
+                    >
+                      배송 지연 취소 신청
+                    </Link>
+                  )}
+                  {detail.data.status === "PENDING" &&
+                    (isConfirmed(localStore(), fundingId) ? (
+                      <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
+                    ) : (
+                      <Button href={`/payment/${fundingId}`}>결제하기</Button>
+                    ))}
+                  <Button
+                    disabled={busy || detail.isFetching}
+                    onClick={() => void detail.refetch()}
+                  >
+                    주문 상태 새로고침
                   </Button>
                 </>
-              ) : (
-                <p>이 주문은 취소할 수 없습니다.</p>
-              )
-            ) : (
-              <>
-                {detail.data.status === "GOAL_ACHIEVED" && (
-                  <Link className="block underline" href={`/my/fundings/${fundingId}/fulfillment`}>
-                    제작·배송 현황
-                  </Link>
-                )}
-                {detail.data.availableActions.includes("CANCEL") && (
-                  <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
-                    참여 취소
-                  </Link>
-                )}
-                {/* BE가 상태·배송 여부로 정한 신청 가능 액션이다(Funding.availableActions). */}
-                {detail.data.availableActions.includes("DEFECT_REFUND_REQUEST") && (
-                  <Link
-                    className="block underline"
-                    href={`/my/fundings/${fundingId}/refund/new?type=defect`}
-                  >
-                    반품·교환 신청
-                  </Link>
-                )}
-                {detail.data.availableActions.includes("SHIPPING_DELAY_REFUND_REQUEST") && (
-                  <Link
-                    className="block underline"
-                    href={`/my/fundings/${fundingId}/refund/new?type=delay`}
-                  >
-                    배송 지연 취소 신청
-                  </Link>
-                )}
-                {detail.data.status === "PENDING" &&
-                  (isConfirmed(localStore(), fundingId) ? (
-                    <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
-                  ) : (
-                    <Button href={`/payment/${fundingId}`}>결제하기</Button>
-                  ))}
-                <Button disabled={busy || detail.isFetching} onClick={() => void detail.refetch()}>
-                  주문 상태 새로고침
-                </Button>
-              </>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </BuyerAccountScreen>
   );
 }
