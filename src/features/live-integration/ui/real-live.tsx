@@ -109,6 +109,12 @@ export function RealBuyerLive({
   const likeOverride = override && override.memberId === memberId ? override.result : null;
   const liked = likeOverride?.liked ?? likedQuery.data?.liked ?? false;
   const likeCount = likeOverride?.likeCount ?? playback.data?.likeCount ?? 0;
+  /* 내 좋아요 여부를 처음 불러오는 동안은 버튼이 실제와 다르게 꺼져 보일 수 있어 누르지 않는다.
+     한 번이라도 실패했으면 막지 않는다. 데이터 없이 실패한 조회는 재조회 때마다 pending으로
+     돌아가므로 isLoading만 보면 그동안 좋아요가 계속 막힌다. 렌더에서 계산해야 한다 — TanStack은
+     렌더 중에 읽은 속성이 바뀔 때만 다시 그리므로, 핸들러 안에서만 읽으면 실패해도 다시 그려지지
+     않아 핸들러가 이전 pending 상태를 보고 계속 막는다. */
+  const likedFirstLoading = likedQuery.isLoading && likedQuery.errorUpdateCount === 0;
   const toggleLike = useMutation({
     mutationFn: (next: boolean) => (next ? likeLive(liveId) : unlikeLive(liveId)),
     onSuccess: (result) => setOverride({ memberId, result }),
@@ -122,7 +128,7 @@ export function RealBuyerLive({
       router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
       return;
     }
-    if (toggleLike.isPending) return;
+    if (likedFirstLoading || toggleLike.isPending) return;
     const next = !liked;
     const previous = override;
     /* 응답 전에는 누르면 +1, 취소하면 -1로 먼저 그린다. 재생 정보가 오기 전(수 0)에 취소해도
