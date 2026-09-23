@@ -16,6 +16,7 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerProjectDetail } from "./buyer-project-detail";
+import { RewardSummary } from "./reward-summary";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import {
@@ -263,33 +264,12 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   );
   const paged = tab === "news" ? notices.data : tab === "community" ? posts.data : undefined;
   const rewardContent = (
-    <section className="space-y-3 p-5">
-      <h2 className="text-title-s">리워드</h2>
-      {rewards.isPending ? (
-        <p role="status">불러오는 중입니다.</p>
-      ) : rewards.isError ? (
-        <ErrorState
-          variant="section"
-          description="리워드 조회를 실패하였습니다"
-          action={{ onClick: () => void rewards.refetch() }}
-        />
-      ) : (
-        rewards.data.map((reward) => (
-          <article key={reward.rewardId} className="border-border-default border-b pb-3">
-            <h3>{reward.name}</h3>
-            <p>{reward.description}</p>
-            <p>
-              {(reward.isEarlyBird
-                ? (reward.earlyBirdDiscountedPrice ?? reward.price)
-                : reward.price
-              ).toLocaleString("ko-KR")}
-              원
-            </p>
-            {reward.soldOut && <p>품절</p>}
-          </article>
-        ))
-      )}
-    </section>
+    <RewardSummary
+      rewards={rewards.data}
+      isPending={rewards.isPending}
+      isError={rewards.isError}
+      onRetry={() => void rewards.refetch()}
+    />
   );
   return (
     <BuyerProjectDetail
