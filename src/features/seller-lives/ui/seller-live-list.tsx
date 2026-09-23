@@ -118,7 +118,7 @@ export function SellerLiveList({ status, page }: { status: SellerLiveTab; page: 
           <div className="mt-6 flex flex-1 flex-col items-center justify-center pb-16">
             <Image
               alt=""
-              src="/images/seller-live/island.svg"
+              src="/images/shared/island.svg"
               width={112}
               height={112}
               className="size-28"

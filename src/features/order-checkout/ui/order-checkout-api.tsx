@@ -12,6 +12,7 @@ import {
   type OrderAddress,
 } from "@/entities/order/api/order-api";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState } from "@/shared/components/ui/error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { QuantityStepper } from "@/features/reward-selection/ui/quantity-stepper";
@@ -167,9 +168,11 @@ function Checkout({
       {rewards.isPending ? (
         <p role="status">리워드를 불러오고 있습니다.</p>
       ) : rewards.isError ? (
-        <p role="alert">
-          리워드 조회 실패. <button onClick={() => void rewards.refetch()}>다시 시도</button>
-        </p>
+        <ErrorState
+          variant="section"
+          description="리워드 조회를 실패하였습니다"
+          action={{ onClick: () => void rewards.refetch() }}
+        />
       ) : (
         rewards.data.map((reward) => {
           const line = lines.find((item) => item.rewardId === reward.rewardId);
@@ -303,10 +306,11 @@ function Checkout({
               {addresses.isPending ? (
                 <p role="status">배송지를 불러오고 있습니다.</p>
               ) : addresses.isError ? (
-                <p role="alert">
-                  배송지 조회 실패.{" "}
-                  <button onClick={() => void addresses.refetch()}>다시 시도</button>
-                </p>
+                <ErrorState
+                  variant="section"
+                  description="배송지 조회를 실패하였습니다"
+                  action={{ onClick: () => void addresses.refetch() }}
+                />
               ) : (
                 <select
                   aria-label="저장된 배송지"
@@ -371,10 +375,11 @@ function Checkout({
             ) : preview.isPending ? (
               <p role="status">주문 금액을 확인하고 있습니다.</p>
             ) : preview.isError ? (
-              <p role="alert">
-                주문 금액 조회 실패.{" "}
-                <button onClick={() => void preview.refetch()}>다시 시도</button>
-              </p>
+              <ErrorState
+                variant="section"
+                description="주문 금액 조회를 실패하였습니다"
+                action={{ onClick: () => void preview.refetch() }}
+              />
             ) : (
               <dl className="space-y-2">
                 {[
