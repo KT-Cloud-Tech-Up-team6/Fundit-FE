@@ -27,8 +27,10 @@ export type MediaItem = {
   id: string;
   kind: MediaKind;
   name: string;
-  /** 첨부 URL. 판매자 업로드는 objectURL, 구매자 목업은 Figma 정적 에셋을 쓴다. */
+  /** 첨부 URL. 고른 직후에는 objectURL, 서버에서 받은 기록은 응답 URL을 쓴다. */
   url: string | null;
+  /** 방금 고른 파일. 업로드가 필요한 화면만 읽고, 서버에서 받은 기록에는 없다. */
+  file?: File;
 };
 
 export type FulfillmentRecord = {
@@ -65,6 +67,10 @@ export type BuyerFulfillmentState = {
 
 export const maxImages = 10;
 export const maxVideos = 1;
+
+/** 첨부 한도. 화면마다 다르다 — 목업 화면은 아래 기본값, 실제 API 화면은 BE 계약(사진 5장·동영상 없음)을 쓴다. */
+export type MediaLimit = { image: number; video: number };
+export const defaultMediaLimit: MediaLimit = { image: maxImages, video: maxVideos };
 
 /* ponytail: 지연 사유는 Figma 드롭다운(488:8277)에 그려진 4개만 그대로 쓴다.
    기획 확정 전이라 값을 늘리거나 코드를 붙이지 않는다(Issue #43 협의 사항). */
@@ -185,16 +191,16 @@ export function mediaKindOf(type: string): MediaKind | null {
 }
 
 /**
- * 첨부 한도(사진 10 / 동영상 1)를 넘지 않는 범위까지만 받아들인다.
+ * 첨부 한도를 넘지 않는 범위까지만 받아들인다.
  * 넘친 항목은 `rejected`로 돌려줘 호출부가 aria-live로 알릴 수 있게 한다.
  */
 export function addMedia(
   current: MediaItem[],
   incoming: MediaItem[],
+  limit: MediaLimit = defaultMediaLimit,
 ): { media: MediaItem[]; rejected: MediaItem[] } {
   const accepted: MediaItem[] = [];
   const rejected: MediaItem[] = [];
-  const limit = { image: maxImages, video: maxVideos };
   const counts = mediaCounts(current);
 
   for (const item of incoming) {

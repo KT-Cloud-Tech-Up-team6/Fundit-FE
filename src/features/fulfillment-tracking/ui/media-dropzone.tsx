@@ -4,13 +4,12 @@ import { useRef, useState } from "react";
 import type { DragEvent } from "react";
 import {
   addMedia,
-  maxImages,
-  maxVideos,
+  defaultMediaLimit,
   mediaCounts,
   mediaKindOf,
   removeMedia,
 } from "../model/fulfillment-demo";
-import type { MediaItem } from "../model/fulfillment-demo";
+import type { MediaItem, MediaLimit } from "../model/fulfillment-demo";
 import { Icon } from "@/shared/components/ui/icon";
 
 const browseButtonClasses =
@@ -20,10 +19,17 @@ type MediaDropzoneProps = {
   media: MediaItem[];
   onChange: (media: MediaItem[]) => void;
   onPreview: (media: MediaItem) => void;
+  /** 화면별 첨부 한도. 0이면 그 종류는 고를 수도, 안내에 나오지도 않는다. */
+  limit?: MediaLimit;
 };
 
 /** 첨부 결과를 aria-live로 읽어줄 한 문장으로 만든다. */
-function noticeOf(accepted: MediaItem[], rejected: MediaItem[], ignored: number): string {
+function noticeOf(
+  accepted: MediaItem[],
+  rejected: MediaItem[],
+  ignored: number,
+  limit: MediaLimit,
+): string {
   const acceptedCounts = mediaCounts(accepted);
   const rejectedCounts = mediaCounts(rejected);
 
@@ -31,9 +37,13 @@ function noticeOf(accepted: MediaItem[], rejected: MediaItem[], ignored: number)
     acceptedCounts.image > 0 && `사진 ${acceptedCounts.image}개를 첨부했어요.`,
     acceptedCounts.video > 0 && `동영상 ${acceptedCounts.video}개를 첨부했어요.`,
     rejectedCounts.image > 0 &&
-      `사진은 최대 ${maxImages}장까지 첨부할 수 있어 ${rejectedCounts.image}개를 제외했어요.`,
+      (limit.image > 0
+        ? `사진은 최대 ${limit.image}장까지 첨부할 수 있어 ${rejectedCounts.image}개를 제외했어요.`
+        : `사진은 첨부할 수 없어 ${rejectedCounts.image}개를 제외했어요.`),
     rejectedCounts.video > 0 &&
-      `동영상은 최대 ${maxVideos}개까지 첨부할 수 있어 ${rejectedCounts.video}개를 제외했어요.`,
+      (limit.video > 0
+        ? `동영상은 최대 ${limit.video}개까지 첨부할 수 있어 ${rejectedCounts.video}개를 제외했어요.`
+        : `동영상은 첨부할 수 없어 ${rejectedCounts.video}개를 제외했어요.`),
     ignored > 0 && `사진·동영상이 아닌 파일 ${ignored}개는 첨부할 수 없어요.`,
   ]
     .filter(Boolean)
@@ -41,21 +51,29 @@ function noticeOf(accepted: MediaItem[], rejected: MediaItem[], ignored: number)
 }
 
 /**
- * 기록에 붙일 사진·동영상 첨부 영역(Figma 488:7943 / 488:8020).
+ * 기록에 붙일 사진·동영상 첨부 영역(Figma 1319:40988의 열린 상태).
  *
- * ponytail: 업로드 서버가 없어 실제 전송은 없고 objectURL로 미리보기만 만든다.
- * 업로드 API가 생기면 여기서 전송하고 반환 URL을 MediaItem.url에 넣는다(thumbnail-upload와 같은 방침).
+ * 전송은 하지 않고 고른 파일과 objectURL 미리보기만 넘긴다.
+ * 실제 업로드는 호출 화면이 MediaItem.file로 한다(seller-fulfillment-api).
  *
  * ponytail: objectURL 해제는 "한도 초과로 버린 항목"에서만 한다 — 그 URL만 이 함수가 만들고
  * 아무 데도 넘기지 않아 확실히 주인이다. 목록에 올라간 항목은 수정 폼이 기존 기록과 같은 URL을
  * 공유하므로(저장 안 한 삭제 → 취소 시 기록 썸네일이 깨진다) 해제하지 않는다.
- * 목업이라 누수는 페이지 수명으로 한정된다. 업로드 API가 생기면 objectURL 자체가 사라진다.
+ * 누수는 페이지 수명으로 한정된다.
  */
-export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps) {
+export function MediaDropzone({
+  media,
+  onChange,
+  onPreview,
+  limit = defaultMediaLimit,
+}: MediaDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState("");
   const counts = mediaCounts(media);
+  const kindLabel = [limit.image > 0 && "사진", limit.video > 0 && "동영상"]
+    .filter(Boolean)
+    .join("·");
 
   function accept(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -73,10 +91,11 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
         kind,
         name: file.name,
         url: URL.createObjectURL(file),
+        file,
       });
     }
 
-    const { media: next, rejected } = addMedia(media, incoming);
+    const { media: next, rejected } = addMedia(media, incoming, limit);
     const rejectedIds = new Set(rejected.map((item) => item.id));
     /* 한도를 넘겨 버릴 항목의 objectURL은 쓰이지 않으니 바로 해제한다. */
     for (const item of rejected) if (item.url) URL.revokeObjectURL(item.url);
@@ -87,6 +106,7 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
         incoming.filter((item) => !rejectedIds.has(item.id)),
         rejected,
         ignored,
+        limit,
       ),
     );
   }
@@ -135,15 +155,16 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
         <div className="flex flex-col items-center gap-2 text-center">
           <Icon className="text-text-secondary size-9" name="uploadFile" />
           <p className="text-body-s text-text-secondary">
-            제작 진행 상황을 보여주는 사진(최대 {maxImages}장)·동영상(최대 {maxVideos}개)을
-            드래그하거나 클릭하여 첨부해 주세요.
+            제작 진행 상황을 보여주는 사진(최대 {limit.image}장)
+            {limit.video > 0 && `·동영상(최대 ${limit.video}개)`}을 드래그하거나 클릭하여 첨부해
+            주세요.
           </p>
           {browseButton}
         </div>
       ) : (
         <>
           <p className="text-caption-strong text-text-secondary">
-            사진·동영상을 추가하려면 드래그하거나 클릭해 주세요.
+            {kindLabel}을 추가하려면 드래그하거나 클릭해 주세요.
           </p>
           <ul className="flex flex-wrap gap-2">
             {media.map((item) => (
@@ -185,12 +206,16 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
           </ul>
           <div className="flex flex-wrap items-center justify-end gap-[11px]">
             <p className="text-caption-s text-text-secondary">
-              사진 {counts.image}/{maxImages}
+              사진 {counts.image}/{limit.image}
             </p>
-            <p className="text-caption-s text-text-secondary">·</p>
-            <p className="text-caption-s text-text-secondary">
-              동영상 {counts.video}/{maxVideos}
-            </p>
+            {limit.video > 0 && (
+              <>
+                <p className="text-caption-s text-text-secondary">·</p>
+                <p className="text-caption-s text-text-secondary">
+                  동영상 {counts.video}/{limit.video}
+                </p>
+              </>
+            )}
             {browseButton}
           </div>
         </>
@@ -201,7 +226,9 @@ export function MediaDropzone({ media, onChange, onPreview }: MediaDropzoneProps
       </p>
 
       <input
-        accept="image/*,video/*"
+        accept={[limit.image > 0 && "image/*", limit.video > 0 && "video/*"]
+          .filter(Boolean)
+          .join(",")}
         className="hidden"
         multiple
         onChange={(event) => {

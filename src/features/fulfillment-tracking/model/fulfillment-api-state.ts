@@ -34,7 +34,19 @@ export function fulfillmentState(data: Fulfillment): FulfillmentState {
       startDate: dateInKorea(item.plannedStartAt),
       expectedEndDate: dateInKorea(item.plannedEndAt),
       records: item.detailText
-        ? [{ id: item.stage, date: dateInKorea(item.updatedAt), text: item.detailText, media: [] }]
+        ? [
+            {
+              id: item.stage,
+              date: dateInKorea(item.updatedAt),
+              text: item.detailText,
+              media: (item.photoUrls ?? []).map((url, index) => ({
+                id: `${item.stage}-${index}`,
+                kind: "image" as const,
+                name: `진행 사진 ${index + 1}`,
+                url,
+              })),
+            },
+          ]
         : [],
     };
   return result;

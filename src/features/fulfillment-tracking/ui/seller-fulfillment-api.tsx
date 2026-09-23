@@ -19,11 +19,16 @@ import {
   ProjectWorkspaceLayout,
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
+import { ProjectMediaValidationError, uploadProjectMedia } from "@/entities/project/api/media-api";
+import { isApiError } from "@/shared/api/api-error";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
+import { MediaDropzone } from "./media-dropzone";
+import { MediaLightbox } from "./media-lightbox";
 import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
 import { FulfillmentAccess } from "./fulfillment-access";
+import type { MediaItem, MediaLimit } from "../model/fulfillment-demo";
 import { fulfillmentState, viewStage, dateInKorea } from "../model/fulfillment-api-state";
 import type { ShippingView } from "@/features/shipping-info/model/seller-shipment";
 import { ShippingBoardApi } from "@/features/shipping-info/ui/shipping-board-api";
@@ -119,6 +124,45 @@ function Seller({
     </ProjectWorkspaceLayout>
   );
 }
+/** BE stage-details는 사진만 최대 5장 받는다. 동영상은 받지 않아 0으로 둔다. */
+const photoLimit: MediaLimit = { image: 5, video: 0 };
+
+class PhotoUploadError extends Error {}
+
+/**
+ * 첨부한 사진을 모두 올리고 fileUrl을 순서대로 돌려준다.
+ * 하나라도 실패하면 어떤 사진이 실패했는지 담아 던져 기록 등록까지 막는다.
+ */
+async function uploadPhotos(projectId: string, photos: MediaItem[]) {
+  const results = await Promise.all(
+    photos.map(async (item) => {
+      try {
+        if (!item.file) throw new Error("첨부 파일을 찾을 수 없습니다.");
+        const url = await uploadProjectMedia(projectId, item.file, "image");
+        return { name: item.name, url, reason: "" };
+      } catch (error) {
+        return {
+          name: item.name,
+          url: null,
+          reason: error instanceof ProjectMediaValidationError ? error.message : "",
+        };
+      }
+    }),
+  );
+  const urls: string[] = [];
+  const failed: { name: string; reason: string }[] = [];
+  for (const item of results) {
+    if (item.url) urls.push(item.url);
+    else failed.push(item);
+  }
+  if (failed.length)
+    throw new PhotoUploadError(
+      `${failed.map((item) => item.name).join(", ")} 사진을 올리지 못해 기록을 등록하지 않았습니다. ${
+        failed.find((item) => item.reason)?.reason ?? "잠시 후 다시 시도해주세요."
+      }`,
+    );
+  return urls;
+}
 function Editor({
   memberId,
   projectId,
@@ -138,6 +182,8 @@ function Editor({
     [date, setDate] = useState(""),
     [reason, setReason] = useState<keyof typeof reasons>("START_DELAY"),
     [reasonDetail, setReasonDetail] = useState("");
+  const [photos, setPhotos] = useState<MediaItem[]>([]),
+    [preview, setPreview] = useState<MediaItem | null>(null);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
@@ -155,8 +201,16 @@ function Editor({
       success();
       await client.invalidateQueries({ queryKey: ["fulfillment", projectId] });
       setNotice("저장했습니다.");
-    } catch {
-      setError("저장하지 못했습니다. 권한과 최신 상태를 확인한 뒤 다시 시도해주세요.");
+    } catch (failure) {
+      /* 이미 지난 단계는 되돌릴 수 없어, 안내와 함께 서버의 최신 단계를 다시 불러온다. */
+      if (isApiError(failure) && failure.code === "INVALID_STAGE_TRANSITION") {
+        setError("이미 지난 단계입니다. 최신 진행 상태를 다시 불러왔습니다.");
+        await client.invalidateQueries({ queryKey: ["fulfillment", projectId] });
+      } else if (failure instanceof PhotoUploadError) {
+        setError(failure.message);
+      } else {
+        setError("저장하지 못했습니다. 권한과 최신 상태를 확인한 뒤 다시 시도해주세요.");
+      }
     } finally {
       saving.current = false;
       setBusy(false);
@@ -179,6 +233,7 @@ function Editor({
           if (stage) {
             setSelected(stage);
             setText("");
+            setPhotos([]);
             setStart("");
             setEnd("");
             setDate("");
@@ -194,7 +249,8 @@ function Editor({
         {dateInKorea(current?.plannedEndAt) || "미정"}
       </p>
       <h2 className="text-title-s">최신 진행 기록</h2>
-      <StageTimeline records={state[viewStage[selected]].records} onSelectMedia={() => {}} />
+      <StageTimeline records={state[viewStage[selected]].records} onSelectMedia={setPreview} />
+      <MediaLightbox media={preview} onClose={() => setPreview(null)} />
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {current?.status === "IN_PROGRESS" && (
@@ -204,18 +260,24 @@ function Editor({
               event.preventDefault();
               if (text.trim())
                 void mutate(
-                  () =>
-                    saveStageDetail(projectId, {
+                  async () => {
+                    const photoUrls = await uploadPhotos(projectId, photos);
+                    await saveStageDetail(projectId, {
                       stage: selected,
                       detailText: text.trim(),
+                      photoUrls: photoUrls.length ? photoUrls : undefined,
                       plannedStartAt: start
                         ? new Date(`${start}T00:00:00+09:00`).toISOString()
                         : current?.plannedStartAt,
                       plannedEndAt: end
                         ? new Date(`${end}T00:00:00+09:00`).toISOString()
                         : current?.plannedEndAt,
-                    }),
-                  () => setText(""),
+                    });
+                  },
+                  () => {
+                    setText("");
+                    setPhotos([]);
+                  },
                 );
             }}
           >
@@ -249,6 +311,15 @@ function Editor({
                   className={fieldClass}
                 />
               </label>
+              <div className="space-y-2">
+                <p className="text-body-s">사진 첨부 (선택, 최대 {photoLimit.image}장)</p>
+                <MediaDropzone
+                  limit={photoLimit}
+                  media={photos}
+                  onChange={setPhotos}
+                  onPreview={setPreview}
+                />
+              </div>
               <Button type="submit" disabled={!text.trim()}>
                 기록 등록
               </Button>
