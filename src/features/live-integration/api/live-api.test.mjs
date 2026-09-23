@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   getAnsweredQuestions,
   getInsights,
+  getLiveLiked,
   getOriginals,
   getPlayback,
   getPublicHighlights,
@@ -70,22 +71,30 @@ test("live API keeps UUID paths, tokens, answer payloads, and abort signals", as
   }
 });
 
-test("좋아요는 인증 PUT·DELETE로 가고 구간 채팅은 범위를 쿼리로 보낸다", async () => {
+test("좋아요는 인증 PUT·DELETE·GET으로 가고 구간 채팅은 범위를 쿼리로 보낸다", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init = {}) => {
     calls.push([String(input), init]);
-    if (String(input).includes("/like")) return new Response(null, { status: 204 });
+    if (String(input).endsWith("/like")) {
+      if (init.method === "PUT") return response({ liked: true, likeCount: 8 });
+      if (init.method === "DELETE") return response({ liked: false, likeCount: 7 });
+      return response({ liked: true });
+    }
     if (String(input).includes("/highlights/public")) return response({ markers: [], clips: [] });
     return response([]);
   };
   try {
     authTokenStore.set("live-token");
     const controller = new AbortController();
-    await likeLive("7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87");
-    await unlikeLive("live");
+    assert.deepEqual(await likeLive("7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87"), {
+      liked: true,
+      likeCount: 8,
+    });
+    assert.deepEqual(await unlikeLive("live"), { liked: false, likeCount: 7 });
     await getPublicHighlights("live", controller.signal);
     await getVodChat("live", 30, 90);
+    assert.deepEqual(await getLiveLiked("live", controller.signal), { liked: true });
 
     assert.match(calls[0][0], /\/lives\/7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87\/like$/);
     assert.equal(calls[0][1].method, "PUT");
@@ -97,6 +106,12 @@ test("좋아요는 인증 PUT·DELETE로 가고 구간 채팅은 범위를 쿼�
     assert.equal(calls[2][1].signal, controller.signal);
     assert.match(calls[3][0], /\/vod\/chat\?fromSec=30&toSec=90$/);
     assert.equal(calls[3][1].headers.get("Authorization"), null);
+
+    // 내 좋아요 여부는 인증 GET이다.
+    assert.match(calls[4][0], /\/lives\/live\/like$/);
+    assert.equal(calls[4][1].method, undefined);
+    assert.equal(calls[4][1].headers.get("Authorization"), "Bearer live-token");
+    assert.equal(calls[4][1].signal, controller.signal);
   } finally {
     globalThis.fetch = originalFetch;
     authTokenStore.clear();
