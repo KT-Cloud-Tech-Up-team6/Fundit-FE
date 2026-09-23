@@ -100,13 +100,18 @@ export function RealBuyerLive({
     enabled: memberId !== undefined,
     retry: false,
   });
-  /* 누른 뒤에는 좋아요 응답의 liked·likeCount가 가장 최신이라 playback·조회 값보다 앞선다. */
-  const [likeOverride, setLikeOverride] = useState<LikeResult | null>(null);
+  /* 누른 뒤에는 좋아요 응답의 liked·likeCount가 가장 최신이라 playback·조회 값보다 앞선다.
+     누른 회원의 결과만 쓴다. 같은 화면에서 로그아웃하거나 계정을 바꾸면 이전 표시가 남지 않게 한다. */
+  const [override, setOverride] = useState<{
+    memberId: string | undefined;
+    result: LikeResult;
+  } | null>(null);
+  const likeOverride = override && override.memberId === memberId ? override.result : null;
   const liked = likeOverride?.liked ?? likedQuery.data?.liked ?? false;
   const likeCount = likeOverride?.likeCount ?? playback.data?.likeCount ?? 0;
   const toggleLike = useMutation({
     mutationFn: (next: boolean) => (next ? likeLive(liveId) : unlikeLive(liveId)),
-    onSuccess: setLikeOverride,
+    onSuccess: (result) => setOverride({ memberId, result }),
   });
   function onToggleLike() {
     /* 좋아요는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다.
@@ -119,10 +124,14 @@ export function RealBuyerLive({
     }
     if (toggleLike.isPending) return;
     const next = !liked;
-    const previous = likeOverride;
-    /* 응답 전에는 누르면 +1, 취소하면 -1로 먼저 그린다. 실패하면 누르기 전 상태로 되돌린다. */
-    setLikeOverride({ liked: next, likeCount: likeCount + (next ? 1 : -1) });
-    toggleLike.mutate(next, { onError: () => setLikeOverride(previous) });
+    const previous = override;
+    /* 응답 전에는 누르면 +1, 취소하면 -1로 먼저 그린다. 재생 정보가 오기 전(수 0)에 취소해도
+       음수로 보이지 않게 막는다. 실패하면 누르기 전 상태로 되돌린다. */
+    setOverride({
+      memberId,
+      result: { liked: next, likeCount: Math.max(0, likeCount + (next ? 1 : -1)) },
+    });
+    toggleLike.mutate(next, { onError: () => setOverride(previous) });
   }
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
