@@ -612,6 +612,7 @@ function AnswerView({
 }) {
   const cache = useQueryClient();
   const [edited, setEdited] = useState<string | null>(null);
+  const [regenerated, setRegenerated] = useState(false);
   const [notSent, setNotSent] = useState(false);
   const draft = useQuery({
     queryKey: draftKey,
@@ -647,8 +648,16 @@ function AnswerView({
       sending.current = false;
     },
   });
-  const noDraft = draft.data?.draftAnswer === null;
-  const value = edited ?? draft.data?.draftAnswer ?? registered ?? "";
+  /* 답변 완료 질문은 서버에 등록된 답변이 기준이다. 초안 캐시는 등록 전 AI 원본이라, 판매자가
+     재생성을 누르기 전에는 등록한 답변을 먼저 보인다. */
+  const showDraft = !question.complete || regenerated;
+  const noDraft = showDraft && draft.data?.draftAnswer === null;
+  const value =
+    edited ??
+    (showDraft
+      ? (draft.data?.draftAnswer ?? registered)
+      : (registered ?? draft.data?.draftAnswer)) ??
+    "";
   const references = draft.data?.referenceChunks ?? [];
   const generating = draft.isFetching;
 
@@ -663,6 +672,7 @@ function AnswerView({
             className={`${styles.link} text-caption-s text-text-secondary`}
             onClick={() => {
               setEdited(null);
+              setRegenerated(true);
               void draft.refetch();
             }}
           >
