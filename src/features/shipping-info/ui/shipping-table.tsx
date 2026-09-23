@@ -101,7 +101,9 @@ export function ShippingTable({
                     onChange={() => onToggle(shipment.id)}
                   />
                 </td>
-                <td className={`${cellClasses} whitespace-nowrap`}>{shipment.orderNo}</td>
+                <td className={`${cellClasses} whitespace-nowrap`} title={shipment.fullOrderNo}>
+                  {shipment.orderNo}
+                </td>
                 <td className={`${cellClasses} truncate`}>{shipment.supporter}</td>
                 <td className={cellClasses}>
                   <span className="flex items-center gap-2">

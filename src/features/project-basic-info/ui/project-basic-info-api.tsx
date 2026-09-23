@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
+  agreeProjectPrivacy,
   getProjectPreview,
   saveProjectBasicInfo,
   type BasicInfoResponse,
@@ -43,9 +44,16 @@ export function ProjectBasicInfoApi({
   /* 신규 생성 첫(임시저장 아닌) 저장 직후에만 완료 모달을 띄운다. 값이 있는 동안은
      방금 만든 프로젝트 id를 들고 있다가 모달 버튼이 눌릴 때 이동한다. */
   const [createdId, setCreatedId] = useState<string | null>(null);
+  /* 신규 생성 화면은 ProjectCreateFlow의 동의 모달에서 필수 항목(개인정보 수집·이용 포함)에
+     동의해야 쓸 수 있다. 그 동의를 공개 조건인 BE 개인정보 동의로 프로젝트마다 한 번 기록한다. */
+  const consentedId = useRef<string | null>(null);
   async function save(values: BasicInfoValues, partial = false) {
     if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
     const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
+    if (!projectId && consentedId.current !== id) {
+      await agreeProjectPrivacy(id);
+      consentedId.current = id;
+    }
     const response = await saveProjectBasicInfo(id, basicInfoRequest(values));
     cache.setQueryData(["seller-project-basic", owner, id], response);
     await Promise.all([

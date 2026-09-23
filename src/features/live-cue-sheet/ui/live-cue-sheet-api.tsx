@@ -11,7 +11,7 @@ import {
   saveCueSheetSegments,
   type CueSheetResponse,
 } from "@/entities/live/api/live-cue-sheet-api";
-import { findMyLive } from "@/entities/live/api/live-session-api";
+import { getLiveDetail } from "@/entities/live/api/live-session-api";
 import {
   toCueSheetMode,
   toCueSheetSegmentBody,
@@ -66,12 +66,13 @@ export function LiveCueSheetApi({
     refetchInterval: (query) => (query.state.data?.status === "GENERATING" ? 3000 : false),
   });
 
-  /* liveId만으로 프로젝트를 읽는 판매자 API가 없어 내 LIVE 목록에서 찾는다.
-     못 찾아도 큐시트 자체는 동작해야 하므로 실패를 화면 전체 오류로 올리지 않는다. */
+  /* 소유자 단건 조회로 프로젝트를 읽는다. 못 읽어도 큐시트 자체는 동작해야 하므로
+     실패를 화면 전체 오류로 올리지 않고, 실패한 조회를 반복해 두드리지도 않는다. */
   const summary = useQuery({
     queryKey: ["live-summary", owner, liveId],
-    queryFn: ({ signal }) => findMyLive(liveId, signal),
+    queryFn: ({ signal }) => getLiveDetail(liveId, signal),
     enabled,
+    retry: false,
   });
   const projectId = summary.data?.projectId;
   const preview = useQuery({

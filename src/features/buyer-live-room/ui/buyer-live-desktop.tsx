@@ -62,6 +62,8 @@ export function BuyerLiveDesktop({
   product = roomDemo,
   replay = false,
   clip = false,
+  clipTitle = "[제품명] AI 생성 제목",
+  clipBadge = "시연 영상",
   rewardSummary,
   questions,
   chapters,
@@ -74,6 +76,9 @@ export function BuyerLiveDesktop({
   onRefreshQuestions,
   progress: progressProp,
   onSeek,
+  playing: playingProp,
+  onTogglePlay,
+  timeText,
   liked: likedProp,
   likeCount,
   onToggleLike,
@@ -83,6 +88,9 @@ export function BuyerLiveDesktop({
   product?: typeof roomDemo;
   replay?: boolean;
   clip?: boolean;
+  /** 쇼츠 제목·배지. 기본값은 Figma 예시 문구다(데모). */
+  clipTitle?: string;
+  clipBadge?: string;
   rewardSummary: ReactNode;
   questions: Question[];
   chapters: Chapter[];
@@ -96,6 +104,10 @@ export function BuyerLiveDesktop({
      위치를 소유하고 이 컴포넌트는 표시만 한다. 주지 않으면 기존 목업 동작을 유지한다. */
   progress?: number;
   onSeek?: (progressPercent: number) => void;
+  /** 실제 영상의 재생 여부·재생 전환과 재생바 시각. 주지 않으면 목업 상태를 쓴다. */
+  playing?: boolean;
+  onTogglePlay?: () => void;
+  timeText?: { current: string; duration: string };
   liked?: boolean;
   likeCount?: number;
   onToggleLike?: () => void;
@@ -108,7 +120,8 @@ export function BuyerLiveDesktop({
   const liked = likedProp ?? internalLiked;
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [panel, setPanel] = useState(initialPanel ?? (clip ? "chapters" : "chat"));
-  const [playing, setPlaying] = useState(true);
+  const [internalPlaying, setInternalPlaying] = useState(true);
+  const playing = playingProp ?? internalPlaying;
   /* 실제 경로에서는 받아온 구간이 있을 때만 사이드 패널을 연다. 없으면 기존처럼 영상만 그린다. */
   const sidePanel = replay && chapters.length > 0;
   const [internalProgress, setInternalProgress] = useState(37.5);
@@ -192,7 +205,7 @@ export function BuyerLiveDesktop({
       return;
     }
     setInternalProgress(value);
-    setPlaying(true);
+    setInternalPlaying(true);
   }
   function moveChapter(index: number) {
     if (index === 0 || index === chapters.length - 1) playbackButton.current?.focus();
@@ -203,14 +216,16 @@ export function BuyerLiveDesktop({
     <div className={`${styles.screen} bg-layer-bg text-text-default min-h-dvh`}>
       <BuyerDesktopHeader exitHref="/live" />
       <main
-        aria-label={`${replay ? (demoMode && clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
+        aria-label={`${replay ? (clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
         className="mx-auto grid w-full max-w-300 grid-cols-3 items-start gap-6 pt-10 pb-16"
       >
-        {demoMode && (
+        {/* 실제 경로에는 판매자·상품 데이터가 없다. 숏 클립이면 Figma 위치(왼쪽 패널)에 제목만 그린다. */}
+        {(demoMode || clip) && (
           <section
             aria-label="상품 정보"
             className="bg-layer-surface-default border-border-default h-[726px] rounded-sm border px-4 py-3"
           >
+            {!demoMode && <h1 className="text-title-s mt-3">{clipTitle}</h1>}
             {demoMode && (
               <div className="flex gap-2">
                 <Badge variant={replay ? "neutral" : "accent"}>
@@ -240,9 +255,7 @@ export function BuyerLiveDesktop({
                     {following ? "팔로잉" : "팔로우"}
                   </Button>
                 </div>
-                <h1 className="text-title-s mt-6">
-                  {clip ? "[제품명] AI 생성 제목" : product.title}
-                </h1>
+                <h1 className="text-title-s mt-6">{clip ? clipTitle : product.title}</h1>
               </>
             )}
             {demoMode && (
@@ -259,10 +272,18 @@ export function BuyerLiveDesktop({
         )}
         <section
           aria-label={videoConnected ? "방송 영상" : "방송 영상 · 실제 재생 미연결"}
-          className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode || sidePanel ? "" : "col-start-2"}`}
+          /* Figma 3열(정보·영상·리워드와 타임라인)처럼 실제 경로도 영상을 가운데 열에 둔다. 정보 열이
+             없어도 구간·채팅 패널이 영상 오른쪽 열에 오게 한다. */
+          className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode || clip ? "" : "col-start-2"}`}
         >
           {video ? (
-            <div className="relative h-full w-full">{video}</div>
+            /* 다시보기·쇼츠는 Figma처럼 16:9 재생 틀 대신 영역 높이를 채운다(가로 VOD·번인 자막이
+               잘리지 않게 contain). 남는 여백은 흰 배지가 읽히도록 영역과 같은 검정으로 채운다. */
+            <div
+              className={`relative h-full w-full ${replay ? "[&>*]:aspect-auto [&>*]:h-full [&>*]:bg-[black]!" : ""}`}
+            >
+              {video}
+            </div>
           ) : (
             <Image
               src="/images/buyer-live-room/desktop-poster.png"
@@ -273,22 +294,19 @@ export function BuyerLiveDesktop({
               priority
             />
           )}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-[rgba(0,0,0,0.5)] to-transparent" />
-          {demoMode && (
+          {/* 장식용 그라데이션이다. 영역 높이를 채우는 쇼츠의 재생 컨트롤 클릭을 막지 않게 통과시킨다. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-[rgba(0,0,0,0.5)] to-transparent" />
+          {/* 실제 다시보기·쇼츠도 Figma 배지를 쓴다. 실제 라이브 시청은 기존대로 배지를 그리지 않는다. */}
+          {(demoMode || replay) && (
             <Badge
               size="md"
               variant={replay && !clip ? "accent" : "primaryLive"}
               shape={replay ? "square" : "rounded"}
-              className="absolute top-3 left-3"
+              className="absolute top-3 left-3 z-20"
             >
               {!replay && <Icon name="live" className="size-4" />}
-              {replay ? (clip ? "시연 영상" : "다시보기") : "LIVE"}
+              {replay ? (clip ? clipBadge : "다시보기") : "LIVE"}
             </Badge>
-          )}
-          {!demoMode && replay && (
-            <p className="absolute top-3 left-3 z-20 rounded-sm bg-black/70 px-2 py-1 text-sm">
-              다시보기
-            </p>
           )}
           {demoMode && clip && (
             <>
@@ -358,8 +376,10 @@ export function BuyerLiveDesktop({
               </>
             ) : null}
           </div>
-          {demoMode && replay && (
-            <div className="absolute inset-x-5 bottom-10">
+          {/* Figma 재생바. 실제 경로(onSeek)는 영상이 위치·재생 여부를 소유하고 여기서는 표시·전환만
+              한다. 첫 구간 전이거나 구간이 없으면(쇼츠) 이전·다음 구간 이동을 막는다. */}
+          {replay && (demoMode || onSeek) && (
+            <div className="absolute inset-x-5 bottom-10 z-20">
               <input
                 className={styles.range}
                 style={{ "--progress": `${progress}%` } as CSSProperties}
@@ -367,17 +387,21 @@ export function BuyerLiveDesktop({
                 min={0}
                 max={100}
                 value={progress}
-                aria-label="목업 재생 위치"
-                aria-valuetext={`${progress}% · 실제 영상 미연결`}
+                aria-label={demoMode ? "목업 재생 위치" : "재생 위치"}
+                aria-valuetext={
+                  demoMode
+                    ? `${progress}% · 실제 영상 미연결`
+                    : `${timeText?.current ?? "00:00:00"} / ${timeText?.duration ?? "00:00:00"}`
+                }
                 onChange={(event) => seek(Number(event.target.value))}
               />
               <div className="text-caption-s mt-2 flex items-center justify-between">
-                <span>00:00:00</span>
+                <span>{timeText?.current ?? "00:00:00"}</span>
                 <button
                   type="button"
                   aria-label="이전 구간"
                   className="flex size-8 items-center justify-center disabled:opacity-40"
-                  disabled={selectedChapter === 0}
+                  disabled={selectedChapter <= 0}
                   onClick={() => moveChapter(selectedChapter - 1)}
                 >
                   <WatchIcon name="previous" className="size-5" />
@@ -387,7 +411,7 @@ export function BuyerLiveDesktop({
                   ref={playbackButton}
                   aria-label={playing ? "일시정지" : "재생"}
                   className="flex size-8 items-center justify-center"
-                  onClick={() => setPlaying(!playing)}
+                  onClick={() => (onTogglePlay ? onTogglePlay() : setInternalPlaying(!playing))}
                 >
                   <WatchIcon name={playing ? "pause" : "play"} className="size-5" />
                 </button>
@@ -395,12 +419,12 @@ export function BuyerLiveDesktop({
                   type="button"
                   aria-label="다음 구간"
                   className="flex size-8 items-center justify-center disabled:opacity-40"
-                  disabled={selectedChapter === chapters.length - 1}
+                  disabled={selectedChapter >= chapters.length - 1}
                   onClick={() => moveChapter(selectedChapter + 1)}
                 >
                   <WatchIcon name="next" className="size-5" />
                 </button>
-                <span>00:00:00</span>
+                <span>{timeText?.duration ?? "00:00:00"}</span>
               </div>
             </div>
           )}
@@ -476,6 +500,12 @@ export function BuyerLiveDesktop({
                       </span>
                     </p>
                   ))}
+                  {/* 다시보기 채팅은 현재 구간 것만 온다. 비어 있으면 빈 상자 대신 이유를 적는다. */}
+                  {replayMessages?.length === 0 && (
+                    <p className="text-text-secondary m-auto text-center">
+                      이 구간의 채팅이 없습니다.
+                    </p>
+                  )}
                 </div>
                 {demoMode && (
                   <form

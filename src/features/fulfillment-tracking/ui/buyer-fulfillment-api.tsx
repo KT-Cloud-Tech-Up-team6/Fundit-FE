@@ -17,6 +17,8 @@ import { fundingProjectQuery } from "../model/funding-project-query";
 import { FulfillmentAccess } from "./fulfillment-access";
 import { BuyerStageStepper } from "./buyer-stage-stepper";
 import { BuyerTimeline } from "./buyer-timeline";
+import { MediaLightbox } from "./media-lightbox";
+import type { MediaItem } from "../model/fulfillment-demo";
 import { fulfillmentState, viewStage, dateInKorea } from "../model/fulfillment-api-state";
 
 export function BuyerFulfillmentApi({
@@ -85,6 +87,7 @@ function Tracking({
   });
   const data = status.data,
     state = data ? fulfillmentState(data) : null;
+  const [preview, setPreview] = useState<MediaItem | null>(null);
   const route = `/my/fundings/${fundingId}/fulfillment`;
   return (
     <>
@@ -129,7 +132,7 @@ function Tracking({
                         </p>
                         <BuyerTimeline
                           records={state[viewStage[item.stage]].records}
-                          onSelectMedia={() => {}}
+                          onSelectMedia={setPreview}
                           showLatestBadge={false}
                         />
                       </section>
@@ -137,7 +140,7 @@ function Tracking({
                   ) : (
                     <BuyerTimeline
                       records={state[viewStage[data.currentStage]].records}
-                      onSelectMedia={() => {}}
+                      onSelectMedia={setPreview}
                     />
                   )}
                   {!history && (
@@ -186,6 +189,7 @@ function Tracking({
             )}
           </section>
         </div>
+        <MediaLightbox media={preview} onClose={() => setPreview(null)} />
       </main>
     </>
   );

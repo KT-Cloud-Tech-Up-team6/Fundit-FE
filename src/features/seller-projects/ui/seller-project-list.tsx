@@ -114,15 +114,7 @@ export function SellerProjectList({
         (projects.data.content.length ? (
           <div className="mt-6 grid gap-x-6 gap-y-6 lg:grid-cols-2">
             {projects.data.content.map((item) => (
-              <SellerProjectCard
-                key={item.projectId}
-                {...toSellerProject(item)}
-                hrefOverride={
-                  item.status === "DRAFT"
-                    ? `/seller/projects/${item.projectId}?tab=basic-info`
-                    : undefined
-                }
-              />
+              <SellerProjectCard key={item.projectId} {...toSellerProject(item)} />
             ))}
           </div>
         ) : (

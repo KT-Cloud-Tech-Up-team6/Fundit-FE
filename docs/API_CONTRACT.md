@@ -83,11 +83,19 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 ## 제작·배송 코드 대조 및 FE 연결 (#198)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 목록은 `/api/v1/orders`의 UUID 계약으로 통합됐으며 `/api/v2/orders`는 제거됐다. 제작·배송의 `/api/v2/projects/{projectId}/fulfillment` 및 `/api/v2/projects/{projectId}/fundings/{fundingId}/shipment` UUID 계약은 유지한다.
-- `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 첨부와 기록 수정 API는 없어 저장된 것처럼 처리하지 않는다.
+- `/seller/projects/{UUID}?tab=fulfillment`에서 소유자 preview 조회 후 단계 전환·최신 상세 기록·일정 변경을 저장하고 재조회한다. 날짜 입력은 한국 시간 기준으로 Instant에 변환한다. 기록 수정·삭제 API는 없어 저장된 것처럼 처리하지 않는다.
+- #327에서 진행 기록 사진 첨부를 연결했다. BE develop `47bee6ed` 기준으로 `POST .../fulfillment/stage-details`는 `photoUrls`(선택, 최대 5장)를 받고 `GET .../fulfillment`의 `stages[].photoUrls`로 돌려준다. 사진마다 `POST /api/v1/projects/{projectId}/media/upload-url`로 발급받은 `uploadUrl`에 PUT한 뒤 그 `fileUrl`만 보낸다. 이미지는 JPG·PNG·WebP 10MB 이하다. 하나라도 업로드에 실패하면 실패한 파일명을 안내하고 기록을 등록하지 않는다. 동영상은 BE가 받지 않아 첨부 한도를 사진 5장·동영상 0개로 둔다(Figma 첨부 영역 `1319:40988`의 10장·1개 문구는 이 계약에 맞춰 조정했다).
+- 단계 전환·기록 등록이 규칙에 어긋나면 422 `INVALID_STAGE_TRANSITION`("이미 지난 단계입니다.")이 온다. 이 코드만 따로 안내하고 서버의 최신 진행 상태를 다시 불러온다. 다른 실패는 기존 저장 실패 안내를 유지한다.
 - `/my/fundings/{UUID}/fulfillment`와 `/history`는 내 주문 v1 목록을 페이지 순회해 프로젝트 UUID 관계를 확인한 뒤 제작·배송을 조회한다. 서버 `canConfirmReceipt`가 참일 때 수령 확인을 제공한다. 외부 택배 추적은 연결하지 않는다.
 - 단계 조회는 단계별 최신 상세 1건만 제공한다. 전체 기록 이력이 아닌 최신 기록과 별도의 일정 변경 이력을 표시한다. 미갱신 경고는 서버 `isUpdateOverdue`를 사용한다.
-- 판매자 목록 `GET /api/v1/projects/{projectId}/orders`는 페이지 래퍼 없이 목표 달성 주문 배열을 반환하며 #232에서 배송 화면에 연결한다. orderId는 기존 shipment 경로의 fundingId UUID다. 다만 목록에 송장 정보가 없고 `ShipmentService.getShipment`는 구매자 본인만 허용하므로 판매자 송장 상태를 조회할 수 없다. 이 상태를 미발송으로 추정하지 않으며 송장 입력·등록 UI는 조회 계약 보완 전까지 비활성화한다. API 주문은 명시적인 읽기 전용 모드로 표시하며 상태별 필터는 비활성화하고 건수 대신 조회 불가를 안내한다. 전체 주문 검색은 유지한다. 기존 POST 등록 API 클라이언트는 유지한다.
-- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록/첨부 계약을 확인해야 한다.
+- 판매자 목록 `GET /api/v1/projects/{projectId}/orders`는 #232에서 배송 화면에 연결했다. orderId는 기존 shipment 경로의 fundingId UUID다.
+  - BE PR #130(`develop` `5898de5`)부터 응답이 `PageResponse`(`content`·`page`·`size`·`totalElements`·`totalPages`·`hasNext`)이고 `q`(수령인 이름·주문번호 부분 일치)·`shippingFilter`(`ALL`·`WAITING`·`SHIPPED`, 발송일 유무)·`page`(0부터)·`size`를 받는다. 대상은 목표 달성 주문이고 최신순이다. 탭 건수는 `GET /api/v1/projects/{projectId}/orders/shipping-status-counts`의 `{waiting, shipped}`이며 검색어와 무관하다.
+  - #312에서 발송정보 화면의 탭·검색·페이지를 서버 조회로 연결했다. 판매자 프로젝트 목록처럼 `status`(`all`·`pending`·`shipped`)·`search`·`page`(1부터)를 URL에 둔다. 전체 탭 건수는 발송 대기와 발송 완료의 합이다.
+  - Figma 주문번호 칸(`488:7625`)은 100px 한 줄의 짧은 번호(`0000 - 000000`)인데 응답에는 UUID만 있다. 표시용 주문번호가 없어 UUID 마지막 묶음(12자리)을 보여 주고 전체 UUID는 마우스를 올리면 보인다(2026-09-23 사용자 결정). 부분 일치 검색이라 이 12자리로도 찾을 수 있다.
+  - 응답에 주문별 발송 상태와 송장 정보가 없다. 발송 대기·완료 탭의 행은 탭 상태로 표시한다. Figma 상태 명세(`488:8247`)는 발송 처리·발송 완료 두 가지뿐이라 전체 탭의 행은 우선 발송 처리로 둔다(2026-09-23 사용자 결정). 주문별 발송 여부 필드가 생기면 실제 상태로 바꾼다. `ShipmentService.getShipment`는 구매자 본인만 허용해 판매자 송장 조회도 없어, 발송 완료 행의 택배사·운송장은 비어 보인다.
+  - 발송 처리(행·일괄)는 `POST /api/v2/projects/{projectId}/fundings/{fundingId}/shipment` `{carrier, trackingNumber}`로 등록한다. `carrier`는 자유 문자열이라 Figma 택배사 이름을 그대로 보낸다. 등록하면 서버에서 곧바로 SHIPPED가 되고 발송 이벤트로 주문 발송일이 비동기 갱신되므로, 화면에서 처리한 주문은 목록 반영 전에도 발송 완료로 표시하고 목록·건수를 다시 조회한다. 409 `ALREADY_SHIPPED`는 이미 발송된 건으로 표시하고 입력값을 지운다. 택배사·운송장이 빈 건은 보내지 않고, 실패한 건은 입력과 선택을 남겨 다시 시도하게 한다.
+  - 택배사·운송장만 저장하는 API가 없어 일괄 작업 바의 저장 버튼은 준비중(비활성)이다(2026-09-23 사용자 결정). 등록 API를 쓰면 저장만 하려던 주문이 발송 완료가 되기 때문이다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록 계약과 실제 S3 업로드를 확인해야 한다.
 - 주문 생성 재시도는 사용자·프로젝트별로 요청 내용의 해시와 생성 결과를 보관합니다. 결제 대기 주문의 동일 요청만 재사용하며, 다른 요청은 기존 주문 확인·취소를 안내합니다. 서버에서 확인한 비대기 상태의 주문은 새 요청 결과로 재사용하지 않습니다. 결과가 불확실하거나 상태 조회가 실패하면 추가 생성하지 않습니다. 목표 달성 주문의 상세에서는 제작·배송 API 현황으로 이동합니다.
 
 ## 쿠폰 조건 표시·발급자별 선택 보완 (#218, #233)
@@ -419,16 +427,15 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 ### 5.1. 상태·수정·제출
 
-enum은 DRAFT, PENDING_REVIEW, ONGOING, SUCCEEDED, FAILED다.
+enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리자 심사(PENDING_REVIEW)가 폐지됐다.
 
-| 동작       | 최신 구현 답변 기준                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 제출       | DRAFT → PENDING_REVIEW. 기본정보(사업자유형·카테고리·제목·목표금액), 소개 콘텐츠, 리워드 1개 이상, 개인정보 동의가 모두 필요. 불충족은 422 PROJECT_NOT_SUBMITTABLE. |
-| 승인       | PENDING_REVIEW → ONGOING.                                                                                                                                           |
-| 반려       | PENDING_REVIEW → DRAFT, 재제출 가능.                                                                                                                                |
-| 심사 불가  | PENDING_REVIEW 외에는 422 PROJECT_NOT_REVIEWABLE.                                                                                                                   |
-| 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                   |
-| 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                   |
+| 동작       | 최신 구현 답변 기준                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 공개(제출) | DRAFT → ONGOING(관리자 승인 없음). 기본정보(사업자유형·카테고리·제목·목표금액), 소개 콘텐츠, 리워드 1개 이상, 개인정보 동의가 모두 필요. 불충족은 422 PROJECT_NOT_SUBMITTABLE. |
+| 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                              |
+| 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                              |
+
+공개 시점이 펀딩 시작이고 마감은 30일 뒤다. PROJECT_NOT_SUBMITTABLE 메시지 끝에는 빠진 키 목록(`basicInfo, story, rewards, privacyConsent`)이 붙고 `detail`은 비어 있다. FE는 이 목록으로 빠진 항목을 안내한다(#322).
 
 진행 중 목표금액·가격 수정도 현재 서버가 막지 않는다. FE 비활성화만으로 보안을 대신하지 않으며 상태별 허용 필드와 BE 검증을 협의한다. ONGOING에서 SUCCEEDED/FAILED로 전환하는 시점·주체는 전달된 답변으로 확정하지 않는다.
 
@@ -436,21 +443,20 @@ enum은 DRAFT, PENDING_REVIEW, ONGOING, SUCCEEDED, FAILED다.
 
 다음은 프로젝트 명세 보완이다.
 
-| 동작             | Method·Path                                               | 핵심 계약                                                                      |
-| ---------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 목록             | GET `/api/v1/projects`                                    | 판매자 본인 목록, 선택 status와 page/size. status 미지정은 전체.               |
-| 신규 생성        | POST `/api/v1/projects`                                   | 본문 없음 → projectId(UUID v7), status=DRAFT.                                  |
-| 기본정보         | PATCH `/api/v1/projects/{projectId}/basic-info`           | businessType, categoryMajor, categoryMinor, title, goalAmount 부분 갱신.       |
-| 개인정보 동의    | POST `/api/v1/projects/{projectId}/privacy-consent`       | agreed. 프로젝트 약관 코드 목록과 별개.                                        |
-| 소개             | PATCH `/api/v1/projects/{projectId}/story`                | title, coverImageUrl, introContent.                                            |
-| 리워드 등록      | POST `/api/v1/projects/{projectId}/rewards`               | name, description, imageUrl, price, isLimited, quantity, isEarlyBird, options. |
-| 리워드 수정/삭제 | PATCH/DELETE `/api/v1/rewards/{rewardId}`                 | 수정은 부분 필드, 삭제 성공은 본문 없는 204.                                   |
-| 고시             | PUT `/api/v1/rewards/{rewardId}/disclosure`               | categoryType, disclosure.                                                      |
-| 환불 특이사항    | PATCH `/api/v1/rewards/{rewardId}/refund-policy`          | simpleRefundDisabled.                                                          |
-| 제출             | POST `/api/v1/projects/{projectId}/submit`                | 본문 없음. 최신 조건·오류는 5.1 적용.                                          |
-| 관리자 심사      | POST `/api/v1/admin/projects/{projectId}/review-decision` | decision(APPROVED/REJECTED), 반려 시 rejectReason.                             |
-| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`                | 본인 미공개 프로젝트 조회용.                                                   |
-| 공개 상세        | GET `/api/v1/projects/{projectId}`                        | 미공개 DRAFT/PENDING_REVIEW는 404.                                             |
+| 동작             | Method·Path                                         | 핵심 계약                                                                      |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 목록             | GET `/api/v1/projects`                              | 판매자 본인 목록, 선택 status와 page/size. status 미지정은 전체.               |
+| 신규 생성        | POST `/api/v1/projects`                             | 본문 없음 → projectId(UUID v7), status=DRAFT.                                  |
+| 기본정보         | PATCH `/api/v1/projects/{projectId}/basic-info`     | businessType, categoryMajor, categoryMinor, title, goalAmount 부분 갱신.       |
+| 개인정보 동의    | POST `/api/v1/projects/{projectId}/privacy-consent` | agreed. 프로젝트 약관 코드 목록과 별개. false는 422 PRIVACY_CONSENT_REQUIRED.  |
+| 소개             | PATCH `/api/v1/projects/{projectId}/story`          | title, coverImageUrl, introContent.                                            |
+| 리워드 등록      | POST `/api/v1/projects/{projectId}/rewards`         | name, description, imageUrl, price, isLimited, quantity, isEarlyBird, options. |
+| 리워드 수정/삭제 | PATCH/DELETE `/api/v1/rewards/{rewardId}`           | 수정은 부분 필드, 삭제 성공은 본문 없는 204.                                   |
+| 고시             | PUT `/api/v1/rewards/{rewardId}/disclosure`         | categoryType, disclosure.                                                      |
+| 환불 특이사항    | PATCH `/api/v1/rewards/{rewardId}/refund-policy`    | simpleRefundDisabled.                                                          |
+| 공개(제출)       | POST `/api/v1/projects/{projectId}/submit`          | 본문 없음 → projectId, status. 조건·오류는 5.1 적용.                           |
+| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용. 응답은 공개 상세와 같은 ProjectDetailResponse다.  |
+| 공개 상세        | GET `/api/v1/projects/{projectId}`                  | 미공개 DRAFT는 404.                                                            |
 
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.
 
@@ -505,19 +511,28 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`. |
 | 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                          |
-| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{qna: [...]}`.                                                           |
+| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{aiStatus, qna: [...]}`.                                                 |
 | 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                      |
 | 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                           |
 | 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}` 또는 `{action: "SEND", finalAnswer}`.              |
 | 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
 
 - 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
-- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. 초안이 없어도 판매자가 직접 답변을 작성할 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
+- `aiStatus`는 `PREPARING`(AI 상품정보 색인 전)·`READY`다. 질문이 없을 때 두 상태를 다른 문구로 안내한다(요구사항 6.4.4.4). insights 호출이 BE에 AI 집계를 반영(upsert)하게 하므로 판매자 화면이 주기적으로 부른다.
+- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
 - `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
 - `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
-- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. FE 자동 폴링 주기는 이 계약에서 확정하지 않는다.
+- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. 판매자 콘솔의 갱신 주기는 FE가 정한다(#320, 아래 절).
 - IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
+- 공개 하이라이트 GET `/highlights/public`(#270·#317, BE develop `9a0290bb`): 비인증이며 `{markers: [...], clips: [...]}`다. 항목은 `highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`이고 `kind` 필드는 없다(배열로 구분).
+  - 판매자가 공개한 항목(`isPublic=true`, 사실상 완료분)만 온다. 호출할 때마다 공개 항목 조회수가 올라가므로 FE는 화면당 한 번만 부른다.
+  - `sceneLabel`은 영문 enum이라 FE가 표시명으로 바꾼다: INTRO 도입, PRICE_BENEFIT 가격·혜택, DEMO 시연, SPEC 스펙·기능, COMPARISON 비교, AUDIENCE_REACTION 질문 응답, CLOSING 마무리(AI 요구서 기준). 모르는 값은 기타로 적는다. BE develop은 아직 5종이고 INTRO·CLOSING은 BE 브랜치에서 추가 중이다.
+  - `clipUrl`은 AI 서버가 서빙하는 9:16 mp4이며 제목·자막이 영상에 번인돼 있다. FE는 `<video>`로 직접 재생하고 화면 자막을 겹쳐 그리지 않는다. 쇼츠 배지는 DEMO면 시연 영상, 그 외는 하이라이트다.
+  - BE는 VOD 길이를 주지 않는다. 구간 진행률은 플레이어 메타데이터의 길이로 계산한다.
+- 쇼츠 클릭 POST `/highlights/{highlightId}/click`(#333, BE develop `47bee6ed`): 비인증, 204. 전환 동선 추적용이며 조회 수(`/public`)와 따로 판매자 성과 통계(`/highlights/stats`)의 클릭 수로 쌓인다. BE는 하이라이트가 그 LIVE의 공개 항목인지 확인한다.
+  - FE는 쇼츠 화면이 쇼츠를 띄울 때 그 하이라이트로 한 번 보낸다. 조회 수와 같은 이유로 `signal`을 넘기지 않고 `staleTime: Infinity` 쿼리로 두어, 뷰포트 전환·재렌더에 다시 보내지 않는다. 기록 실패는 재생을 막지 않고 화면에 드러내지 않는다.
+- 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{senderId, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다.
 
 ### 5.7. 판매자 LIVE 생성·설정·AI 큐시트 (#289)
 
@@ -539,8 +554,47 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
 - `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 `failureReason`과 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
-- **`liveId` 단건 조회 API가 없다.** `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404다. LIVE의 `projectId`가 필요한 화면은 `/lives/mine`에서 찾는다 — 단건 조회가 생기면 걷어낼 우회다.
-- 송출 시작(`POST /start`)은 스트림 키 조회 API가 없어 화면에 붙이지 않았다.
+- #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾았다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)에 이어 큐시트 화면도 #326에서 단건 조회로 바꿔 우회를 걷었다.
+- 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AIC`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다.
+
+### 5.8. 판매자 LIVE 콘솔 (#320)
+
+`/seller/live/{UUID}/console`은 Figma 콘솔 UI(데모와 같은 패널)에 아래 API를 연결한다. 기준은 BE `develop` `09231959`다.
+
+| 영역                      | API                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| 헤더 LIVE 종료            | POST `/api/v1/lives/{liveId}/end` → `{liveId, status, ...}`. 진행 중이 아니면 409.          |
+| 송출 모니터링             | GET `/playback` 영상, GET `/api/v1/lives/{liveId}`의 `viewerCount`·`elapsedSeconds`(소유자) |
+| 큐시트 패널               | GET `/cue-sheet`(404는 "큐시트 없음")                                                       |
+| 질문 요약·원문·초안·등록  | 5.6의 `/chat/unanswered`·`/chat/questions/{id}`·`ai-answer`                                 |
+| AI 상태                   | 5.6의 `/chat/insights` `aiStatus`                                                           |
+| 집계된 Q&A·LIVE 체크 목록 | 5.6의 `/chat/answered-questions`(시청자 Q&A와 같은 목록, IA 46)                             |
+| LIVE 체크 추가            | POST `/api/v1/projects/{projectId}/live-verifications` `{questionSummaryId, answer}` → 201  |
+
+- `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 큐시트 화면도 #326부터 이 단건 조회를 쓴다(5.7).
+- insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
+- 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
+- "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
+- LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
+- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 방송 중 펀딩 건수·금액, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 수치는 `-`다(2026-09-23 결정).
+- BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
+
+### 5.9. 판매자 LIVE 스튜디오 목록·시작 (#326)
+
+기준은 BE `develop` `47bee6ed`다.
+
+| 동작         | Method·Path                         | 요청 → 응답                                                                           |
+| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| LIVE 시작    | POST `/api/v1/lives/{liveId}/start` | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
+| 내 LIVE 목록 | GET `/api/v1/lives/mine`            | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
+| 상태별 건수  | GET `/api/v1/lives/status-counts`   | → `{draft, scheduled, live, ended, error}`                                            |
+| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`        | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+
+- `POST /start`는 `DRAFT`·`SCHEDULED`·`ERROR`에서만 `LIVE`로 바뀐다. 이미 `LIVE`거나 `ENDED`면 409라 화면은 "이미 시작했거나 종료된 LIVE"로 따로 안내한다. 시작은 채팅방 생성과 AI 상품정보 준비까지 포함하고, 채팅방 생성이 실패하면 의존성 오류(5xx)이며 세션이 `ERROR`가 된다.
+- `status`는 `List<LiveStatus>`라 쉼표(`status=DRAFT,SCHEDULED`)와 반복 파라미터 둘 다 받는다. FE는 쉼표로 보낸다. 준비중 탭의 "전체를 받아 화면에서 거르던" #283 우회는 여기서 걷었다.
+- 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled`). `ERROR`는 어느 탭에도 속하지 않아 어느 건수에도 더하지 않는다.
+- 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
+- 송출 시작을 붙였어도 **스트림 키 조회 API는 여전히 없다.** 영상 송출 정보는 화면에서 안내만 하고 만들어 내지 않는다.
 
 ## 6. 최신 답변으로 정리한 차이
 

@@ -17,6 +17,20 @@ export function toScheduledStartAt(date: string, time: string): string | null {
   return parsed.toISOString();
 }
 
+/**
+ * ISO-8601 → `<input type="date">`·`<input type="time">` 값. {@link toScheduledStartAt}의 역이다.
+ * 값이 없거나 해석되지 않으면 둘 다 빈 문자열이다 — 임시저장에 예약이 없을 때 오늘을 지어내지 않는다.
+ */
+export function toScheduledInputs(value: string | null | undefined) {
+  const at = value ? new Date(value) : null;
+  if (!at || Number.isNaN(at.getTime())) return { date: "", time: "" };
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return {
+    date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`,
+    time: `${pad(at.getHours())}:${pad(at.getMinutes())}`,
+  };
+}
+
 export type LiveSettingsInput = {
   categoryMajor?: string | null;
   categoryMinor?: string | null;

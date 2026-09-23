@@ -9,6 +9,7 @@ import {
   projectEditTabs,
 } from "@/entities/project/ui/project-sidebar";
 import { ProjectCommunityApi } from "@/features/project-community/ui/project-community-api";
+import { FundingEmptyState } from "./funding-empty-state";
 import { FundingStatusApi } from "./funding-status-api";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
@@ -46,7 +47,9 @@ export function ProjectManagementApi({
       tabs={tab === "news" ? projectEditTabs : projectManageTabs}
     >
       <div className="flex min-w-0 flex-1 flex-col">
-        {tab === "funding" ? (
+        {tab === "funding" && query.data.status === "DRAFT" ? (
+          <FundingEmptyState />
+        ) : tab === "funding" ? (
           <FundingStatusApi project={query.data} />
         ) : (
           <ProjectCommunityApi key={`${projectId}-${tab}`} projectId={projectId} tab={tab} />

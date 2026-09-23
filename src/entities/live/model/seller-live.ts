@@ -1,4 +1,9 @@
-import type { LivePage, LiveStatus, LiveSummaryResponse } from "../api/seller-live-api";
+import type {
+  LivePage,
+  LiveStatus,
+  LiveStatusCounts,
+  LiveSummaryResponse,
+} from "../api/seller-live-api";
 
 export const sellerLiveTabs = ["active", "draft", "closed"] as const;
 export type SellerLiveTab = (typeof sellerLiveTabs)[number];
@@ -22,28 +27,11 @@ export type SellerLive = {
 
 /* 탭 ↔ 상태 매핑(#283). ERROR는 어느 탭에도 넣지 않는다 — 판매자에게 진행중으로도
    완료로도 보이면 안 되는 상태고, 임의 분류는 화면이 사실과 다른 말을 하게 만든다. */
-const tabStatuses: Record<SellerLiveTab, readonly LiveStatus[]> = {
+export const tabStatuses: Record<SellerLiveTab, readonly LiveStatus[]> = {
   active: ["LIVE"],
   draft: ["DRAFT", "SCHEDULED"],
   closed: ["ENDED"],
 };
-
-/**
- * 서버에 보낼 `status`. 준비중 탭만 undefined다.
- *
- * `status`는 단일값이라 DRAFT·SCHEDULED를 한 번에 받을 수 없다. 둘 중 하나만 보내면
- * 나머지 LIVE에 도달할 길이 없어지므로 준비중 탭은 필터를 생략해 전체를 페이지 단위로
- * 받고 화면에서 두 상태만 그린다. 틀린 항목이 섞이지 않고 모든 항목에 도달할 수 있지만
- * **페이지당 표시 건수가 고르지 않다**(8건을 받아 2건만 준비중일 수 있다).
- * BE에 다중 상태 필터가 생기면 이 우회를 걷는다.
- */
-export function tabStatusParam(tab: SellerLiveTab): LiveStatus | undefined {
-  return tab === "draft" ? undefined : tabStatuses[tab][0];
-}
-
-export function isInTab(tab: SellerLiveTab, status: LiveStatus) {
-  return tabStatuses[tab].includes(status);
-}
 
 const statusLabels: Record<LiveStatus, string> = {
   DRAFT: "임시저장",
@@ -112,27 +100,24 @@ export function toSellerLive(item: LiveSummaryResponse): SellerLive {
   };
 }
 
-/**
- * 응답 → 카드 목록. `content`가 빠진 응답에도 빈 목록을 돌려주고,
- * 탭에 속하지 않는 상태는 걸러낸다(준비중 탭의 전체 조회가 여기서 좁혀진다).
- */
-export function toSellerLiveList(page: LivePage | undefined, tab: SellerLiveTab): SellerLive[] {
-  return (page?.content ?? []).filter((item) => isInTab(tab, item.status)).map(toSellerLive);
+/** 응답 → 카드 목록. 상태는 서버가 걸러 주고, `content`가 빠진 응답에도 빈 목록을 돌려준다. */
+export function toSellerLiveList(page: LivePage | undefined): SellerLive[] {
+  return (page?.content ?? []).map(toSellerLive);
 }
 
+const countKeys: Record<LiveStatus, keyof LiveStatusCounts> = {
+  DRAFT: "draft",
+  SCHEDULED: "scheduled",
+  LIVE: "live",
+  ENDED: "ended",
+  ERROR: "error",
+};
+
 /**
- * 탭에 붙일 건수.
- *
- * 프로젝트 목록과 달리 LIVE에는 상태별 건수 API가 없다. 없는 API를 지어내지 않는다.
- * 서버가 상태로 걸러 준 탭(진행중·완료)만 그 탭을 보고 있을 때 `totalElements`로 채우고
- * 나머지는 비운다. 준비중 탭은 전체를 받아 화면에서 거르므로 `totalElements`가
- * 준비중 건수가 아니다 — 그래서 선택돼 있어도 비운다.
+ * 탭에 붙일 건수. `GET /lives/status-counts`의 상태별 건수를 탭 매핑대로 더한다 —
+ * 준비중은 `draft + scheduled`다. ERROR는 어느 탭에도 속하지 않아 어디에도 더하지 않는다.
  */
-export function tabCount(
-  tab: SellerLiveTab,
-  selectedTab: SellerLiveTab,
-  page: LivePage | undefined,
-): number | null {
-  if (tab !== selectedTab || tab === "draft" || !page) return null;
-  return page.totalElements ?? null;
+export function tabCount(tab: SellerLiveTab, counts: LiveStatusCounts | undefined): number | null {
+  if (!counts) return null;
+  return tabStatuses[tab].reduce((sum, status) => sum + (counts[countKeys[status]] ?? 0), 0);
 }

@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chapterRange, formatClock, toChapters } from "./vod-chapters.ts";
+import {
+  chapterRange,
+  clipBadge,
+  formatClock,
+  formatPlaybackTime,
+  pickClip,
+  sceneLabelName,
+  toChapters,
+} from "./vod-chapters.ts";
 
 const marker = (startSec, title) => ({
   highlightId: `h${startSec}`,
-  sceneLabel: "도입",
+  sceneLabel: "INTRO",
   title,
   startSec,
   endSec: null,
@@ -15,6 +23,13 @@ const marker = (startSec, title) => ({
 });
 
 const markers = [marker(120, "두 번째"), marker(0, "첫 번째"), marker(300, "세 번째")];
+
+test("재생바 시각은 Figma처럼 시·분·초를 두 자리로 적는다", () => {
+  assert.equal(formatPlaybackTime(0), "00:00:00");
+  assert.equal(formatPlaybackTime(125.9), "00:02:05");
+  assert.equal(formatPlaybackTime(3725), "01:02:05");
+  assert.equal(formatPlaybackTime(-3), "00:00:00");
+});
 
 test("시각은 mm:ss로 적는다", () => {
   assert.equal(formatClock(0), "00:00");
@@ -31,6 +46,37 @@ test("응답 순서와 무관하게 시작 시각 순서로 진행률을 매긴�
       ["05:00", 50],
     ],
   );
+});
+
+test("구간 유형은 BE enum 대신 한글 7종으로 적고, 모르는 값은 기타로 적는다", () => {
+  assert.deepEqual(
+    ["INTRO", "PRICE_BENEFIT", "DEMO", "SPEC", "COMPARISON", "AUDIENCE_REACTION", "CLOSING"].map(
+      sceneLabelName,
+    ),
+    ["도입", "가격·혜택", "시연", "스펙·기능", "비교", "질문 응답", "마무리"],
+  );
+  assert.equal(sceneLabelName("HIGHLIGHT_NEW"), "기타");
+  assert.deepEqual(
+    toChapters(markers, 600).map((chapter) => chapter.label),
+    ["도입", "도입", "도입"],
+  );
+});
+
+test("쇼츠 배지는 시연만 시연 영상, 나머지는 하이라이트다", () => {
+  assert.equal(clipBadge("DEMO"), "시연 영상");
+  assert.equal(clipBadge("AUDIENCE_REACTION"), "하이라이트");
+  assert.equal(clipBadge("PRICE_BENEFIT"), "하이라이트");
+});
+
+test("주소의 쇼츠를 고르고, 없거나 영상이 없으면 첫 재생 가능한 쇼츠를 고른다", () => {
+  const clip = (id, clipUrl) => ({ ...marker(0, id), highlightId: id, endSec: 90, clipUrl });
+  const clips = [clip("a", null), clip("b", "https://ai/b.mp4"), clip("c", "https://ai/c.mp4")];
+  assert.equal(pickClip(clips, "c").highlightId, "c");
+  assert.equal(pickClip(clips, "없는-id").highlightId, "b");
+  assert.equal(pickClip(clips, undefined).highlightId, "b");
+  assert.equal(pickClip(clips, "a").highlightId, "b");
+  assert.equal(pickClip([clip("a", null)], "a"), null);
+  assert.equal(pickClip([], undefined), null);
 });
 
 test("영상 길이를 모르면 구간을 그리지 않는다", () => {

@@ -360,8 +360,13 @@
   align-items: center;
   overflow: hidden;
 }
+/* Figma처럼 영상이 화면 전체를 채운다. 16:9 재생 틀을 풀고 화면 높이를 쓰되, 가로 VOD나 번인
+   자막이 잘리지 않게 영상 맞춤(contain)은 그대로 두고 남는 여백은 흰 글자가 읽히도록 검정으로 채운다. */
 .video > * {
   width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  background: #000;
 }
 
 .poster {

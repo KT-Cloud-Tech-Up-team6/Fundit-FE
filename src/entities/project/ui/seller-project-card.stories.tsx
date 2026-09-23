@@ -29,8 +29,6 @@ const draft: SellerProject = {
   title: "친환경 소재로 만든 100% 오가닉! 데일리 백",
   badges: [{ label: "D-12", variant: "neutral" }],
   draftPhaseLabel: "스토리 작성중",
-  openScheduledAt: "2026.09.21",
-  updatedAt: "2026.08.26 12:54",
 };
 
 const closed: SellerProject = {
@@ -65,7 +63,7 @@ type Story = StoryObj;
 /** 진행중. 모금액과 진행률 바를 노출하고 액션은 펀딩 현황으로 간다. */
 export const Active: Story = { args: active };
 
-/** 준비중. 진행률 바 대신 작성 상태와 오픈 예정일·마지막 수정일을 노출한다. */
+/** 준비중. 진행률 바 대신 작성 상태만 노출한다(오픈 예정일·마지막 수정일은 IA에 없어 뺐다). */
 export const Draft: Story = { args: draft };
 
 /** 완료. 진행중과 같은 구성에 배송 상태 배지와 확인하기 버튼이 붙는다. */

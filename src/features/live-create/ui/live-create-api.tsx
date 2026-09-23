@@ -9,17 +9,23 @@ import { LoginRedirect } from "@/providers/login-redirect";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   createLive,
+  getLiveDetail,
+  startLive,
   updateLiveSettings,
   type LiveCreateResponse,
 } from "@/entities/live/api/live-session-api";
+import { getMyLives } from "@/entities/live/api/seller-live-api";
 import {
   isEmptyLiveSettingsBody,
   LIVE_INTRO_MAX_LENGTH,
   toLiveSettingsBody,
+  toScheduledInputs,
   toScheduledStartAt,
 } from "@/entities/live/model/live-settings";
+import { toSellerLiveList } from "@/entities/live/model/seller-live";
 import { getProjectPreview } from "@/entities/project/api/seller-project-api";
 import { LiveCueSheetApi } from "@/features/live-cue-sheet/ui/live-cue-sheet-api";
+import { ApiError } from "@/shared/api/api-error";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Modal } from "@/shared/components/ui/modal";
@@ -29,6 +35,10 @@ import { ProjectSummary, type LiveProjectSummary } from "./project-summary";
 function errorMessage(error: unknown) {
   return error instanceof Error && error.message ? error.message : "잠시 후 다시 시도해 주세요.";
 }
+
+/* 한 프로젝트의 임시저장 LIVE는 이어서 작성할 후보라 많지 않다. 불러오기 목록은
+   페이지 없이 한 번에 보여 주고, 그보다 많으면 서버가 준 첫 페이지까지만 보인다. */
+const DRAFT_LIST_SIZE = 20;
 
 /**
  * `/seller/projects/{projectId}/live/new`의 LIVE 생성.
@@ -56,6 +66,11 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
   /* 원본 FL_S_LV_CREATE_8은 큐시트를 저장하고 돌아오면 확인 화면에 툴팁을 띄운다. */
   const [cueOpen, setCueOpen] = useState(false);
   const [cueSaved, setCueSaved] = useState(false);
+  const [loadOpen, setLoadOpen] = useState(false);
+  /* 불러온 임시저장의 예약 시각. 입력은 비제어라 key로 다시 마운트해 값을 넣는다. */
+  const [schedule, setSchedule] = useState<{ date: string; time: string } | null>(null);
+  /* 요청 중 표시는 다음 렌더에 반영된다. 그 사이 두 번 누르면 시작이 두 번 나가 성공 뒤 409를 띄운다. */
+  const starting = useRef(false);
   const confirmHeadingRef = useRef<HTMLParagraphElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
@@ -128,6 +143,43 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     },
   });
 
+  /* 이어서 작성할 후보는 이 프로젝트의 임시저장뿐이다. 예약까지 마친 SCHEDULED는
+     생성이 끝난 LIVE라 여기서 다시 열지 않는다(LIVE 스튜디오 준비중 탭이 맡는다). */
+  const drafts = useQuery({
+    queryKey: ["seller-lives", owner, "drafts", projectId],
+    queryFn: ({ signal }) =>
+      getMyLives({ statuses: ["DRAFT"], projectId, size: DRAFT_LIST_SIZE }, signal),
+    enabled: enabled && loadOpen,
+  });
+
+  const load = useMutation({
+    mutationFn: (id: string) => getLiveDetail(id),
+    onSuccess: (detail) => {
+      /* 같은 liveId에 이어 쓴다. 새로 만들지 않으므로 임시저장이 늘지 않는다. */
+      setLiveId(detail.liveId);
+      setIntro(detail.introText ?? "");
+      const loaded = toScheduledInputs(detail.scheduledStartAt);
+      setSchedule(loaded.date ? loaded : null);
+      setScheduled(Boolean(loaded.date));
+      setCueSaved(false);
+      setLoadOpen(false);
+      setNotice("임시저장한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다.");
+    },
+  });
+
+  const start = useMutation({
+    mutationFn: (id: string) => startLive(id),
+    onSuccess: (response) => {
+      void cache.invalidateQueries({ queryKey: ["seller-lives"] });
+      void cache.invalidateQueries({ queryKey: ["seller-live-counts", owner] });
+      void cache.invalidateQueries({ queryKey: ["live-summary", owner, response.liveId] });
+      router.push(`/seller/live/${encodeURIComponent(response.liveId)}/console`);
+    },
+    onSettled: () => {
+      starting.current = false;
+    },
+  });
+
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
   if (state.status === "guest") return <LoginRedirect />;
   if (!owner)
@@ -154,7 +206,17 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     image: preview.data.coverImageUrl ?? "",
   };
   const canProceed = intro.trim().length > 0 && !save.isPending;
-  const message = save.isError ? `저장하지 못했습니다. ${errorMessage(save.error)}` : notice;
+  /* 409는 이미 시작했거나 끝난 LIVE다. 다시 눌러도 달라지지 않으므로 사유를 나눠 적는다. */
+  const startFailure =
+    start.error instanceof ApiError && start.error.status === 409
+      ? "이미 시작했거나 종료된 LIVE입니다. LIVE 스튜디오에서 상태를 확인해 주세요."
+      : `LIVE를 시작하지 못했습니다. ${errorMessage(start.error)}`;
+  const message = save.isError
+    ? `저장하지 못했습니다. ${errorMessage(save.error)}`
+    : start.isError
+      ? startFailure
+      : notice;
+  const draftItems = toSellerLiveList(drafts.data);
 
   return (
     <section className="py-9">
@@ -169,7 +231,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
       <Modal
         className="h-168"
         onClose={() => router.push("/seller/live")}
-        open={!cueOpen}
+        open={!cueOpen && !loadOpen}
         title="LIVE 생성하기"
       >
         {step === "form" ? (
@@ -200,7 +262,9 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                 <input
                   aria-label="방송 예약 날짜"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
+                  defaultValue={schedule?.date}
                   disabled={!scheduled}
+                  key={`date-${schedule?.date ?? ""}`}
                   type="date"
                   ref={(node) => {
                     dateRef.current = node;
@@ -210,7 +274,9 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                 <input
                   aria-label="방송 예약 시각"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
+                  defaultValue={schedule?.time}
                   disabled={!scheduled}
+                  key={`time-${schedule?.time ?? ""}`}
                   type="time"
                   ref={(node) => {
                     timeRef.current = node;
@@ -221,11 +287,13 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
             </div>
 
             <div className="mt-11 flex shrink-0 flex-wrap items-center justify-between gap-3">
-              {/* 임시저장 목록 조회 API가 없다. 계약이 나오면 disabled를 뗀다. */}
               <button
                 className={`${secondaryButtonClasses} h-10 w-23`}
-                disabled
-                title="임시저장 목록 조회 API가 아직 없습니다."
+                disabled={load.isPending}
+                onClick={() => {
+                  load.reset();
+                  setLoadOpen(true);
+                }}
                 type="button"
               >
                 불러오기
@@ -297,20 +365,77 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
               >
                 AI 큐시트 생성
               </button>
-              {/* 송출은 스트림 키 조회 API가 없어 붙일 수 없다(#289 범위 밖). */}
               <Button
                 className="h-10 flex-1 font-semibold"
                 size="sm"
                 variant="primaryLive"
-                disabled
-                title="스트림 키 조회 API가 아직 없어 송출을 시작할 수 없습니다."
+                disabled={!liveId || start.isPending}
+                onClick={() => {
+                  if (!liveId || starting.current) return;
+                  starting.current = true;
+                  start.mutate(liveId);
+                }}
               >
                 LIVE 시작
               </Button>
             </div>
+            {/* 스트림 키 조회 API가 없어 영상 송출 정보는 여전히 줄 수 없다. 시작은 서버 상태를
+                LIVE로 바꾸고 채팅방을 여는 데까지다 — 콘솔에서 이어 진행한다. */}
+            <p className="text-caption-s text-text-secondary mt-3 shrink-0">
+              영상 송출 정보(스트림 키)는 아직 제공되지 않습니다. LIVE를 시작하면 방송 콘솔로
+              이동합니다.
+            </p>
           </div>
         )}
       </Modal>
+
+      {/* 원본에는 불러오기 버튼만 있고 고르는 화면이 없다. 공용 Modal로 최소한만 둔다 —
+          이어서 작성할 LIVE를 고르는 자리라 소개 문구와 만든 날짜만 보여 준다. */}
+      <Modal onClose={() => setLoadOpen(false)} open={loadOpen} title="임시저장 불러오기">
+        {/* 불러오는 동안 생성 모달은 닫혀 있어, 실패 안내는 고르는 이 자리에 둔다. */}
+        {load.isError && (
+          <p role="alert" className="text-body-s text-text-error mt-6">
+            임시저장한 LIVE를 불러오지 못했습니다. {errorMessage(load.error)}
+          </p>
+        )}
+        {drafts.isPending ? (
+          <p role="status" className="mt-6">
+            임시저장한 LIVE를 불러오고 있습니다.
+          </p>
+        ) : drafts.isError ? (
+          <div role="alert" className="mt-6">
+            <p>임시저장 목록을 불러오지 못했습니다.</p>
+            <button type="button" className="mt-2 underline" onClick={() => void drafts.refetch()}>
+              다시 시도
+            </button>
+          </div>
+        ) : draftItems.length ? (
+          <ul className="mt-6 flex flex-col gap-2">
+            {draftItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  className="border-w-xs border-border-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex w-full flex-col items-start gap-1 rounded-xs px-4 py-3 text-left focus-visible:outline-2"
+                  disabled={load.isPending}
+                  onClick={() => load.mutate(item.id)}
+                  type="button"
+                >
+                  <span className="text-body-s text-text-default">
+                    {item.introText || "소개 문구 없음"}
+                  </span>
+                  <span className="text-caption-s text-text-secondary">
+                    {item.createdAtLabel} 생성
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-body-s text-text-secondary mt-6 py-10 text-center">
+            이 프로젝트에 임시저장한 LIVE가 없습니다.
+          </p>
+        )}
+      </Modal>
+
       {cueOpen && liveId && (
         <LiveCueSheetApi
           liveId={liveId}

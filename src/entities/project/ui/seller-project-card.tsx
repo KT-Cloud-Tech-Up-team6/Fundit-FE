@@ -8,18 +8,14 @@ import { ProgressBar } from "@/shared/components/ui/progress-bar";
 
 export type { SellerProject } from "@/entities/project/model/seller-project";
 
-/* IA FL_S_PR_LIST → FL_S_PR_DTL. 상태별 기본 진입 탭이 달라 목적지도 갈린다. */
-const destinations = {
-  draft: (id: string) => `/seller/projects/${id}?tab=story`,
-  active: (id: string) => `/seller/projects/${id}?tab=funding`,
-  closed: (id: string) => `/seller/projects/${id}?tab=fulfillment`,
-} as const;
+/* IA FL_S_PR_LIST(J5)와 PM 결정(2026-09-23): 상태와 관계없이 프로젝트명은 스토리 작성
+   화면(FL_S_PR_DTL), 관리 버튼은 펀딩 관리 화면(FL_S_FD_STATUS)으로 간다. */
+const storyHref = (id: string) => `/seller/projects/${encodeURIComponent(id)}?tab=story`;
+const fundingHref = (id: string) => `/seller/projects/${encodeURIComponent(id)}?tab=funding`;
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
-export function SellerProjectCard(project: SellerProject & { hrefOverride?: string }) {
-  const href = project.hrefOverride ?? destinations[project.status](project.id);
-
+export function SellerProjectCard(project: SellerProject) {
   return (
     <article
       className={`border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:flex-row md:items-start md:justify-between md:gap-6 ${project.status === "draft" ? "md:h-[136px]" : "md:h-[148px]"}`}
@@ -40,29 +36,19 @@ export function SellerProjectCard(project: SellerProject & { hrefOverride?: stri
         <div className="flex min-w-0 flex-1 flex-col md:max-w-[268px]">
           {project.status === "draft" ? (
             <>
-              <Badge size="sm" variant="info">
+              <Badge size="sm" variant="info" className="self-start">
                 {project.draftPhaseLabel}
               </Badge>
               <h3 className="text-body-strong mt-1 truncate">
-                <Link href={href} className="hover:underline">
+                <Link href={storyHref(project.id)} className="hover:underline">
                   {project.title}
                 </Link>
               </h3>
-              <dl className="text-caption-m text-text-secondary mt-1">
-                <div className="flex gap-1">
-                  <dt>오픈 예정일</dt>
-                  <dd>{project.openScheduledAt}</dd>
-                </div>
-                <div className="flex gap-1">
-                  <dt>마지막 수정일</dt>
-                  <dd>{project.updatedAt}</dd>
-                </div>
-              </dl>
             </>
           ) : (
             <>
               <h3 className="text-body-strong truncate">
-                <Link href={href} className="hover:underline">
+                <Link href={storyHref(project.id)} className="hover:underline">
                   {project.title}
                 </Link>
               </h3>
@@ -94,7 +80,7 @@ export function SellerProjectCard(project: SellerProject & { hrefOverride?: stri
           ))}
         </div>
         <Button
-          href={href}
+          href={fundingHref(project.id)}
           variant="secondary"
           size="md"
           className="text-caption-m! h-9! w-28 shrink-0 font-medium! md:w-full"

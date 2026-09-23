@@ -40,8 +40,11 @@ export const getVod = (liveId: string, signal?: AbortSignal) =>
   apiRequest<Playback>(`${livePath(liveId)}/vod`, { signal });
 export const getAnsweredQuestions = (liveId: string, signal?: AbortSignal) =>
   apiRequest<AnsweredQuestion[]>(`${livePath(liveId)}/chat/answered-questions`, { signal });
+/* `PREPARING`은 AI 상품정보 색인 전이다. 목록이 비었을 때 "모인 질문 없음"과 다른 문구로
+   안내해야 한다(요구사항 6.4.4.4). 이 호출이 BE에 AI 집계를 가져오게 하므로 주기적으로 부른다. */
+export type AiStatus = "PREPARING" | "READY";
 export const getInsights = (liveId: string, signal?: AbortSignal) =>
-  apiRequest<{ qna: Insight[] }>(`${livePath(liveId)}/chat/insights?topN=10`, {
+  apiRequest<{ aiStatus: AiStatus; qna: Insight[] }>(`${livePath(liveId)}/chat/insights?topN=10`, {
     auth: true,
     signal,
   });
@@ -94,6 +97,12 @@ export const getPublicHighlights = (liveId: string, signal?: AbortSignal) =>
     `${livePath(liveId)}/highlights/public`,
     { signal },
   );
+
+/* 쇼츠 클릭 기록(전환 동선 추적). 비인증이고 204라 본문이 없다. 조회 수(`/public`)와 따로 잡힌다. */
+export const recordHighlightClick = (liveId: string, highlightId: string) =>
+  apiRequest<void>(`${livePath(liveId)}/highlights/${encodeURIComponent(highlightId)}/click`, {
+    method: "POST",
+  });
 
 export type VodChatMessage = { senderId: string; content: string; offsetSec: number };
 

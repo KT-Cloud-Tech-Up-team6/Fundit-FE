@@ -55,7 +55,7 @@ export function Modal({
           {/* 오른쪽 닫기 버튼과 같은 크기의 자리를 왼쪽에도 둬야 제목이 가운데 온다. */}
           <span aria-hidden className="size-9 shrink-0" />
           <h2
-            className="text-heading-m text-text-title min-w-0 flex-1 text-center break-words"
+            className="text-heading-m text-text-title min-w-0 flex-1 text-center break-words break-keep"
             id={titleId}
           >
             {title}

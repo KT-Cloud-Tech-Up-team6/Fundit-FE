@@ -1,106 +1,34 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { BuyerLiveReplay } from "@/features/buyer-live-replay/ui/buyer-live-replay";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
-import styles from "@/features/live-console/ui/console.module.css";
 import { useAuth } from "@/providers/auth-provider";
-import { ApiError } from "@/shared/api/api-error";
-import { SellerShell } from "@/shared/components/layout/seller-shell";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import {
   getAnsweredQuestions,
-  getInsights,
   getLiveLiked,
-  getOriginals,
   getPlayback,
   getPublicHighlights,
-  getUnanswered,
   getVod,
   getVodChat,
   likeLive,
-  requestAnswer,
+  recordHighlightClick,
   unlikeLive,
   type LikeResult,
-  type PendingQuestion,
 } from "../api/live-api";
 import { LivePlayer, type LivePlayerHandle } from "./live-player";
-import { chapterRange, toChapters } from "../model/vod-chapters";
-
-function QueryError({
-  error,
-  retry,
-  disabled = false,
-}: {
-  error: unknown;
-  retry: () => void;
-  disabled?: boolean;
-}) {
-  const router = useRouter();
-  const httpStatus = error instanceof ApiError ? error.status : undefined;
-  const status = toErrorStatus(error);
-  if (httpStatus === 409)
-    return (
-      <ErrorState
-        variant="section"
-        status="server"
-        description="VOD를 준비 중입니다. 잠시 후 다시 시도해 주세요."
-        action={disabled ? undefined : { label: "다시 시도", onClick: retry }}
-      />
-    );
-  if (status === "unauthorized") {
-    const returnTo =
-      typeof window === "undefined" ? "/live" : window.location.pathname + window.location.search;
-    return (
-      <ErrorState
-        variant="section"
-        status={status}
-        action={{ href: `/auth/login?returnTo=${encodeURIComponent(returnTo)}` }}
-      />
-    );
-  }
-  if (status === "forbidden")
-    return (
-      <ErrorState variant="section" status={status} action={{ onClick: () => router.back() }} />
-    );
-  return (
-    <ErrorState
-      variant="section"
-      status={status}
-      description="정보를 불러오지 못했습니다."
-      action={disabled ? undefined : { label: "다시 시도", onClick: retry }}
-    />
-  );
-}
-
-/** 변경 요청 실패는 조회 실패 마이그레이션 대상이 아니다. 입력을 유지한 채 같은 요청만 재시도한다. */
-function MutationError({
-  error,
-  retry,
-  disabled,
-}: {
-  error: unknown;
-  retry: () => void;
-  disabled: boolean;
-}) {
-  const status = error instanceof ApiError ? error.status : undefined;
-  return (
-    <div role="alert" className="border-border-default rounded border p-4">
-      {`정보를 처리하지 못했습니다${status ? ` (${status})` : ""}.`}{" "}
-      <button
-        type="button"
-        className="ml-2 underline disabled:opacity-50"
-        onClick={retry}
-        disabled={disabled}
-      >
-        다시 시도
-      </button>
-    </div>
-  );
-}
+import { QueryError } from "./query-error";
+import {
+  chapterRange,
+  clipBadge,
+  formatPlaybackTime,
+  pickClip,
+  toChapters,
+} from "../model/vod-chapters";
 
 function answeredByLabel(value: string) {
   return value === "AI" ? "AI 답변" : value === "SELLER" ? "판매자 답변" : "답변자 미확인";
@@ -118,12 +46,15 @@ export function RealBuyerLive({
   liveId,
   replay = false,
   clip = false,
+  clipId,
   desktop = false,
 }: {
   liveId: string;
   replay?: boolean;
-  /** 모바일 다시보기의 숏 클립 화면(`?view=clip`). */
+  /** 다시보기의 숏 클립 화면(`?mode=replay&view=clip`). */
   clip?: boolean;
+  /** 재생할 쇼츠의 하이라이트 id(`&clip=`). 없거나 맞지 않으면 첫 쇼츠를 재생한다. */
+  clipId?: string;
   desktop?: boolean;
 }) {
   const router = useRouter();
@@ -197,7 +128,20 @@ export function RealBuyerLive({
     retry: false,
     staleTime: Infinity,
   });
-  const markers = highlights.data?.markers ?? [];
+  /* 숏 클립은 원본 VOD의 구간이 아니라 따로 렌더된 영상(clipUrl)이다. 방송 구간 탐색·시킹은
+     클립 재생 위치와 맞지 않아 클립 화면에서는 구간을 쓰지 않는다. */
+  const markers = clip ? [] : (highlights.data?.markers ?? []);
+  const shortClip = clip ? pickClip(highlights.data?.clips ?? [], clipId) : null;
+  /* 쇼츠를 띄우면 그 하이라이트의 클릭을 한 번 기록한다. 조회 수와 같은 이유로 signal을 넘기지
+     않고 staleTime으로 뷰포트 전환·재렌더 때 다시 보내지 않는다. 기록은 추적용이라 실패해도
+     재생을 막거나 화면에 드러내지 않는다. */
+  useQuery({
+    queryKey: ["live", liveId, "highlight-click", shortClip?.highlightId],
+    queryFn: () => recordHighlightClick(liveId, shortClip!.highlightId).then(() => null),
+    enabled: Boolean(shortClip),
+    retry: false,
+    staleTime: Infinity,
+  });
   const chapters = toChapters(markers, position.durationSec);
   const progress = position.durationSec
     ? Math.min(100, (position.currentSec / position.durationSec) * 100)
@@ -225,7 +169,57 @@ export function RealBuyerLive({
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
     retry: false,
   });
-  const video = playback.isPending ? (
+  /* 다시보기·데스크톱 쇼츠는 화면이 Figma 재생바를 그리므로 영상의 기본 컨트롤을 끄고 재생 상태·
+     위치를 올려받는다. Figma 모바일 쇼츠에는 재생바가 없어 기본 컨트롤을 둔다. */
+  const [playing, setPlaying] = useState(false);
+  function trackProgress(currentSec: number, durationSec: number) {
+    setPosition((previous) =>
+      /* timeupdate는 초당 여러 번 온다. 화면이 쓰는 단위는 1초라 같은 초면 그대로 둬서
+         이 트리 전체가 다시 그려지지 않게 한다. */
+      previous.currentSec === Math.floor(currentSec) && previous.durationSec === durationSec
+        ? previous
+        : { currentSec: Math.floor(currentSec), durationSec },
+    );
+  }
+  const playbackProps = {
+    playing,
+    onTogglePlay: () => seekRef.current?.togglePlay(),
+    timeText: {
+      current: formatPlaybackTime(position.currentSec),
+      duration: formatPlaybackTime(position.durationSec),
+    },
+  };
+  /* AI가 제목·자막을 영상에 번인해 두므로 화면 자막을 겹쳐 그리지 않는다. VOD가 준비되지 않아도
+     쇼츠는 따로 서빙되므로 클립 화면은 VOD 재생 정보에 기대지 않는다. */
+  const video = clip ? (
+    highlights.isPending ? (
+      <p>쇼츠를 불러오는 중입니다.</p>
+    ) : highlights.isError ? (
+      <QueryError error={highlights.error} retry={() => void highlights.refetch()} />
+    ) : shortClip?.clipUrl ? (
+      <LivePlayer
+        key={shortClip.highlightId}
+        src={shortClip.clipUrl}
+        title={shortClip.title ?? "숏 클립"}
+        handleRef={seekRef}
+        onProgress={trackProgress}
+        controls={!desktop}
+        onPlayingChange={setPlaying}
+      />
+    ) : (
+      <div className="text-text-static-white grid h-full place-items-center p-6 text-center">
+        <div>
+          <p>공개된 쇼츠가 없습니다.</p>
+          <Link
+            href={`/live/${encodeURIComponent(liveId)}?mode=replay`}
+            className="mt-3 inline-block underline"
+          >
+            다시보기로 이동
+          </Link>
+        </div>
+      </div>
+    )
+  ) : playback.isPending ? (
     <p>영상을 불러오는 중입니다.</p>
   ) : playback.isError ? (
     <QueryError error={playback.error} retry={() => void playback.refetch()} />
@@ -234,15 +228,9 @@ export function RealBuyerLive({
       src={playback.data.playbackUrl}
       title={playback.data.type === "VOD" ? "다시보기" : "라이브"}
       handleRef={seekRef}
-      onProgress={(currentSec, durationSec) =>
-        setPosition((previous) =>
-          /* timeupdate는 초당 여러 번 온다. 화면이 쓰는 단위는 1초라 같은 초면 그대로 둬서
-             이 트리 전체가 다시 그려지지 않게 한다. */
-          previous.currentSec === Math.floor(currentSec) && previous.durationSec === durationSec
-            ? previous
-            : { currentSec: Math.floor(currentSec), durationSec },
-        )
-      }
+      onProgress={trackProgress}
+      controls={!isVod}
+      onPlayingChange={setPlaying}
     />
   );
   const questionData =
@@ -260,12 +248,18 @@ export function RealBuyerLive({
   ) : questions.data?.length ? undefined : (
     <p>등록된 답변이 없습니다.</p>
   );
+  const clipProps = shortClip
+    ? { clipTitle: shortClip.title ?? "숏 클립", clipBadge: clipBadge(shortClip.sceneLabel) }
+    : { clipTitle: "숏 클립", clipBadge: "숏 클립" };
   if (desktop)
     return (
       <BuyerLiveDesktop
         key={liveId}
         liveId={liveId}
         replay={isVod}
+        clip={clip}
+        {...clipProps}
+        {...playbackProps}
         product={realProduct}
         rewardSummary={null}
         questions={questionData}
@@ -278,8 +272,10 @@ export function RealBuyerLive({
         likeCount={likeCount}
         onToggleLike={onToggleLike}
         replayMessages={isVod ? vodChatMessages : undefined}
+        /* 다시보기 채팅은 구간별로 불러와 처음에는 비어 있기 쉽다. 빈 패널 대신 구간 탐색부터 연다. */
+        initialPanel={isVod ? "chapters" : undefined}
         video={video}
-        videoConnected={playback.isSuccess}
+        videoConnected={clip ? Boolean(shortClip) : playback.isSuccess}
         demoMode={false}
       />
     );
@@ -289,6 +285,9 @@ export function RealBuyerLive({
         key={liveId}
         liveId={liveId}
         clip={clip}
+        clipId={shortClip?.highlightId}
+        {...clipProps}
+        {...playbackProps}
         product={{ ...realProduct, title: "다시보기" }}
         demoMode={false}
         video={video}
@@ -316,290 +315,5 @@ export function RealBuyerLive({
       likeCount={likeCount}
       onToggleLike={onToggleLike}
     />
-  );
-}
-
-function SellerQuestion({
-  liveId,
-  ownerId,
-  question,
-}: {
-  liveId: string;
-  ownerId: string;
-  question: PendingQuestion;
-}) {
-  const [draft, setDraft] = useState("");
-  const [sentError, setSentError] = useState("");
-  const [originals, setOriginals] = useState(false);
-  const draftChangedWhileGenerating = useRef(false);
-  const requestPending = useRef(false);
-  const cache = useQueryClient();
-  const originalQuery = useQuery({
-    queryKey: ["live", liveId, "owner", ownerId, "originals", question.questionId],
-    queryFn: ({ signal }) => getOriginals(liveId, question.questionId, signal),
-    enabled: originals,
-    retry: false,
-  });
-  const mutation = useMutation({
-    mutationFn: (body: { action: "GENERATE" | "SEND"; finalAnswer?: string }) =>
-      requestAnswer(liveId, question.questionId, body),
-    onSuccess: (result, body) => {
-      if (body.action === "GENERATE") {
-        if (result.draftAnswer !== null && !draftChangedWhileGenerating.current)
-          setDraft(result.draftAnswer);
-        return;
-      }
-      if (result.sent) {
-        cache.invalidateQueries({ queryKey: ["live", liveId, "owner", ownerId] });
-        cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] });
-      } else setSentError("답변 등록을 확인하지 못했습니다. 입력 내용은 유지됩니다.");
-    },
-    onSettled: () => {
-      requestPending.current = false;
-    },
-  });
-  function submit(action: "GENERATE" | "SEND") {
-    if (requestPending.current || (action === "SEND" && !draft.trim())) return;
-    requestPending.current = true;
-    setSentError("");
-    if (action === "GENERATE") draftChangedWhileGenerating.current = false;
-    const request = action === "SEND" ? { action, finalAnswer: draft } : { action };
-    mutation.mutate(request);
-  }
-  return (
-    <article className="border-border-default rounded-sm border p-3">
-      <p className="font-semibold">{question.representativeText}</p>
-      <p className="text-sm">질문 {question.count}건</p>
-      <div className="mt-2 flex gap-3">
-        <button type="button" className="underline" onClick={() => setOriginals((value) => !value)}>
-          원문 보기
-        </button>
-        <button
-          type="button"
-          className="underline"
-          disabled={mutation.isPending}
-          onClick={() => submit("GENERATE")}
-        >
-          초안 생성
-        </button>
-      </div>
-      {originals &&
-        (originalQuery.isPending ? (
-          <p>원문을 불러오는 중입니다.</p>
-        ) : originalQuery.isError ? (
-          <QueryError error={originalQuery.error} retry={() => void originalQuery.refetch()} />
-        ) : (
-          <ul className="mt-2 list-disc pl-5">
-            {originalQuery.data.map((item) => (
-              <li key={item.commentId}>{item.content}</li>
-            ))}
-          </ul>
-        ))}
-      {mutation.data?.referenceChunks?.length ? (
-        <ul className="mt-3 text-sm">
-          <li>AI 참고 내용</li>
-          {mutation.data.referenceChunks.map((chunk, index) => (
-            <li key={`${index}-${chunk}`}>{chunk}</li>
-          ))}
-        </ul>
-      ) : null}
-      <textarea
-        aria-label={`${question.representativeText} 답변 초안`}
-        className="mt-3 w-full rounded border p-2"
-        value={draft}
-        onChange={(event) => {
-          setDraft(event.target.value);
-          draftChangedWhileGenerating.current = true;
-          setSentError("");
-        }}
-      />
-      <button
-        type="button"
-        disabled={mutation.isPending || !draft.trim()}
-        className="bg-layer-surface-primary text-text-inverse mt-2 rounded px-3 py-2 disabled:opacity-50"
-        onClick={() => submit("SEND")}
-      >
-        답변 등록
-      </button>
-      {mutation.isError && (
-        <MutationError
-          error={mutation.error}
-          disabled={mutation.isPending || (mutation.variables?.action === "SEND" && !draft.trim())}
-          retry={() => {
-            if (mutation.variables) submit(mutation.variables.action);
-          }}
-        />
-      )}
-      {sentError && <p role="alert">{sentError}</p>}
-      {mutation.isSuccess && mutation.data.sent && <p role="status">답변이 등록되었습니다.</p>}
-    </article>
-  );
-}
-
-export function RealSellerLive({ liveId }: { liveId: string }) {
-  const { state } = useAuth();
-  const ownerId = state.status === "authenticated" ? state.user?.memberId : undefined;
-  const privateEnabled = Boolean(ownerId);
-  const [selectedInsight, setSelectedInsight] = useState<{
-    liveId: string;
-    ownerId: string;
-    id: string;
-  } | null>(null);
-  const selectedInsightId =
-    selectedInsight?.liveId === liveId && selectedInsight?.ownerId === ownerId
-      ? selectedInsight.id
-      : null;
-  const playback = useQuery({
-    queryKey: ["live", liveId, "playback"],
-    queryFn: ({ signal }) => getPlayback(liveId, signal),
-    retry: false,
-  });
-  const insights = useQuery({
-    queryKey: ["live", liveId, "owner", ownerId, "insights"],
-    queryFn: ({ signal }) => getInsights(liveId, signal),
-    enabled: privateEnabled,
-    retry: false,
-  });
-  const unanswered = useQuery({
-    queryKey: ["live", liveId, "owner", ownerId, "unanswered"],
-    queryFn: ({ signal }) => getUnanswered(liveId, signal),
-    enabled: privateEnabled,
-    retry: false,
-  });
-  const insightOriginals = useQuery({
-    queryKey: ["live", liveId, "owner", ownerId, "insight-originals", selectedInsightId],
-    queryFn: ({ signal }) => getOriginals(liveId, selectedInsightId!, signal),
-    enabled: privateEnabled && selectedInsightId !== null,
-    retry: false,
-  });
-  if (state.status === "guest")
-    return (
-      <SellerShell>
-        <p className="p-6" role="alert">
-          판매자 Q&amp;A를 보려면 로그인해야 합니다.
-        </p>
-      </SellerShell>
-    );
-  if (state.status === "checking")
-    return (
-      <SellerShell>
-        <p className="p-6">사용자 정보를 확인하는 중입니다.</p>
-      </SellerShell>
-    );
-  if (!ownerId)
-    return (
-      <SellerShell>
-        <p role="alert" className="p-6">
-          사용자 정보를 불러오지 못했습니다.{" "}
-          <button type="button" className="underline" onClick={() => window.location.reload()}>
-            새로고침
-          </button>
-        </p>
-      </SellerShell>
-    );
-  return (
-    <SellerShell>
-      <div className={styles.console} aria-label={`LIVE 콘솔 ${liveId}`}>
-        <div className={styles.grid}>
-          <section
-            className={`${styles.panel} p-4`}
-            style={{ overflowY: "auto" }}
-            aria-label="집계 Q&A"
-          >
-            <div className="mb-3 flex justify-between">
-              <h1 className="text-title-s">집계 Q&A</h1>
-              <button className="underline" type="button" onClick={() => void insights.refetch()}>
-                새로고침
-              </button>
-            </div>
-            {insights.isPending ? (
-              <p>인사이트를 불러오는 중입니다.</p>
-            ) : insights.isError ? (
-              <QueryError error={insights.error} retry={() => void insights.refetch()} />
-            ) : insights.data?.qna?.length ? (
-              <ul className="space-y-2">
-                {insights.data.qna.map((item) => (
-                  <li key={item.questionId} className="rounded border p-2">
-                    {item.summaryText}
-                    <br />
-                    <span className="text-sm">
-                      질문 {item.count}건 · {answeredByLabel(item.answeredBy)}
-                    </span>
-                    {item.answerText && <p className="mt-1 text-sm">답변: {item.answerText}</p>}
-                    <button
-                      type="button"
-                      className="mt-1 block text-sm underline"
-                      onClick={() => setSelectedInsight({ liveId, ownerId, id: item.questionId })}
-                    >
-                      원문 보기
-                    </button>
-                    {selectedInsightId === item.questionId &&
-                      (insightOriginals.isPending ? (
-                        <p className="mt-1 text-sm">원문을 불러오는 중입니다.</p>
-                      ) : insightOriginals.isError ? (
-                        <QueryError
-                          error={insightOriginals.error}
-                          retry={() => void insightOriginals.refetch()}
-                        />
-                      ) : (
-                        <ul className="mt-1 list-disc pl-5 text-sm">
-                          {insightOriginals.data?.map((original) => (
-                            <li key={original.commentId}>{original.content}</li>
-                          ))}
-                        </ul>
-                      ))}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>인사이트가 없습니다.</p>
-            )}
-          </section>
-          <section className={`${styles.panel} p-4`} aria-label="송출 모니터링">
-            <h2 className="text-title-s mb-3">송출 모니터링</h2>
-            {playback.isPending ? (
-              <p>영상을 불러오는 중입니다.</p>
-            ) : playback.isError ? (
-              <QueryError error={playback.error} retry={() => void playback.refetch()} />
-            ) : (
-              <LivePlayer src={playback.data.playbackUrl} title="판매자 모니터링" />
-            )}
-            <p className="text-text-secondary mt-4 text-sm">
-              실시간 채팅 게시, 큐시트와 하이라이트 생성은 제공하지 않습니다.
-            </p>
-          </section>
-          <section
-            className={`${styles.panel} p-4`}
-            style={{ overflowY: "auto" }}
-            aria-label="미답변 질문"
-          >
-            <div className="mb-3 flex justify-between">
-              <h2 className="text-title-s">미답변 질문</h2>
-              <button className="underline" type="button" onClick={() => void unanswered.refetch()}>
-                새로고침
-              </button>
-            </div>
-            {unanswered.isPending ? (
-              <p>질문을 불러오는 중입니다.</p>
-            ) : unanswered.isError ? (
-              <QueryError error={unanswered.error} retry={() => void unanswered.refetch()} />
-            ) : unanswered.data?.pending?.length ? (
-              <div className="space-y-3">
-                {unanswered.data.pending.map((question) => (
-                  <SellerQuestion
-                    key={`${liveId}:${ownerId}:${question.questionId}`}
-                    liveId={liveId}
-                    ownerId={ownerId}
-                    question={question}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p>미답변 질문이 없습니다.</p>
-            )}
-          </section>
-        </div>
-      </div>
-    </SellerShell>
   );
 }

@@ -97,3 +97,36 @@ export function getProjectPreview(projectId: string, signal?: AbortSignal) {
     signal,
   });
 }
+
+/**
+ * LIVE 체크(검증) 등록. 한 번에 한 건이다. `questionSummaryId`는 LIVE 질문 요약의 id,
+ * `answer`는 보낸 답변이다. 같은 질문을 다시 올려도 BE가 막지 않으므로 화면이 막는다.
+ */
+export function createLiveVerification(
+  projectId: string,
+  body: { questionSummaryId: string; answer: string },
+) {
+  return apiRequest<{ liveVerificationId: number; answer: string; createdAt: string }>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/live-verifications`,
+    { auth: true, method: "POST", body },
+  );
+}
+
+/** 개인정보 수집 동의 기록. 공개(`submitProject`)의 선행 조건이다. `agreed: false`는 422라 보내지 않는다. */
+export function agreeProjectPrivacy(projectId: string) {
+  return apiRequest<{ projectId: string; consentedAt: string }>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/privacy-consent`,
+    { auth: true, method: "POST", body: { agreed: true } },
+  );
+}
+
+/**
+ * 프로젝트 공개. 관리자 승인 없이 준비중(DRAFT)이 바로 진행중(ONGOING)이 되고 펀딩 기간 30일이
+ * 시작된다. 필수 항목이 빠지면 422 `PROJECT_NOT_SUBMITTABLE`이다(`project-publish.ts`).
+ */
+export function submitProject(projectId: string) {
+  return apiRequest<{ projectId: string; status: ProjectApiStatus }>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/submit`,
+    { auth: true, method: "POST" },
+  );
+}

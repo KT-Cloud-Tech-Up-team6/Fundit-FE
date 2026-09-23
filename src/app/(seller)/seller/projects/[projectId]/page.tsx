@@ -12,6 +12,8 @@ import {
 import { FulfillmentBoard } from "@/features/fulfillment-tracking/ui/fulfillment-board";
 import { FundingStatusBoard } from "@/features/funding-status/ui/funding-status-board";
 import { getFundingDemo } from "@/features/funding-status/model/funding-demo";
+import { FundingEmptyState } from "@/features/funding-status/ui/funding-empty-state";
+import { getSellerProject } from "@/entities/project/model/seller-project-demo";
 import { Pagination } from "@/shared/components/ui/pagination";
 import { ProjectStoryForm } from "@/features/project-story/ui/project-story-form";
 import { PagePlaceholder } from "@/shared/components/page-placeholder";
@@ -59,6 +61,20 @@ export default async function SellerProjectPage({
 
   if (activeTab === "funding") {
     const funding = getFundingDemo(projectId);
+    const draft = getSellerProject(projectId);
+    if (!funding && draft?.status === "draft")
+      return (
+        <ProjectWorkspaceLayout
+          activeTab={activeTab}
+          projectId={projectId}
+          projectName={draft.title}
+          tabs={projectManageTabs}
+        >
+          <div className="min-w-0 flex-1">
+            <FundingEmptyState />
+          </div>
+        </ProjectWorkspaceLayout>
+      );
     if (!funding) notFound();
 
     return (
