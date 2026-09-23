@@ -42,6 +42,8 @@ export type Fulfillment = {
     plannedStartAt?: string;
     plannedEndAt?: string;
     detailText?: string;
+    /** 진행 기록에 첨부한 사진(media/upload-url로 올린 fileUrl). */
+    photoUrls?: string[];
     updatedAt?: string;
   }[];
   scheduleChanges: ScheduleChange[];
@@ -74,7 +76,14 @@ export function transitionStage(projectId: string, stage: Stage) {
 }
 export function saveStageDetail(
   projectId: string,
-  body: { stage: Stage; detailText: string; plannedStartAt?: string; plannedEndAt?: string },
+  body: {
+    stage: Stage;
+    detailText: string;
+    plannedStartAt?: string;
+    plannedEndAt?: string;
+    /** 최대 5장. media/upload-url로 발급받은 fileUrl만 보낸다. */
+    photoUrls?: string[];
+  },
 ) {
   return apiRequest(`/api/v2/projects/${projectId}/fulfillment/stage-details`, {
     auth: true,
