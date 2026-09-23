@@ -36,15 +36,19 @@ export const Default: Story = {
       "aria-current",
       "page",
     );
-    expect(canvas.getByRole("link", { name: "컴퓨터·노트북" })).toHaveAttribute(
-      "href",
-      "/categories/tech-appliances/computers",
-    );
+    /* 소분류는 무조건 LIVE 홈으로 보낸다(#307). */
+    expect(canvas.getByRole("link", { name: "생활가전" })).toHaveAttribute("href", "/live");
   },
 };
 
-export const Travel: Story = {
-  args: { slug: "travel" },
+export const Beauty: Story = {
+  args: { slug: "beauty" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.getByRole("heading", { name: "뷰티", level: 2 })).toBeInTheDocument();
+    for (const name of ["스킨케어", "메이크업", "헤어케어", "네일", "향수"])
+      expect(canvas.getByRole("link", { name })).toHaveAttribute("href", "/live");
+  },
 };
 
 export const HomeLiving: Story = { args: { slug: "home-living" } };

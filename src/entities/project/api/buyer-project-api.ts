@@ -33,10 +33,6 @@ export type ProjectCardResponse = {
   sellerDisplayName: string;
   remainingDays: number;
 };
-export type CategoryGroup = {
-  categoryMajor: string;
-  categoryMinors: { categoryMinor: string; displayOrder: number }[];
-};
 export type PublicProject = {
   projectId: string;
   title: string;
@@ -68,9 +64,6 @@ export type PublicReward = {
   shippingFee: number | null;
   estimatedDeliveryDays: number | null;
 };
-export function getCategories(signal?: AbortSignal) {
-  return apiRequest<{ categories: CategoryGroup[] }>("/api/v1/categories", { signal });
-}
 export function searchProjects(
   keyword: string,
   sort: string,
@@ -90,20 +83,6 @@ export function searchProjects(
     signal,
     auth: authenticated,
   });
-}
-export function getCategoryProjects(
-  major: string,
-  minor: string,
-  sort: string,
-  page: number,
-  signal?: AbortSignal,
-) {
-  const params = new URLSearchParams({ sort, page: String(page), size: "20" });
-  if (minor) params.set("categoryMinor", minor);
-  return apiRequest<ApiPage<ProjectCardResponse>>(
-    `/api/v1/categories/${encodeURIComponent(major)}/projects?${params}`,
-    { signal },
-  );
 }
 export function getPublicProject(id: string, signal?: AbortSignal) {
   return apiRequest<PublicProject>(`/api/v1/projects/${id}`, { signal });
