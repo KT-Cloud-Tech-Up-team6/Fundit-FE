@@ -45,6 +45,7 @@ export function ProjectWorkspaceLayout({
   );
 }
 
+/** 프로젝트 관리 화면의 공통 제목과 이동 경로를 표시한다. */
 export function ProjectPageHeader({
   action,
   breadcrumb,

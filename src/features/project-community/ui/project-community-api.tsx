@@ -16,6 +16,7 @@ import {
 import { NoticeDetail } from "./notice-detail";
 import { formatNoticeDate } from "../model/notice-date";
 import { Button } from "@/shared/components/ui/button";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Badge } from "@/shared/components/ui/badge";
 import { FormField } from "@/shared/components/ui/form-field";
 import { Input } from "@/shared/components/ui/input";
@@ -247,12 +248,13 @@ function NoticeComments({ noticeId }: { noticeId: number }) {
       {query.isPending ? (
         <p role="status">댓글을 불러오고 있습니다.</p>
       ) : query.isError ? (
-        <p role="alert">
-          댓글 조회 실패.{" "}
-          <button type="button" onClick={() => void query.refetch()}>
-            다시 시도
-          </button>
-        </p>
+        <QueryErrorState
+          variant="section"
+          error={query.error}
+          description="댓글을 불러오지 못했습니다."
+          onRetry={() => void query.refetch()}
+          notFoundHref="/seller/projects"
+        />
       ) : (
         <>
           <ul>
@@ -284,6 +286,7 @@ function NoticeComments({ noticeId }: { noticeId: number }) {
   );
 }
 
+/** 프로젝트 새 소식과 커뮤니티 탭의 데이터를 조회해 표시한다. */
 export function ProjectCommunityApi({
   projectId,
   tab,
@@ -364,12 +367,13 @@ export function ProjectCommunityApi({
           {posts.isPending ? (
             <p role="status">게시글을 불러오고 있습니다.</p>
           ) : posts.isError ? (
-            <p role="alert">
-              게시글 조회 실패.{" "}
-              <button type="button" onClick={() => void posts.refetch()}>
-                다시 시도
-              </button>
-            </p>
+            <QueryErrorState
+              variant="section"
+              error={posts.error}
+              description="게시글을 불러오지 못했습니다."
+              onRetry={() => void posts.refetch()}
+              notFoundHref="/seller/projects"
+            />
           ) : (
             <>
               {!posts.data.content.length && <p>게시글이 없습니다.</p>}
@@ -407,14 +411,14 @@ export function ProjectCommunityApi({
               새 소식을 불러오고 있습니다.
             </p>
           ) : notices.isError ? (
-            <div className="border-w-xs border-border-default flex flex-col items-center gap-3 rounded-xs py-10">
-              <p role="alert" className="text-body-s text-text-secondary">
-                새 소식을 불러오지 못했습니다.
-              </p>
-              <Button size="md" variant="secondary" onClick={() => void notices.refetch()}>
-                다시 시도
-              </Button>
-            </div>
+            <QueryErrorState
+              variant="section"
+              error={notices.error}
+              description="새 소식을 불러오지 못했습니다."
+              className="border-w-xs border-border-default rounded-xs py-10"
+              onRetry={() => void notices.refetch()}
+              notFoundHref="/seller/projects"
+            />
           ) : (
             <section aria-labelledby="notice-list-title">
               <div className="mb-2 flex items-center justify-between">

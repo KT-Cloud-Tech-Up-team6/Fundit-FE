@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   getCueSheet,
   requestCueSheet,
@@ -118,12 +119,12 @@ export function LiveCueSheetApi({
   if (cueSheet.isPending) return <p role="status">큐시트를 불러오고 있습니다.</p>;
   if (cueSheet.isError && !isMissing(cueSheet.error))
     return (
-      <div role="alert">
-        <p>큐시트를 불러오지 못했습니다. {errorMessage(cueSheet.error)}</p>
-        <button type="button" className="mt-2 underline" onClick={() => void cueSheet.refetch()}>
-          다시 시도
-        </button>
-      </div>
+      <QueryErrorState
+        variant="page"
+        error={cueSheet.error}
+        onRetry={() => void cueSheet.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
 
   const fromServer = toCueSheetState(cueSheet.isError ? null : cueSheet.data);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getProjectCounts, getSellerProjects } from "@/entities/project/api/seller-project-api";
 import { toSellerProject } from "@/entities/project/model/seller-project-response";
 import type { SellerProjectStatus } from "@/entities/project/model/seller-project";
@@ -18,6 +19,7 @@ const statuses = [
   { value: "closed", label: "완료", count: "completed" },
 ] as const;
 
+/** 판매자의 프로젝트 목록을 상태·검색어·페이지 기준으로 표시한다. */
 export function SellerProjectList({
   status,
   search,
@@ -92,19 +94,17 @@ export function SellerProjectList({
         </div>
       </div>
       {(projects.isError || counts.isError) && (
-        <div role="alert" className="mt-6">
-          <p>프로젝트 정보를 불러오지 못했습니다.</p>
-          <button
-            type="button"
-            className="mt-2 underline"
-            onClick={() => {
-              void projects.refetch();
-              void counts.refetch();
-            }}
-          >
-            다시 시도
-          </button>
-        </div>
+        <QueryErrorState
+          variant="section"
+          error={projects.isError ? projects.error : counts.error}
+          description="프로젝트 정보를 불러오지 못했습니다."
+          className="mt-6"
+          onRetry={() => {
+            void projects.refetch();
+            void counts.refetch();
+          }}
+          notFoundHref="/seller/projects"
+        />
       )}
       {projects.isPending ? (
         <p role="status" className="mt-6">

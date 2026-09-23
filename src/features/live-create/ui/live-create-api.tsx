@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   createLive,
   getLiveDetail,
@@ -186,12 +187,11 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
   if (preview.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (preview.isError)
     return (
-      <div role="alert">
-        <p>프로젝트를 불러올 수 없습니다. 접근 권한과 프로젝트 주소를 확인해주세요.</p>
-        <button type="button" className="mt-2 underline" onClick={() => void preview.refetch()}>
-          다시 시도
-        </button>
-      </div>
+      <QueryErrorState
+        error={preview.error}
+        onRetry={() => void preview.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
 
   /* 펀딩 기간·참여자 수·현재 모금액은 preview 응답에 없다. 자리를 만들지 않고 비운다. */

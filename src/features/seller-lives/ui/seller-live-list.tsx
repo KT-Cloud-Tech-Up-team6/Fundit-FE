@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getLiveStatusCounts, getMyLives } from "@/entities/live/api/seller-live-api";
 import {
   tabCount,
@@ -23,6 +24,7 @@ const tabs = [
   { value: "closed", label: "완료", emptyMessage: "완료된 라이브가 없습니다" },
 ] as const satisfies readonly { value: SellerLiveTab; label: string; emptyMessage: string }[];
 
+/** 판매자의 LIVE 목록을 상태·검색어·페이지 기준으로 표시한다. */
 export function SellerLiveList({
   status,
   search,
@@ -104,12 +106,14 @@ export function SellerLiveList({
 
       {/* 건수를 못 받으면 탭에 —만 남긴다. 목록은 따로 받아 그대로 보여 준다. */}
       {lives.isError && (
-        <div role="alert" className="mt-6">
-          <p>LIVE 목록을 불러오지 못했습니다.</p>
-          <button type="button" className="mt-2 underline" onClick={() => void lives.refetch()}>
-            다시 시도
-          </button>
-        </div>
+        <QueryErrorState
+          variant="section"
+          error={lives.error}
+          description="LIVE 목록을 불러오지 못했습니다."
+          className="mt-6"
+          onRetry={() => void lives.refetch()}
+          notFoundHref="/seller/live"
+        />
       )}
 
       {lives.isPending ? (

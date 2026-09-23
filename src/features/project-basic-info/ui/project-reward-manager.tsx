@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
   getSellerRewards,
@@ -30,6 +31,7 @@ import { rewardOptionsError, rewardRequest, rewardToDraft } from "../model/rewar
 import { RewardFormModal } from "./reward-form-modal";
 import { createRewardOnce, RewardCreationUncertainError } from "../model/reward-create-attempt";
 
+/** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
 export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const cache = useQueryClient();
@@ -130,10 +132,11 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   if (query.isPending) return <p role="status">리워드를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <p role="alert">
-        리워드를 불러오지 못했습니다.{" "}
-        <button onClick={() => void query.refetch()}>다시 시도</button>
-      </p>
+      <QueryErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
   return (
     <>
@@ -285,6 +288,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     </>
   );
 }
+/** 리워드 관리 화면에 필요한 프로젝트 정보를 먼저 조회한다. */
 export function ProjectRewardsPage({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const project = useQuery({

@@ -5,7 +5,9 @@ import { LoginRedirect } from "@/providers/login-redirect";
 import { getStoryPreview } from "@/entities/project/api/story-api";
 import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
 import { ProjectStoryForm } from "./project-story-form";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트 스토리 편집에 필요한 프로젝트 정보를 조회한다. */
 export function ProjectStoryApi({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const query = useQuery({
@@ -20,10 +22,11 @@ export function ProjectStoryApi({ projectId }: { projectId: string }) {
   if (query.isPending) return <p role="status">스토리를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <p role="alert">
-        스토리를 불러오지 못했습니다.{" "}
-        <button onClick={() => void query.refetch()}>다시 시도</button>
-      </p>
+      <QueryErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
   return (
     <ProjectWorkspaceLayout

@@ -22,6 +22,7 @@ import {
 import { ProjectMediaValidationError, uploadProjectMedia } from "@/entities/project/api/media-api";
 import { isApiError } from "@/shared/api/api-error";
 import { Button } from "@/shared/components/ui/button";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Icon } from "@/shared/components/ui/icon";
 import { MediaDropzone } from "./media-dropzone";
 import { MediaLightbox } from "./media-lightbox";
@@ -75,10 +76,11 @@ function Seller({
   if (owner.isPending) return <p role="status">프로젝트 권한을 확인하고 있습니다.</p>;
   if (owner.isError)
     return (
-      <p role="alert">
-        프로젝트를 조회할 권한이 없거나 조회하지 못했습니다.{" "}
-        <button onClick={() => void owner.refetch()}>다시 시도</button>
-      </p>
+      <QueryErrorState
+        error={owner.error}
+        onRetry={() => void owner.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
   return (
     <ProjectWorkspaceLayout
@@ -111,10 +113,13 @@ function Seller({
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
             ) : status.isError ? (
-              <p role="alert">
-                제작 현황이 아직 없거나 조회하지 못했습니다.{" "}
-                <button onClick={() => void status.refetch()}>다시 시도</button>
-              </p>
+              <QueryErrorState
+                variant="section"
+                error={status.error}
+                description="제작 현황을 불러오지 못했습니다."
+                onRetry={() => void status.refetch()}
+                notFoundHref="/seller/projects"
+              />
             ) : (
               <Editor memberId={memberId} projectId={projectId} data={status.data} />
             )}

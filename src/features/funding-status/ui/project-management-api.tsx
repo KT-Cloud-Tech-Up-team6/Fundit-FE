@@ -11,7 +11,9 @@ import {
 import { ProjectCommunityApi } from "@/features/project-community/ui/project-community-api";
 import { FundingEmptyState } from "./funding-empty-state";
 import { FundingStatusApi } from "./funding-status-api";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트 관리 탭의 공통 프로젝트 조회와 오류 상태를 담당한다. */
 export function ProjectManagementApi({
   projectId,
   tab,
@@ -32,10 +34,11 @@ export function ProjectManagementApi({
   if (query.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <p role="alert">
-        프로젝트를 불러오지 못했습니다.{" "}
-        <button onClick={() => void query.refetch()}>다시 시도</button>
-      </p>
+      <QueryErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        notFoundHref="/seller/projects"
+      />
     );
   return (
     <ProjectWorkspaceLayout
@@ -44,7 +47,7 @@ export function ProjectManagementApi({
       projectName={query.data.title ?? "제목 없음"}
       tabs={tab === "news" ? projectEditTabs : projectManageTabs}
     >
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         {tab === "funding" && query.data.status === "DRAFT" ? (
           <FundingEmptyState />
         ) : tab === "funding" ? (

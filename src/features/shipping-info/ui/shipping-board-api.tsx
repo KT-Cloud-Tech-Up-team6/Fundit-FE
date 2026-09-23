@@ -11,6 +11,7 @@ import {
 import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { ApiError } from "@/shared/api/api-error";
 import { Pagination } from "@/shared/components/ui/pagination";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { Toast } from "@/shared/components/ui/toast";
@@ -265,12 +266,14 @@ export function ShippingBoardApi({
             발송 대상을 불러오고 있습니다.
           </p>
         ) : orders.isError ? (
-          <div role="alert" className="text-body-m py-16 text-center">
-            <p>발송 대상을 불러오지 못했습니다.</p>
-            <button type="button" className="mt-2 underline" onClick={() => void orders.refetch()}>
-              다시 시도
-            </button>
-          </div>
+          <QueryErrorState
+            variant="section"
+            error={orders.error}
+            description="발송 대상을 불러오지 못했습니다."
+            className="py-16"
+            onRetry={() => void orders.refetch()}
+            notFoundHref="/seller/projects"
+          />
         ) : (
           /* 등록 요청 중에는 표를 잠가 같은 주문을 두 번 보내지 않게 한다. */
           <ShippingTable

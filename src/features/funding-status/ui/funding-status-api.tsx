@@ -6,7 +6,9 @@ import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
 import { ddayLabel } from "@/entities/project/model/remaining-days";
 import { FundingStatusBoard } from "./funding-status-board";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트의 펀딩 현황을 조회하고 상태별 화면을 표시한다. */
 export function FundingStatusApi({ project }: { project: ManagementProject }) {
   const { state } = useAuth();
   const id = project.projectId;
@@ -25,22 +27,20 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
   });
   if (status.isPending || wishes.isPending || rewards.isPending)
     return <p role="status">펀딩 현황을 불러오고 있습니다.</p>;
-  if (status.isError || wishes.isError || rewards.isError)
+  if (status.isError || wishes.isError || rewards.isError) {
+    const error = status.isError ? status.error : wishes.isError ? wishes.error : rewards.error;
     return (
-      <p role="alert">
-        펀딩 현황을 불러오지 못했습니다.{" "}
-        <button
-          type="button"
-          onClick={() => {
-            void status.refetch();
-            void wishes.refetch();
-            void rewards.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </p>
+      <QueryErrorState
+        error={error}
+        onRetry={() => {
+          void status.refetch();
+          void wishes.refetch();
+          void rewards.refetch();
+        }}
+        notFoundHref="/seller/projects"
+      />
     );
+  }
   const data = status.data;
   const rewardById = new Map(rewards.data.map((reward) => [reward.rewardId, reward]));
   const optionLabels = new Map<string, string>();
