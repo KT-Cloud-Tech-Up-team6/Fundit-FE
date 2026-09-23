@@ -29,7 +29,12 @@ const statusFilterOptions = [
   ...fundingHistoryStatuses.map((value) => ({ value, label: fundingHistoryStatusLabel[value] })),
 ];
 
-export function FundingHistoryList() {
+export function FundingHistoryList({
+  referenceDate,
+}: {
+  /** 기간 필터의 기준일(`yyyy-mm-dd`). 목업 결제일이 고정이라 스토리에서 날짜를 고정할 때 쓴다. */
+  referenceDate?: string;
+}) {
   const [items] = useState(demoFundingHistoryItems);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<FundingHistoryStatus | "all">("all");
@@ -42,8 +47,9 @@ export function FundingHistoryList() {
       filterFundingHistoryByPeriod(filterFundingHistory(items, query, status), period, {
         startDate: customStartDate || undefined,
         endDate: customEndDate || undefined,
+        referenceDate,
       }),
-    [items, query, status, period, customStartDate, customEndDate],
+    [items, query, status, period, customStartDate, customEndDate, referenceDate],
   );
 
   return (

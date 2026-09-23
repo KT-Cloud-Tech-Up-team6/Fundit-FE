@@ -123,6 +123,6 @@ export const SubcategoryOpen: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "대분류" }));
     await userEvent.click(canvas.getByRole("option", { name: "홈·리빙" }));
     await userEvent.click(canvas.getByRole("button", { name: "상세 카테고리" }));
-    await userEvent.hover(canvas.getByRole("option", { name: "수납·정리" }));
+    await userEvent.hover(canvas.getByRole("option", { name: "주방" }));
   },
 };
