@@ -78,8 +78,8 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 - `LiveCueSheetApi`가 `/seller/live/[liveId]/cue-sheet`와 생성 확인 화면의 큐시트 모달을 함께 담당합니다. `LiveCueSheetFlow`의 표현은 그대로 두고 데이터원만 API로 바꿉니다 — `generation`·`onGenerate`를 주면 API 모드, 주지 않으면 기존 데모 모드입니다.
 - 생성은 비동기입니다. `POST /cue-sheet`가 202와 `GENERATING`을 주고 결과는 BE가 AI를 호출해 채우므로, 생성 중일 때만 3초 간격으로 `GET`을 폴링합니다. 생성 중·성공·실패를 각각 다른 화면으로 그리고 실패에는 서버가 준 사유를 그대로 싣습니다. `COMPLETED`인데 구간이 비어 있으면(스텁 모드) 성공으로 그리지 않습니다.
 - 큐시트가 한 번도 없으면 `GET`이 404입니다. 오류 화면이 아니라 "아직 없음"으로 다룹니다.
-- LIVE에는 `liveId` 단건 조회가 없어 프로젝트 정보는 `/lives/mine`에서 찾아 `projectId`를 얻은 뒤 프로젝트 preview로 채웁니다. preview에 없는 펀딩 기간·참여자 수·현재 모금액은 0으로 채우지 않고 "정보 없음"으로 표시합니다.
-- 송출 시작은 스트림 키 조회 API가 없어 `LIVE 시작` 버튼을 잠근 상태로 둡니다.
+- 프로젝트 정보는 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)로 `projectId`를 얻은 뒤 프로젝트 preview로 채웁니다(#326 전에는 `/lives/mine`을 훑었습니다). preview에 없는 펀딩 기간·참여자 수·현재 모금액은 0으로 채우지 않고 "정보 없음"으로 표시합니다.
+- `LIVE 시작`은 #326부터 `POST /api/v1/lives/{liveId}/start`로 상태를 LIVE로 바꾸고 방송 콘솔로 이동합니다. 스트림 키 조회 API는 여전히 없어 영상 송출 정보는 안내만 합니다.
 - 순수 계산은 `entities/live/model/live-cue-sheet.ts`·`live-settings.ts`에 두고 같은 이름의 `.test.ts`로 검증합니다.
 
 ### 공통 연결 원칙

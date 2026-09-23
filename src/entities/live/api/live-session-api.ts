@@ -1,5 +1,5 @@
 import { apiRequest } from "@/shared/api/client";
-import type { LivePage, LiveStatus, LiveSummaryResponse } from "./seller-live-api";
+import type { LiveStatus } from "./seller-live-api";
 
 /* #283이 연결한 `seller-live-api.ts`는 목록 전용이라 건드리지 않는다(#289 필수 계약 4).
    생성·설정 저장은 같은 서비스의 다른 엔드포인트라 파일만 나눈다. */
@@ -66,6 +66,17 @@ export function getLiveDetail(liveId: string, signal?: AbortSignal) {
   });
 }
 
+/**
+ * 송출 시작. DRAFT·SCHEDULED·ERROR에서만 LIVE로 바뀌고 이미 LIVE거나 ENDED면 409다.
+ * BE가 채팅방을 만들고 AI 상품정보 준비를 시작하며, 채팅방 생성이 실패하면 세션이 ERROR가 된다.
+ */
+export function startLive(liveId: string) {
+  return apiRequest<LiveStatusResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}/start`, {
+    auth: true,
+    method: "POST",
+  });
+}
+
 /** 진행 중이 아니면 409다. 종료는 되돌릴 수 없다. */
 export function endLive(liveId: string) {
   return apiRequest<LiveStatusResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}/end`, {
@@ -80,33 +91,4 @@ export function updateLiveSettings(liveId: string, body: LiveSettingsBody) {
     method: "PATCH",
     body,
   });
-}
-
-/* liveId 하나로 LIVE를 읽는 판매자 API가 없다. `/playback`은 공개용이라 DRAFT·SCHEDULED에서
-   404이고, 큐시트 화면은 바로 그 준비 단계에서 열린다. 그래서 내 LIVE 목록에서 찾는다.
-   BE에 단건 조회가 생기면 이 우회를 걷는다. */
-const LOOKUP_SIZE = 100;
-const LOOKUP_MAX_PAGES = 5;
-
-/**
- * 내 LIVE 목록에서 `liveId` 한 건을 찾는다. 찾지 못하면 `null`이다.
- *
- * 최대 {@link LOOKUP_MAX_PAGES} 페이지까지만 훑는다 — 그보다 뒤에 있으면 못 찾은 것으로
- * 다루고 화면이 "정보 없음"을 표시한다. 없는 값을 지어내지 않는다.
- */
-export async function findMyLive(
-  liveId: string,
-  signal?: AbortSignal,
-): Promise<LiveSummaryResponse | null> {
-  for (let page = 0; page < LOOKUP_MAX_PAGES; page++) {
-    const query = new URLSearchParams({ page: String(page), size: String(LOOKUP_SIZE) });
-    const result = await apiRequest<LivePage>(`/api/v1/lives/mine?${query}`, {
-      auth: true,
-      signal,
-    });
-    const found = (result?.content ?? []).find((item) => item.liveId === liveId);
-    if (found) return found;
-    if (!result?.hasNext) return null;
-  }
-  return null;
 }

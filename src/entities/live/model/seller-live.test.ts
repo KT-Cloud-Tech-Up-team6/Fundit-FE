@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  isInTab,
   liveManageHref,
   tabCount,
-  tabStatusParam,
+  tabStatuses,
   toSellerLive,
   toSellerLiveList,
 } from "./seller-live";
@@ -32,42 +31,19 @@ const page = (overrides: Partial<LivePage> = {}): LivePage => ({
   ...overrides,
 });
 
-test("준비중 탭만 status를 생략한다", () => {
-  assert.equal(tabStatusParam("active"), "LIVE");
-  assert.equal(tabStatusParam("closed"), "ENDED");
-  /* DRAFT·SCHEDULED를 한 번에 받을 수 없어 전체를 받고 화면에서 거른다. */
-  assert.equal(tabStatusParam("draft"), undefined);
-});
-
-test("준비중 탭은 DRAFT·SCHEDULED만 받고 ERROR는 어느 탭에도 없다", () => {
-  assert.equal(isInTab("draft", "DRAFT"), true);
-  assert.equal(isInTab("draft", "SCHEDULED"), true);
-  assert.equal(isInTab("draft", "LIVE"), false);
-  assert.equal(isInTab("draft", "ENDED"), false);
+test("준비중 탭은 DRAFT·SCHEDULED를 함께 조회하고 ERROR는 어느 탭에도 없다", () => {
+  assert.deepEqual(tabStatuses.active, ["LIVE"]);
+  assert.deepEqual(tabStatuses.draft, ["DRAFT", "SCHEDULED"]);
+  assert.deepEqual(tabStatuses.closed, ["ENDED"]);
   for (const tab of ["active", "draft", "closed"] as const) {
-    assert.equal(isInTab(tab, "ERROR"), false);
+    assert.equal(tabStatuses[tab].includes("ERROR"), false);
   }
-});
-
-test("전체 조회 응답에서 준비중 탭이 DRAFT·SCHEDULED만 남긴다", () => {
-  const statuses: LiveStatus[] = ["DRAFT", "SCHEDULED", "LIVE", "ENDED", "ERROR"];
-  const items = toSellerLiveList(
-    page({ content: statuses.map((status, index) => live({ status, liveId: `id-${index}` })) }),
-    "draft",
-  );
-  assert.deepEqual(
-    items.map((item) => item.status),
-    ["DRAFT", "SCHEDULED"],
-  );
 });
 
 test("content가 빠진 응답에도 빈 목록을 돌려준다", () => {
   /* #279와 같은 형태다 — 응답은 왔는데 배열 필드가 없으면 렌더 도중 터진다. */
-  assert.deepEqual(toSellerLiveList(undefined, "active"), []);
-  assert.deepEqual(
-    toSellerLiveList({ ...page(), content: undefined } as unknown as LivePage, "active"),
-    [],
-  );
+  assert.deepEqual(toSellerLiveList(undefined), []);
+  assert.deepEqual(toSellerLiveList({ ...page(), content: undefined } as unknown as LivePage), []);
 });
 
 test("소개 문구가 없으면 지어내지 않고 빈 문자열로 넘긴다", () => {
@@ -116,13 +92,17 @@ test("경로에 들어가는 liveId는 이스케이프한다", () => {
   assert.equal(liveManageHref("LIVE", "a/../admin"), "/seller/live/a%2F..%2Fadmin/console");
 });
 
-test("건수는 서버가 걸러 준 탭에서 보고 있을 때만 채운다", () => {
-  const data = page({ totalElements: 17 });
-  assert.equal(tabCount("active", "active", data), 17);
-  assert.equal(tabCount("closed", "closed", data), 17);
-  /* 준비중은 전체를 받아 화면에서 거르므로 totalElements가 준비중 건수가 아니다. */
-  assert.equal(tabCount("draft", "draft", data), null);
-  /* 보고 있지 않은 탭은 부를 API가 없다. */
-  assert.equal(tabCount("closed", "active", data), null);
-  assert.equal(tabCount("active", "active", undefined), null);
+test("탭 건수는 status-counts를 탭 매핑대로 더한다", () => {
+  const counts = { draft: 3, scheduled: 2, live: 1, ended: 4, error: 9 };
+  assert.equal(tabCount("active", counts), 1);
+  /* 준비중은 두 상태의 합이다. */
+  assert.equal(tabCount("draft", counts), 5);
+  assert.equal(tabCount("closed", counts), 4);
+  /* ERROR는 어느 탭에도 속하지 않아 9건이 어디에도 더해지지 않는다. */
+  const total = (["active", "draft", "closed"] as const).reduce(
+    (sum, tab) => sum + (tabCount(tab, counts) ?? 0),
+    0,
+  );
+  assert.equal(total, 10);
+  assert.equal(tabCount("active", undefined), null);
 });

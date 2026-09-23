@@ -330,7 +330,14 @@ export function LiveCueSheetFlow({
               aria-live="polite"
               className="flex min-h-[540px] flex-col items-center justify-center gap-10"
             >
-              <h3 className="text-title-s text-center">AI가 큐시트를 생성중이에요...</h3>
+              <div className="flex flex-col items-center gap-3">
+                <h3 className="text-title-s text-center">AI가 큐시트를 생성중이에요...</h3>
+                {/* 원본(FL_S_LVS_AIC)에는 제목과 로고뿐이라 문구 자리가 없다. 다만 실제
+                    생성이 평균 1분 26초·최대 2분 남짓 걸려 안내 없이는 멈춘 화면으로 보인다. */}
+                <p className="text-body-s text-text-secondary text-center">
+                  보통 1분 30초, 길게는 2분 정도 걸려요
+                </p>
+              </div>
               <div className="bg-layer-surface-default flex size-40 items-center justify-center rounded-full">
                 <Image
                   src="/images/seller-live/loading-logo.svg"
