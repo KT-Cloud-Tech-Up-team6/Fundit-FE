@@ -70,7 +70,9 @@ export default async function SellerProjectPage({
           projectName={draft.title}
           tabs={projectManageTabs}
         >
-          <FundingEmptyState />
+          <div className="min-w-0 flex-1">
+            <FundingEmptyState />
+          </div>
         </ProjectWorkspaceLayout>
       );
     if (!funding) notFound();
