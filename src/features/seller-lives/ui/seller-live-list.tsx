@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getMyLives } from "@/entities/live/api/seller-live-api";
 import {
   tabCount,
@@ -96,12 +96,13 @@ export function SellerLiveList({ status, page }: { status: SellerLiveTab; page: 
       </div>
 
       {lives.isError && (
-        <ErrorState
+        <QueryErrorState
           variant="section"
-          status={toErrorStatus(lives.error)}
+          error={lives.error}
           description="LIVE 목록을 불러오지 못했습니다."
           className="mt-6"
-          action={{ onClick: () => void lives.refetch() }}
+          onRetry={() => void lives.refetch()}
+          notFoundHref="/seller/projects"
         />
       )}
 

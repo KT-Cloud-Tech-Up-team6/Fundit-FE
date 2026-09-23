@@ -16,7 +16,7 @@ import {
 import { NoticeDetail } from "./notice-detail";
 import { formatNoticeDate } from "../model/notice-date";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Badge } from "@/shared/components/ui/badge";
 import { FormField } from "@/shared/components/ui/form-field";
 import { Input } from "@/shared/components/ui/input";
@@ -248,11 +248,12 @@ function NoticeComments({ noticeId }: { noticeId: number }) {
       {query.isPending ? (
         <p role="status">댓글을 불러오고 있습니다.</p>
       ) : query.isError ? (
-        <ErrorState
+        <QueryErrorState
           variant="section"
-          status={toErrorStatus(query.error)}
+          error={query.error}
           description="댓글을 불러오지 못했습니다."
-          action={{ onClick: () => void query.refetch() }}
+          onRetry={() => void query.refetch()}
+          notFoundHref="/seller/projects"
         />
       ) : (
         <>
@@ -365,11 +366,12 @@ export function ProjectCommunityApi({
           {posts.isPending ? (
             <p role="status">게시글을 불러오고 있습니다.</p>
           ) : posts.isError ? (
-            <ErrorState
+            <QueryErrorState
               variant="section"
-              status={toErrorStatus(posts.error)}
+              error={posts.error}
               description="게시글을 불러오지 못했습니다."
-              action={{ onClick: () => void posts.refetch() }}
+              onRetry={() => void posts.refetch()}
+              notFoundHref="/seller/projects"
             />
           ) : (
             <>
@@ -408,12 +410,13 @@ export function ProjectCommunityApi({
               새 소식을 불러오고 있습니다.
             </p>
           ) : notices.isError ? (
-            <ErrorState
+            <QueryErrorState
               variant="section"
-              status={toErrorStatus(notices.error)}
+              error={notices.error}
               description="새 소식을 불러오지 못했습니다."
               className="border-w-xs border-border-default rounded-xs py-10"
-              action={{ onClick: () => void notices.refetch() }}
+              onRetry={() => void notices.refetch()}
+              notFoundHref="/seller/projects"
             />
           ) : (
             <section aria-labelledby="notice-list-title">

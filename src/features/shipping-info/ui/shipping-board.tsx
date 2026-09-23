@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerOrders } from "@/entities/order/api/seller-order-api";
 import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Select } from "@/shared/components/ui/select";
 import { Tab, TabList } from "@/shared/components/ui/tab";
@@ -147,11 +147,12 @@ export function ShippingBoard({ initialShipments, projectId }: ShippingBoardProp
   if (projectId && orders.isPending) return <p role="status">발송 대상을 불러오고 있습니다.</p>;
   if (projectId && orders.isError)
     return (
-      <ErrorState
+      <QueryErrorState
         variant="section"
-        status={toErrorStatus(orders.error)}
+        error={orders.error}
         description="발송 대상을 불러오지 못했습니다."
-        action={{ onClick: () => void orders.refetch() }}
+        onRetry={() => void orders.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
 

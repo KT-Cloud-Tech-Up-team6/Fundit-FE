@@ -20,7 +20,7 @@ import {
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Icon } from "@/shared/components/ui/icon";
 import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
@@ -69,9 +69,10 @@ function Seller({
   if (owner.isPending) return <p role="status">프로젝트 권한을 확인하고 있습니다.</p>;
   if (owner.isError)
     return (
-      <ErrorState
-        status={toErrorStatus(owner.error)}
-        action={{ onClick: () => void owner.refetch() }}
+      <QueryErrorState
+        error={owner.error}
+        onRetry={() => void owner.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
   return (
@@ -104,11 +105,12 @@ function Seller({
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
             ) : status.isError ? (
-              <ErrorState
+              <QueryErrorState
                 variant="section"
-                status={toErrorStatus(status.error)}
+                error={status.error}
                 description="제작 현황을 불러오지 못했습니다."
-                action={{ onClick: () => void status.refetch() }}
+                onRetry={() => void status.refetch()}
+                notFoundHref="/seller/projects"
               />
             ) : (
               <Editor memberId={memberId} projectId={projectId} data={status.data} />

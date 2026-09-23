@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getProjectCounts, getSellerProjects } from "@/entities/project/api/seller-project-api";
 import { toSellerProject } from "@/entities/project/model/seller-project-response";
 import type { SellerProjectStatus } from "@/entities/project/model/seller-project";
@@ -93,17 +93,16 @@ export function SellerProjectList({
         </div>
       </div>
       {(projects.isError || counts.isError) && (
-        <ErrorState
+        <QueryErrorState
           variant="section"
-          status={toErrorStatus(projects.isError ? projects.error : counts.error)}
+          error={projects.isError ? projects.error : counts.error}
           description="프로젝트 정보를 불러오지 못했습니다."
           className="mt-6"
-          action={{
-            onClick: () => {
-              void projects.refetch();
-              void counts.refetch();
-            },
+          onRetry={() => {
+            void projects.refetch();
+            void counts.refetch();
           }}
+          notFoundHref="/seller/projects"
         />
       )}
       {projects.isPending ? (

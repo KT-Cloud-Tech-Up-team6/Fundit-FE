@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   getCueSheet,
   requestCueSheet,
@@ -118,9 +118,11 @@ export function LiveCueSheetApi({
   if (cueSheet.isPending) return <p role="status">큐시트를 불러오고 있습니다.</p>;
   if (cueSheet.isError && !isMissing(cueSheet.error))
     return (
-      <ErrorState
-        status={toErrorStatus(cueSheet.error)}
-        action={{ onClick: () => void cueSheet.refetch() }}
+      <QueryErrorState
+        variant={onClose ? "section" : "page"}
+        error={cueSheet.error}
+        onRetry={() => void cueSheet.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
 

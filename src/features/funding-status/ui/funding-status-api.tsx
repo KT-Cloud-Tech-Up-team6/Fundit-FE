@@ -5,7 +5,7 @@ import { getFundingStatus, getWishStats } from "@/entities/project/api/project-m
 import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
 import { FundingStatusBoard } from "./funding-status-board";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 export function FundingStatusApi({ project }: { project: ManagementProject }) {
   const { state } = useAuth();
@@ -28,15 +28,14 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
   if (status.isError || wishes.isError || rewards.isError) {
     const error = status.isError ? status.error : wishes.isError ? wishes.error : rewards.error;
     return (
-      <ErrorState
-        status={toErrorStatus(error)}
-        action={{
-          onClick: () => {
-            void status.refetch();
-            void wishes.refetch();
-            void rewards.refetch();
-          },
+      <QueryErrorState
+        error={error}
+        onRetry={() => {
+          void status.refetch();
+          void wishes.refetch();
+          void rewards.refetch();
         }}
+        notFoundHref="/seller/projects"
       />
     );
   }

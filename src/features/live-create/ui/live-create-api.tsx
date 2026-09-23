@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   createLive,
   updateLiveSettings,
@@ -135,9 +135,10 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
   if (preview.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (preview.isError)
     return (
-      <ErrorState
-        status={toErrorStatus(preview.error)}
-        action={{ onClick: () => void preview.refetch() }}
+      <QueryErrorState
+        error={preview.error}
+        onRetry={() => void preview.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
 

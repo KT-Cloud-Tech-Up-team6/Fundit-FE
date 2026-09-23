@@ -10,7 +10,7 @@ import {
 } from "@/entities/project/ui/project-sidebar";
 import { ProjectCommunityApi } from "@/features/project-community/ui/project-community-api";
 import { FundingStatusApi } from "./funding-status-api";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 export function ProjectManagementApi({
   projectId,
@@ -32,9 +32,10 @@ export function ProjectManagementApi({
   if (query.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <ErrorState
-        status={toErrorStatus(query.error)}
-        action={{ onClick: () => void query.refetch() }}
+      <QueryErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
   return (
@@ -44,7 +45,7 @@ export function ProjectManagementApi({
       projectName={query.data.title ?? "제목 없음"}
       tabs={tab === "news" ? projectEditTabs : projectManageTabs}
     >
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         {tab === "funding" ? (
           <FundingStatusApi project={query.data} />
         ) : (

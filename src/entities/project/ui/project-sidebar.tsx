@@ -38,7 +38,7 @@ export function ProjectWorkspaceLayout({
   ...sidebarProps
 }: ProjectSidebarProps & { children: ReactNode }) {
   return (
-    <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="mt-3 flex flex-1 flex-col gap-6 lg:flex-row lg:items-start">
       <ProjectSidebar {...sidebarProps} />
       {children}
     </div>

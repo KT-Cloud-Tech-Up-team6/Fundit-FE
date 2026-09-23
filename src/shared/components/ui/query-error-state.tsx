@@ -9,6 +9,7 @@ type QueryErrorStateProps = {
   onRetry: () => void;
   description?: ErrorStateProps["description"];
   retryLabel?: string;
+  notFoundHref?: string;
   variant?: "page" | "section";
   className?: string;
 };
@@ -19,6 +20,7 @@ export function QueryErrorState({
   onRetry,
   description,
   retryLabel,
+  notFoundHref = "/",
   variant = "page",
   className,
 }: QueryErrorStateProps) {
@@ -31,7 +33,7 @@ export function QueryErrorState({
 
   const action =
     status === "notFound"
-      ? { href: "/" }
+      ? { href: notFoundHref }
       : status === "unauthorized"
         ? { href: loginRedirectHref(returnTo) }
         : status === "forbidden"

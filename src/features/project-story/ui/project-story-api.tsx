@@ -5,7 +5,7 @@ import { LoginRedirect } from "@/providers/login-redirect";
 import { getStoryPreview } from "@/entities/project/api/story-api";
 import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
 import { ProjectStoryForm } from "./project-story-form";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 export function ProjectStoryApi({ projectId }: { projectId: string }) {
   const { state } = useAuth();
@@ -21,9 +21,10 @@ export function ProjectStoryApi({ projectId }: { projectId: string }) {
   if (query.isPending) return <p role="status">스토리를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <ErrorState
-        status={toErrorStatus(query.error)}
-        action={{ onClick: () => void query.refetch() }}
+      <QueryErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        notFoundHref="/seller/projects"
       />
     );
   return (
