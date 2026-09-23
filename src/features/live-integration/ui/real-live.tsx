@@ -16,6 +16,7 @@ import {
   getVod,
   getVodChat,
   likeLive,
+  recordHighlightClick,
   unlikeLive,
   type LikeResult,
 } from "../api/live-api";
@@ -131,6 +132,16 @@ export function RealBuyerLive({
      클립 재생 위치와 맞지 않아 클립 화면에서는 구간을 쓰지 않는다. */
   const markers = clip ? [] : (highlights.data?.markers ?? []);
   const shortClip = clip ? pickClip(highlights.data?.clips ?? [], clipId) : null;
+  /* 쇼츠를 띄우면 그 하이라이트의 클릭을 한 번 기록한다. 조회 수와 같은 이유로 signal을 넘기지
+     않고 staleTime으로 뷰포트 전환·재렌더 때 다시 보내지 않는다. 기록은 추적용이라 실패해도
+     재생을 막거나 화면에 드러내지 않는다. */
+  useQuery({
+    queryKey: ["live", liveId, "highlight-click", shortClip?.highlightId],
+    queryFn: () => recordHighlightClick(liveId, shortClip!.highlightId).then(() => null),
+    enabled: Boolean(shortClip),
+    retry: false,
+    staleTime: Infinity,
+  });
   const chapters = toChapters(markers, position.durationSec);
   const progress = position.durationSec
     ? Math.min(100, (position.currentSec / position.durationSec) * 100)

@@ -10,6 +10,7 @@ import {
   getUnanswered,
   getVodChat,
   likeLive,
+  recordHighlightClick,
   requestAnswer,
   unlikeLive,
 } from "./live-api.ts";
@@ -112,6 +113,25 @@ test("좋아요는 인증 PUT·DELETE·GET으로 가고 구간 채팅은 범위�
     assert.equal(calls[4][1].method, undefined);
     assert.equal(calls[4][1].headers.get("Authorization"), "Bearer live-token");
     assert.equal(calls[4][1].signal, controller.signal);
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
+  }
+});
+
+test("쇼츠 클릭은 비인증 POST로 하이라이트 id를 이스케이프해 보내고 빈 204를 받는다", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    return new Response(null, { status: 204 });
+  };
+  try {
+    authTokenStore.set("live-token");
+    assert.equal(await recordHighlightClick("live", "h/1"), undefined);
+    assert.match(calls[0][0], /\/lives\/live\/highlights\/h%2F1\/click$/);
+    assert.equal(calls[0][1].method, "POST");
+    assert.equal(calls[0][1].headers.get("Authorization"), null);
   } finally {
     globalThis.fetch = originalFetch;
     authTokenStore.clear();
