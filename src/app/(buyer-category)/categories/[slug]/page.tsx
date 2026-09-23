@@ -1,6 +1,6 @@
-import { BuyerCategoryApi } from "@/features/buyer-category/ui/buyer-category-api";
+import { BuyerCategoryList } from "@/features/buyer-category/ui/buyer-category-list";
 
 export default async function CategoryPage({ params }: PageProps<"/categories/[slug]">) {
   const { slug } = await params;
-  return <BuyerCategoryApi slug={slug} />;
+  return <BuyerCategoryList slug={slug} />;
 }

@@ -1,7 +1,3 @@
-.categoryIcon {
-  background: var(--border-default);
-}
-
 .categoryLink {
   color: var(--text-disabled);
 }
