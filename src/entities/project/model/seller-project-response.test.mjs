@@ -24,12 +24,23 @@ const item = {
   achievementRate: 0,
 };
 
-test("준비중 응답의 누락된 수정일과 이미지를 생성일이나 목업으로 대체하지 않는다", () => {
+test("준비중 응답의 누락된 이미지를 목업으로 대체하지 않고 날짜·D-day를 두지 않는다", () => {
   const project = toSellerProject(item);
   assert.equal(project.id, item.projectId);
-  assert.equal(project.updatedAt, "—");
   assert.equal(project.thumbnail, "");
-  assert.equal(project.openScheduledAt, "미정");
+  assert.equal(project.status, "draft");
+  assert.deepEqual(project.badges, []);
+  assert.equal("openScheduledAt" in project || "updatedAt" in project, false);
+});
+
+test("진행중은 BE와 같은 공식으로 마감까지 남은 D-day를 표시한다", () => {
+  const now = Date.parse("2026-09-23T03:00:00Z");
+  const ongoing = (deadline) =>
+    toSellerProject({ ...item, status: "ONGOING", fundingDeadline: deadline }, now).badges;
+  assert.deepEqual(ongoing("2026-10-23T03:00:00Z"), [{ label: "D-31", variant: "neutral" }]);
+  assert.equal(ongoing("2026-09-23T04:00:00Z")[0].label, "D-1");
+  assert.equal(ongoing("2026-09-23T02:59:59Z")[0].label, "종료");
+  assert.deepEqual(ongoing(null), []);
 });
 
 test("서버 완료 상태를 성공과 실패로 구분하고 금액을 유지한다", () => {

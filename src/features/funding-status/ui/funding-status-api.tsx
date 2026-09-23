@@ -4,6 +4,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { getFundingStatus, getWishStats } from "@/entities/project/api/project-management-api";
 import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
+import { ddayLabel } from "@/entities/project/model/remaining-days";
 import { FundingStatusBoard } from "./funding-status-board";
 
 export function FundingStatusApi({ project }: { project: ManagementProject }) {
@@ -66,12 +67,7 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
         backerCount: data.participantCount,
         wishlistCount: wishes.data.wishCount,
         openAlertCount: wishes.data.openNotifyCount,
-        dday:
-          data.remainingDays === null
-            ? "기간 미정"
-            : data.remainingDays <= 0
-              ? "종료"
-              : `D-${data.remainingDays}`,
+        dday: data.remainingDays === null ? "기간 미정" : ddayLabel(data.remainingDays),
         closedBadge:
           project.status === "SUCCEEDED"
             ? { label: "펀딩 성공", variant: "success" }
