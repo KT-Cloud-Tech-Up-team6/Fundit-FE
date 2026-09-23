@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { registerShipment } from "@/entities/fulfillment/api/fulfillment-api";
 import {
@@ -100,6 +101,15 @@ export function ShippingBoardApi({
     const queryString = query.toString();
     return queryString ? `${path}?${queryString}` : path;
   };
+
+  /* 마지막 페이지의 주문을 모두 발송 처리하면 다시 조회했을 때 그 페이지가 사라진다.
+     주소의 페이지가 범위를 넘으면 빈 표 대신 마지막 페이지로 옮긴다. */
+  const router = useRouter();
+  const lastPage = orders.data?.totalPages ?? 0;
+  const lastPageHref = lastPage > 0 && page > lastPage ? buildHref(status, lastPage) : null;
+  useEffect(() => {
+    if (lastPageHref) router.replace(lastPageHref);
+  }, [lastPageHref, router]);
 
   function setSelected(update: (current: ReadonlySet<string>) => ReadonlySet<string>) {
     setSelection((previous) => ({
