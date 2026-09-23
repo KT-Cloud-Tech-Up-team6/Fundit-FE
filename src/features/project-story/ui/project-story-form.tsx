@@ -247,6 +247,7 @@ export function ProjectStoryForm({
             projectId={projectId}
             title={title}
             thumbnailUrl={thumbnailUrl}
+            detail={initial}
             onClose={() => setPreviewContent(null)}
           />
         )}
