@@ -286,6 +286,7 @@ function NoticeComments({ noticeId }: { noticeId: number }) {
   );
 }
 
+/** 프로젝트 새 소식과 커뮤니티 탭의 데이터를 조회해 표시한다. */
 export function ProjectCommunityApi({
   projectId,
   tab,

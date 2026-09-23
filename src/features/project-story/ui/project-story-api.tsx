@@ -7,6 +7,7 @@ import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/p
 import { ProjectStoryForm } from "./project-story-form";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트 스토리 편집에 필요한 프로젝트 정보를 조회한다. */
 export function ProjectStoryApi({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const query = useQuery({

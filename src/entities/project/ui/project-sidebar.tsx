@@ -38,13 +38,14 @@ export function ProjectWorkspaceLayout({
   ...sidebarProps
 }: ProjectSidebarProps & { children: ReactNode }) {
   return (
-    <div className="mt-3 flex flex-1 flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-start">
       <ProjectSidebar {...sidebarProps} />
       {children}
     </div>
   );
 }
 
+/** 프로젝트 관리 화면의 공통 제목과 이동 경로를 표시한다. */
 export function ProjectPageHeader({
   action,
   breadcrumb,

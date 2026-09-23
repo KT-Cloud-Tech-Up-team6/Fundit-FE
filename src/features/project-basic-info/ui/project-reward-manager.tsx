@@ -31,6 +31,7 @@ import { rewardOptionsError, rewardRequest, rewardToDraft } from "../model/rewar
 import { RewardFormModal } from "./reward-form-modal";
 import { createRewardOnce, RewardCreationUncertainError } from "../model/reward-create-attempt";
 
+/** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
 export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const cache = useQueryClient();
@@ -287,6 +288,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     </>
   );
 }
+/** 리워드 관리 화면에 필요한 프로젝트 정보를 먼저 조회한다. */
 export function ProjectRewardsPage({ projectId }: { projectId: string }) {
   const { state } = useAuth();
   const project = useQuery({

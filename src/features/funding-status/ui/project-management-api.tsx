@@ -13,6 +13,7 @@ import { FundingEmptyState } from "./funding-empty-state";
 import { FundingStatusApi } from "./funding-status-api";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트 관리 탭의 공통 프로젝트 조회와 오류 상태를 담당한다. */
 export function ProjectManagementApi({
   projectId,
   tab,

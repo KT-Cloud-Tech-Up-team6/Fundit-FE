@@ -19,6 +19,7 @@ const statuses = [
   { value: "closed", label: "완료", count: "completed" },
 ] as const;
 
+/** 판매자의 프로젝트 목록을 상태·검색어·페이지 기준으로 표시한다. */
 export function SellerProjectList({
   status,
   search,

@@ -8,6 +8,7 @@ import { ddayLabel } from "@/entities/project/model/remaining-days";
 import { FundingStatusBoard } from "./funding-status-board";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
+/** 프로젝트의 펀딩 현황을 조회하고 상태별 화면을 표시한다. */
 export function FundingStatusApi({ project }: { project: ManagementProject }) {
   const { state } = useAuth();
   const id = project.projectId;

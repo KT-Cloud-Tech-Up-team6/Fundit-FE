@@ -24,6 +24,7 @@ const tabs = [
   { value: "closed", label: "완료", emptyMessage: "완료된 라이브가 없습니다" },
 ] as const satisfies readonly { value: SellerLiveTab; label: string; emptyMessage: string }[];
 
+/** 판매자의 LIVE 목록을 상태·검색어·페이지 기준으로 표시한다. */
 export function SellerLiveList({
   status,
   search,
@@ -111,7 +112,7 @@ export function SellerLiveList({
           description="LIVE 목록을 불러오지 못했습니다."
           className="mt-6"
           onRetry={() => void lives.refetch()}
-          notFoundHref="/seller/projects"
+          notFoundHref="/seller/live"
         />
       )}
 

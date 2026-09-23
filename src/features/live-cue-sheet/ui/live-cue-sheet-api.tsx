@@ -120,7 +120,7 @@ export function LiveCueSheetApi({
   if (cueSheet.isError && !isMissing(cueSheet.error))
     return (
       <QueryErrorState
-        variant={onClose ? "section" : "page"}
+        variant="page"
         error={cueSheet.error}
         onRetry={() => void cueSheet.refetch()}
         notFoundHref="/seller/projects"

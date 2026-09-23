@@ -23,6 +23,7 @@ import {
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
 
+/** 프로젝트 기본 정보 탭의 데이터를 조회하고 편집 화면에 전달한다. */
 export function ProjectBasicInfoApi({
   projectId,
   tab = "basic-info",
