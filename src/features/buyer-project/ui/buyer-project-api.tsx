@@ -13,7 +13,8 @@ import {
 } from "@/entities/project/api/buyer-project-api";
 import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState } from "@/shared/components/ui/error-state";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
@@ -145,10 +146,10 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   if (detail.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (detail.isError)
     return (
-      <p role="alert">
-        프로젝트를 찾을 수 없거나 불러오지 못했습니다.{" "}
-        <button onClick={() => void detail.refetch()}>다시 시도</button>
-      </p>
+      <ErrorState
+        status={toErrorStatus(detail.error)}
+        action={{ label: "다시 시도", onClick: () => void detail.refetch() }}
+      />
     );
   const data = detail.data,
     summary = data.fundingStatus;
@@ -165,9 +166,12 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   const content = active?.isPending ? (
     <p role="status">불러오는 중입니다.</p>
   ) : active?.isError ? (
-    <p role="alert">
-      조회에 실패했습니다. <button onClick={() => void active.refetch()}>다시 시도</button>
-    </p>
+    <QueryErrorState
+      variant="section"
+      error={active.error}
+      description="탭 콘텐츠를 불러오지 못했습니다."
+      onRetry={() => void active.refetch()}
+    />
   ) : tab === "story" ? (
     <div className="space-y-4">
       {data.introContent.map((block, index) =>

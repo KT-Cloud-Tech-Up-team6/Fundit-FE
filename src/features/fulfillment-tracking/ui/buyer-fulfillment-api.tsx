@@ -11,6 +11,7 @@ import {
   type Shipment,
 } from "@/entities/fulfillment/api/fulfillment-api";
 import { Button } from "@/shared/components/ui/button";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { fundingProjectQuery } from "../model/funding-project-query";
 import { FulfillmentAccess } from "./fulfillment-access";
@@ -50,12 +51,7 @@ function Buyer({
   const order = useQuery(fundingProjectQuery(memberId, fundingId));
   if (order.isPending) return <p role="status">참여 내역을 확인하고 있습니다.</p>;
   if (order.isError)
-    return (
-      <p role="alert">
-        참여 내역을 확인할 수 없습니다.{" "}
-        <button onClick={() => void order.refetch()}>다시 시도</button>
-      </p>
-    );
+    return <QueryErrorState error={order.error} onRetry={() => void order.refetch()} />;
   return (
     <Tracking
       memberId={memberId}
@@ -105,10 +101,12 @@ function Tracking({
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
             ) : status.isError ? (
-              <p role="alert">
-                제작 현황이 아직 없거나 조회하지 못했습니다.{" "}
-                <button onClick={() => void status.refetch()}>다시 시도</button>
-              </p>
+              <QueryErrorState
+                variant="section"
+                error={status.error}
+                description="제작 현황을 불러오지 못했습니다."
+                onRetry={() => void status.refetch()}
+              />
             ) : (
               data &&
               state && (
@@ -172,9 +170,12 @@ function Tracking({
             {shipment.isPending ? (
               <p role="status">배송 현황을 불러오고 있습니다.</p>
             ) : shipment.isError ? (
-              <p role="alert">
-                배송 조회 실패. <button onClick={() => void shipment.refetch()}>다시 시도</button>
-              </p>
+              <QueryErrorState
+                variant="section"
+                error={shipment.error}
+                description="배송 현황을 불러오지 못했습니다."
+                onRetry={() => void shipment.refetch()}
+              />
             ) : (
               <Receipt
                 memberId={memberId}
