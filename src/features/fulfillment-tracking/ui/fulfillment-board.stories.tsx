@@ -38,7 +38,8 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const current = canvas.getByRole("button", { name: /제작 착수 단계, 진행 중/ });
-    await expect(current).toHaveAttribute("aria-current", "step");
+    /* StageTabs는 잠긴 단계를 미리 볼 때도 눌리므로 "step"이 아니라 "true"를 쓴다(stage-tabs.tsx). */
+    await expect(current).toHaveAttribute("aria-current", "true");
     await expect(canvas.getByRole("button", { name: "등록" })).toBeDisabled();
   },
 };
