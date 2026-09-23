@@ -13,6 +13,7 @@ import { SellerShell } from "@/shared/components/layout/seller-shell";
 import {
   getAnsweredQuestions,
   getInsights,
+  getLiveLiked,
   getOriginals,
   getPlayback,
   getPublicHighlights,
@@ -22,6 +23,7 @@ import {
   likeLive,
   requestAnswer,
   unlikeLive,
+  type LikeResult,
   type PendingQuestion,
 } from "../api/live-api";
 import { LivePlayer, type LivePlayerHandle } from "./live-player";
@@ -80,28 +82,42 @@ export function RealBuyerLive({
   clip?: boolean;
   desktop?: boolean;
 }) {
-  const client = useQueryClient();
   const router = useRouter();
   const { state } = useAuth();
-  const playbackKey = ["live", liveId, replay ? "vod" : "playback"];
   const playback = useQuery({
-    queryKey: playbackKey,
+    queryKey: ["live", liveId, replay ? "vod" : "playback"],
     queryFn: ({ signal }) => (replay ? getVod(liveId, signal) : getPlayback(liveId, signal)),
     retry: false,
   });
   const isVod = replay || playback.data?.type === "VOD";
 
-  /* 좋아요 응답이 204라 갱신된 수를 받을 수 없고, "내가 눌렀는지"를 주는 경로도 없다.
-     낙관적으로 그린 뒤 playback을 다시 읽어 서버 수에 맞춘다. */
-  const [liked, setLiked] = useState(false);
-  const [likeDelta, setLikeDelta] = useState(0);
+  /* 진입 시 내 좋아요 여부는 인증 경로로만 알 수 있어 로그인 상태에서만 읽는다.
+     회원이 바뀌면 다른 결과라 memberId를 키에 넣고, 회원 정보가 온 뒤에 한 번만 부른다. */
+  const memberId = state.status === "authenticated" ? state.user?.memberId : undefined;
+  const likedQuery = useQuery({
+    queryKey: ["live", liveId, "liked", memberId],
+    queryFn: ({ signal }) => getLiveLiked(liveId, signal),
+    enabled: memberId !== undefined,
+    retry: false,
+  });
+  /* 누른 뒤에는 좋아요 응답의 liked·likeCount가 가장 최신이라 playback·조회 값보다 앞선다.
+     누른 회원의 결과만 쓴다. 같은 화면에서 로그아웃하거나 계정을 바꾸면 이전 표시가 남지 않게 한다. */
+  const [override, setOverride] = useState<{
+    memberId: string | undefined;
+    result: LikeResult;
+  } | null>(null);
+  const likeOverride = override && override.memberId === memberId ? override.result : null;
+  const liked = likeOverride?.liked ?? likedQuery.data?.liked ?? false;
+  const likeCount = likeOverride?.likeCount ?? playback.data?.likeCount ?? 0;
+  /* 내 좋아요 여부를 처음 불러오는 동안은 버튼이 실제와 다르게 꺼져 보일 수 있어 누르지 않는다.
+     한 번이라도 실패했으면 막지 않는다. 데이터 없이 실패한 조회는 재조회 때마다 pending으로
+     돌아가므로 isLoading만 보면 그동안 좋아요가 계속 막힌다. 렌더에서 계산해야 한다 — TanStack은
+     렌더 중에 읽은 속성이 바뀔 때만 다시 그리므로, 핸들러 안에서만 읽으면 실패해도 다시 그려지지
+     않아 핸들러가 이전 pending 상태를 보고 계속 막는다. */
+  const likedFirstLoading = likedQuery.isLoading && likedQuery.errorUpdateCount === 0;
   const toggleLike = useMutation({
     mutationFn: (next: boolean) => (next ? likeLive(liveId) : unlikeLive(liveId)),
-    onSuccess: async () => {
-      /* 갱신된 수가 playback으로 돌아오면 낙관적 보정은 걷는다. 안 걷으면 +1이 두 번 더해진다. */
-      await client.invalidateQueries({ queryKey: playbackKey });
-      setLikeDelta(0);
-    },
+    onSuccess: (result) => setOverride({ memberId, result }),
   });
   function onToggleLike() {
     /* 좋아요는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다.
@@ -112,19 +128,17 @@ export function RealBuyerLive({
       router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
       return;
     }
-    if (toggleLike.isPending) return;
+    if (likedFirstLoading || toggleLike.isPending) return;
     const next = !liked;
-    setLiked(next);
-    /* 서버 수는 아직 이전 값이라 누르면 +1, 취소하면 -1로 그린다. 실패하면 서버 값 그대로 둔다. */
-    setLikeDelta(next ? 1 : -1);
-    toggleLike.mutate(next, {
-      onError: () => {
-        setLiked(!next);
-        setLikeDelta(0);
-      },
+    const previous = override;
+    /* 응답 전에는 누르면 +1, 취소하면 -1로 먼저 그린다. 재생 정보가 오기 전(수 0)에 취소해도
+       음수로 보이지 않게 막는다. 실패하면 누르기 전 상태로 되돌린다. */
+    setOverride({
+      memberId,
+      result: { liked: next, likeCount: Math.max(0, likeCount + (next ? 1 : -1)) },
     });
+    toggleLike.mutate(next, { onError: () => setOverride(previous) });
   }
-  const likeCount = (playback.data?.likeCount ?? 0) + likeDelta;
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
   const seekRef = useRef<LivePlayerHandle | null>(null);

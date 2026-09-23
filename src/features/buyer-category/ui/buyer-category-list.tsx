@@ -1,9 +1,5 @@
 import Link from "next/link";
-import {
-  buyerCategories,
-  getBuyerCategory,
-  type BuyerCategory,
-} from "@/entities/category/model/category-mock";
+import { buyerCategories, getBuyerCategory } from "@/entities/category/model/category-mock";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { Icon } from "@/shared/components/ui/icon";
@@ -12,17 +8,8 @@ import { SearchField } from "@/shared/components/ui/search-field";
 import { CategoryBannerCarousel } from "./category-banner-carousel";
 import styles from "./buyer-category-list.module.css";
 
-export function BuyerCategoryList({
-  slug,
-  categories = buyerCategories,
-}: {
-  slug: string;
-  categories?: readonly BuyerCategory[];
-}) {
-  const selectedCategory =
-    categories.find((category) => category.slug === slug) ??
-    categories[0] ??
-    getBuyerCategory(slug);
+export function BuyerCategoryList({ slug }: { slug: string }) {
+  const selectedCategory = getBuyerCategory(slug);
 
   return (
     <div className="bg-layer-surface-default min-h-dvh w-full">
@@ -60,7 +47,7 @@ export function BuyerCategoryList({
           <div className="flex gap-0 px-5 pt-2 pb-8">
             <nav aria-label="카테고리 목록" className="w-25 shrink-0 min-[1200px]:w-50">
               <ul className="space-y-3">
-                {categories.map((category) => {
+                {buyerCategories.map((category) => {
                   const selected = category.slug === selectedCategory.slug;
                   return (
                     <li key={category.slug}>
@@ -81,18 +68,16 @@ export function BuyerCategoryList({
             <section aria-labelledby="selected-category-title" className="min-w-0 flex-1">
               <div className="flex h-9 items-center justify-between pl-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
+                  {/* 디자인 시스템 line 아이콘(선 두께 1.3)을 대분류 slug 이름으로 둔다. 모르는 slug는
+                      첫 카테고리로 보여 주므로 주소가 아니라 선택된 카테고리를 따른다. */}
                   <span
                     aria-hidden
-                    className={`size-5 shrink-0 ${["tech-appliances", "home-living"].includes(slug) ? "bg-current" : styles.categoryIcon}`}
-                    style={
-                      ["tech-appliances", "home-living"].includes(slug)
-                        ? {
-                            maskImage: `url(/icons/buyer-account/${slug === "tech-appliances" ? "fd593" : "d5cb8"}.svg)`,
-                            maskSize: "contain",
-                            maskRepeat: "no-repeat",
-                          }
-                        : undefined
-                    }
+                    className="size-5 shrink-0 bg-current"
+                    style={{
+                      maskImage: `url(/icons/buyer-category/${selectedCategory.slug}.svg)`,
+                      maskSize: "contain",
+                      maskRepeat: "no-repeat",
+                    }}
                   />
                   <h2
                     id="selected-category-title"
@@ -109,13 +94,11 @@ export function BuyerCategoryList({
                 </PendingDestination>
               </div>
               <ul className="mt-2 grid grid-cols-2 gap-x-2 gap-y-2 min-[1200px]:grid-cols-4 min-[1200px]:gap-x-4">
+                {/* 소분류는 무조건 LIVE 홈으로 보낸다(#307, PM 결정). 소분류 결과 화면은 쓰지 않는다. */}
                 {selectedCategory.subcategories.map((subcategory) => (
-                  <li key={subcategory.slug} className={`${styles.subcategory} min-w-0 border-b`}>
-                    <Link
-                      href={`/categories/${selectedCategory.slug}/${subcategory.slug}`}
-                      className="block min-w-0 truncate p-2 text-[14px] leading-5"
-                    >
-                      {subcategory.name}
+                  <li key={subcategory} className={`${styles.subcategory} min-w-0 border-b`}>
+                    <Link href="/live" className="block min-w-0 truncate p-2 text-[14px] leading-5">
+                      {subcategory}
                     </Link>
                   </li>
                 ))}

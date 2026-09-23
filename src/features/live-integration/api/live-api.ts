@@ -66,13 +66,15 @@ export const requestAnswer = (
     { auth: true, method: "POST", body, signal },
   );
 
-/* 좋아요는 204를 돌려준다(LiveController) — 명세 초안의 `{liked, likeCount}`와 다르다.
-   갱신된 수를 받을 수 없어 호출 뒤 playback을 다시 읽어 서버 값에 맞춘다.
-   "내가 눌렀는지"를 알려주는 경로도 없어 진입 시에는 항상 꺼진 상태로 시작한다. */
+/* 좋아요·취소는 갱신된 수를 함께 돌려준다(BE #123 LikeResponse). 둘 다 idempotent다. */
+export type LikeResult = { liked: boolean; likeCount: number };
 export const likeLive = (liveId: string) =>
-  apiRequest<void>(`${livePath(liveId)}/like`, { auth: true, method: "PUT" });
+  apiRequest<LikeResult>(`${livePath(liveId)}/like`, { auth: true, method: "PUT" });
 export const unlikeLive = (liveId: string) =>
-  apiRequest<void>(`${livePath(liveId)}/like`, { auth: true, method: "DELETE" });
+  apiRequest<LikeResult>(`${livePath(liveId)}/like`, { auth: true, method: "DELETE" });
+/* 목록·재생 응답은 비인증이라 내 좋아요 여부는 이 인증 경로로만 알 수 있다. */
+export const getLiveLiked = (liveId: string, signal?: AbortSignal) =>
+  apiRequest<{ liked: boolean }>(`${livePath(liveId)}/like`, { auth: true, signal });
 
 export type Highlight = {
   highlightId: string;

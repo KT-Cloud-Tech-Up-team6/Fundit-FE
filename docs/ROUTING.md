@@ -32,7 +32,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 - 구매자 카테고리 리스트 `/categories/[slug]`는 전용 헤더·하단 탭을 사용하는 `(buyer-category)` 그룹에 둔다. 현재 카테고리와 소분류는 화면 확인용 목업이다. `BuyerBottomNavigation`의 카테고리 탭은 `/categories/tech-appliances`(첫 번째 카테고리)로 진입하며, 진입 시 현재 경로를 `sessionStorage`(`buyer-category-return-path`, `src/shared/lib/category-return-path.ts`)에 기록해뒀다가 카테고리 탭을 다시 누르면 그 경로로 돌아간다. 기록이 없으면(예: 카테고리 탭을 거치지 않고 처음 들어온 딥링크) 홈으로 대체하고, 새로고침으로는 기록이 사라지지 않는다.
   이 기록을 "카테고리 영역을 실제로 벗어났을 때만" 정리하는 일은 `BuyerBottomNavigation`이 아니라 루트 레이아웃에 한 번만 마운트되는 `CategoryReturnPathGuard`(`src/providers/`)가 맡는다. 이 컴포넌트가 각 페이지마다 리마운트되거나(Next.js RSC 특성상 SNB로 카테고리 slug만 바꿔도 리마운트될 수 있다) `popstate` 리스너를 마운트/언마운트에 걸면, 뒤로가기가 유발한 같은 리렌더링이 그 리스너를 호출 전에 지워버리는 타이밍 문제가 있었다. `CategoryReturnPathGuard`는 앱 전체 내비게이션 동안 절대 언마운트되지 않으므로 `usePathname()` 변화만으로 안정적으로 감지한다 — pathname이 `/categories` 밖으로 나가면(탭 클릭이든 뒤로가기·앞으로가기든 무엇이든) 정리하고, `/categories` 내부에서 slug만 바뀌는 전환은 유지한다.
-  소분류명을 누르면 `/categories/[slug]/[subcategorySlug]`(소분류 결과 목록)로 이동하며, 이 화면은 아직 `PagePlaceholder`다. 실제 진입 slug·카테고리 체계는 여전히 목업이다.
+  소분류명을 누르면 무조건 `/live`(LIVE 홈)로 이동한다(#307, PM 결정). `/categories/[slug]/[subcategorySlug]`로 직접 들어와도 `next.config.ts`의 redirect로 `/live`에 보낸다(페이지 파일은 없다). 카테고리 목록은 서버 호출 없는 목업이며 판매자 확정 카테고리 7종과 같다.
 
 - 판매자 기본 정보·리워드 등록은 [구현 범위와 원본 프레임](./PROJECT_BASIC_INFO.md)을 참고합니다. `/seller/projects/new`에서 목업을 확인할 수 있습니다.
 - 판매자 LIVE 생성·AI 큐시트·진행 콘솔은 [최신 판매자 LIVE 진행 플로우 `1230:15609`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1230-15609)와 #146 기준입니다. 기존 #36 콘솔·#32 큐시트 목업을 확장했습니다.
@@ -79,7 +79,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 | -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
 | `/`                                    | 홈 (→ `/live` redirect) | public                    | 원본 없음                                               |
 | `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
-| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | placeholder                                             |
+| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | `/live`로 redirect (next.config, #307)                  |
 | `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
 | `/live`                                | LIVE 메인               | public                    | implemented                                             |
 | `/live/new`                            | 신규 LIVE               | public                    | placeholder                                             |
