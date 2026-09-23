@@ -55,6 +55,9 @@ import { MutationError, QueryError } from "./query-error";
    BE에 AI 집계를 가져오게 하므로 이 갱신이 곧 집계 반영 주기다. */
 const POLL_MS = 30_000;
 
+/* 실제 채팅이 연결되지 않아 늘 빈 목록이다. 렌더마다 새 배열을 넘기면 채팅 패널의 스크롤 처리가 매번 돈다. */
+const noMessages: { id: string; author: string; text: string }[] = [];
+
 const placeholderBox =
   "bg-layer-surface-disabled text-caption-s text-text-secondary flex flex-1 items-center justify-center rounded-xs p-4 text-center";
 
@@ -98,6 +101,8 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
   const [notice, setNotice] = useState("");
   const [endError, setEndError] = useState<unknown>(null);
   const [publishedIds, setPublishedIds] = useState<string[]>([]);
+  /* 요청 중 표시는 다음 렌더에 반영된다. 그 사이 두 번 누르면 종료가 두 번 나가 성공 뒤 409를 띄운다. */
+  const ending = useRef(false);
 
   const detail = useQuery({
     queryKey: [...ownerKey, "detail"],
@@ -147,6 +152,9 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
       void cache.invalidateQueries({ queryKey: [...ownerKey, "detail"] });
     },
     onError: setEndError,
+    onSettled: () => {
+      ending.current = false;
+    },
   });
 
   const live = detail.data?.status === "LIVE";
@@ -174,6 +182,8 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
           className="text-body-s h-10! gap-2 px-3!"
           disabled={!live || end.isPending}
           onClick={() => {
+            if (ending.current) return;
+            ending.current = true;
             setEndError(null);
             end.mutate();
           }}
@@ -240,7 +250,7 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
               />
             )}
             <SellerChatPanel
-              messages={[]}
+              messages={noMessages}
               countLabel="-"
               onSend={() => {
                 setNotice("실시간 채팅은 준비 중입니다.");
@@ -607,9 +617,19 @@ function AnswerView({
     queryKey: draftKey,
     queryFn: () => requestAnswer(liveId, question.questionId, { action: "GENERATE" }),
     enabled: !question.complete,
+    /* 초안은 AI 호출이라 다시 열 때마다 받지 않는다. 목록의 "초안 없음" 경고도 이 캐시로 판단한다. */
     staleTime: Infinity,
+    gcTime: Infinity,
     retry: false,
   });
+  /* 요청 중 표시는 다음 렌더에 반영된다. 그 사이 두 번 누르면 같은 답변이 두 번 등록된다. */
+  const sending = useRef(false);
+  function submit(finalAnswer: string) {
+    if (sending.current || !finalAnswer.trim()) return;
+    sending.current = true;
+    setNotSent(false);
+    send.mutate(finalAnswer);
+  }
   const send = useMutation({
     mutationFn: (finalAnswer: string) =>
       requestAnswer(liveId, question.questionId, { action: "SEND", finalAnswer }),
@@ -622,6 +642,9 @@ function AnswerView({
       void cache.invalidateQueries({ queryKey: [...ownerKey, "unanswered"] });
       void cache.invalidateQueries({ queryKey: [...ownerKey, "insights"] });
       void cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] });
+    },
+    onSettled: () => {
+      sending.current = false;
     },
   });
   const noDraft = draft.data?.draftAnswer === null;
@@ -682,7 +705,7 @@ function AnswerView({
         <MutationError
           error={send.error}
           disabled={send.isPending || !value.trim()}
-          retry={() => send.mutate(value)}
+          retry={() => submit(value)}
         />
       )}
       {notSent && (
@@ -706,10 +729,7 @@ function AnswerView({
             size="sm"
             className="text-body-s h-10 flex-1"
             disabled={disabled || send.isPending || generating || !value.trim()}
-            onClick={() => {
-              setNotSent(false);
-              send.mutate(value);
-            }}
+            onClick={() => submit(value)}
           >
             채팅 보내기
           </Button>

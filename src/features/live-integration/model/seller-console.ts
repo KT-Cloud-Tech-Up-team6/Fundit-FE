@@ -1,6 +1,6 @@
 import type { CueSheetSegment } from "@/entities/live/model/live-cue-sheet";
 import type { AiStatus, AnsweredQuestion } from "../api/live-api";
-import { formatClock } from "./vod-chapters";
+import { formatClock, formatPlaybackTime } from "./vod-chapters";
 
 /* 실제 판매자 콘솔이 서버 응답을 Figma 콘솔 패널 모양으로 바꾸는 순수 함수들이다. */
 
@@ -24,10 +24,7 @@ export function toConsoleCues(segments: CueSheetSegment[]) {
 /** 방송 경과 시간. 서버가 주지 않으면(방송 중이 아님) 가짜 값 대신 `-`다. */
 export function formatElapsed(totalSec: number | null | undefined) {
   if (totalSec == null || !Number.isFinite(totalSec)) return "-";
-  const sec = Math.max(0, Math.floor(totalSec));
-  return [Math.floor(sec / 3600), Math.floor((sec % 3600) / 60), sec % 60]
-    .map((part) => String(part).padStart(2, "0"))
-    .join(":");
+  return formatPlaybackTime(totalSec);
 }
 
 export function formatViewers(count: number | null | undefined) {
