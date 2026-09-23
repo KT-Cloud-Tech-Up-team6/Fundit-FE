@@ -28,7 +28,16 @@ const presets: Record<
 > = {
   notFound: {
     title: "404",
-    description: "요청하신 화면을 찾을 수 없습니다",
+    description: (
+      <>
+        <span className="min-[1200px]:hidden">요청하신 화면을 찾을 수 없습니다</span>
+        <span className="hidden min-[1200px]:inline">
+          요청하신 페이지가 삭제되었거나
+          <br />
+          주소가 잘못되었을 수 있습니다
+        </span>
+      </>
+    ),
     actionLabel: "홈으로 이동",
   },
   server: {
@@ -140,21 +149,26 @@ export function ErrorState({
      1200px 이상: 콘텐츠·버튼을 한 덩어리로 42px 간격을 두고 가운데 정렬.
      상위가 flex 컨테이너가 아니면 flex-1이 조용히 무시되고 자연스러운 높이로 접힌다. */
   const buttonClassName = "w-full px-2 min-[1200px]:w-auto min-[1200px]:px-8";
+  /* Figma: 404는 제목-아이콘 간격이 40px, 그 외 상태는 24px (두 breakpoint 공통). */
+  const contentGap = status === "notFound" ? "gap-10" : "gap-6";
 
   return (
     <div
       role="alert"
       className={joinClassName(
-        "flex flex-1 flex-col items-center justify-between gap-10 px-5 py-10 text-center",
+        "flex flex-1 flex-col items-center justify-between gap-10 px-5 py-10",
         "min-[1200px]:justify-center min-[1200px]:gap-[42px] min-[1200px]:px-0 min-[1200px]:py-0",
         className,
       )}
       {...props}
     >
-      <div className="flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-title-l">{resolvedTitle}</h1>
-          {resolvedDescription && <p className="text-body-emphasis">{resolvedDescription}</p>}
+      <div className={joinClassName("flex flex-col items-center", contentGap)}>
+        {/* Figma: 모바일은 좌측 정렬, 1200px 이상은 중앙 정렬 */}
+        <div className="flex w-full flex-col items-start gap-2 text-left min-[1200px]:items-center min-[1200px]:text-center">
+          <h1 className="text-title-l w-full">{resolvedTitle}</h1>
+          {resolvedDescription && (
+            <p className="text-body-emphasis w-full">{resolvedDescription}</p>
+          )}
         </div>
         <Image
           src="/images/shared/island.svg"
@@ -163,7 +177,7 @@ export function ErrorState({
           height={112}
           className="size-28"
         />
-        {resolvedCaption && <p className="text-body-s">{resolvedCaption}</p>}
+        {resolvedCaption && <p className="text-body-s text-center">{resolvedCaption}</p>}
       </div>
       {action &&
         (action.href ? (
