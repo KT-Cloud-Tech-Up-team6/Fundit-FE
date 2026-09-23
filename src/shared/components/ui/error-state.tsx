@@ -30,12 +30,9 @@ const presets: Record<
     title: "404",
     description: (
       <>
-        <span className="min-[1200px]:hidden">요청하신 화면을 찾을 수 없습니다</span>
-        <span className="hidden min-[1200px]:inline">
-          요청하신 페이지가 삭제되었거나
-          <br />
-          주소가 잘못되었을 수 있습니다
-        </span>
+        요청하신 페이지가 삭제되었거나
+        <br />
+        주소가 잘못되었을 수 있습니다
       </>
     ),
     actionLabel: "홈으로 이동",
