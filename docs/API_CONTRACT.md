@@ -552,8 +552,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
 - `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 `failureReason`과 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
-- #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾는다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)은 이를 쓴다. 큐시트 화면의 우회 제거는 별도 작업이다.
-- 송출 시작(`POST /start`)은 스트림 키 조회 API가 없어 화면에 붙이지 않았다.
+- #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾았다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)에 이어 큐시트 화면도 #326에서 단건 조회로 바꿔 우회를 걷었다.
+- 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AIC`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다.
 
 ### 5.8. 판매자 LIVE 콘솔 (#320)
 
@@ -569,13 +569,30 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 집계된 Q&A·LIVE 체크 목록 | 5.6의 `/chat/answered-questions`(시청자 Q&A와 같은 목록, IA 46)                             |
 | LIVE 체크 추가            | POST `/api/v1/projects/{projectId}/live-verifications` `{questionSummaryId, answer}` → 201  |
 
-- `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 위 5.7의 `/lives/mine` 우회는 큐시트 화면에 그대로 남아 있다.
+- `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 큐시트 화면도 #326부터 이 단건 조회를 쓴다(5.7).
 - insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
 - 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
 - "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
 - LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
 - BE API가 없는 답변 완료 처리, 스트림 상태 확인, 방송 중 펀딩 건수·금액, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 수치는 `-`다(2026-09-23 결정).
 - BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
+
+### 5.9. 판매자 LIVE 스튜디오 목록·시작 (#326)
+
+기준은 BE `develop` `47bee6ed`다.
+
+| 동작         | Method·Path                         | 요청 → 응답                                                                           |
+| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| LIVE 시작    | POST `/api/v1/lives/{liveId}/start` | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
+| 내 LIVE 목록 | GET `/api/v1/lives/mine`            | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
+| 상태별 건수  | GET `/api/v1/lives/status-counts`   | → `{draft, scheduled, live, ended, error}`                                            |
+| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`        | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+
+- `POST /start`는 `DRAFT`·`SCHEDULED`·`ERROR`에서만 `LIVE`로 바뀐다. 이미 `LIVE`거나 `ENDED`면 409라 화면은 "이미 시작했거나 종료된 LIVE"로 따로 안내한다. 시작은 채팅방 생성과 AI 상품정보 준비까지 포함하고, 채팅방 생성이 실패하면 의존성 오류(5xx)이며 세션이 `ERROR`가 된다.
+- `status`는 `List<LiveStatus>`라 쉼표(`status=DRAFT,SCHEDULED`)와 반복 파라미터 둘 다 받는다. FE는 쉼표로 보낸다. 준비중 탭의 "전체를 받아 화면에서 거르던" #283 우회는 여기서 걷었다.
+- 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled`). `ERROR`는 어느 탭에도 속하지 않아 어느 건수에도 더하지 않는다.
+- 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
+- 송출 시작을 붙였어도 **스트림 키 조회 API는 여전히 없다.** 영상 송출 정보는 화면에서 안내만 하고 만들어 내지 않는다.
 
 ## 6. 최신 답변으로 정리한 차이
 
