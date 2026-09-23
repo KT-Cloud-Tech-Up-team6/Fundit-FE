@@ -61,8 +61,6 @@ const projects: readonly SellerProject[] = [
     title: "마지막 앵콜 | 누적 13억, 더 이상 파우치 따로 챙기지 마세요",
     badges: [{ label: "D-12", variant: "neutral" }],
     draftPhaseLabel: "스토리 작성중",
-    openScheduledAt: "2026.10.01",
-    updatedAt: "2026.09.20 12:54",
   },
   ...[
     [

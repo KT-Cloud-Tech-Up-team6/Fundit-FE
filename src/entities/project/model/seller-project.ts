@@ -19,8 +19,6 @@ export type SellerProject = SellerProjectBase &
     | {
         status: "draft";
         draftPhaseLabel: string;
-        openScheduledAt: string;
-        updatedAt: string;
       }
     | {
         status: "active" | "closed";

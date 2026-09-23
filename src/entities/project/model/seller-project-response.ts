@@ -1,5 +1,6 @@
 import type { ProjectListItem } from "../api/seller-project-api";
 import type { SellerProject } from "./seller-project";
+import { ddayLabel, remainingDays } from "./remaining-days";
 
 function dateLabel(value: string | null) {
   if (!value) return "미정";
@@ -11,7 +12,7 @@ function dateLabel(value: string | null) {
   }).format(new Date(value));
 }
 
-export function toSellerProject(item: ProjectListItem): SellerProject {
+export function toSellerProject(item: ProjectListItem, now = Date.now()): SellerProject {
   const base = {
     id: item.projectId,
     title: item.title || "제목 없음",
@@ -23,8 +24,6 @@ export function toSellerProject(item: ProjectListItem): SellerProject {
       status: "draft",
       badges: [],
       draftPhaseLabel: "준비중",
-      openScheduledAt: dateLabel(item.fundingStartAt),
-      updatedAt: "—",
     };
   }
   return {
@@ -35,7 +34,9 @@ export function toSellerProject(item: ProjectListItem): SellerProject {
         ? [{ label: "펀딩 성공", variant: "success" }]
         : item.status === "FAILED"
           ? [{ label: "펀딩 실패", variant: "neutral" }]
-          : [],
+          : item.fundingDeadline
+            ? [{ label: ddayLabel(remainingDays(item.fundingDeadline, now)), variant: "neutral" }]
+            : [],
     category: item.categoryMajor ?? "미분류",
     period: `${dateLabel(item.fundingStartAt)} - ${dateLabel(item.fundingDeadline)}`,
     participantCount: item.participantCount,
