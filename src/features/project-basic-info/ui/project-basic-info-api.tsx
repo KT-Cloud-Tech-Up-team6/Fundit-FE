@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import {
   getProjectPreview,
   saveProjectBasicInfo,
@@ -76,12 +77,10 @@ export function ProjectBasicInfoApi({
   if (projectId && preview.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (projectId && preview.isError)
     return (
-      <div role="alert">
-        <p>프로젝트를 불러올 수 없습니다. 접근 권한과 프로젝트 주소를 확인해주세요.</p>
-        <button type="button" className="underline" onClick={() => void preview.refetch()}>
-          다시 시도
-        </button>
-      </div>
+      <ErrorState
+        status={toErrorStatus(preview.error)}
+        action={{ onClick: () => void preview.refetch() }}
+      />
     );
   if (!projectId)
     return (

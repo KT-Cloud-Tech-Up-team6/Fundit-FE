@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
   getSellerRewards,
@@ -130,10 +131,10 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   if (query.isPending) return <p role="status">리워드를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <p role="alert">
-        리워드를 불러오지 못했습니다.{" "}
-        <button onClick={() => void query.refetch()}>다시 시도</button>
-      </p>
+      <ErrorState
+        status={toErrorStatus(query.error)}
+        action={{ onClick: () => void query.refetch() }}
+      />
     );
   return (
     <>

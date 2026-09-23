@@ -5,6 +5,7 @@ import { getFundingStatus, getWishStats } from "@/entities/project/api/project-m
 import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
 import { FundingStatusBoard } from "./funding-status-board";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 
 export function FundingStatusApi({ project }: { project: ManagementProject }) {
   const { state } = useAuth();
@@ -24,22 +25,21 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
   });
   if (status.isPending || wishes.isPending || rewards.isPending)
     return <p role="status">펀딩 현황을 불러오고 있습니다.</p>;
-  if (status.isError || wishes.isError || rewards.isError)
+  if (status.isError || wishes.isError || rewards.isError) {
+    const error = status.isError ? status.error : wishes.isError ? wishes.error : rewards.error;
     return (
-      <p role="alert">
-        펀딩 현황을 불러오지 못했습니다.{" "}
-        <button
-          type="button"
-          onClick={() => {
+      <ErrorState
+        status={toErrorStatus(error)}
+        action={{
+          onClick: () => {
             void status.refetch();
             void wishes.refetch();
             void rewards.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </p>
+          },
+        }}
+      />
     );
+  }
   const data = status.data;
   const rewardById = new Map(rewards.data.map((reward) => [reward.rewardId, reward]));
   const optionLabels = new Map<string, string>();

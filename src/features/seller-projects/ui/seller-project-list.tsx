@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { getProjectCounts, getSellerProjects } from "@/entities/project/api/seller-project-api";
 import { toSellerProject } from "@/entities/project/model/seller-project-response";
 import type { SellerProjectStatus } from "@/entities/project/model/seller-project";
@@ -92,19 +93,18 @@ export function SellerProjectList({
         </div>
       </div>
       {(projects.isError || counts.isError) && (
-        <div role="alert" className="mt-6">
-          <p>프로젝트 정보를 불러오지 못했습니다.</p>
-          <button
-            type="button"
-            className="mt-2 underline"
-            onClick={() => {
+        <ErrorState
+          variant="section"
+          status={toErrorStatus(projects.isError ? projects.error : counts.error)}
+          description="프로젝트 정보를 불러오지 못했습니다."
+          className="mt-6"
+          action={{
+            onClick: () => {
               void projects.refetch();
               void counts.refetch();
-            }}
-          >
-            다시 시도
-          </button>
-        </div>
+            },
+          }}
+        />
       )}
       {projects.isPending ? (
         <p role="status" className="mt-6">

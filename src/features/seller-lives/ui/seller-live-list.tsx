@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { getMyLives } from "@/entities/live/api/seller-live-api";
 import {
   tabCount,
@@ -95,12 +96,13 @@ export function SellerLiveList({ status, page }: { status: SellerLiveTab; page: 
       </div>
 
       {lives.isError && (
-        <div role="alert" className="mt-6">
-          <p>LIVE 목록을 불러오지 못했습니다.</p>
-          <button type="button" className="mt-2 underline" onClick={() => void lives.refetch()}>
-            다시 시도
-          </button>
-        </div>
+        <ErrorState
+          variant="section"
+          status={toErrorStatus(lives.error)}
+          description="LIVE 목록을 불러오지 못했습니다."
+          className="mt-6"
+          action={{ onClick: () => void lives.refetch() }}
+        />
       )}
 
       {lives.isPending ? (

@@ -10,6 +10,7 @@ import {
 } from "@/entities/project/ui/project-sidebar";
 import { ProjectCommunityApi } from "@/features/project-community/ui/project-community-api";
 import { FundingStatusApi } from "./funding-status-api";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 
 export function ProjectManagementApi({
   projectId,
@@ -31,10 +32,10 @@ export function ProjectManagementApi({
   if (query.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   if (query.isError)
     return (
-      <p role="alert">
-        프로젝트를 불러오지 못했습니다.{" "}
-        <button onClick={() => void query.refetch()}>다시 시도</button>
-      </p>
+      <ErrorState
+        status={toErrorStatus(query.error)}
+        action={{ onClick: () => void query.refetch() }}
+      />
     );
   return (
     <ProjectWorkspaceLayout
