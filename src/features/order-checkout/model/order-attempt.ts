@@ -73,8 +73,8 @@ async function send(
     if (error instanceof ApiError && error.code === "CONFLICT")
       throw new OrderAttemptError("같은 주문을 처리하고 있습니다. 잠시 후 다시 시도해주세요.");
     // 서버가 거절을 확정한 4xx만 시도를 버린다. 네트워크·5xx·파싱 실패는 같은 키로 다시 보낸다.
-    // 인증·권한·시간 초과·요청 제한은 BE가 멱등 키를 보기 전에 거절한 것이라 이전 요청의 생성
-    // 여부를 확정하지 못한다. 키를 버리면 다음 시도가 새 키로 나가 중복 주문이 될 수 있다.
+    // 인증·권한·시간 초과·요청 제한 응답만으로는 이전 요청의 생성 여부를 확정할 수 없다.
+    // 키를 버리면 다음 시도가 새 키로 나가 중복 주문이 될 수 있다.
     if (
       error instanceof ApiError &&
       error.status >= 400 &&
