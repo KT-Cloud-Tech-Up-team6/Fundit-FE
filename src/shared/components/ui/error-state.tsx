@@ -113,9 +113,9 @@ export function ErrorState({
   if (variant === "text") {
     return (
       <div
-        role="alert"
         className={joinClassName("text-body-s text-text-warning text-center", className)}
         {...props}
+        role="alert"
       >
         <p>{SORRY_PREFIX}</p>
         {resolvedDescription && <p>{resolvedDescription}</p>}
@@ -126,9 +126,9 @@ export function ErrorState({
   if (variant === "section") {
     return (
       <div
-        role="alert"
         className={joinClassName("flex flex-col items-center gap-3", className)}
         {...props}
+        role="alert"
       >
         <div className="flex flex-col items-center gap-4">
           <Image
@@ -167,20 +167,24 @@ export function ErrorState({
   const resolvedCaption = caption ?? preset?.caption;
   /* 모바일: 컨테이너 높이를 꽉 채우고 버튼을 하단에 고정(justify-between).
      1200px 이상: 콘텐츠·버튼을 한 덩어리로 42px 간격을 두고 가운데 정렬.
-     상위가 flex 컨테이너가 아니면 flex-1이 조용히 무시되고 자연스러운 높이로 접힌다. */
+     ponytail: 높이는 상위 flex 체인(app/layout.tsx의 body flex flex-col, SellerShell의
+     main flex flex-col)에 기대는 flex-1이다. min-h-dvh로 직접 채우지 않는 이유는
+     SellerShell처럼 헤더가 있는 컨테이너에서 100dvh를 채우면 헤더 높이만큼 넘쳐서 버튼이
+     화면 밖으로 밀려나기 때문이다. 상위 체인에 flex가 아닌 래퍼(div)가 새로 끼면 이 값은
+     조용히 무시되고 자연스러운 높이로 접힌다 — 그럴 땐 그 래퍼도 flex flex-col로 맞춘다. */
   const buttonClassName = "w-full px-2 min-[1200px]:w-auto min-[1200px]:px-8";
   /* Figma: 404는 제목-아이콘 간격이 40px, 그 외 상태는 24px (두 breakpoint 공통). */
   const contentGap = status === "notFound" ? "gap-10" : "gap-6";
 
   return (
     <div
-      role="alert"
       className={joinClassName(
         "flex flex-1 flex-col items-center justify-between gap-10 px-5 py-10",
         "min-[1200px]:justify-center min-[1200px]:gap-[42px] min-[1200px]:px-0 min-[1200px]:py-0",
         className,
       )}
       {...props}
+      role="alert"
     >
       <div className={joinClassName("flex flex-col items-center", contentGap)}>
         {/* Figma: 모바일은 좌측 정렬, 1200px 이상은 중앙 정렬 */}

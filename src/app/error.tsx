@@ -1,8 +1,9 @@
 "use client";
 
-import { ErrorState } from "@/shared/components/ui/error-state";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -10,7 +11,7 @@ export default function GlobalError({
 }) {
   return (
     <main className="flex flex-1 flex-col">
-      <ErrorState status="server" action={{ onClick: reset }} />
+      <ErrorState status={toErrorStatus(error)} action={{ onClick: reset }} />
     </main>
   );
 }
