@@ -9,7 +9,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center px-4">
+    <main className="flex flex-1 flex-col">
       <ErrorState status="server" action={{ onClick: reset }} />
     </main>
   );

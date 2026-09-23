@@ -136,26 +136,42 @@ export function ErrorState({
 
   const resolvedTitle = title ?? preset?.title;
   const resolvedCaption = caption ?? preset?.caption;
+  /* 모바일: 컨테이너 높이를 꽉 채우고 버튼을 하단에 고정(justify-between).
+     1200px 이상: 콘텐츠·버튼을 한 덩어리로 42px 간격을 두고 가운데 정렬.
+     상위가 flex 컨테이너가 아니면 flex-1이 조용히 무시되고 자연스러운 높이로 접힌다. */
+  const buttonClassName = "w-full px-2 min-[1200px]:w-auto min-[1200px]:px-8";
 
   return (
     <div
       role="alert"
-      className={joinClassName("flex flex-col items-center gap-6 text-center", className)}
+      className={joinClassName(
+        "flex flex-1 flex-col items-center justify-between gap-10 px-5 py-10 text-center",
+        "min-[1200px]:justify-center min-[1200px]:gap-[42px] min-[1200px]:px-0 min-[1200px]:py-0",
+        className,
+      )}
       {...props}
     >
-      <div className="flex flex-col items-center gap-2 px-5">
-        <h1 className="text-title-l">{resolvedTitle}</h1>
-        {resolvedDescription && <p className="text-body-emphasis">{resolvedDescription}</p>}
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-title-l">{resolvedTitle}</h1>
+          {resolvedDescription && <p className="text-body-emphasis">{resolvedDescription}</p>}
+        </div>
+        <Image
+          src="/images/shared/island.svg"
+          alt=""
+          width={112}
+          height={112}
+          className="size-28"
+        />
+        {resolvedCaption && <p className="text-body-s">{resolvedCaption}</p>}
       </div>
-      <Image src="/images/shared/island.svg" alt="" width={112} height={112} className="size-28" />
-      {resolvedCaption && <p className="text-body-s">{resolvedCaption}</p>}
       {action &&
         (action.href ? (
-          <Button href={action.href} size="lg">
+          <Button href={action.href} size="lg" className={buttonClassName}>
             {actionLabel}
           </Button>
         ) : (
-          <Button onClick={action.onClick} size="lg">
+          <Button onClick={action.onClick} size="lg" className={buttonClassName}>
             {actionLabel}
           </Button>
         ))}
