@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
@@ -20,7 +21,13 @@ import {
 } from "../api/live-api";
 import { LivePlayer, type LivePlayerHandle } from "./live-player";
 import { QueryError } from "./query-error";
-import { chapterRange, toChapters } from "../model/vod-chapters";
+import {
+  chapterRange,
+  clipBadge,
+  formatPlaybackTime,
+  pickClip,
+  toChapters,
+} from "../model/vod-chapters";
 
 function answeredByLabel(value: string) {
   return value === "AI" ? "AI 답변" : value === "SELLER" ? "판매자 답변" : "답변자 미확인";
@@ -38,12 +45,15 @@ export function RealBuyerLive({
   liveId,
   replay = false,
   clip = false,
+  clipId,
   desktop = false,
 }: {
   liveId: string;
   replay?: boolean;
-  /** 모바일 다시보기의 숏 클립 화면(`?view=clip`). */
+  /** 다시보기의 숏 클립 화면(`?mode=replay&view=clip`). */
   clip?: boolean;
+  /** 재생할 쇼츠의 하이라이트 id(`&clip=`). 없거나 맞지 않으면 첫 쇼츠를 재생한다. */
+  clipId?: string;
   desktop?: boolean;
 }) {
   const router = useRouter();
@@ -117,7 +127,10 @@ export function RealBuyerLive({
     retry: false,
     staleTime: Infinity,
   });
-  const markers = highlights.data?.markers ?? [];
+  /* 숏 클립은 원본 VOD의 구간이 아니라 따로 렌더된 영상(clipUrl)이다. 방송 구간 탐색·시킹은
+     클립 재생 위치와 맞지 않아 클립 화면에서는 구간을 쓰지 않는다. */
+  const markers = clip ? [] : (highlights.data?.markers ?? []);
+  const shortClip = clip ? pickClip(highlights.data?.clips ?? [], clipId) : null;
   const chapters = toChapters(markers, position.durationSec);
   const progress = position.durationSec
     ? Math.min(100, (position.currentSec / position.durationSec) * 100)
@@ -145,7 +158,57 @@ export function RealBuyerLive({
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
     retry: false,
   });
-  const video = playback.isPending ? (
+  /* 다시보기·데스크톱 쇼츠는 화면이 Figma 재생바를 그리므로 영상의 기본 컨트롤을 끄고 재생 상태·
+     위치를 올려받는다. Figma 모바일 쇼츠에는 재생바가 없어 기본 컨트롤을 둔다. */
+  const [playing, setPlaying] = useState(false);
+  function trackProgress(currentSec: number, durationSec: number) {
+    setPosition((previous) =>
+      /* timeupdate는 초당 여러 번 온다. 화면이 쓰는 단위는 1초라 같은 초면 그대로 둬서
+         이 트리 전체가 다시 그려지지 않게 한다. */
+      previous.currentSec === Math.floor(currentSec) && previous.durationSec === durationSec
+        ? previous
+        : { currentSec: Math.floor(currentSec), durationSec },
+    );
+  }
+  const playbackProps = {
+    playing,
+    onTogglePlay: () => seekRef.current?.togglePlay(),
+    timeText: {
+      current: formatPlaybackTime(position.currentSec),
+      duration: formatPlaybackTime(position.durationSec),
+    },
+  };
+  /* AI가 제목·자막을 영상에 번인해 두므로 화면 자막을 겹쳐 그리지 않는다. VOD가 준비되지 않아도
+     쇼츠는 따로 서빙되므로 클립 화면은 VOD 재생 정보에 기대지 않는다. */
+  const video = clip ? (
+    highlights.isPending ? (
+      <p>쇼츠를 불러오는 중입니다.</p>
+    ) : highlights.isError ? (
+      <QueryError error={highlights.error} retry={() => void highlights.refetch()} />
+    ) : shortClip?.clipUrl ? (
+      <LivePlayer
+        key={shortClip.highlightId}
+        src={shortClip.clipUrl}
+        title={shortClip.title ?? "숏 클립"}
+        handleRef={seekRef}
+        onProgress={trackProgress}
+        controls={!desktop}
+        onPlayingChange={setPlaying}
+      />
+    ) : (
+      <div className="text-text-static-white grid h-full place-items-center p-6 text-center">
+        <div>
+          <p>공개된 쇼츠가 없습니다.</p>
+          <Link
+            href={`/live/${encodeURIComponent(liveId)}?mode=replay`}
+            className="mt-3 inline-block underline"
+          >
+            다시보기로 이동
+          </Link>
+        </div>
+      </div>
+    )
+  ) : playback.isPending ? (
     <p>영상을 불러오는 중입니다.</p>
   ) : playback.isError ? (
     <QueryError error={playback.error} retry={() => void playback.refetch()} />
@@ -154,15 +217,9 @@ export function RealBuyerLive({
       src={playback.data.playbackUrl}
       title={playback.data.type === "VOD" ? "다시보기" : "라이브"}
       handleRef={seekRef}
-      onProgress={(currentSec, durationSec) =>
-        setPosition((previous) =>
-          /* timeupdate는 초당 여러 번 온다. 화면이 쓰는 단위는 1초라 같은 초면 그대로 둬서
-             이 트리 전체가 다시 그려지지 않게 한다. */
-          previous.currentSec === Math.floor(currentSec) && previous.durationSec === durationSec
-            ? previous
-            : { currentSec: Math.floor(currentSec), durationSec },
-        )
-      }
+      onProgress={trackProgress}
+      controls={!isVod}
+      onPlayingChange={setPlaying}
     />
   );
   const questionData =
@@ -180,12 +237,18 @@ export function RealBuyerLive({
   ) : questions.data?.length ? undefined : (
     <p>등록된 답변이 없습니다.</p>
   );
+  const clipProps = shortClip
+    ? { clipTitle: shortClip.title ?? "숏 클립", clipBadge: clipBadge(shortClip.sceneLabel) }
+    : { clipTitle: "숏 클립", clipBadge: "숏 클립" };
   if (desktop)
     return (
       <BuyerLiveDesktop
         key={liveId}
         liveId={liveId}
         replay={isVod}
+        clip={clip}
+        {...clipProps}
+        {...playbackProps}
         product={realProduct}
         rewardSummary={null}
         questions={questionData}
@@ -198,8 +261,10 @@ export function RealBuyerLive({
         likeCount={likeCount}
         onToggleLike={onToggleLike}
         replayMessages={isVod ? vodChatMessages : undefined}
+        /* 다시보기 채팅은 구간별로 불러와 처음에는 비어 있기 쉽다. 빈 패널 대신 구간 탐색부터 연다. */
+        initialPanel={isVod ? "chapters" : undefined}
         video={video}
-        videoConnected={playback.isSuccess}
+        videoConnected={clip ? Boolean(shortClip) : playback.isSuccess}
         demoMode={false}
       />
     );
@@ -209,6 +274,9 @@ export function RealBuyerLive({
         key={liveId}
         liveId={liveId}
         clip={clip}
+        clipId={shortClip?.highlightId}
+        {...clipProps}
+        {...playbackProps}
         product={{ ...realProduct, title: "다시보기" }}
         demoMode={false}
         video={video}

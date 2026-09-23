@@ -525,6 +525,12 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. 판매자 콘솔의 갱신 주기는 FE가 정한다(#320, 아래 절).
 - IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
+- 공개 하이라이트 GET `/highlights/public`(#270·#317, BE develop `9a0290bb`): 비인증이며 `{markers: [...], clips: [...]}`다. 항목은 `highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`이고 `kind` 필드는 없다(배열로 구분).
+  - 판매자가 공개한 항목(`isPublic=true`, 사실상 완료분)만 온다. 호출할 때마다 공개 항목 조회수가 올라가므로 FE는 화면당 한 번만 부른다.
+  - `sceneLabel`은 영문 enum이라 FE가 표시명으로 바꾼다: INTRO 도입, PRICE_BENEFIT 가격·혜택, DEMO 시연, SPEC 스펙·기능, COMPARISON 비교, AUDIENCE_REACTION 질문 응답, CLOSING 마무리(AI 요구서 기준). 모르는 값은 기타로 적는다. BE develop은 아직 5종이고 INTRO·CLOSING은 BE 브랜치에서 추가 중이다.
+  - `clipUrl`은 AI 서버가 서빙하는 9:16 mp4이며 제목·자막이 영상에 번인돼 있다. FE는 `<video>`로 직접 재생하고 화면 자막을 겹쳐 그리지 않는다. 쇼츠 배지는 DEMO면 시연 영상, 그 외는 하이라이트다.
+  - BE는 VOD 길이를 주지 않는다. 구간 진행률은 플레이어 메타데이터의 길이로 계산한다.
+- 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{senderId, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다.
 
 ### 5.7. 판매자 LIVE 생성·설정·AI 큐시트 (#289)
 
