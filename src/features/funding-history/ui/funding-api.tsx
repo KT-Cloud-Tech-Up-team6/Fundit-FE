@@ -13,6 +13,7 @@ import { isConfirmed, localStore } from "@/features/payment-checkout/model/payme
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 
 export function FundingListApi() {
   return <OrderMemberAccess>{(id) => <FundingList key={id} memberId={id} />}</OrderMemberAccess>;
@@ -52,9 +53,12 @@ function FundingList({ memberId }: { memberId: string }) {
         {list.isPending ? (
           <p role="status">참여 내역을 불러오고 있습니다.</p>
         ) : list.isError ? (
-          <p role="alert">
-            조회 실패. <button onClick={() => void list.refetch()}>다시 시도</button>
-          </p>
+          <ErrorState
+            variant="section"
+            status={toErrorStatus(list.error)}
+            description="참여 내역을 불러오지 못했습니다."
+            action={{ label: "다시 시도", onClick: () => void list.refetch() }}
+          />
         ) : (
           <>
             <p>총 {list.data.totalElements}개</p>
@@ -142,14 +146,19 @@ function Detail({
     }
   }
   return (
-    <BuyerAccountScreen title={cancel ? "펀딩 취소" : "펀딩 상세 내역"} backHref="/my/fundings">
+    <BuyerAccountScreen
+      title={cancel ? "펀딩 취소" : "펀딩 상세 내역"}
+      backHref="/my/fundings"
+      fullPage={detail.isError}
+    >
       <div className="space-y-4 p-5">
         {detail.isPending ? (
           <p role="status">주문을 불러오고 있습니다.</p>
         ) : detail.isError ? (
-          <p role="alert">
-            주문 조회 실패. <button onClick={() => void detail.refetch()}>다시 시도</button>
-          </p>
+          <ErrorState
+            status={toErrorStatus(detail.error)}
+            action={{ label: "다시 시도", onClick: () => void detail.refetch() }}
+          />
         ) : (
           <>
             <p className="break-all">주문번호 {detail.data.orderId}</p>

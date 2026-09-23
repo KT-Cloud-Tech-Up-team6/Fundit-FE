@@ -4,6 +4,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchProjects } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { projectCard } from "@/entities/project/model/project-card";
 import {
   deleteRecentKeyword,
@@ -103,10 +104,12 @@ function SearchSession({ memberId, ready }: { memberId: string | null; ready: bo
           ) : recent.isPending ? (
             <p role="status">최근 검색어를 불러오고 있습니다.</p>
           ) : recent.isError ? (
-            <p role="alert">
-              최근 검색어 조회 실패.{" "}
-              <button onClick={() => void recent.refetch()}>다시 시도</button>
-            </p>
+            <ErrorState
+              variant="section"
+              status={toErrorStatus(recent.error)}
+              description="최근 검색어를 불러오지 못했습니다."
+              action={{ label: "다시 시도", onClick: () => void recent.refetch() }}
+            />
           ) : remove.isError ? (
             <p role="alert">최근 검색어를 삭제하지 못했습니다. 삭제 버튼을 다시 눌러주세요.</p>
           ) : undefined,
@@ -116,10 +119,12 @@ function SearchSession({ memberId, ready }: { memberId: string | null; ready: bo
           state: popular.isPending ? (
             <p role="status">인기 검색어를 불러오고 있습니다.</p>
           ) : popular.isError ? (
-            <p role="alert">
-              인기 검색어 조회 실패.{" "}
-              <button onClick={() => void popular.refetch()}>다시 시도</button>
-            </p>
+            <ErrorState
+              variant="section"
+              status={toErrorStatus(popular.error)}
+              description="인기 검색어를 불러오지 못했습니다."
+              action={{ label: "다시 시도", onClick: () => void popular.refetch() }}
+            />
           ) : undefined,
         },
         state:
@@ -128,9 +133,12 @@ function SearchSession({ memberId, ready }: { memberId: string | null; ready: bo
           ) : active.isPending ? (
             <p role="status">검색 중입니다.</p>
           ) : active.isError ? (
-            <p role="alert">
-              검색하지 못했습니다. <button onClick={() => void active.refetch()}>다시 시도</button>
-            </p>
+            <ErrorState
+              variant="section"
+              status={toErrorStatus(active.error)}
+              description="검색 결과를 불러오지 못했습니다."
+              action={{ label: "다시 시도", onClick: () => void active.refetch() }}
+            />
           ) : undefined,
         footer:
           active.data && query.tab !== "live" ? (
