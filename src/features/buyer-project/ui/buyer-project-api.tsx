@@ -13,6 +13,7 @@ import {
 } from "@/entities/project/api/buyer-project-api";
 import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState } from "@/shared/components/ui/error-state";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
@@ -263,9 +264,11 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       {rewards.isPending ? (
         <p role="status">불러오는 중입니다.</p>
       ) : rewards.isError ? (
-        <p role="alert">
-          리워드 조회 실패. <button onClick={() => void rewards.refetch()}>다시 시도</button>
-        </p>
+        <ErrorState
+          variant="section"
+          description="리워드 조회를 실패하였습니다"
+          action={{ onClick: () => void rewards.refetch() }}
+        />
       ) : (
         rewards.data.map((reward) => (
           <article key={reward.rewardId} className="border-border-default border-b pb-3">

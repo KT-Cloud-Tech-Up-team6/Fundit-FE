@@ -9,6 +9,7 @@ import {
 } from "@/entities/order/api/order-api";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState } from "@/shared/components/ui/error-state";
 import { CouponRadio } from "./coupon-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
 import { couponConditions } from "../model/coupon-conditions";
@@ -85,9 +86,11 @@ export function CouponApiSheet({
         {coupons.isPending ? (
           <p role="status">쿠폰을 불러오고 있습니다.</p>
         ) : coupons.isError ? (
-          <p role="alert">
-            쿠폰 조회 실패. <button onClick={() => void coupons.refetch()}>다시 시도</button>
-          </p>
+          <ErrorState
+            variant="section"
+            description="쿠폰 조회를 실패하였습니다"
+            action={{ onClick: () => void coupons.refetch() }}
+          />
         ) : (
           coupons.data.content.map((coupon) => (
             <CouponRadio
@@ -133,9 +136,11 @@ export function CouponApiSheet({
           {preview.isPending || preview.isFetching ? (
             <p>쿠폰 적용 금액을 확인하고 있습니다.</p>
           ) : preview.isError ? (
-            <p role="alert">
-              쿠폰 확인 실패. <button onClick={() => void preview.refetch()}>다시 시도</button>
-            </p>
+            <ErrorState
+              variant="section"
+              description="쿠폰 확인을 실패하였습니다"
+              action={{ onClick: () => void preview.refetch() }}
+            />
           ) : error ? (
             <p role="alert">{error}</p>
           ) : (
