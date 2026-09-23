@@ -119,20 +119,27 @@ export function ErrorState({
         className={joinClassName("flex flex-col items-center gap-3", className)}
         {...props}
       >
-        <Image
-          src="/images/shared/island.svg"
-          alt=""
-          width={112}
-          height={112}
-          className="size-[65px]"
-        />
-        <p className="text-body-s text-center">
-          {SORRY_PREFIX}
-          <br />
-          {resolvedDescription}
-        </p>
+        <div className="flex flex-col items-center gap-4">
+          <Image
+            src="/images/shared/island.svg"
+            alt=""
+            width={112}
+            height={112}
+            className="size-[65px]"
+          />
+          <p className="text-body-s text-center">
+            {SORRY_PREFIX}
+            <br />
+            {resolvedDescription}
+          </p>
+        </div>
         {action && (
-          <Chip type="button" appearance="outline" onClick={action.onClick}>
+          <Chip
+            type="button"
+            appearance="outline"
+            onClick={action.onClick}
+            className="text-label-m py-1"
+          >
             {actionLabel}
           </Chip>
         )}
