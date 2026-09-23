@@ -51,6 +51,9 @@ export type OrderCreated = {
 };
 export type OrderDetail = {
   orderId: string;
+  /* project-service 배치 조회가 실패하면 null로 내려온다(BE OrderDetailResponse). */
+  projectTitle: string | null;
+  thumbnailUrl: string | null;
   status: string;
   finalAmount: number;
   shippingFee: number;
