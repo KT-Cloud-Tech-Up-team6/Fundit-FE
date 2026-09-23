@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { demoQuestions, type ConsoleDemoState, type DemoQuestion } from "../model/console-demo";
 import { Icon } from "@/shared/components/ui/icon";
@@ -9,6 +9,137 @@ import styles from "./console.module.css";
 
 export type ManagerView =
   { kind: "summary" | "aggregated" } | { kind: "originals" | "answer"; questionId: string };
+
+/* 아래 표시 조각은 데모와 실제 콘솔(`live-integration`)이 함께 쓴다. 데이터 모양만 다르다. */
+
+/** "AI 라이브 매니저" 패널 틀. 제목 옆 상태(갱신 시각 등)는 바깥이 준다. */
+export function ManagerFrame({
+  headingRef,
+  status,
+  children,
+}: {
+  headingRef: RefObject<HTMLHeadingElement | null>;
+  status?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className={`${styles.panel} flex flex-col gap-6 px-4 py-3`}
+      aria-label="AI 라이브 매니저"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h2 ref={headingRef} tabIndex={-1} className="text-title-s">
+          AI 라이브 매니저
+        </h2>
+        {status}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** 하위 화면(원문·답변·집계) 머리. 돌아가기는 요약으로 간다. */
+export function ManagerSubheading({ title, onBack }: { title: ReactNode; onBack: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <h3 className="text-body-emphasis">{title}</h3>
+      <button
+        type="button"
+        className={`${styles.link} text-caption-s text-text-secondary`}
+        onClick={onBack}
+      >
+        돌아가기
+      </button>
+    </div>
+  );
+}
+
+/** 질문 요약 한 줄. `unavailable`은 추천 답변을 만들 수 없는 미답변 질문(Figma 1475:41746)이다. */
+export function QuestionSummaryRow({
+  title,
+  label,
+  count,
+  complete,
+  unavailable,
+  onOpen,
+  onOriginals,
+}: {
+  title: ReactNode;
+  /** 버튼 이름에 쓰는 평문 제목. */
+  label: string;
+  count: number;
+  complete: boolean;
+  unavailable: boolean;
+  onOpen: () => void;
+  onOriginals: () => void;
+}) {
+  return (
+    <li
+      className={`flex overflow-hidden rounded-xs border ${unavailable ? "border-border-accent-warning text-text-warning" : "border-border-default"} ${complete ? "bg-layer-surface-disabled" : ""}`}
+    >
+      <button
+        type="button"
+        className="text-body-s flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
+        onClick={onOpen}
+      >
+        <span className="min-w-0 flex-1">{title}</span>
+        {unavailable && (
+          <>
+            <Icon name="warning" className="h-3.5 w-5 shrink-0" />
+            <span className="sr-only">추천 답변 생성 불가</span>
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        aria-label={`${label} 질문 전체 보기 ${count}건`}
+        className={`${complete ? "bg-layer-surface-primary-disabled" : unavailable ? "bg-status-warning text-text-warning" : "bg-layer-surface-primary text-text-inverse"} text-caption-s w-13 shrink-0 underline`}
+        onClick={onOriginals}
+      >
+        {count}건
+      </button>
+    </li>
+  );
+}
+
+export function UnavailableAnswer() {
+  return (
+    <div className="bg-status-warning text-text-warning flex flex-col items-center gap-4 rounded-xs px-4 py-6 text-center">
+      <Icon name="warning" className="size-8" />
+      <p className="text-body-s">
+        상품 정보가 부족해 추천 답변을 생성할 수 없어요
+        <br />
+        상세 페이지 업데이트가 필요해요
+      </p>
+    </div>
+  );
+}
+
+/** 집계된 Q&A 한 건. `author`는 답변 주체다(판매자·AI). */
+export function AggregatedAnswer({
+  count,
+  title,
+  answer,
+  author,
+}: {
+  count: number;
+  title: string;
+  answer: string;
+  author: string;
+}) {
+  return (
+    <li>
+      <span className="bg-layer-surface-primary-live/5 text-text-primary-live text-label-m rounded-xs px-2 py-1">
+        질문 {count}건
+      </span>
+      <p className="text-body-emphasis mt-2">{title}</p>
+      <div className="border-border-default text-body-s mt-2 rounded-xs border px-3 py-2">
+        <p className="whitespace-pre-wrap">{answer}</p>
+        <p className="text-caption-s text-text-secondary mt-1">{author}</p>
+      </div>
+    </li>
+  );
+}
 
 const authors = [
   "초코송이",
@@ -35,7 +166,21 @@ function QuestionTitle({ question }: { question: DemoQuestion }) {
   );
 }
 
-export function OriginalQuestions({ question }: { question: DemoQuestion }) {
+/** 데모 원문에는 작성자가 없어 Figma 예시 이름을 돌려 붙인다. */
+export function demoOriginals(question: DemoQuestion) {
+  return question.originals.map((text, index) => ({
+    id: String(index),
+    author: authors[index % authors.length],
+    text,
+  }));
+}
+
+/** 질문 원문 목록. 서버 원문에는 작성자 이름이 없어 `author`는 선택이다. */
+export function OriginalQuestions({
+  messages,
+}: {
+  messages: { id: string; author?: string; text: string }[];
+}) {
   const list = useRef<HTMLUListElement>(null);
   return (
     <div className="relative min-h-0 flex-1">
@@ -45,10 +190,10 @@ export function OriginalQuestions({ question }: { question: DemoQuestion }) {
         tabIndex={0}
         className="h-full space-y-2 overflow-y-auto pb-12"
       >
-        {question.originals.map((text, index) => (
-          <li key={index} className="bg-layer-bg rounded-xs px-3 py-2">
-            <p className="text-label-m text-text-secondary">{authors[index % authors.length]}</p>
-            <p className="text-body-s break-words">{text}</p>
+        {messages.map((message) => (
+          <li key={message.id} className="bg-layer-bg rounded-xs px-3 py-2">
+            {message.author && <p className="text-label-m text-text-secondary">{message.author}</p>}
+            <p className="text-body-s break-words">{message.text}</p>
           </li>
         ))}
       </ul>
@@ -98,14 +243,7 @@ function AnswerForm({
         )}
       </div>
       {question.suggestion === null ? (
-        <div className="bg-status-warning text-text-warning flex flex-col items-center gap-4 rounded-xs px-4 py-6 text-center">
-          <Icon name="warning" className="size-8" />
-          <p className="text-body-s">
-            상품 정보가 부족해 추천 답변을 생성할 수 없어요
-            <br />
-            상세 페이지 업데이트가 필요해요
-          </p>
-        </div>
+        <UnavailableAnswer />
       ) : (
         <div className="min-h-0 space-y-2 overflow-y-auto">
           <div className="bg-layer-bg rounded-xs p-4">
@@ -180,38 +318,28 @@ export function QuestionManager({
     "questionId" in view ? demoQuestions.find((q) => q.id === view.questionId) : undefined;
   const answered = demoQuestions.filter((q) => state.answers[q.id]);
   return (
-    <section
-      className={`${styles.panel} flex flex-col gap-6 px-4 py-3`}
-      aria-label="AI 라이브 매니저"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h2 ref={headingRef} tabIndex={-1} className="text-title-s">
-          AI 라이브 매니저
-        </h2>
-        {state.phase !== "loading" && (
+    <ManagerFrame
+      headingRef={headingRef}
+      status={
+        state.phase !== "loading" && (
           <span className="text-caption-s text-text-secondary flex items-center gap-1">
             2분 전 <Icon name="swap" className="size-3.5" />
           </span>
-        )}
-      </div>
+        )
+      }
+    >
       {question ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-body-emphasis">
-              {view.kind === "originals"
+          <ManagerSubheading
+            title={
+              view.kind === "originals"
                 ? `질문 전체 보기 (${question.originals.length})`
-                : "선택한 요약 질문"}
-            </h3>
-            <button
-              type="button"
-              className={`${styles.link} text-caption-s text-text-secondary`}
-              onClick={() => onView({ kind: "summary" })}
-            >
-              돌아가기
-            </button>
-          </div>
+                : "선택한 요약 질문"
+            }
+            onBack={() => onView({ kind: "summary" })}
+          />
           {view.kind === "originals" ? (
-            <OriginalQuestions question={question} />
+            <OriginalQuestions messages={demoOriginals(question)} />
           ) : (
             <>
               <p className="bg-layer-bg text-body-s mb-3 rounded-xs px-4 py-3">{question.title}</p>
@@ -228,28 +356,19 @@ export function QuestionManager({
         </div>
       ) : view.kind === "aggregated" ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex justify-between gap-2">
-            <h3 className="text-body-emphasis">집계된 Q&amp;A ({answered.length})</h3>
-            <button
-              type="button"
-              className={`${styles.link} text-caption-s text-text-secondary`}
-              onClick={() => onView({ kind: "summary" })}
-            >
-              돌아가기
-            </button>
-          </div>
+          <ManagerSubheading
+            title={`집계된 Q&A (${answered.length})`}
+            onBack={() => onView({ kind: "summary" })}
+          />
           <ul className="min-h-0 space-y-4 overflow-y-auto">
             {answered.map((q) => (
-              <li key={q.id}>
-                <span className="bg-layer-surface-primary-live/5 text-text-primary-live text-label-m rounded-xs px-2 py-1">
-                  질문 {q.originals.length}건
-                </span>
-                <p className="text-body-emphasis mt-2">{q.title}</p>
-                <div className="border-border-default text-body-s mt-2 rounded-xs border px-3 py-2">
-                  <p>{state.answers[q.id]}</p>
-                  <p className="text-caption-s text-text-secondary mt-1">판매자</p>
-                </div>
-              </li>
+              <AggregatedAnswer
+                key={q.id}
+                count={q.originals.length}
+                title={q.title}
+                answer={state.answers[q.id]}
+                author="판매자"
+              />
             ))}
           </ul>
         </div>
@@ -277,39 +396,18 @@ export function QuestionManager({
                           {complete ? "답변 완료" : "미 답변 질문"}({questions.length})
                         </h4>
                         <ul className="space-y-2">
-                          {questions.map((q) => {
-                            const unavailable = !complete && q.suggestion === null;
-                            return (
-                              <li
-                                key={q.id}
-                                className={`flex overflow-hidden rounded-xs border ${unavailable ? "border-border-accent-warning text-text-warning" : "border-border-default"} ${complete ? "bg-layer-surface-disabled" : ""}`}
-                              >
-                                <button
-                                  type="button"
-                                  className="text-body-s flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
-                                  onClick={() => onView({ kind: "answer", questionId: q.id })}
-                                >
-                                  <span className="min-w-0 flex-1">
-                                    <QuestionTitle question={q} />
-                                  </span>
-                                  {unavailable && (
-                                    <>
-                                      <Icon name="warning" className="h-3.5 w-5 shrink-0" />
-                                      <span className="sr-only">추천 답변 생성 불가</span>
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={`${q.title} 질문 전체 보기 ${q.originals.length}건`}
-                                  className={`${complete ? "bg-layer-surface-primary-disabled" : unavailable ? "bg-status-warning text-text-warning" : "bg-layer-surface-primary text-text-inverse"} text-caption-s w-13 shrink-0 underline`}
-                                  onClick={() => onView({ kind: "originals", questionId: q.id })}
-                                >
-                                  {q.originals.length}건
-                                </button>
-                              </li>
-                            );
-                          })}
+                          {questions.map((q) => (
+                            <QuestionSummaryRow
+                              key={q.id}
+                              title={<QuestionTitle question={q} />}
+                              label={q.title}
+                              count={q.originals.length}
+                              complete={complete}
+                              unavailable={!complete && q.suggestion === null}
+                              onOpen={() => onView({ kind: "answer", questionId: q.id })}
+                              onOriginals={() => onView({ kind: "originals", questionId: q.id })}
+                            />
+                          ))}
                         </ul>
                       </div>
                     );
@@ -330,6 +428,6 @@ export function QuestionManager({
           )}
         </>
       )}
-    </section>
+    </ManagerFrame>
   );
 }

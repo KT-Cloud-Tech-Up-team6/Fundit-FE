@@ -511,17 +511,18 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`. |
 | 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                          |
-| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{qna: [...]}`.                                                           |
+| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{aiStatus, qna: [...]}`.                                                 |
 | 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                      |
 | 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                           |
 | 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}` 또는 `{action: "SEND", finalAnswer}`.              |
 | 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
 
 - 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
-- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. 초안이 없어도 판매자가 직접 답변을 작성할 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
+- `aiStatus`는 `PREPARING`(AI 상품정보 색인 전)·`READY`다. 질문이 없을 때 두 상태를 다른 문구로 안내한다(요구사항 6.4.4.4). insights 호출이 BE에 AI 집계를 반영(upsert)하게 하므로 판매자 화면이 주기적으로 부른다.
+- 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
 - `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
 - `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
-- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. FE 자동 폴링 주기는 이 계약에서 확정하지 않는다.
+- BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. 판매자 콘솔의 갱신 주기는 FE가 정한다(#320, 아래 절).
 - IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
 - 공개 하이라이트 GET `/highlights/public`(#270·#317, BE develop `9a0290bb`): 비인증이며 `{markers: [...], clips: [...]}`다. 항목은 `highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`이고 `kind` 필드는 없다(배열로 구분).
@@ -551,8 +552,30 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
 - `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 `failureReason`과 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
-- **`liveId` 단건 조회 API가 없다.** `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404다. LIVE의 `projectId`가 필요한 화면은 `/lives/mine`에서 찾는다 — 단건 조회가 생기면 걷어낼 우회다.
+- #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾는다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)은 이를 쓴다. 큐시트 화면의 우회 제거는 별도 작업이다.
 - 송출 시작(`POST /start`)은 스트림 키 조회 API가 없어 화면에 붙이지 않았다.
+
+### 5.8. 판매자 LIVE 콘솔 (#320)
+
+`/seller/live/{UUID}/console`은 Figma 콘솔 UI(데모와 같은 패널)에 아래 API를 연결한다. 기준은 BE `develop` `09231959`다.
+
+| 영역                      | API                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| 헤더 LIVE 종료            | POST `/api/v1/lives/{liveId}/end` → `{liveId, status, ...}`. 진행 중이 아니면 409.          |
+| 송출 모니터링             | GET `/playback` 영상, GET `/api/v1/lives/{liveId}`의 `viewerCount`·`elapsedSeconds`(소유자) |
+| 큐시트 패널               | GET `/cue-sheet`(404는 "큐시트 없음")                                                       |
+| 질문 요약·원문·초안·등록  | 5.6의 `/chat/unanswered`·`/chat/questions/{id}`·`ai-answer`                                 |
+| AI 상태                   | 5.6의 `/chat/insights` `aiStatus`                                                           |
+| 집계된 Q&A·LIVE 체크 목록 | 5.6의 `/chat/answered-questions`(시청자 Q&A와 같은 목록, IA 46)                             |
+| LIVE 체크 추가            | POST `/api/v1/projects/{projectId}/live-verifications` `{questionSummaryId, answer}` → 201  |
+
+- `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 위 5.7의 `/lives/mine` 우회는 큐시트 화면에 그대로 남아 있다.
+- insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
+- 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
+- "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
+- LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
+- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 방송 중 펀딩 건수·금액, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 수치는 `-`다(2026-09-23 결정).
+- BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
 
 ## 6. 최신 답변으로 정리한 차이
 
