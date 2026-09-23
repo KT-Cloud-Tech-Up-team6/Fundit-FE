@@ -425,16 +425,15 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 ### 5.1. 상태·수정·제출
 
-enum은 DRAFT, PENDING_REVIEW, ONGOING, SUCCEEDED, FAILED다.
+enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리자 심사(PENDING_REVIEW)가 폐지됐다.
 
-| 동작       | 최신 구현 답변 기준                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 제출       | DRAFT → PENDING_REVIEW. 기본정보(사업자유형·카테고리·제목·목표금액), 소개 콘텐츠, 리워드 1개 이상, 개인정보 동의가 모두 필요. 불충족은 422 PROJECT_NOT_SUBMITTABLE. |
-| 승인       | PENDING_REVIEW → ONGOING.                                                                                                                                           |
-| 반려       | PENDING_REVIEW → DRAFT, 재제출 가능.                                                                                                                                |
-| 심사 불가  | PENDING_REVIEW 외에는 422 PROJECT_NOT_REVIEWABLE.                                                                                                                   |
-| 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                   |
-| 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                   |
+| 동작       | 최신 구현 답변 기준                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 공개(제출) | DRAFT → ONGOING(관리자 승인 없음). 기본정보(사업자유형·카테고리·제목·목표금액), 소개 콘텐츠, 리워드 1개 이상, 개인정보 동의가 모두 필요. 불충족은 422 PROJECT_NOT_SUBMITTABLE. |
+| 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                              |
+| 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                              |
+
+공개 시점이 펀딩 시작이고 마감은 30일 뒤다. PROJECT_NOT_SUBMITTABLE 메시지 끝에는 빠진 키 목록(`basicInfo, story, rewards, privacyConsent`)이 붙고 `detail`은 비어 있다. FE는 이 목록으로 빠진 항목을 안내한다(#322).
 
 진행 중 목표금액·가격 수정도 현재 서버가 막지 않는다. FE 비활성화만으로 보안을 대신하지 않으며 상태별 허용 필드와 BE 검증을 협의한다. ONGOING에서 SUCCEEDED/FAILED로 전환하는 시점·주체는 전달된 답변으로 확정하지 않는다.
 
@@ -442,21 +441,20 @@ enum은 DRAFT, PENDING_REVIEW, ONGOING, SUCCEEDED, FAILED다.
 
 다음은 프로젝트 명세 보완이다.
 
-| 동작             | Method·Path                                               | 핵심 계약                                                                      |
-| ---------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 목록             | GET `/api/v1/projects`                                    | 판매자 본인 목록, 선택 status와 page/size. status 미지정은 전체.               |
-| 신규 생성        | POST `/api/v1/projects`                                   | 본문 없음 → projectId(UUID v7), status=DRAFT.                                  |
-| 기본정보         | PATCH `/api/v1/projects/{projectId}/basic-info`           | businessType, categoryMajor, categoryMinor, title, goalAmount 부분 갱신.       |
-| 개인정보 동의    | POST `/api/v1/projects/{projectId}/privacy-consent`       | agreed. 프로젝트 약관 코드 목록과 별개.                                        |
-| 소개             | PATCH `/api/v1/projects/{projectId}/story`                | title, coverImageUrl, introContent.                                            |
-| 리워드 등록      | POST `/api/v1/projects/{projectId}/rewards`               | name, description, imageUrl, price, isLimited, quantity, isEarlyBird, options. |
-| 리워드 수정/삭제 | PATCH/DELETE `/api/v1/rewards/{rewardId}`                 | 수정은 부분 필드, 삭제 성공은 본문 없는 204.                                   |
-| 고시             | PUT `/api/v1/rewards/{rewardId}/disclosure`               | categoryType, disclosure.                                                      |
-| 환불 특이사항    | PATCH `/api/v1/rewards/{rewardId}/refund-policy`          | simpleRefundDisabled.                                                          |
-| 제출             | POST `/api/v1/projects/{projectId}/submit`                | 본문 없음. 최신 조건·오류는 5.1 적용.                                          |
-| 관리자 심사      | POST `/api/v1/admin/projects/{projectId}/review-decision` | decision(APPROVED/REJECTED), 반려 시 rejectReason.                             |
-| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`                | 본인 미공개 프로젝트 조회용.                                                   |
-| 공개 상세        | GET `/api/v1/projects/{projectId}`                        | 미공개 DRAFT/PENDING_REVIEW는 404.                                             |
+| 동작             | Method·Path                                         | 핵심 계약                                                                      |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 목록             | GET `/api/v1/projects`                              | 판매자 본인 목록, 선택 status와 page/size. status 미지정은 전체.               |
+| 신규 생성        | POST `/api/v1/projects`                             | 본문 없음 → projectId(UUID v7), status=DRAFT.                                  |
+| 기본정보         | PATCH `/api/v1/projects/{projectId}/basic-info`     | businessType, categoryMajor, categoryMinor, title, goalAmount 부분 갱신.       |
+| 개인정보 동의    | POST `/api/v1/projects/{projectId}/privacy-consent` | agreed. 프로젝트 약관 코드 목록과 별개. false는 422 PRIVACY_CONSENT_REQUIRED.  |
+| 소개             | PATCH `/api/v1/projects/{projectId}/story`          | title, coverImageUrl, introContent.                                            |
+| 리워드 등록      | POST `/api/v1/projects/{projectId}/rewards`         | name, description, imageUrl, price, isLimited, quantity, isEarlyBird, options. |
+| 리워드 수정/삭제 | PATCH/DELETE `/api/v1/rewards/{rewardId}`           | 수정은 부분 필드, 삭제 성공은 본문 없는 204.                                   |
+| 고시             | PUT `/api/v1/rewards/{rewardId}/disclosure`         | categoryType, disclosure.                                                      |
+| 환불 특이사항    | PATCH `/api/v1/rewards/{rewardId}/refund-policy`    | simpleRefundDisabled.                                                          |
+| 공개(제출)       | POST `/api/v1/projects/{projectId}/submit`          | 본문 없음 → projectId, status. 조건·오류는 5.1 적용.                           |
+| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용.                                                   |
+| 공개 상세        | GET `/api/v1/projects/{projectId}`                  | 미공개 DRAFT는 404.                                                            |
 
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.
 
