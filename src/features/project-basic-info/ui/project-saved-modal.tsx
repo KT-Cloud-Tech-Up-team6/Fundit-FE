@@ -15,8 +15,10 @@ export function ProjectSavedModal({
 }) {
   return (
     <Modal open title="기본정보가 저장되었습니다" onClose={onLater}>
-      <p className="text-body-m mt-6 text-center">이어서 펀딩 스토리를 작성하시겠어요?</p>
-      <div className="mt-6 flex gap-3">
+      <p className="text-body-m mt-16 text-center break-keep">
+        이어서 펀딩 스토리를 작성하시겠어요?
+      </p>
+      <div className="mt-16 flex gap-3">
         <Button
           type="button"
           variant="secondary"
