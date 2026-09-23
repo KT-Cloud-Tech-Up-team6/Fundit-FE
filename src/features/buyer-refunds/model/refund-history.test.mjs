@@ -46,8 +46,43 @@ test("날짜는 서버 시각의 앞 10자리만 쓴다", () => {
   assert.equal(delayed.completedAt, "");
 });
 
-test("교환 필터는 대응하는 트리거가 없어 항상 비어 있다", () => {
+const exchange = toRefundEntry({
+  ...refundSummariesDemo[0],
+  refundId: 99,
+  triggerType: "EXCHANGE",
+  status: "REQUESTED",
+  reasonDetail: "상품 파손: 모서리가 깨졌습니다",
+  lineItems: [
+    {
+      rewardName: "센트모먼트 바디미스트",
+      quantity: 1,
+      unitPrice: 12000,
+      options: [
+        { optionGroupName: "용량", optionValue: "50ml" },
+        { optionGroupName: "향", optionValue: "우디" },
+      ],
+    },
+  ],
+});
+
+test("교환 트리거는 교환 유형이며 REQUESTED에서 진행 중으로 남는다", () => {
+  assert.equal(exchange.type, "교환");
+  assert.equal(exchange.status, "교환 진행 중");
+  assert.equal(exchange.cash, null);
+  assert.deepEqual(
+    filterRefundEntries([...entries, exchange], "교환", false).map((entry) => entry.id),
+    ["99"],
+  );
   assert.equal(filterRefundEntries(entries, "교환", false).length, 0);
+});
+
+test("교환 사유는 FE가 보낸 라벨과 설명으로 나뉜다", () => {
+  assert.equal(exchange.reason, "상품 파손 · 모서리가 깨졌습니다");
+});
+
+test("상품 옵션은 그룹과 값을 이어 옵션 행에 담는다", () => {
+  assert.equal(exchange.items[0].option, "용량 50ml · 향 우디");
+  assert.equal(cancelled.items[0].option, "");
 });
 
 test("유형과 진행 중만 보기는 함께 적용된다", () => {

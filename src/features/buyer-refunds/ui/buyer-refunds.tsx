@@ -44,18 +44,23 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export function BuyerRefunds({
   entries,
   total,
+  inProgress,
   children,
 }: {
   entries: RefundEntry[];
   /** 서버 전체 건수. 필터를 걸지 않은 동안에만 쓴다. */
   total?: number;
+  /** 서버가 "진행 중만 보기"를 거르는 화면이면 그 상태를 넘긴다. 없으면 화면 안에서 거른다. */
+  inProgress?: { checked: boolean; onChange: (checked: boolean) => void };
   /** 페이지 이동처럼 목록 아래에 덧붙일 요소. */
   children?: ReactNode;
 }) {
   const [type, setType] = useState<RefundFilterType>("전체");
-  const [inProgressOnly, setInProgressOnly] = useState(false);
+  const [localInProgress, setLocalInProgress] = useState(false);
+  const inProgressOnly = inProgress?.checked ?? localInProgress;
   const filtered = filterRefundEntries(entries, type, inProgressOnly);
-  const filtering = type !== "전체" || inProgressOnly;
+  /* 서버가 진행 중만 거른 목록이면 서버 전체 건수도 같은 기준이라 그대로 쓸 수 있다. */
+  const filtering = type !== "전체" || (inProgressOnly && !inProgress);
   /* 서버 전체 건수는 이 페이지에 실제로 내역이 있을 때만 쓴다. 범위를 벗어난 page로 들어오면
      content가 비어 있는데 totalElements는 그대로라, "총 45개" 아래에 "내역이 없습니다"가 붙는다. */
   const count = !filtering && total !== undefined && entries.length > 0 ? total : filtered.length;
@@ -70,7 +75,11 @@ export function BuyerRefunds({
               className="[&>span:last-child]:!text-caption-m px-2 py-1"
               checked={inProgressOnly}
               onChange={() => {}}
-              onClick={() => setInProgressOnly((value) => !value)}
+              onClick={() =>
+                inProgress
+                  ? inProgress.onChange(!inProgress.checked)
+                  : setLocalInProgress((v) => !v)
+              }
             >
               진행 중만 보기
             </Radio>
@@ -86,9 +95,7 @@ export function BuyerRefunds({
         </div>
         {filtered.length === 0 ? (
           <p className="bg-layer-surface-default text-body-s px-5 py-24 text-center">
-            {type === "교환"
-              ? "교환 내역은 아직 제공되지 않습니다."
-              : "취소/환불/교환 내역이 없습니다."}
+            취소/환불/교환 내역이 없습니다.
           </p>
         ) : (
           filtered.map((entry) => (

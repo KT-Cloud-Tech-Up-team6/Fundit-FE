@@ -726,3 +726,19 @@ Gateway가 `/api/v1/refunds/**`와 `/api/v2/refunds/**`를 payment-service로 �
 #### 주문 상세에 없는 값
 
 신청 화면 헤더는 이미지·프로젝트명·리워드옵션·수량·금액을 보여준다. `GET /api/v1/orders/{orderId}`의 `OrderDetailResponse`에는 `projectTitle`·`thumbnailUrl`이 없고 목록 응답(`OrderSummaryResponse`)에만 있다. 리워드명·옵션·수량·금액만 채우고 나머지는 자리를 비운다.
+
+### 2026-09-23 BE #124 환불 계약 반영 (#298)
+
+BE PR #124(`develop` `7dd5bd5`)로 위 두 절의 "계약 없음" 중 아래 항목이 생겨 연결했다. 위 절은 당시 기록이다.
+
+| 항목                  | 계약                                                                                      | FE 동작                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 반품 단순변심         | `POST /api/v2/refunds/simple-change-of-mind` `{fundingId}` → 201 `{refundId, status}`     | 사진·상세 미전송 안내. 발송 후면 409 `ALREADY_SHIPPED`를 사유 변경 안내로 표시             |
+| 반품 구성품 누락·기타 | `/defect`의 `defectType` `MISSING_COMPONENTS`·`OTHER`                                     | 하자와 같이 사진 필수                                                                      |
+| 교환 사유 5종         | `POST /api/v2/refunds/exchange` `{fundingId, reasonDetail, evidenceUrls(1장 이상)}` → 201 | `reasonDetail` = `"{사유 라벨}: {입력 내용}"`. REQUESTED에서 멈추며 승인·완료는 BE 범위 밖 |
+| 내역 교환 유형        | `triggerType` `EXCHANGE`                                                                  | "교환" 유형, 사유는 `라벨 · 내용`으로 표시                                                 |
+| 내역 진행 중 필터     | `GET /api/v2/refunds?inProgress=true` (REQUESTED·UNDER_REVIEW·APPROVED·PROCESSING)        | URL `?inProgress=true`로 서버 필터, 전환 시 첫 페이지                                      |
+| 내역 옵션             | `lineItems[].options[] {optionGroupName, optionValue}`                                    | `그룹 값`을 `·`로 이어 옵션 행에 표시                                                      |
+| 신청 화면 헤더        | `OrderDetailResponse.projectTitle`·`thumbnailUrl` (project-service 실패 시 null)          | null이면 자리만 유지                                                                       |
+
+`triggerType` 필터는 값 하나만 받아 여러 트리거를 묶는 "취소"·"환불" 유형을 표현하지 못한다. 유형 필터는 계속 현재 페이지 안에서만 걸린다. 펀딩번호·적립금 환불 금액은 여전히 계약이 없다.

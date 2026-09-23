@@ -38,6 +38,8 @@ export type FundingCancelDetail = {
 
 export type FundingCancelSubmit = {
   submission: RefundSubmission;
+  /** 선택한 사유 라벨. 교환은 BE enum이 없어 이 라벨을 reasonDetail에 담는다. */
+  reason: string;
   reasonDetail: string;
   files: File[];
 };
@@ -78,11 +80,15 @@ export function FundingCancel({
   const photosRef = useRef<CancelPhoto[]>([]);
 
   const submission = isReturn ? refundSubmissionFor(returnType, reason) : null;
-  /* 하자 환불은 evidenceUrls가 필수라(DefectRefundRequestV2) 사진 없이 보내면 400이 된다.
-     원본은 "(선택)"으로 그려져 있어 디자인 확인이 필요하다(docs/OPEN_DECISIONS.md). */
-  const needsEvidence = submission?.supported === true && submission.kind === "defect";
-  /* 배송 지연 계약은 fundingId만 받는다. 첨부·상세가 서버로 가지 않는다는 것을 알린다. */
-  const unsentAttachments = submission?.supported === true && submission.kind === "shipping-delay";
+  /* 하자 환불·교환은 evidenceUrls가 필수라(DefectRefundRequestV2·ExchangeRequestV2) 사진 없이
+     보내면 400이 된다. 원본은 "(선택)"으로 그려져 있어 디자인 확인이 필요하다(docs/OPEN_DECISIONS.md). */
+  const needsEvidence =
+    submission?.supported === true &&
+    (submission.kind === "defect" || submission.kind === "exchange");
+  /* 배송 지연·단순변심 계약은 fundingId만 받는다. 첨부·상세가 서버로 가지 않는다는 것을 알린다. */
+  const unsentAttachments =
+    submission?.supported === true &&
+    (submission.kind === "shipping-delay" || submission.kind === "simple-change-of-mind");
   const blockedReason =
     submission !== null && !submission.supported && reason !== "" ? submission.reason : "";
   const canSubmit =
@@ -147,6 +153,7 @@ export function FundingCancel({
     setConfirmOpen(false);
     onSubmit({
       submission: submission ?? { supported: false, reason: "" },
+      reason,
       reasonDetail: detailText,
       files: photos.map((photo) => photo.file),
     });
@@ -171,7 +178,7 @@ export function FundingCancel({
                 className="size-20 shrink-0 rounded-xs object-cover"
               />
             ) : (
-              /* 주문 상세에 썸네일이 없다. 자리만 유지한다. */
+              /* 썸네일이 없으면 자리만 유지한다. */
               <div className="bg-layer-bg size-20 shrink-0 rounded-xs" />
             )}
             <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -275,7 +282,7 @@ export function FundingCancel({
                 </h2>
                 {unsentAttachments && (
                   <p role="status" className="text-caption-m text-text-secondary">
-                    배송 지연 접수에는 사진과 상세 내용이 함께 전달되지 않습니다.
+                    {reason} 접수에는 사진과 상세 내용이 함께 전달되지 않습니다.
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
