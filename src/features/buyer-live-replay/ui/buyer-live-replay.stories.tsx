@@ -105,7 +105,7 @@ export const Clip: Story = {
 /* 아래는 실제 경로(RealBuyerLive)가 쓰는 연결 상태다. 구간·채팅·재생 위치를 바깥이 소유한다. */
 const connectedChapters = [
   { time: "00:00", title: "방송 시작", label: "도입", progress: 0 },
-  { time: "01:00", title: "제품 소개", label: "기능 설명", progress: 50 },
+  { time: "01:00", title: "제품 소개", label: "스펙·기능", progress: 50 },
 ];
 const connectedArgs = {
   demoMode: false,
@@ -123,7 +123,9 @@ export const Connected: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     expect(canvas.getByTestId("player")).toBeVisible();
-    expect(canvas.queryByRole("slider")).not.toBeInTheDocument();
+    // 실제 경로도 Figma 재생바를 그리되 목업 문구(목업 재생 위치)는 쓰지 않는다.
+    expect(canvas.getByRole("slider", { name: "재생 위치" })).toBeInTheDocument();
+    expect(canvas.queryByRole("slider", { name: "목업 재생 위치" })).not.toBeInTheDocument();
     expect(canvas.queryByRole("button", { name: "팔로우" })).not.toBeInTheDocument();
     expect(canvas.queryByLabelText("연결된 프로젝트 목업")).not.toBeInTheDocument();
     expect(canvas.getByText("구간 채팅입니다")).toBeVisible();
@@ -152,6 +154,9 @@ export const ConnectedClip: Story = {
   args: {
     ...connectedArgs,
     clip: true,
+    clipId: "clip-2",
+    clipTitle: "[로보락 F25] 고추기름도 한 번에",
+    clipBadge: "하이라이트",
     liked: false,
     onToggleLike: fn(),
     /* 클립에는 Q&A 버튼이 없다. 데이터를 줘도 열 수 없는 시트를 그리지 않는다. */
@@ -161,6 +166,10 @@ export const ConnectedClip: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    // 제목·배지는 쇼츠 응답 값을 쓰고, 영상에 번인된 자막을 화면 자막으로 겹쳐 그리지 않는다.
+    expect(canvas.getByRole("heading", { name: "[로보락 F25] 고추기름도 한 번에" })).toBeVisible();
+    expect(canvas.getByText("하이라이트")).toBeVisible();
+    expect(canvas.queryByText(/물걸레\+진공/)).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "좋아요" }));
     expect(args.onToggleLike).toHaveBeenCalled();
     // 좋아요 상태는 바깥(방송 좋아요 API)이 소유해 로컬로 켜지지 않는다.

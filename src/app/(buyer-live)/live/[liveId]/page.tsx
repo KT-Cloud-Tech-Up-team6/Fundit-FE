@@ -17,26 +17,33 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
   const query = await searchParams;
   const connection = getLiveDemoConnection(liveId);
   if (!connection && !isPublicUuid(liveId)) notFound();
-  if (!connection)
+  if (!connection) {
+    const replay = query.mode === "replay";
+    const clip = replay && query.view === "clip";
+    const clipId = typeof query.clip === "string" ? query.clip : undefined;
     return (
       <LiveViewport
         desktop={
           <RealBuyerLive
-            key={`${liveId}:desktop:${query.mode === "replay"}`}
+            key={`${liveId}:desktop:${replay}:${clip}`}
             liveId={liveId}
-            replay={query.mode === "replay"}
+            replay={replay}
+            clip={clip}
+            clipId={clipId}
             desktop
           />
         }
       >
         <RealBuyerLive
-          key={`${liveId}:mobile:${query.mode === "replay"}:${query.view === "clip"}`}
+          key={`${liveId}:mobile:${replay}:${clip}`}
           liveId={liveId}
-          replay={query.mode === "replay"}
-          clip={query.view === "clip"}
+          replay={replay}
+          clip={clip}
+          clipId={clipId}
         />
       </LiveViewport>
     );
+  }
   const product = connection
     ? {
         ...roomDemo,

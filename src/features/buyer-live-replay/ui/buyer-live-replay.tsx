@@ -69,12 +69,18 @@ export function BuyerLiveReplay({
   rewardAction,
   product = replayDemo,
   clip = false,
+  clipId,
+  clipTitle = "[제품명] AI 생성 제목",
+  clipBadge = "시연 영상",
   initialPanel = "chat",
   demoMode = true,
   video,
   chapters = demoChapters,
   progress: progressProp,
   onSeek,
+  playing: playingProp,
+  onTogglePlay,
+  timeText,
   liked: likedProp,
   onToggleLike,
   replayMessages,
@@ -87,6 +93,11 @@ export function BuyerLiveReplay({
   rewardAction?: ReactNode;
   product?: typeof replayDemo;
   clip?: boolean;
+  /** 실제 쇼츠의 하이라이트 id. 공유 링크가 같은 쇼츠를 가리키게 한다. */
+  clipId?: string;
+  /** 쇼츠 제목·배지. 기본값은 Figma 예시 문구다(데모). */
+  clipTitle?: string;
+  clipBadge?: string;
   initialPanel?: "chat" | "chapters";
   /** 목업 전용 정보(가짜 지표·프로젝트 카드·자막)를 그릴지. 실제 경로는 false다. */
   demoMode?: boolean;
@@ -97,6 +108,10 @@ export function BuyerLiveReplay({
      위치를 소유하고 이 컴포넌트는 표시만 한다. 주지 않으면 기존 목업 동작을 유지한다. */
   progress?: number;
   onSeek?: (progressPercent: number) => void;
+  /** 실제 영상의 재생 여부·재생 전환과 재생바 시각. 주지 않으면 목업 상태를 쓴다. */
+  playing?: boolean;
+  onTogglePlay?: () => void;
+  timeText?: { current: string; duration: string };
   liked?: boolean;
   /** 주면 숏 클립 좋아요를 바깥(방송 좋아요 API)으로 넘긴다. */
   onToggleLike?: () => void;
@@ -113,7 +128,8 @@ export function BuyerLiveReplay({
   const [following, setFollowing] = useState(false);
   const [internalLiked, setInternalLiked] = useState(false);
   const liked = likedProp ?? internalLiked;
-  const [playing, setPlaying] = useState(true);
+  const [internalPlaying, setInternalPlaying] = useState(true);
+  const playing = playingProp ?? internalPlaying;
   const [internalProgress, setInternalProgress] = useState(37.5);
   const progress = onSeek ? (progressProp ?? 0) : internalProgress;
   /* 실제 경로에서는 받아온 구간이 있을 때만 타임라인을 연다. 없으면 채팅만 그린다. */
@@ -160,7 +176,7 @@ export function BuyerLiveReplay({
       return;
     }
     setInternalProgress(value);
-    setPlaying(true);
+    setInternalPlaying(true);
   }
   function moveChapter(index: number) {
     if (index === 0 || index === chapters.length - 1) playbackButton.current?.focus();
@@ -170,7 +186,7 @@ export function BuyerLiveReplay({
     try {
       await navigator.clipboard.writeText(
         new URL(
-          `/live/${encodeURIComponent(liveId)}?mode=replay${clip ? "&view=clip" : ""}`,
+          `/live/${encodeURIComponent(liveId)}?mode=replay${clip ? "&view=clip" : ""}${clip && clipId ? `&clip=${encodeURIComponent(clipId)}` : ""}`,
           window.location.origin,
         ).href,
       );
@@ -199,7 +215,7 @@ export function BuyerLiveReplay({
         </div>
       )}
       <header className={`${styles.header} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
-        <h1>{clip ? "[제품명] AI 생성 제목" : product.title}</h1>
+        <h1>{clip ? clipTitle : product.title}</h1>
         <button type="button" aria-label="전체 화면 전환" onClick={fullscreen}>
           <ReplayIcon name="expand" />
         </button>
@@ -232,7 +248,7 @@ export function BuyerLiveReplay({
             )}
             {clip ? (
               <Badge variant="neutral" className={styles.badge}>
-                시연 영상
+                {clipBadge}
               </Badge>
             ) : (
               demoMode && (
@@ -434,8 +450,9 @@ export function BuyerLiveReplay({
                 ))}
               </div>
             )}
-            {/* 목업 진행바다. 실제 경로는 LivePlayer의 기본 컨트롤이 위치를 소유한다. */}
-            {demoMode && (
+            {/* Figma 재생바. 실제 경로(onSeek)는 영상이 위치·재생 여부를 소유하고 여기서는 표시·전환만 한다.
+                첫 구간 전이거나 구간이 없으면 이전·다음 구간 이동을 막는다. */}
+            {(demoMode || onSeek) && (
               <div className={styles.playback}>
                 <input
                   style={{ "--progress": `${progress}%` } as CSSProperties}
@@ -443,17 +460,21 @@ export function BuyerLiveReplay({
                   min={0}
                   max={100}
                   value={progress}
-                  aria-label="목업 재생 위치"
-                  aria-valuetext={`${progress}% · 실제 영상 미연결`}
+                  aria-label={demoMode ? "목업 재생 위치" : "재생 위치"}
+                  aria-valuetext={
+                    demoMode
+                      ? `${progress}% · 실제 영상 미연결`
+                      : `${timeText?.current ?? "00:00:00"} / ${timeText?.duration ?? "00:00:00"}`
+                  }
                   onChange={(event) => seek(Number(event.target.value))}
                 />
                 <div className={styles.controls}>
-                  <span>00:00:00</span>
+                  <span>{timeText?.current ?? "00:00:00"}</span>
                   <div>
                     <button
                       type="button"
                       aria-label="이전 구간"
-                      disabled={currentChapter === 0}
+                      disabled={currentChapter <= 0}
                       onClick={() => moveChapter(currentChapter - 1)}
                     >
                       <ReplayIcon name="previous" small />
@@ -462,20 +483,20 @@ export function BuyerLiveReplay({
                       type="button"
                       aria-label={playing ? "일시정지" : "재생"}
                       ref={playbackButton}
-                      onClick={() => setPlaying(!playing)}
+                      onClick={() => (onTogglePlay ? onTogglePlay() : setInternalPlaying(!playing))}
                     >
                       <ReplayIcon name={playing ? "pause" : "play"} small />
                     </button>
                     <button
                       type="button"
                       aria-label="다음 구간"
-                      disabled={currentChapter === chapters.length - 1}
+                      disabled={currentChapter >= chapters.length - 1}
                       onClick={() => moveChapter(currentChapter + 1)}
                     >
                       <ReplayIcon name="next" small />
                     </button>
                   </div>
-                  <span>00:00:00</span>
+                  <span>{timeText?.duration ?? "00:00:00"}</span>
                 </div>
               </div>
             )}
