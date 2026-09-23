@@ -13,6 +13,7 @@ import { isConfirmed, localStore } from "@/features/payment-checkout/model/payme
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
+import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 export function FundingListApi() {
@@ -30,6 +31,7 @@ function FundingList({ memberId }: { memberId: string }) {
     queryKey: ["orders", memberId, page, status],
     queryFn: ({ signal }) => getOrders(page, status, signal),
   });
+  const listErrorStatus = toErrorStatus(list.error);
   function move(next: number, nextStatus = status) {
     router.push(
       `/my/fundings?${new URLSearchParams({ page: String(next + 1), status: nextStatus })}`,
@@ -53,11 +55,21 @@ function FundingList({ memberId }: { memberId: string }) {
         {list.isPending ? (
           <p role="status">참여 내역을 불러오고 있습니다.</p>
         ) : list.isError ? (
-          <QueryErrorState
+          <ErrorState
             variant="section"
-            error={list.error}
-            description="참여 내역을 불러오지 못했습니다."
-            onRetry={() => void list.refetch()}
+            status={listErrorStatus}
+            description={
+              listErrorStatus === "unauthorized" || listErrorStatus === "forbidden"
+                ? undefined
+                : "참여 내역을 불러오지 못했습니다."
+            }
+            action={
+              listErrorStatus === "unauthorized"
+                ? { href: "/auth/login" }
+                : listErrorStatus === "forbidden"
+                  ? { onClick: () => router.back() }
+                  : { label: "다시 시도", onClick: () => void list.refetch() }
+            }
           />
         ) : (
           <>
