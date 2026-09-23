@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import { ErrorState } from "./error-state";
+import { ErrorState, type ErrorStateProps } from "./error-state";
 
 const meta = {
   title: "Shared/UI/ErrorState",
@@ -8,7 +8,7 @@ const meta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="w-[390px] max-w-full py-5">
+      <div className="flex min-h-dvh w-full flex-col">
         <Story />
       </div>
     ),
@@ -25,9 +25,9 @@ const meta = {
       options: ["notFound", "server", "forbidden", "unauthorized", "network"],
     },
   },
-} satisfies Meta<typeof ErrorState>;
+} satisfies Meta<ErrorStateProps>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<ErrorStateProps>;
 
 export const NotFound: Story = {};
 export const Server: Story = { args: { status: "server" } };
@@ -62,7 +62,7 @@ export const LongContent: Story = {
 };
 
 export const Gallery: Story = {
-  render: (args) => (
+  render: (args: ErrorStateProps) => (
     <div className="flex flex-col gap-10">
       {(["notFound", "server", "forbidden", "unauthorized", "network"] as const).map((status) => (
         <ErrorState key={status} {...args} status={status} />

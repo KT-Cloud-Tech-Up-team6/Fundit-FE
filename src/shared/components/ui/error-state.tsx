@@ -13,17 +13,28 @@ type ErrorAction = { label?: string } & (
   { onClick: () => void; href?: never } | { href: string; onClick?: never }
 );
 
-type ErrorStateProps = Omit<ComponentPropsWithoutRef<"div">, "title"> & {
-  /** page: 화면 전체 대체. section: 목록·카드 일부 실패. text: 아이콘·버튼 없는 경고 문구. */
-  variant?: "page" | "section" | "text";
+type ErrorStateCommonProps = Omit<ComponentPropsWithoutRef<"div">, "title"> & {
   /** page 전용 프리셋. title/description/caption/action.label로 개별 오버라이드 가능. */
   status?: ErrorStatus;
   title?: ReactNode;
   /** section·text에서는 안내 문구 둘째 줄로 쓰인다. */
   description?: ReactNode;
   caption?: ReactNode;
-  action?: ErrorAction;
 };
+
+export type ErrorStateProps = ErrorStateCommonProps &
+  (
+    | {
+        /** page: 화면 전체 대체. section: 목록·카드 일부 실패. */
+        variant?: "page" | "section";
+        action?: ErrorAction;
+      }
+    | {
+        /** text: 아이콘·버튼 없는 경고 문구이므로 action을 지원하지 않는다. */
+        variant: "text";
+        action?: never;
+      }
+  );
 
 const presets: Record<
   ErrorStatus,
