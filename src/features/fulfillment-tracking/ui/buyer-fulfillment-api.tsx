@@ -11,7 +11,7 @@ import {
   type Shipment,
 } from "@/entities/fulfillment/api/fulfillment-api";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { fundingProjectQuery } from "../model/funding-project-query";
 import { FulfillmentAccess } from "./fulfillment-access";
@@ -51,12 +51,7 @@ function Buyer({
   const order = useQuery(fundingProjectQuery(memberId, fundingId));
   if (order.isPending) return <p role="status">참여 내역을 확인하고 있습니다.</p>;
   if (order.isError)
-    return (
-      <ErrorState
-        status={toErrorStatus(order.error)}
-        action={{ label: "다시 시도", onClick: () => void order.refetch() }}
-      />
-    );
+    return <QueryErrorState error={order.error} onRetry={() => void order.refetch()} />;
   return (
     <Tracking
       memberId={memberId}
@@ -106,11 +101,11 @@ function Tracking({
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
             ) : status.isError ? (
-              <ErrorState
+              <QueryErrorState
                 variant="section"
-                status={toErrorStatus(status.error)}
+                error={status.error}
                 description="제작 현황을 불러오지 못했습니다."
-                action={{ label: "다시 시도", onClick: () => void status.refetch() }}
+                onRetry={() => void status.refetch()}
               />
             ) : (
               data &&
@@ -175,11 +170,11 @@ function Tracking({
             {shipment.isPending ? (
               <p role="status">배송 현황을 불러오고 있습니다.</p>
             ) : shipment.isError ? (
-              <ErrorState
+              <QueryErrorState
                 variant="section"
-                status={toErrorStatus(shipment.error)}
+                error={shipment.error}
                 description="배송 현황을 불러오지 못했습니다."
-                action={{ label: "다시 시도", onClick: () => void shipment.refetch() }}
+                onRetry={() => void shipment.refetch()}
               />
             ) : (
               <Receipt

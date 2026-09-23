@@ -45,7 +45,7 @@ function QueryError({
   if (httpStatus === 409)
     return (
       <ErrorState
-        variant="page"
+        variant="section"
         status="server"
         description="VOD를 준비 중입니다. 잠시 후 다시 시도해 주세요."
         action={disabled ? undefined : { label: "다시 시도", onClick: retry }}
@@ -56,17 +56,19 @@ function QueryError({
       typeof window === "undefined" ? "/live" : window.location.pathname + window.location.search;
     return (
       <ErrorState
-        variant="page"
+        variant="section"
         status={status}
         action={{ href: `/auth/login?returnTo=${encodeURIComponent(returnTo)}` }}
       />
     );
   }
   if (status === "forbidden")
-    return <ErrorState variant="page" status={status} action={{ onClick: () => router.back() }} />;
+    return (
+      <ErrorState variant="section" status={status} action={{ onClick: () => router.back() }} />
+    );
   return (
     <ErrorState
-      variant="page"
+      variant="section"
       status={status}
       description="정보를 불러오지 못했습니다."
       action={disabled ? undefined : { label: "다시 시도", onClick: retry }}

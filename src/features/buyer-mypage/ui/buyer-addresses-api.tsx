@@ -12,7 +12,7 @@ import {
 import type { Address } from "@/entities/member/api/member-api";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { TextButton } from "@/shared/components/ui/text-button";
 import { ShippingAddressSheet } from "@/features/order-checkout/ui/shipping-address-sheet";
 import type { ShippingAddress } from "@/features/order-checkout/model/checkout-demo";
@@ -122,11 +122,11 @@ function Addresses({ memberId }: { memberId: string }) {
         {list.isPending ? (
           <p role="status">배송지를 불러오고 있습니다.</p>
         ) : list.isError ? (
-          <ErrorState
+          <QueryErrorState
             variant="section"
-            status={toErrorStatus(list.error)}
+            error={list.error}
             description="배송지를 불러오지 못했습니다."
-            action={{ label: "다시 시도", onClick: () => void list.refetch() }}
+            onRetry={() => void list.refetch()}
           />
         ) : (
           <>

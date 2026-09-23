@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMyRefunds } from "@/entities/refund/api/refund-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { toRefundEntry } from "../model/refund-history";
 import { BuyerRefunds, RefundsScreen } from "./buyer-refunds";
 
@@ -48,10 +48,7 @@ function Refunds({ memberId }: { memberId: string }) {
             취소/환불/교환 내역을 불러오고 있습니다.
           </p>
         ) : (
-          <ErrorState
-            status={toErrorStatus(list.error)}
-            action={{ label: "다시 시도", onClick: () => void list.refetch() }}
-          />
+          <QueryErrorState error={list.error} onRetry={() => void list.refetch()} />
         )}
       </RefundsScreen>
     );

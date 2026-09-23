@@ -8,7 +8,7 @@ import { getTerms } from "@/features/auth/api/auth-api";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
 import { AuthButton } from "./auth-form-controls";
 type SignupTermsSheetProps = {
@@ -117,12 +117,13 @@ export function SignupTermsSheet({
       ) : null}
 
       {termsQuery.isError ? (
-        <ErrorState
+        <QueryErrorState
           variant="section"
-          status={toErrorStatus(termsQuery.error)}
+          error={termsQuery.error}
           description="약관을 불러오지 못했습니다."
           className="py-7"
-          action={{ label: "다시 불러오기", onClick: () => void termsQuery.refetch() }}
+          retryLabel="다시 불러오기"
+          onRetry={() => void termsQuery.refetch()}
         />
       ) : null}
 

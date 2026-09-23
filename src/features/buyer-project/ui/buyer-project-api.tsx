@@ -14,6 +14,7 @@ import {
 import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
@@ -165,11 +166,11 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   const content = active?.isPending ? (
     <p role="status">불러오는 중입니다.</p>
   ) : active?.isError ? (
-    <ErrorState
+    <QueryErrorState
       variant="section"
-      status={toErrorStatus(active.error)}
+      error={active.error}
       description="탭 콘텐츠를 불러오지 못했습니다."
-      action={{ label: "다시 시도", onClick: () => void active.refetch() }}
+      onRetry={() => void active.refetch()}
     />
   ) : tab === "story" ? (
     <div className="space-y-4">

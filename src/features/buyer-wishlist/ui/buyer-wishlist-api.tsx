@@ -9,7 +9,7 @@ import { getWishes, setWish, type Wish } from "@/entities/member/api/member-api"
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { projectDetailId } from "@/shared/lib/project-detail-id";
 
@@ -104,11 +104,11 @@ function Wishlist({ memberId }: { memberId: string }) {
             {list.isPending ? (
               <p role="status">관심 목록을 불러오고 있습니다.</p>
             ) : list.isError ? (
-              <ErrorState
+              <QueryErrorState
                 variant="section"
-                status={toErrorStatus(list.error)}
+                error={list.error}
                 description="관심 목록을 불러오지 못했습니다."
-                action={{ label: "다시 시도", onClick: () => void list.refetch() }}
+                onRetry={() => void list.refetch()}
               />
             ) : (
               <>

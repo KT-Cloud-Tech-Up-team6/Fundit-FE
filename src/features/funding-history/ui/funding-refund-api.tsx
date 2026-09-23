@@ -14,7 +14,7 @@ import {
   uploadRefundEvidence,
 } from "@/entities/refund/api/refund-request-api";
 import { ApiError } from "@/shared/api/api-error";
-import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import {
@@ -152,10 +152,7 @@ function RefundRequest({
             주문을 불러오고 있습니다.
           </p>
         ) : (
-          <ErrorState
-            status={toErrorStatus(order.error)}
-            action={{ label: "다시 시도", onClick: () => void order.refetch() }}
-          />
+          <QueryErrorState error={order.error} onRetry={() => void order.refetch()} />
         )}
       </BuyerAccountScreen>
     );
