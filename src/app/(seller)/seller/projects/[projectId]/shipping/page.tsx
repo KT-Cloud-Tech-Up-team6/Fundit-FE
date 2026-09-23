@@ -1,13 +1,21 @@
 import { SellerFulfillmentApi } from "@/features/fulfillment-tracking/ui/seller-fulfillment-api";
 import { ProjectWorkspaceLayout, projectManageTabs } from "@/entities/project/ui/project-sidebar";
+import { parseShippingView } from "@/features/shipping-info/model/seller-shipment";
 import { ShippingBoard } from "@/features/shipping-info/ui/shipping-board";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 export default async function ShippingPage({
   params,
+  searchParams,
 }: PageProps<"/seller/projects/[projectId]/shipping">) {
   const { projectId } = await params;
-  if (isPublicUuid(projectId)) return <SellerFulfillmentApi projectId={projectId} shipping />;
+  if (isPublicUuid(projectId))
+    return (
+      <SellerFulfillmentApi
+        projectId={projectId}
+        shipping={parseShippingView(await searchParams)}
+      />
+    );
 
   return (
     <ProjectWorkspaceLayout

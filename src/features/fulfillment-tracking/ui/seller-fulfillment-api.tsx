@@ -25,14 +25,16 @@ import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
 import { FulfillmentAccess } from "./fulfillment-access";
 import { fulfillmentState, viewStage, dateInKorea } from "../model/fulfillment-api-state";
-import { ShippingBoard } from "@/features/shipping-info/ui/shipping-board";
+import type { ShippingView } from "@/features/shipping-info/model/seller-shipment";
+import { ShippingBoardApi } from "@/features/shipping-info/ui/shipping-board-api";
 
+/** `shipping`이 있으면 발송정보 화면이다. URL에서 읽은 탭·검색어·페이지를 담는다. */
 export function SellerFulfillmentApi({
   projectId,
-  shipping = false,
+  shipping,
 }: {
   projectId: string;
-  shipping?: boolean;
+  shipping?: ShippingView;
 }) {
   return (
     <FulfillmentAccess>
@@ -54,7 +56,7 @@ function Seller({
 }: {
   memberId: string;
   projectId: string;
-  shipping: boolean;
+  shipping?: ShippingView;
 }) {
   const owner = useQuery({
     queryKey: ["fulfillment-owner", memberId, projectId],
@@ -82,9 +84,10 @@ function Seller({
       projectName={owner.data.title}
       tabs={projectManageTabs}
     >
-      <div className="max-w-[792px] min-w-0 flex-1">
+      {/* 발송정보 표는 8열(최소 940px)이라 데모 화면처럼 폭 제한 없이 둔다. */}
+      <div className={shipping ? "min-w-0 flex-1" : "max-w-[792px] min-w-0 flex-1"}>
         {shipping ? (
-          <ShippingBoard projectId={projectId} />
+          <ShippingBoardApi memberId={memberId} projectId={projectId} {...shipping} />
         ) : (
           <>
             <ProjectPageHeader
