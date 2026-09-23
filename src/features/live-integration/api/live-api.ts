@@ -98,6 +98,12 @@ export const getPublicHighlights = (liveId: string, signal?: AbortSignal) =>
     { signal },
   );
 
+/* 쇼츠 클릭 기록(전환 동선 추적). 비인증이고 204라 본문이 없다. 조회 수(`/public`)와 따로 잡힌다. */
+export const recordHighlightClick = (liveId: string, highlightId: string) =>
+  apiRequest<void>(`${livePath(liveId)}/highlights/${encodeURIComponent(highlightId)}/click`, {
+    method: "POST",
+  });
+
 export type VodChatMessage = { senderId: string; content: string; offsetSec: number };
 
 /* 시점이 아니라 구간으로 받는다 — 시점마다 왕복하면 요청 수가 방송 길이만큼 늘어난다. */
