@@ -455,7 +455,7 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | 고시             | PUT `/api/v1/rewards/{rewardId}/disclosure`         | categoryType, disclosure.                                                      |
 | 환불 특이사항    | PATCH `/api/v1/rewards/{rewardId}/refund-policy`    | simpleRefundDisabled.                                                          |
 | 공개(제출)       | POST `/api/v1/projects/{projectId}/submit`          | 본문 없음 → projectId, status. 조건·오류는 5.1 적용.                           |
-| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용.                                                   |
+| 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용. 응답은 공개 상세와 같은 ProjectDetailResponse다.  |
 | 공개 상세        | GET `/api/v1/projects/{projectId}`                  | 미공개 DRAFT는 404.                                                            |
 
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.

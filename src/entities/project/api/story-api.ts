@@ -1,12 +1,23 @@
 import { apiRequest, apiStreamRequest } from "../../../shared/api/client";
 import type { ProjectApiStatus } from "./seller-project-api";
 
+/* 소유자용 미리보기는 구매자 공개 상세와 같은 ProjectDetailResponse를 돌려준다. 스토리 편집에
+   필요한 항목 외에 미리보기 모달이 쓰는 판매자·목표 금액·펀딩 현황도 같은 응답에 있다. */
 export type StoryPreviewResponse = {
   projectId: string;
   status: ProjectApiStatus;
   title: string | null;
   coverImageUrl: string | null;
   introContent: IntroBlock[];
+  goalAmount: number | null;
+  fundingStatus: {
+    currentAmount: number;
+    achievementRate: number;
+    participantCount: number;
+    remainingDays: number | null;
+  };
+  hasLiveVerification: boolean;
+  seller: { sellerId: string; displayName: string };
 };
 export function getStoryPreview(projectId: string, signal?: AbortSignal) {
   return apiRequest<StoryPreviewResponse>(`/api/v1/projects/${projectId}/preview`, {
