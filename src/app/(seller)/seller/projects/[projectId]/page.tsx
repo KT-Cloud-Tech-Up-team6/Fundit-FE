@@ -5,7 +5,7 @@ import { ProjectStoryApi } from "@/features/project-story/ui/project-story-api";
 import { ProjectRewardsPage } from "@/features/project-basic-info/ui/project-reward-manager";
 import { ProjectBasicInfoApi } from "@/features/project-basic-info/ui/project-basic-info-api";
 import {
-  ProjectSidebar,
+  ProjectWorkspaceLayout,
   projectEditTabs,
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
@@ -42,13 +42,17 @@ export default async function SellerProjectPage({
   const query = await searchParams;
   const requestedTab = typeof query.tab === "string" ? query.tab : "story";
   const activeTab = allowedTabs.has(requestedTab) ? requestedTab : "story";
+
+  /* 기존 API 화면이 있는 탭은 placeholder로 우회하지 않고 같은 화면을 재사용한다. */
+  if (activeTab === "basic-info")
+    return <ProjectBasicInfoApi key={projectId} projectId={projectId} />;
+  if (activeTab === "rewards") return <ProjectRewardsPage key={projectId} projectId={projectId} />;
+
   if (isPublicUuid(projectId)) {
     if (activeTab === "fulfillment") return <SellerFulfillmentApi projectId={projectId} />;
-    if (activeTab === "funding" || activeTab === "news" || activeTab === "community")
+    if (activeTab === "funding")
       return <ProjectManagementApi key={projectId} projectId={projectId} tab={activeTab} />;
     if (activeTab === "story") return <ProjectStoryApi key={projectId} projectId={projectId} />;
-    if (activeTab === "rewards")
-      return <ProjectRewardsPage key={projectId} projectId={projectId} />;
     return <ProjectBasicInfoApi key={projectId} projectId={projectId} tab={activeTab} />;
   }
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;
@@ -59,16 +63,14 @@ export default async function SellerProjectPage({
 
     return (
       <>
-        <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
-          <ProjectSidebar
-            activeTab={activeTab}
-            projectId={projectId}
-            projectName={funding.summary.title}
-            tabs={projectManageTabs}
-            className="self-start! lg:mt-9 [&_li>a]:h-9 [&_li>a]:font-medium [&_p]:line-clamp-2 [&_p]:h-12"
-          />
+        <ProjectWorkspaceLayout
+          activeTab={activeTab}
+          projectId={projectId}
+          projectName={funding.summary.title}
+          tabs={projectManageTabs}
+        >
           <FundingStatusBoard {...funding} />
-        </div>
+        </ProjectWorkspaceLayout>
         <Pagination
           currentPage={1}
           totalPages={1}
@@ -80,24 +82,12 @@ export default async function SellerProjectPage({
 
   if (editTabs.has(activeTab)) {
     return (
-      <div
-        className={
-          activeTab === "story"
-            ? "mt-3 flex flex-col items-start gap-6 lg:flex-row"
-            : "mt-10 flex flex-col gap-6 lg:flex-row lg:gap-10"
-        }
+      <ProjectWorkspaceLayout
+        activeTab={activeTab}
+        projectId={projectId}
+        projectName={projectName}
+        tabs={projectEditTabs}
       >
-        <ProjectSidebar
-          activeTab={activeTab}
-          projectId={projectId}
-          projectName={projectName}
-          tabs={projectEditTabs}
-          className={
-            activeTab === "story"
-              ? "self-start! lg:mt-9 [&_li]:min-h-9 [&_li]:font-medium [&_li>a]:h-9 [&_li>a]:font-medium [&_p]:line-clamp-2 [&_p]:h-12"
-              : undefined
-          }
-        />
         {activeTab === "story" ? (
           <ProjectStoryForm key={projectId} projectId={projectId} />
         ) : (
@@ -110,7 +100,7 @@ export default async function SellerProjectPage({
             sections={[`${activeTab} 탭`]}
           />
         )}
-      </div>
+      </ProjectWorkspaceLayout>
     );
   }
 
@@ -118,13 +108,12 @@ export default async function SellerProjectPage({
     return (
       /* Figma FL_S_DL_MNG 실측: 사이드바 180 + 간격 24 = 콘텐츠 996. 표가 잘리지 않으려면
          편집 탭(gap-10)이 아니라 이 값을 써야 한다. */
-      <div className="mt-10 flex flex-col gap-6 lg:flex-row lg:gap-6">
-        <ProjectSidebar
-          activeTab={activeTab}
-          projectId={projectId}
-          projectName={projectName}
-          tabs={projectManageTabs}
-        />
+      <ProjectWorkspaceLayout
+        activeTab={activeTab}
+        projectId={projectId}
+        projectName={projectName}
+        tabs={projectManageTabs}
+      >
         {activeTab === "fulfillment" ? (
           <FulfillmentBoard projectId={projectId} />
         ) : (
@@ -137,7 +126,7 @@ export default async function SellerProjectPage({
             sections={[`${activeTab} 탭`]}
           />
         )}
-      </div>
+      </ProjectWorkspaceLayout>
     );
   }
 

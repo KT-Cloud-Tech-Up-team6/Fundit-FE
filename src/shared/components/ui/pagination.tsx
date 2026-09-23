@@ -31,8 +31,11 @@ export function Pagination({
   className,
   ...props
 }: PaginationProps) {
-  if (totalPages < 1) return null;
-  const page = Math.min(Math.max(currentPage, 1), totalPages);
+  if (!Number.isFinite(totalPages) || totalPages < 1) return null;
+  const safeTotalPages = Math.floor(totalPages);
+  const page = Number.isFinite(currentPage)
+    ? Math.min(Math.max(Math.floor(currentPage), 1), safeTotalPages)
+    : 1;
   const previous = (
     <>
       <Caret direction="prev" />
@@ -65,13 +68,13 @@ export function Pagination({
       {variant === "counter" ? (
         <span
           className="text-text-default px-1 text-[12px] leading-normal"
-          aria-label={`${totalPages}페이지 중 ${page}페이지`}
+          aria-label={`${safeTotalPages}페이지 중 ${page}페이지`}
         >
-          {page}/{totalPages}
+          {page}/{safeTotalPages}
         </span>
       ) : (
         <ol className="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => (
+          {Array.from({ length: safeTotalPages }, (_, index) => index + 1).map((number) => (
             <li key={number}>
               <Link
                 href={buildHref(number)}
@@ -85,7 +88,7 @@ export function Pagination({
           ))}
         </ol>
       )}
-      {page === totalPages ? (
+      {page === safeTotalPages ? (
         <span aria-disabled="true" className={stepClasses}>
           {next}
         </span>

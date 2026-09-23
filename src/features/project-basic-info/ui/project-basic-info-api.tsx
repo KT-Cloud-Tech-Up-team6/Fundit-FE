@@ -16,7 +16,7 @@ import { ProjectBasicInfoForm } from "./project-basic-info-form";
 import { ProjectSavedModal } from "./project-saved-modal";
 import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
 import {
-  ProjectSidebar,
+  ProjectWorkspaceLayout,
   projectEditTabs,
   projectManageTabs,
 } from "@/entities/project/ui/project-sidebar";
@@ -110,27 +110,31 @@ export function ProjectBasicInfoApi({
     subcategory: saved?.categoryMinor ?? data.categoryMinor ?? "",
   };
   return (
-    <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
-      <ProjectSidebar
-        activeTab={tab}
-        projectId={projectId}
-        projectName={data.title || "제목 없음"}
-        tabs={data.status === "DRAFT" ? projectEditTabs : projectManageTabs}
-      />
-      <div className="min-w-0 flex-1">
+    <ProjectWorkspaceLayout
+      activeTab={tab}
+      projectId={projectId}
+      projectName={data.title || "제목 없음"}
+      tabs={
+        tab === "community"
+          ? projectManageTabs
+          : tab === "basic-info" || tab === "refund-policy" || data.status === "DRAFT"
+            ? projectEditTabs
+            : projectManageTabs
+      }
+    >
+      <div className="w-full min-w-0 flex-1 lg:max-w-[792px]">
         {tab === "basic-info" ? (
-          <>
-            {!initialValues.business && (
-              <p role="status" className="text-body-s mb-3">
-                저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다.
-              </p>
-            )}
-            <ProjectBasicInfoForm
-              key={`${owner}:${projectId}`}
-              initialValues={initialValues}
-              onSave={save}
-            />
-          </>
+          <ProjectBasicInfoForm
+            key={`${owner}:${projectId}`}
+            initialValues={initialValues}
+            mode="edit"
+            onSave={save}
+            statusMessage={
+              initialValues.business
+                ? undefined
+                : "저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다."
+            }
+          />
         ) : (
           <>
             <h1 className="text-heading-l">{data.title || "제목 없음"}</h1>
@@ -144,6 +148,6 @@ export function ProjectBasicInfoApi({
           </>
         )}
       </div>
-    </div>
+    </ProjectWorkspaceLayout>
   );
 }

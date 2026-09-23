@@ -97,7 +97,7 @@ export function answerCommunityPost(id: number, content: string) {
 export function getNotices(id: string, page: number, signal?: AbortSignal) {
   return apiRequest<ApiPage<Notice>>(
     `/api/v1/projects/${id}/notices?page=${page}&size=20&sort=LATEST`,
-    { signal },
+    { auth: true, signal },
   );
 }
 export function createNotice(
@@ -108,11 +108,12 @@ export function createNotice(
 }
 export function getNoticeComments(id: number, page: number, signal?: AbortSignal) {
   return apiRequest<ApiPage<NoticeComment>>(`/api/v1/notices/${id}/comments?page=${page}&size=20`, {
+    auth: true,
     signal,
   });
 }
-export function getNoticeDetail(id: number, signal?: AbortSignal) {
-  return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { signal });
+export function getNoticeDetail(id: number, signal?: AbortSignal, authenticated = false) {
+  return apiRequest<NoticeDetail>(`/api/v1/notices/${id}`, { auth: authenticated, signal });
 }
 
 export function updateNotice(id: number, body: { title?: string; content?: string }) {

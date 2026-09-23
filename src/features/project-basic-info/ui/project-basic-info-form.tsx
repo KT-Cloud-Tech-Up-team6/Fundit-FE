@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { ProjectRewardManager } from "./project-reward-manager";
 import { ApiError } from "@/shared/api/api-error";
 import { mainCategories, subcategoriesByMain } from "@/entities/category/model/project-categories";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@/shared/components/ui/chip";
 import { Dropdown } from "@/shared/components/ui/dropdown";
@@ -32,16 +32,21 @@ import { ProjectCreationUncertainError } from "../model/project-create-attempt";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 
 export type BasicInfoPreview = "empty" | "adding" | "list" | "list-adding";
-const breadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
+const createBreadcrumb = ["내 프로젝트", "신규 생성하기", "기본 정보 등록"];
+const editBreadcrumb = ["내 프로젝트", "기본 정보 수정"];
 
 export function ProjectBasicInfoForm({
   initialView = "empty",
   initialValues,
+  mode = "create",
   onSave,
+  statusMessage,
 }: {
   initialView?: BasicInfoPreview;
   initialValues?: Partial<BasicInfoValues>;
+  mode?: "create" | "edit";
   onSave?: (values: BasicInfoValues, partial?: boolean) => Promise<void>;
+  statusMessage?: string;
 }) {
   const [business, setBusiness] = useState(initialValues?.business ?? "");
   const [title, setTitle] = useState(initialValues?.title ?? "");
@@ -131,7 +136,7 @@ export function ProjectBasicInfoForm({
   return (
     <>
       <form
-        className="flex min-h-[calc(100vh-92px)] flex-col pt-3"
+        className={`flex min-h-[calc(100vh-92px)] flex-col ${mode === "create" ? "pt-3" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           void saveBasicInfo();
@@ -139,9 +144,15 @@ export function ProjectBasicInfoForm({
         onChange={() => setFormMessage("")}
       >
         <fieldset disabled={saving} className="mx-auto w-full max-w-198 min-w-0">
-          <Breadcrumb items={breadcrumb} />
-          {/* breadcrumb 24 + 간격 4 + 제목(상하 8 포함) 52 = Figma page_header 80px */}
-          <h1 className="text-heading-l text-text-title mt-1 w-full py-2">기본 정보 등록</h1>
+          <ProjectPageHeader
+            breadcrumb={mode === "edit" ? editBreadcrumb : createBreadcrumb}
+            title={mode === "edit" ? "기본 정보 수정" : "기본 정보 등록"}
+          />
+          {statusMessage && (
+            <p role="status" className="text-body-s mt-3">
+              {statusMessage}
+            </p>
+          )}
           <div className="mt-3 space-y-6">
             <fieldset>
               <legend className="text-title-s mb-2">사업자 유형</legend>

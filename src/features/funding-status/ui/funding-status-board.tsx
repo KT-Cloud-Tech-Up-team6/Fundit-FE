@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Badge } from "@/shared/components/ui/badge";
-import { Breadcrumb } from "@/shared/components/ui/breadcrumb";
+import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { Icon } from "@/shared/components/ui/icon";
 import { ProgressBar } from "@/shared/components/ui/progress-bar";
 import {
@@ -46,12 +46,7 @@ export function FundingStatusBoard({
 
   return (
     <div className="w-full min-w-0 flex-1 lg:max-w-[793px]">
-      <header className="flex min-h-20 flex-col gap-4">
-        <Breadcrumb items={breadcrumb} />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-heading-l">펀딩 관리</h1>
-        </div>
-      </header>
+      <ProjectPageHeader breadcrumb={breadcrumb} title="펀딩 관리" />
 
       <div className="mt-6 flex flex-col gap-3">
         <section

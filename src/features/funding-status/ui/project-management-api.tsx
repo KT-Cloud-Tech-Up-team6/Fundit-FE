@@ -4,7 +4,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
-  ProjectSidebar,
+  ProjectWorkspaceLayout,
   projectManageTabs,
   projectEditTabs,
 } from "@/entities/project/ui/project-sidebar";
@@ -37,13 +37,12 @@ export function ProjectManagementApi({
       </p>
     );
   return (
-    <div className="mt-3 flex flex-col items-start gap-6 lg:flex-row">
-      <ProjectSidebar
-        activeTab={tab}
-        projectId={projectId}
-        projectName={query.data.title ?? "제목 없음"}
-        tabs={query.data.status === "DRAFT" ? projectEditTabs : projectManageTabs}
-      />
+    <ProjectWorkspaceLayout
+      activeTab={tab}
+      projectId={projectId}
+      projectName={query.data.title ?? "제목 없음"}
+      tabs={tab === "news" ? projectEditTabs : projectManageTabs}
+    >
       <div className="min-w-0 flex-1">
         {tab === "funding" ? (
           <FundingStatusApi project={query.data} />
@@ -51,6 +50,6 @@ export function ProjectManagementApi({
           <ProjectCommunityApi key={`${projectId}-${tab}`} projectId={projectId} tab={tab} />
         )}
       </div>
-    </div>
+    </ProjectWorkspaceLayout>
   );
 }

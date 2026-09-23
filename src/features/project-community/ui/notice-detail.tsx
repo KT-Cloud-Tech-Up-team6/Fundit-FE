@@ -15,6 +15,7 @@ export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projec
   const cache = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const detailKey = ["notice-detail", projectId ? "seller" : "public", noticeId] as const;
   const owner = useQuery({
     queryKey: ["seller-project-preview", state.user?.memberId, projectId],
     queryFn: ({ signal }) => getManagementProject(projectId!, signal),
@@ -23,8 +24,8 @@ export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projec
     retry: false,
   });
   const detail = useQuery({
-    queryKey: ["notice-detail", noticeId],
-    queryFn: ({ signal }) => getNoticeDetail(noticeId, signal),
+    queryKey: detailKey,
+    queryFn: ({ signal }) => getNoticeDetail(noticeId, signal, Boolean(projectId)),
   });
   if (detail.isPending) return <p role="status">본문을 불러오고 있습니다.</p>;
   if (detail.isError)
@@ -39,9 +40,9 @@ export function NoticeDetail({ noticeId, projectId }: { noticeId: number; projec
         notice={detail.data}
         onCancel={() => setEditing(false)}
         onSaved={(notice) => {
-          cache.setQueryData(["notice-detail", noticeId], notice);
-          void cache.invalidateQueries({ queryKey: ["project-notices", projectId] });
-          void cache.invalidateQueries({ queryKey: ["notice-detail", noticeId] });
+          cache.setQueryData(detailKey, notice);
+          void cache.invalidateQueries({ queryKey: ["seller-project-notices", projectId] });
+          void cache.invalidateQueries({ queryKey: detailKey });
           setEditing(false);
           setSaved(true);
         }}
