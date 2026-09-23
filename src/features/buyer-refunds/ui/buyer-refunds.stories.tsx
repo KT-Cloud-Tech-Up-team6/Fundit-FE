@@ -43,13 +43,13 @@ export const FilterByType: Story = {
   },
 };
 
-/** 교환은 BE 트리거가 없어 원본의 옵션을 남기되 결과가 없는 이유를 알린다. */
+/** 목업에는 교환 건이 없어 빈 목록 문구가 나온다. */
 export const FilterExchange: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "유형 필터" }));
     await userEvent.click(canvas.getByRole("option", { name: "교환" }));
-    await expect(canvas.getByText("교환 내역은 아직 제공되지 않습니다.")).toBeVisible();
+    await expect(canvas.getByText("취소/환불/교환 내역이 없습니다.")).toBeVisible();
   },
 };
 

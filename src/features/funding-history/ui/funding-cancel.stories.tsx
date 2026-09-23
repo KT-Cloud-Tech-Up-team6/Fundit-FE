@@ -125,19 +125,21 @@ export const DefectNeedsEvidence: Story = {
   },
 };
 
-/** 계약이 없는 조합은 원본 옵션을 남기되 제출만 막고 이유를 알린다. */
-export const UnsupportedReasons: Story = {
+/** 단순변심은 fundingId만 보내 사진 없이 신청하고, 교환은 증빙이 필수라 사진 전에는 막힌다. */
+export const SimpleChangeOfMindAndExchange: Story = {
   args: { fundingId: "delivered", variant: "return" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "단순변심");
-    await expect(canvas.getByText("단순변심 반품은 아직 제공되지 않습니다.")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeDisabled();
+    await expect(
+      canvas.getByText("단순변심 접수에는 사진과 상세 내용이 함께 전달되지 않습니다."),
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeEnabled();
 
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "교환");
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "구성품 누락");
-    await expect(canvas.getByText("교환 신청은 아직 제공되지 않습니다.")).toBeVisible();
+    await expect(canvas.getByText("사진 첨부 (필수)")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "교환 신청" })).toBeDisabled();
   },
 };

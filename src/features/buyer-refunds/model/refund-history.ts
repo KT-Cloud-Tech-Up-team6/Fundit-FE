@@ -6,7 +6,7 @@ import {
   type RefundSummary,
 } from "@/entities/refund/api/refund-api";
 
-/** 원본 1165:16386의 유형 드롭다운 그대로다. "교환"은 대응하는 BE 트리거가 없어 항상 0건이다. */
+/** 원본 1165:16386의 유형 드롭다운 그대로다. */
 export const refundTypeOptions = [
   { value: "전체", label: "전체" },
   { value: "취소", label: "취소" },
@@ -26,7 +26,7 @@ export type RefundEntryItem = {
 
 export type RefundEntry = {
   id: string;
-  type: "취소" | "환불";
+  type: "취소" | "교환" | "환불";
   stage: "진행 중" | "완료" | "반려";
   status: string;
   title: string;
@@ -47,9 +47,11 @@ function isoDate(value: string | null): string {
   return value ? value.slice(0, 10).replaceAll("-", ".") : "";
 }
 
-/** BE가 `[DEFECTIVE] 설명`으로 합쳐 저장한 사유를 유형 문구와 설명으로 되돌린다. */
+/** BE가 `[DEFECTIVE] 설명`으로 합쳐 저장한 사유를 유형 문구와 설명으로 되돌린다.
+    교환은 FE가 `사유: 설명`으로 보낸 문자열이라(exchangeReasonDetail) 같은 모양으로 나눈다. */
 export function refundReasonText(summary: RefundSummary): string {
   const raw = summary.reasonDetail?.trim() ?? "";
+  if (summary.triggerType === "EXCHANGE") return raw.replace(/^([^:]+):\s*/, "$1 · ");
   const tagged = /^\[([A-Z_]+)\]\s*([\s\S]*)$/.exec(raw);
   if (tagged) {
     const label = refundDefectLabels[tagged[1]] ?? tagged[1];
@@ -64,8 +66,7 @@ export function toRefundEntry(summary: RefundSummary): RefundEntry {
   const stage = refundStatusStage(summary.status);
   const items = (summary.lineItems ?? []).map((item) => ({
     product: item.rewardName,
-    /* lineItems에 옵션 필드가 없다(BE OrderSummaryClient.LineItem). 행은 남기고 값만 비운다. */
-    option: "",
+    option: item.options.map((o) => `${o.optionGroupName} ${o.optionValue}`).join(" · "),
     price: item.unitPrice,
     quantity: item.quantity,
   }));
@@ -87,7 +88,8 @@ export function toRefundEntry(summary: RefundSummary): RefundEntry {
   };
 }
 
-/** 유형과 "진행 중만 보기"를 함께 적용한다. 서버 필터가 없어 현재 페이지 안에서만 걸러진다. */
+/** 유형과 "진행 중만 보기"를 함께 적용한다. 유형은 서버 필터로 표현할 수 없어 현재 페이지 안에서만
+    걸러진다. 진행 중은 API 화면에서 서버가 먼저 걸러 주므로 여기서는 결과가 바뀌지 않는다. */
 export function filterRefundEntries(
   entries: RefundEntry[],
   type: RefundFilterType,
