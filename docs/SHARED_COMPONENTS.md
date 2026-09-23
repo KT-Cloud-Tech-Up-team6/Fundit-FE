@@ -111,9 +111,11 @@ src/shared/components/
 | Feedback   | `Badge`, `Chip`, `ProgressBar`, `Toast`               | 상태·선택·진행률·알림의 도메인 비의존 표현                           |
 | Surface    | `Card`, `BottomSheet`, `Tooltip`                      | 콘텐츠 표면, modal dialog와 컨텍스트 팝업 동작                       |
 | Media      | `Icon`, `Avatar`, `AspectRatio`                       | 허용된 아이콘 이름, 프로필 이미지와 비율 컨테이너                    |
-| State      | `PendingDestination`                                  | 화면 원본이 없어 목적지가 미정인 자리의 비활성 표현                  |
+| State      | `PendingDestination`, `ErrorState`                    | 목적지 미정 자리의 비활성 표현, 공통 에러/상태 템플릿과 인라인 오류  |
 
 `PendingDestination`은 Link를 대신해 `button disabled`를 렌더하고 `aria-label`에 `(준비중)`을 붙입니다. 각 화면 문서의 "목적지 미정이므로 비활성으로 유지한다"를 한 방식으로 지키기 위한 것이며, 해당 화면이 확정되면 그 자리를 Link로 되돌립니다. 적용 범위는 [BUYER_FLOW_CONTINUITY.md](./BUYER_FLOW_CONTINUITY.md)에 있습니다.
+
+`ErrorState`는 `variant`(`page`/`section`/`text`)로 화면 전체 대체·섹션 일부 실패·경고 텍스트를 하나의 컴포넌트로 표현합니다. `page`는 `status`(`notFound`/`server`/`forbidden`/`unauthorized`/`network`) 프리셋으로 제목·설명·캡션·버튼 라벨을 채우고, `toErrorStatus(error)`가 `ApiError.status`와 네트워크 단절(`TypeError`)을 상태로 매핑합니다. 버튼 동작(`action.onClick`/`href`)은 항상 호출자가 결정하며 컴포넌트는 라우팅 정책을 갖지 않습니다.
 
 이 표는 컴포넌트 사용법의 정본이 아닙니다. 공개 props와 상태 예시는 각 Storybook 스토리를 기준으로 확인합니다.
 

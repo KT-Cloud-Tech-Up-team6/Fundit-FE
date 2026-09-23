@@ -392,7 +392,7 @@ export function BuyerSearch({
                   className="[&>p]:text-body-s pt-[166px]"
                   graphic={
                     <Image
-                      src="/images/buyer-search/04663.svg"
+                      src="/images/shared/island.svg"
                       alt=""
                       width={112}
                       height={112}
