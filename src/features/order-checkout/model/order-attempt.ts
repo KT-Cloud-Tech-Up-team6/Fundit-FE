@@ -14,6 +14,8 @@ type AttemptStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 /** 주문 시도 하나. `order`가 없으면 서버가 주문을 만들었는지 아직 모른다. */
 type Attempt = { key: string; fingerprint: string; body: OrderRequest; order?: OrderCreated };
 
+const unconfirmedStatuses = new Set([401, 403, 408, 429]);
+
 /* 같은 탭의 중복 클릭은 진행 중인 시도 하나를 함께 기다린다. */
 const inFlight = new Map<string, Promise<OrderCreated>>();
 
@@ -71,7 +73,14 @@ async function send(
     if (error instanceof ApiError && error.code === "CONFLICT")
       throw new OrderAttemptError("같은 주문을 처리하고 있습니다. 잠시 후 다시 시도해주세요.");
     // 서버가 거절을 확정한 4xx만 시도를 버린다. 네트워크·5xx·파싱 실패는 같은 키로 다시 보낸다.
-    if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+    // 인증·권한·시간 초과·요청 제한은 BE가 멱등 키를 보기 전에 거절한 것이라 이전 요청의 생성
+    // 여부를 확정하지 못한다. 키를 버리면 다음 시도가 새 키로 나가 중복 주문이 될 수 있다.
+    if (
+      error instanceof ApiError &&
+      error.status >= 400 &&
+      error.status < 500 &&
+      !unconfirmedStatuses.has(error.status)
+    ) {
       storage.removeItem(storageKey);
       throw error;
     }

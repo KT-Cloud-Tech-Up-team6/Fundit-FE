@@ -115,6 +115,30 @@ test("확정된 4xx 실패는 시도를 버리고 새 키로 다시 주문한다
   assert.equal((await submitOrderOnce(store, "member", body)).orderId, "server-order");
   assert.notEqual(log.sent[1].key, log.sent[0].key);
 });
+for (const status of [401, 403, 408, 429])
+  test(`${status}는 이전 요청의 생성 여부를 확정하지 못해 시도를 유지하고 같은 키로 다시 보낸다`, async (t) => {
+    const store = storage(),
+      log = postLog();
+    let lost = true,
+      rejected = true;
+    t.mock.method(globalThis, "fetch", async (url, init) => {
+      if (init.method !== "POST") return Response.json({ status: "PENDING" });
+      log.record(init);
+      if (lost) {
+        lost = false;
+        throw new TypeError("network");
+      }
+      if (rejected) {
+        rejected = false;
+        return Response.json({ code: "REJECTED", message: "거절" }, { status });
+      }
+      return Response.json({ orderId: "server-order" });
+    });
+    await assert.rejects(submitOrderOnce(store, "member", body));
+    await assert.rejects(submitOrderOnce(store, "member", body), /같은 주문으로 이어집니다/);
+    assert.equal((await submitOrderOnce(store, "member", body)).orderId, "server-order");
+    assert.equal(new Set(log.sent.map((sent) => sent.key)).size, 1);
+  });
 test("같은 키 요청이 처리 중인 409 CONFLICT는 시도를 유지해 같은 키로 다시 보낸다", async (t) => {
   const store = storage(),
     log = postLog();
