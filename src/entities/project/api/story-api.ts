@@ -1,7 +1,9 @@
 import { apiRequest, apiStreamRequest } from "../../../shared/api/client";
+import type { ProjectApiStatus } from "./seller-project-api";
 
 export type StoryPreviewResponse = {
   projectId: string;
+  status: ProjectApiStatus;
   title: string | null;
   coverImageUrl: string | null;
   introContent: IntroBlock[];
