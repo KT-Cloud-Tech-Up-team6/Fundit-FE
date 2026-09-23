@@ -97,3 +97,17 @@ export function getProjectPreview(projectId: string, signal?: AbortSignal) {
     signal,
   });
 }
+
+/**
+ * LIVE 체크(검증) 등록. 한 번에 한 건이다. `questionSummaryId`는 LIVE 질문 요약의 id,
+ * `answer`는 보낸 답변이다. 같은 질문을 다시 올려도 BE가 막지 않으므로 화면이 막는다.
+ */
+export function createLiveVerification(
+  projectId: string,
+  body: { questionSummaryId: string; answer: string },
+) {
+  return apiRequest<{ liveVerificationId: number; answer: string; createdAt: string }>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/live-verifications`,
+    { auth: true, method: "POST", body },
+  );
+}

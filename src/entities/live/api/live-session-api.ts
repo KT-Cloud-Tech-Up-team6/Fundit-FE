@@ -42,6 +42,38 @@ export function createLive(projectId: string) {
   });
 }
 
+/**
+ * 판매자 LIVE 단건(BE `LiveDetailResponse`). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만
+ * 채워지고 그 밖에는 `null`이다.
+ */
+export type LiveDetailResponse = {
+  liveId: string;
+  status: LiveStatus;
+  projectId: string;
+  introText: string | null;
+  thumbnailUrl: string | null;
+  scheduledStartAt: string | null;
+  likeCount: number;
+  createdAt: string;
+  viewerCount: number | null;
+  elapsedSeconds: number | null;
+};
+
+export function getLiveDetail(liveId: string, signal?: AbortSignal) {
+  return apiRequest<LiveDetailResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}`, {
+    auth: true,
+    signal,
+  });
+}
+
+/** 진행 중이 아니면 409다. 종료는 되돌릴 수 없다. */
+export function endLive(liveId: string) {
+  return apiRequest<LiveStatusResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}/end`, {
+    auth: true,
+    method: "POST",
+  });
+}
+
 export function updateLiveSettings(liveId: string, body: LiveSettingsBody) {
   return apiRequest<LiveStatusResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}/settings`, {
     auth: true,
