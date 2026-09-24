@@ -233,9 +233,10 @@ export function SignupProfileFlow({
   if (view === "account-exists") {
     /* Figma에 이 상태의 시안이 없어 이메일 찾기 "회원정보를 찾을 수 없습니다"(FL_C_ME_IDFIND_5)의
        문구 구성·텍스트 버튼 규격을 따른다. 가입 폼은 토큰이 소비돼 다시 제출할 수 없으므로
-       모든 이동을 replace로 해 뒤로 가기로 돌아오지 않게 한다. 헤더 뒤로가기는 가입 시작 화면이다. */
+       두 버튼은 replace로 옮겨 뒤로 가기로 돌아오지 않게 한다. 헤더 뒤로가기는 브라우저 뒤로 가기와
+       같이 본인인증 화면으로 가고, 그 화면이 비워진 약관을 보고 가입 시작 화면으로 보낸다. */
     return (
-      <AuthScreen onBack={() => router.replace("/auth/signup")}>
+      <AuthScreen onBack={() => router.back()}>
         <AuthTitle>이미 가입된 계정이 있습니다</AuthTitle>
         <p className="text-body-m text-text-default mt-2 font-medium whitespace-pre-line">
           {"본인인증한 정보로 가입된 계정이 있습니다.\n가입한 이메일을 찾아 로그인해 주세요."}
