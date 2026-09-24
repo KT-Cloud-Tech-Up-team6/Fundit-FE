@@ -3,8 +3,10 @@ import test from "node:test";
 import {
   answeredByName,
   formatElapsed,
+  formatOrderStats,
   formatUpdatedAgo,
   formatViewers,
+  orderStatsLabel,
   publishLiveChecks,
   questionSummaryState,
   toCheckQuestions,
@@ -36,6 +38,41 @@ test("경과 시간·시청자 수는 모르면 가짜 값 대신 -로 적는다
   assert.equal(formatElapsed(null), "-");
   assert.equal(formatViewers(1234), "1,234명");
   assert.equal(formatViewers(null), "-");
+});
+
+test("방송 주문은 결제 완료 건수·금액만 적고, 받기 전에는 -로 적는다", () => {
+  assert.equal(
+    formatOrderStats({
+      paidCount: 1234,
+      paidAmount: 3400000,
+      pendingCount: 9,
+      pendingAmount: 90000,
+    }),
+    "1,234건 · 3,400,000원",
+  );
+  assert.equal(formatOrderStats({ paidCount: 0, paidAmount: 0 }), "0건 · 0원");
+  assert.equal(formatOrderStats(undefined), "-");
+});
+
+test("주문 칸은 갱신이 잠깐 실패하면 마지막 값을 두고, 오래 실패하면 -로 바꾼다", () => {
+  const data = { paidCount: 3, paidAmount: 45000 };
+  const ok = { data, isError: false, dataUpdatedAt: 10_000, errorUpdatedAt: 0 };
+  assert.equal(orderStatsLabel(ok, 15_000), "3건 · 45,000원");
+  // 마지막 성공 뒤 10초 동안 실패: 깜빡이지 않게 마지막 값을 둔다.
+  assert.equal(
+    orderStatsLabel({ ...ok, isError: true, errorUpdatedAt: 20_000 }, 15_000),
+    "3건 · 45,000원",
+  );
+  // 15초 넘게 실패가 이어지면 멈춘 값을 지금 값처럼 보이지 않는다.
+  assert.equal(orderStatsLabel({ ...ok, isError: true, errorUpdatedAt: 25_000 }, 15_000), "-");
+  // 한 번도 받지 못한 채 실패해도 -다.
+  assert.equal(
+    orderStatsLabel(
+      { data: undefined, isError: true, dataUpdatedAt: 0, errorUpdatedAt: 5_000 },
+      15_000,
+    ),
+    "-",
+  );
 });
 
 test("갱신 시각은 방금 전·분·시간 단위로 적는다", () => {

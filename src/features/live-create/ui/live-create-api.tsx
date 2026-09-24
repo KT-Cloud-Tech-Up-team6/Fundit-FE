@@ -31,6 +31,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Modal } from "@/shared/components/ui/modal";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ProjectSummary, type LiveProjectSummary } from "./project-summary";
+import { StreamInfo } from "./stream-info";
 
 function errorMessage(error: unknown) {
   return error instanceof Error && error.message ? error.message : "잠시 후 다시 시도해 주세요.";
@@ -379,12 +380,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                 LIVE 시작
               </Button>
             </div>
-            {/* 스트림 키 조회 API가 없어 영상 송출 정보는 여전히 줄 수 없다. 시작은 서버 상태를
-                LIVE로 바꾸고 채팅방을 여는 데까지다 — 콘솔에서 이어 진행한다. */}
-            <p className="text-caption-s text-text-secondary mt-3 shrink-0">
-              영상 송출 정보(스트림 키)는 아직 제공되지 않습니다. LIVE를 시작하면 방송 콘솔로
-              이동합니다.
-            </p>
+            {liveId && <StreamInfo owner={owner} liveId={liveId} />}
           </div>
         )}
       </Modal>

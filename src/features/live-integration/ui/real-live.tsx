@@ -1,9 +1,16 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { getPublicProject } from "@/entities/project/api/buyer-project-api";
+import {
+  followSeller,
+  followsQueryKey,
+  getAllFollows,
+  unfollowSeller,
+} from "@/entities/seller/api/follow-api";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { BuyerLiveReplay } from "@/features/buyer-live-replay/ui/buyer-live-replay";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
@@ -34,6 +41,15 @@ function answeredByLabel(value: string) {
   return value === "AI" ? "AI 답변" : value === "SELLER" ? "판매자 답변" : "답변자 미확인";
 }
 
+type FollowOverride = { memberId: string; sellerId: string; following: boolean };
+type FollowToggle = {
+  memberId: string;
+  sellerId: string;
+  next: boolean;
+  /** 실패하면 되돌릴 누르기 전 표시. */
+  previous: FollowOverride | null;
+};
+
 const realProduct = {
   title: "라이브 방송",
   seller: "판매자",
@@ -58,7 +74,13 @@ export function RealBuyerLive({
   desktop?: boolean;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { state } = useAuth();
+  /* 좋아요·팔로우는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다. */
+  function goToLogin() {
+    const returnTo = window.location.pathname + window.location.search;
+    router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
+  }
   const playback = useQuery({
     queryKey: ["live", liveId, replay ? "vod" : "playback"],
     queryFn: ({ signal }) => (replay ? getVod(liveId, signal) : getPlayback(liveId, signal)),
@@ -95,12 +117,10 @@ export function RealBuyerLive({
     onSuccess: (result) => setOverride({ memberId, result }),
   });
   function onToggleLike() {
-    /* 좋아요는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다.
-       확인 중에는 아직 알 수 없어 아무것도 하지 않는다. */
+    /* 로그인 확인 중에는 아직 알 수 없어 아무것도 하지 않는다. */
     if (state.status === "checking") return;
     if (state.status === "guest") {
-      const returnTo = window.location.pathname + window.location.search;
-      router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
+      goToLogin();
       return;
     }
     if (likedFirstLoading || toggleLike.isPending) return;
@@ -114,6 +134,82 @@ export function RealBuyerLive({
     });
     toggleLike.mutate(next, { onError: () => setOverride(previous) });
   }
+
+  /* LIVE 응답에는 판매자가 없어 연결 프로젝트 상세의 seller로 판매자 행을 그린다. 프로젝트 상세
+     화면과 같은 키·조회라 캐시를 함께 쓴다. 판매자 행은 실시간 시청 화면에만 있어 다시보기에서는
+     부르지 않는다. 실패하면 판매자 행만 그리지 않고 시청은 그대로 둔다. */
+  const liveProjectId = isVod ? undefined : playback.data?.projectId;
+  const project = useQuery({
+    queryKey: ["public-project", liveProjectId],
+    queryFn: ({ signal }) => getPublicProject(liveProjectId!, signal),
+    enabled: liveProjectId !== undefined,
+    retry: false,
+  });
+  const seller = project.data?.seller;
+  /* 자기 자신은 팔로우할 수 없어(BE 400) 본인 LIVE에서는 팔로우 버튼을 그리지 않는다. */
+  const ownLive = seller !== undefined && seller.sellerId === memberId;
+  /* 판매자 한 명의 팔로우 여부를 묻는 API가 없어 내 팔로우 목록으로 판단한다. 프로젝트 상세와
+     나란히 부르도록 판매자를 기다리지 않는다. */
+  const follows = useQuery({
+    queryKey: followsQueryKey(memberId),
+    queryFn: ({ signal }) => getAllFollows(signal),
+    enabled: memberId !== undefined && liveProjectId !== undefined,
+    retry: false,
+  });
+  /* 누른 직후에는 누른 값을 먼저 그린다. 좋아요와 같이 누른 회원·판매자의 값만 쓴다. */
+  const [followOverride, setFollowOverride] = useState<FollowOverride | null>(null);
+  const followOverrideValue =
+    followOverride &&
+    followOverride.memberId === memberId &&
+    followOverride.sellerId === seller?.sellerId
+      ? followOverride.following
+      : undefined;
+  const following =
+    followOverrideValue ??
+    follows.data?.some((follow) => follow.sellerId === seller?.sellerId) ??
+    false;
+  /* 좋아요와 같은 이유로 렌더에서 계산한다. 목록을 처음 불러오는 동안은 실제와 다르게 보일 수 있어
+     누르지 않고, 한 번이라도 실패했으면 막지 않는다(팔로우·언팔로우 모두 idempotent). */
+  const followsFirstLoading = follows.isLoading && follows.errorUpdateCount === 0;
+  /* 응답 전 연타는 요청 한 번으로 막는다. 대기 상태가 다시 그려지기 전에 들어온 클릭도 막도록 ref로 둔다. */
+  const followPending = useRef(false);
+  const toggleFollow = useMutation({
+    mutationFn: async ({ sellerId, next }: FollowToggle) => {
+      if (next) await followSeller(sellerId);
+      else await unfollowSeller(sellerId);
+    },
+    onError: (_error, { previous }) => setFollowOverride(previous),
+    onSettled: (_data, _error, variables) => {
+      followPending.current = false;
+      /* 같은 키를 쓰는 다른 화면(LIVE 메인 팔로우한 창작자)이 이전 목록을 쓰지 않게 서버 값으로 다시 맞춘다.
+         실패한 요청이 서버에 반영됐을 수도 있어 실패해도 다시 읽는다. */
+      void queryClient.invalidateQueries({ queryKey: followsQueryKey(variables.memberId) });
+    },
+  });
+  function onToggleFollow() {
+    if (state.status === "checking") return;
+    if (state.status === "guest") {
+      goToLogin();
+      return;
+    }
+    /* 회원 정보가 오기 전에는 본인 LIVE인지 알 수 없어 누르지 않는다. */
+    if (memberId === undefined || seller === undefined || ownLive) return;
+    if (followsFirstLoading || followPending.current) return;
+    followPending.current = true;
+    const next = !following;
+    const previous = followOverride;
+    setFollowOverride({ memberId, sellerId: seller.sellerId, following: next });
+    toggleFollow.mutate({ memberId, sellerId: seller.sellerId, next, previous });
+  }
+  /* 로그인했지만 회원 정보를 받지 못하면(/members/me 일시 실패) 본인 LIVE인지·팔로우 여부를 알 수 없고
+     눌러도 보낼 수 없다. 반응 없는 버튼을 두지 않게 본인 LIVE처럼 그리지 않는다. */
+  const followUnknown = state.status === "authenticated" && memberId === undefined;
+  /* 판매자 이름은 BE가 null을 줄 수 있어(판매자 프로필 없음) 기존 자리표시자로 둔다. */
+  const liveSeller = seller && {
+    name: seller.displayName || realProduct.seller,
+    following,
+    onToggleFollow: ownLive || followUnknown ? undefined : onToggleFollow,
+  };
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
   const seekRef = useRef<LivePlayerHandle | null>(null);
@@ -271,6 +367,7 @@ export function RealBuyerLive({
         liked={liked}
         likeCount={likeCount}
         onToggleLike={onToggleLike}
+        seller={liveSeller}
         replayMessages={isVod ? vodChatMessages : undefined}
         /* 다시보기 채팅은 구간별로 불러와 처음에는 비어 있기 쉽다. 빈 패널 대신 구간 탐색부터 연다. */
         initialPanel={isVod ? "chapters" : undefined}
@@ -314,6 +411,7 @@ export function RealBuyerLive({
       liked={liked}
       likeCount={likeCount}
       onToggleLike={onToggleLike}
+      seller={liveSeller}
     />
   );
 }
