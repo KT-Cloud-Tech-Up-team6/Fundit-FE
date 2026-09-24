@@ -44,6 +44,8 @@ Gateway는 `/api/v1/follows/**`를 member-service로 라우팅한다.
 | DELETE `/api/v1/follows/{sellerId}` | → 204                                                |
 
 - 목록 항목은 `{sellerId, sellerName, sellerNickname, createdAt}`뿐이다.
+- 2026-09-24 BE develop `d701b42`의 `FollowController`·`FollowService` 재확인: 팔로우·언팔로우 모두 idempotent하다. 자기 자신 팔로우는 400 `INVALID_INPUT`, 없는 회원 팔로우는 404다. 언팔로우는 대상이 없어도 204다. size는 1~100을 벗어나면 400이다. 대상이 판매자인지는 BE가 검증하지 않는다(회원 존재만 확인).
+- 판매자 한 명의 팔로우 여부를 묻는 API는 없다. FE는 `src/entities/seller/api/follow-api.ts`의 `getAllFollows`로 목록을 size 100으로 끝까지 읽어 판단하며, 쿼리 키 `followsQueryKey(memberId)`를 LIVE 시청 화면(#343)과 LIVE 메인 "팔로우한 창작자"가 함께 쓴다. LIVE 시청 화면의 판매자 식별자는 공개 프로젝트 상세의 `seller.sellerId`다(`displayName`은 null일 수 있다).
 - 찜 목록(`GET /api/v1/wishes`)과 합치지 않은 이유는 항목 모양이 다르고, 한 엔드포인트에 섞으면 페이지네이션이 하나로 묶여 탭 전환마다 커서가 꼬이기 때문이다. FE도 두 탭의 페이지 상태를 분리한다.
 
 **연결 대기 사유는 표시 필드 부족이다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. 화면의 다섯 정보 중 이름 하나만 채울 수 있어, 값을 지어내지 않는 원칙에 따라 연결을 보류한다.
