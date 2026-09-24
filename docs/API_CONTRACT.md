@@ -569,6 +569,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | ------------------------- | ------------------------------------------------------------------------------------------- |
 | 헤더 LIVE 종료            | POST `/api/v1/lives/{liveId}/end` → `{liveId, status, ...}`. 진행 중이 아니면 409.          |
 | 송출 모니터링             | GET `/playback` 영상, GET `/api/v1/lives/{liveId}`의 `viewerCount`·`elapsedSeconds`(소유자) |
+| 송출 모니터링 주문 칸     | GET `/api/v1/orders/live-stats?liveId=`의 `paidCount`·`paidAmount`(#342)                    |
 | 큐시트 패널               | GET `/cue-sheet`(404는 "큐시트 없음")                                                       |
 | 질문 요약·원문·초안·등록  | 5.6의 `/chat/unanswered`·`/chat/questions/{id}`·`ai-answer`                                 |
 | AI 상태                   | 5.6의 `/chat/insights` `aiStatus`                                                           |
@@ -580,7 +581,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
 - "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
 - LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
-- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 방송 중 펀딩 건수·금액, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 수치는 `-`다(2026-09-23 결정).
+- 송출 모니터링의 주문 칸(Figma `0건 · 0원`)은 #342부터 BE #151의 `GET /api/v1/orders/live-stats`로 채운다. 결제 완료(`paidCount`·`paidAmount`)만 "N건 · N원"으로 적고 결제 전(`pendingCount`·`pendingAmount`, 30분 뒤 만료)은 넣지 않는다(2026-09-24 결정). 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이고 방송 중 들어온 주문만 센다. 방송 중에만 5초마다 다시 부르고(BE 권장 3~5초), 종료하면 한 번 더 읽고 멈춘다. 처음 받기 전이나 첫 조회가 실패하면 `-`이고, 이후 갱신이 실패하면 마지막 값을 그대로 둔다. 소유자가 아니면 403, 세션이 없으면 404, live 조회 실패는 503이다.
+- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내한다(2026-09-23 결정).
 - BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
 
 ### 5.9. 판매자 LIVE 스튜디오 목록·시작 (#326)

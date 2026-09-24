@@ -31,6 +31,12 @@ export function formatViewers(count: number | null | undefined) {
   return count == null ? "-" : `${count.toLocaleString("ko-KR")}명`;
 }
 
+/* 결제 완료 주문만 센다. 결제 전 주문은 아직 주문이 아니고 30분 뒤 만료되면 숫자가 줄어든다. */
+export function formatOrderStats(stats: { paidCount: number; paidAmount: number } | undefined) {
+  if (!stats) return "-";
+  return `${stats.paidCount.toLocaleString("ko-KR")}건 · ${stats.paidAmount.toLocaleString("ko-KR")}원`;
+}
+
 /** Figma "2분 전" 자리. 아직 받은 적이 없으면 빈 문자열이다. */
 export function formatUpdatedAgo(updatedAt: number, now: number) {
   if (!updatedAt) return "";

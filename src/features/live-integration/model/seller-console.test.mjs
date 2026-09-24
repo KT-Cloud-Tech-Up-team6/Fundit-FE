@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   answeredByName,
   formatElapsed,
+  formatOrderStats,
   formatUpdatedAgo,
   formatViewers,
   publishLiveChecks,
@@ -36,6 +37,20 @@ test("경과 시간·시청자 수는 모르면 가짜 값 대신 -로 적는다
   assert.equal(formatElapsed(null), "-");
   assert.equal(formatViewers(1234), "1,234명");
   assert.equal(formatViewers(null), "-");
+});
+
+test("방송 주문은 결제 완료 건수·금액만 적고, 받기 전에는 -로 적는다", () => {
+  assert.equal(
+    formatOrderStats({
+      paidCount: 1234,
+      paidAmount: 3400000,
+      pendingCount: 9,
+      pendingAmount: 90000,
+    }),
+    "1,234건 · 3,400,000원",
+  );
+  assert.equal(formatOrderStats({ paidCount: 0, paidAmount: 0 }), "0건 · 0원");
+  assert.equal(formatOrderStats(undefined), "-");
 });
 
 test("갱신 시각은 방금 전·분·시간 단위로 적는다", () => {

@@ -6,6 +6,7 @@ import { ApiError } from "@/shared/api/api-error";
 import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
+import { getLiveOrderStats } from "@/entities/order/api/seller-order-api";
 import { createLiveVerification } from "@/entities/project/api/seller-project-api";
 import {
   CuePanel,
@@ -41,6 +42,7 @@ import {
 import {
   answeredByName,
   formatElapsed,
+  formatOrderStats,
   formatUpdatedAgo,
   formatViewers,
   publishLiveChecks,
@@ -54,6 +56,9 @@ import { MutationError, QueryError } from "./query-error";
 /* AI 집계는 3분 창이다. 새 질문이 늦게 보이지 않도록 그보다 짧게 다시 부른다. 인사이트 호출이
    BE에 AI 집계를 가져오게 하므로 이 갱신이 곧 집계 반영 주기다. */
 const POLL_MS = 30_000;
+
+/* 방송 중 주문 지표의 BE 권장 주기(3~5초)다. 방송 중에만 다시 부르고, 끝나면 마지막 값을 둔다. */
+const ORDER_STATS_POLL_MS = 5_000;
 
 /* 실제 채팅이 연결되지 않아 늘 빈 목록이다. 렌더마다 새 배열을 넘기면 채팅 패널의 스크롤 처리가 매번 돈다. */
 const noMessages: { id: string; author: string; text: string }[] = [];
@@ -145,11 +150,19 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
     refetchInterval: questionPoll,
     retry: false,
   });
+  const orderStats = useQuery({
+    queryKey: [...ownerKey, "order-stats"],
+    queryFn: ({ signal }) => getLiveOrderStats(liveId, signal),
+    refetchInterval: detail.data?.status === "LIVE" ? ORDER_STATS_POLL_MS : false,
+    retry: false,
+  });
   const end = useMutation({
     mutationFn: () => endLive(liveId),
     onSuccess: () => {
       setDialog({ kind: "ended" });
       void cache.invalidateQueries({ queryKey: [...ownerKey, "detail"] });
+      /* 종료되면 주기 갱신이 멈추므로 마지막 주기 뒤에 들어온 주문까지 한 번 더 읽는다. */
+      void cache.invalidateQueries({ queryKey: [...ownerKey, "order-stats"] });
     },
     onError: setEndError,
     onSettled: () => {
@@ -229,6 +242,7 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
             viewerCount={detail.data?.viewerCount}
             elapsedSeconds={detail.data?.elapsedSeconds}
             elapsedAt={detail.dataUpdatedAt}
+            orders={formatOrderStats(orderStats.data)}
             live={live}
             onCheckStream={() => setNotice("스트림 상태 확인은 준비 중입니다.")}
           />
@@ -302,6 +316,7 @@ function Monitoring({
   viewerCount,
   elapsedSeconds,
   elapsedAt,
+  orders,
   live,
   onCheckStream,
 }: {
@@ -311,6 +326,8 @@ function Monitoring({
   viewerCount?: number | null;
   elapsedSeconds?: number | null;
   elapsedAt: number;
+  /** 결제 완료 주문 "N건 · N원". 모르면 `-`다. */
+  orders: string;
   live: boolean;
   onCheckStream: () => void;
 }) {
@@ -343,7 +360,7 @@ function Monitoring({
         )
       }
       viewers={formatViewers(viewerCount)}
-      funding="-"
+      funding={orders}
       elapsed={formatElapsed(elapsed)}
       onCheckStream={onCheckStream}
     />
