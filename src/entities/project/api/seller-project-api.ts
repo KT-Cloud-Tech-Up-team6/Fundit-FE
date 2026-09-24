@@ -103,7 +103,9 @@ export function getProjectPreview(projectId: string, signal?: AbortSignal) {
 
 /**
  * LIVE 체크(검증) 등록. 한 번에 한 건이다. `questionSummaryId`는 LIVE 질문 요약의 id,
- * `answer`는 보낸 답변이다. 같은 질문을 다시 올려도 BE가 막지 않으므로 화면이 막는다.
+ * `answer`는 보낸 답변이다. 이미 올린 질문은 409 `LIVE_VERIFICATION_ALREADY_EXISTS`다.
+ * BE가 방송 종료 뒤 질문 요약을 비동기로 받아 두기 전이거나 요약에 들지 못한 질문은
+ * 404 `LIVE_QUESTION_SUMMARY_NOT_FOUND`다.
  */
 export function createLiveVerification(
   projectId: string,
@@ -113,6 +115,23 @@ export function createLiveVerification(
     `/api/v1/projects/${encodeURIComponent(projectId)}/live-verifications`,
     { auth: true, method: "POST", body },
   );
+}
+
+/**
+ * 판매자용 LIVE 질문 목록. BE가 받아 둔 질문 요약 전체(미답변 포함)이고 프로젝트 단위라 `liveId`가 없다.
+ * `answered`는 LIVE 체크에 등록했는지다.
+ */
+export function getLiveQuestions(projectId: string, signal?: AbortSignal) {
+  return apiRequest<{
+    content: {
+      questionSummaryId: string;
+      questionText: string;
+      questionCount: number;
+      answered: boolean;
+      liveVerificationId: number | null;
+      answer: string | null;
+    }[];
+  }>(`/api/v1/projects/${encodeURIComponent(projectId)}/live-questions`, { auth: true, signal });
 }
 
 /** 개인정보 수집 동의 기록. 공개(`submitProject`)의 선행 조건이다. `agreed: false`는 422라 보내지 않는다. */

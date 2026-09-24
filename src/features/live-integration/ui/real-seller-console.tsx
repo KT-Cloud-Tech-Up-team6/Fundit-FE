@@ -7,7 +7,10 @@ import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
 import { getLiveOrderStats } from "@/entities/order/api/seller-order-api";
-import { createLiveVerification } from "@/entities/project/api/seller-project-api";
+import {
+  createLiveVerification,
+  getLiveQuestions,
+} from "@/entities/project/api/seller-project-api";
 import {
   CuePanel,
   MonitoringPanel,
@@ -174,6 +177,17 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
 
   const live = detail.data?.status === "LIVE";
   const projectId = detail.data?.projectId;
+  /* 이미 LIVE 체크에 올린 질문을 서버 기준으로 알려 준다. 체크 흐름을 열 때만 부르고, 받기 전이나
+     실패해도 막지 않는다. 다시 올리면 409라 추가된 것으로 처리되기 때문이다. */
+  const liveQuestions = useQuery({
+    queryKey: [...ownerKey, "live-questions"],
+    queryFn: ({ signal }) => getLiveQuestions(projectId ?? "", signal),
+    enabled: dialog !== null && !!projectId,
+    retry: false,
+  });
+  const registeredIds = (liveQuestions.data?.content ?? [])
+    .filter((item) => item.answered)
+    .map((item) => item.questionSummaryId);
   const checkQuestions = toCheckQuestions(answered.data ?? []);
   const cues = toConsoleCues(toCueSheetState(cueSheet.data).segments);
 
@@ -290,16 +304,18 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
             renderOriginals={(questionId) => (
               <Originals liveId={liveId} ownerKey={ownerKey} questionId={questionId} />
             )}
-            publishedIds={publishedIds}
+            publishedIds={[...new Set([...registeredIds, ...publishedIds])]}
             onPublish={async (ids) => {
-              if (!projectId) return ids;
-              const failed = await publishLiveChecks(ids, checkQuestions, (body) =>
+              if (!projectId) return { failed: ids, notReady: [] };
+              const result = await publishLiveChecks(ids, checkQuestions, (body) =>
                 createLiveVerification(projectId, body),
               );
+              const unpublished = [...result.failed, ...result.notReady];
               setPublishedIds((current) => [
-                ...new Set([...current, ...ids.filter((id) => !failed.includes(id))]),
+                ...new Set([...current, ...ids.filter((id) => !unpublished.includes(id))]),
               ]);
-              return failed;
+              void cache.invalidateQueries({ queryKey: [...ownerKey, "live-questions"] });
+              return result;
             }}
             projectHref={projectId ? `/projects/${projectId}?tab=live-proof` : undefined}
             onClose={closeDialog}

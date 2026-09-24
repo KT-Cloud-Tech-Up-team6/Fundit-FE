@@ -218,12 +218,24 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   ) : tab === "live-proof" ? (
     <>
       <p className="mb-3">LIVE 검증 정보입니다. 영상 송출 연결은 준비 중입니다.</p>
-      {live.data?.content?.map((item) => (
-        <article key={item.liveVerificationId} className="border-border-default border-b py-3">
-          <p>질문 {item.questionCount}건</p>
-          <p className="whitespace-pre-wrap">{item.answer}</p>
-        </article>
-      ))}
+      {/* Figma LIVE Q&A 카드(1408:42965). BE가 날짜를 주지 않아 "N건 · 날짜"는 건수만 적는다.
+          질문 요약을 받기 전에 등록된 항목은 문구가 없어 답변만 보인다. */}
+      <div className="flex flex-col gap-6">
+        {live.data?.content?.map((item) => (
+          <article key={item.liveVerificationId} className="flex flex-col gap-2">
+            {item.questionText && (
+              <div>
+                <h2 className="text-body-strong">{item.questionText}</h2>
+                <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
+              </div>
+            )}
+            <div className="border-border-default text-body-s flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
+              <p className="whitespace-pre-wrap">{item.answer}</p>
+              <p className="text-caption-s text-text-secondary">판매자</p>
+            </div>
+          </article>
+        ))}
+      </div>
       {!live.data?.content?.length && <p>등록된 검증 정보가 없습니다.</p>}
     </>
   ) : tab === "news" ? (
