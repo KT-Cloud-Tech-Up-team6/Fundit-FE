@@ -15,11 +15,12 @@ import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
 import { DaumPostcodeButton } from "@/shared/components/ui/daum-postcode-button";
 import { Select } from "@/shared/components/ui/select";
+import { TextButton } from "@/shared/components/ui/text-button";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
-import { AuthScreen, AuthTitle } from "./auth-screen";
+import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 
-export type SignupProfileView = "email" | "password" | "address";
+export type SignupProfileView = "email" | "password" | "address" | "account-exists";
 
 /* 국내 실사용 비중 순. 목록은 입력 편의용이라 서버에서 받지 않는다. 여기 없는 도메인은 "직접 입력"으로 받는다. */
 const emailDomains = [
@@ -211,6 +212,13 @@ export function SignupProfileFlow({
         router.replace("/auth/signup/verify");
         return;
       }
+      /* 이름+전화번호 중복은 본인인증 토큰을 소비한 뒤 검사하므로 같은 토큰으로 다시 보낼 수 없다.
+         가입을 이어갈 수 없으니 입력한 비밀번호까지 진행 정보를 모두 비우고 결과 화면으로 넘긴다. */
+      if (isApiError(error) && error.code === "ACCOUNT_ALREADY_EXISTS") {
+        resetFlow();
+        setView("account-exists");
+        return;
+      }
       setSubmitError(
         isApiError(error) && error.code === "DEPENDENCY_FAILURE"
           ? "가입 처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
@@ -219,6 +227,33 @@ export function SignupProfileFlow({
     } finally {
       submittingRef.current = false;
     }
+  }
+
+  if (view === "account-exists") {
+    /* Figma에 이 상태의 시안이 없어 이메일 찾기 "회원정보를 찾을 수 없습니다"(FL_C_ME_IDFIND_5) 배치를 따른다.
+       가입 폼은 토큰이 소비돼 다시 제출할 수 없으므로 뒤로 가기로 돌아오지 않게 replace로 옮긴다. */
+    return (
+      <AuthScreen onBack={() => router.back()}>
+        <AuthTitle>이미 가입된 계정이 있습니다</AuthTitle>
+        <p className="text-body-m text-text-default mt-2 font-medium whitespace-pre-line">
+          {"본인인증한 정보로 가입된 계정이 있습니다.\n가입한 이메일을 찾아 로그인해 주세요."}
+        </p>
+        <AuthBottomAction>
+          <div className="flex justify-center">
+            <TextButton
+              className="h-10 px-2 py-1"
+              onClick={() => router.replace("/auth/login")}
+              showIcon={false}
+            >
+              로그인 화면으로
+            </TextButton>
+          </div>
+          <AuthButton className="mt-4" onClick={() => router.replace("/auth/recovery/email")}>
+            이메일 찾기
+          </AuthButton>
+        </AuthBottomAction>
+      </AuthScreen>
+    );
   }
 
   if (view === "password") {

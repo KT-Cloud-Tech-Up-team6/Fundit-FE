@@ -68,9 +68,11 @@ export type SocialLoginResult =
     }
   | { needsSignup: false; needsLink: true; provider: SocialProvider; linkToken: string };
 
+/* 소셜 가입은 본인인증을 받지 않는다(BE PR #158). name·phoneNumber는 사용자가 입력한 값이다. */
 export type SocialSignupRequest = {
   agreedTerms: string[];
+  name: string;
   nickname: string;
+  phoneNumber: string;
   signupToken: string;
-  verificationToken: string;
 };

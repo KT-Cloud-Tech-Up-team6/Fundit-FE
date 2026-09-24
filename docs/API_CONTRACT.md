@@ -269,13 +269,14 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 
 최신 답변에서 확인한 도메인 코드는 다음과 같다. 서비스는 이 외에도 전용 코드를 추가할 수 있다.
 
-| HTTP | 도메인 코드               | 의미                                     |
-| ---- | ------------------------- | ---------------------------------------- |
-| 409  | `EMAIL_ALREADY_EXISTS`    | 이메일 중복. 회원가입 토큰 소비 전 검사. |
-| 423  | `ACCOUNT_LOCKED`          | 계정 잠금.                               |
-| 422  | `PROJECT_NOT_DELETABLE`   | DRAFT 외 프로젝트 삭제 불가.             |
-| 422  | `PROJECT_NOT_SUBMITTABLE` | 심사 제출 상태·필수 조건 불충족.         |
-| 422  | `PROJECT_NOT_REVIEWABLE`  | PENDING_REVIEW 외 심사 처리 불가.        |
+| HTTP | 도메인 코드               | 의미                                                                                            |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| 409  | `EMAIL_ALREADY_EXISTS`    | 이메일 중복. 회원가입 토큰 소비 전 검사.                                                        |
+| 409  | `ACCOUNT_ALREADY_EXISTS`  | 일반가입 1인 1계정. 본인인증한 이름+전화번호로 계정이 이미 있음. 토큰 소비 후 검사(BE PR #158). |
+| 423  | `ACCOUNT_LOCKED`          | 계정 잠금.                                                                                      |
+| 422  | `PROJECT_NOT_DELETABLE`   | DRAFT 외 프로젝트 삭제 불가.                                                                    |
+| 422  | `PROJECT_NOT_SUBMITTABLE` | 심사 제출 상태·필수 조건 불충족.                                                                |
+| 422  | `PROJECT_NOT_REVIEWABLE`  | PENDING_REVIEW 외 심사 처리 불가.                                                               |
 
 `TOKEN_INVALID`는 Access Token뿐 아니라 본인인증 토큰에도 쓰인다. HTTP·코드만으로 자동 갱신 또는 로그아웃하지 않고 요청 경로·용도를 함께 구분한다.
 
@@ -341,13 +342,13 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 다음은 **이전 Markdown 근거를 보존한 항목이며 당시 YAML에는 없는 경로**다. 이메일 찾기·재설정의 현재 계약은 아래 4.7의 BE 코드 대조로 갱신했다. 나머지 경로의 구현 상태는 이 표만으로 추정하지 않는다.
 
-| 경로                                                           | 이전 근거와 남은 확인                                                                                                         |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| POST `/api/v1/auth/find-email`                                 | phoneNumber, verificationToken → 안내 message, 이메일은 SMS 전달 설명.                                                        |
-| POST `/api/v1/auth/reset-password`                             | email → 안내 message, 재설정 링크 이메일 발송 설명.                                                                           |
-| POST `/api/v1/auth/reset-password/confirm`                     | resetToken, newPassword → message, 단기·일회성 토큰 설명.                                                                     |
-| POST `/api/v1/auth/login/social`, `/api/v1/auth/signup/social` | KAKAO/GOOGLE, needsSignup·signupToken 분기는 이전 명세 설명. 이번 연동 범위·최종 DTO·TTL 확인 필요.                           |
-| POST `/api/v1/members`                                         | 이전 명세의 auth-service 전용 프로필 생성. YAML에 MemberCreateRequest/Response 스키마만 있다고 FE 공개 API로 취급하지 않는다. |
+| 경로                                                           | 이전 근거와 남은 확인                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/find-email`                                 | phoneNumber, verificationToken → 안내 message, 이메일은 SMS 전달 설명.                                                                                                                                                                                                                                |
+| POST `/api/v1/auth/reset-password`                             | email → 안내 message, 재설정 링크 이메일 발송 설명.                                                                                                                                                                                                                                                   |
+| POST `/api/v1/auth/reset-password/confirm`                     | resetToken, newPassword → message, 단기·일회성 토큰 설명.                                                                                                                                                                                                                                             |
+| POST `/api/v1/auth/login/social`, `/api/v1/auth/signup/social` | KAKAO/GOOGLE, needsSignup·signupToken 분기는 이전 명세 설명. 소셜은 사업자 등록 제약으로 목업이라 FE가 호출하지 않는다(2026-09-24). 가입 요청은 BE PR #158부터 `verificationToken` 없이 signupToken·name·phoneNumber·nickname·agreedTerms(선택 email·address)이며 FE 타입은 필수 필드만 맞췄다(#353). |
+| POST `/api/v1/members`                                         | 이전 명세의 auth-service 전용 프로필 생성. YAML에 MemberCreateRequest/Response 스키마만 있다고 FE 공개 API로 취급하지 않는다.                                                                                                                                                                         |
 
 ### 4.3. 로그인·로그아웃·비밀번호
 
@@ -381,12 +382,13 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 이하 오류·TTL·소비·재시도 규칙은 2026-09-08 답변을 보존한 내용이며 이번 YAML이 새로 명시한 계약은 아니다. 당시 답변은 인증 실패 401 TOKEN_INVALID, PortOne 연동 실패 503 DEPENDENCY_FAILURE, verificationToken 30분·1회성과 Redis get-and-delete 소비, 이름·휴대폰번호 일치 검증을 설명했다.
 
-| 회원가입 결과                        | 최신 구현 답변 기준 FE 처리                                                                                |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 409 EMAIL_ALREADY_EXISTS             | 소비 전 중복 검사이므로 이메일을 변경해 동일 토큰으로 재시도 가능. 토큰 자체의 만료시간은 연장되지 않는다. |
-| 토큰 만료·재사용·이름/휴대폰 불일치  | 모두 401 TOKEN_INVALID. 본인인증부터 재진행.                                                               |
-| 그 외 서버가 실패로 응답             | 소비 이후 실패·프로필 생성 보상 트랜잭션 포함, 본인인증부터 재진행하는 기본 분기.                          |
-| 네트워크 단절·타임아웃으로 결과 불명 | 서버 실패가 확정된 응답과 구분. 성공 여부 확인·재시도 계약은 기술 확인 대상으로 남긴다.                    |
+| 회원가입 결과                        | 최신 구현 답변 기준 FE 처리                                                                                                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 409 EMAIL_ALREADY_EXISTS             | 소비 전 중복 검사이므로 이메일을 변경해 동일 토큰으로 재시도 가능. 토큰 자체의 만료시간은 연장되지 않는다.                                                                                                                |
+| 409 ACCOUNT_ALREADY_EXISTS           | 본인인증한 이름+전화번호로 계정이 이미 있음(BE PR #158). 토큰 소비 후 검사라 재시도할 수 없다. 가입 진행 정보를 비우고 결과 화면에서 이메일 찾기·로그인으로 안내한다(#353). 전화번호를 바꾼 뒤 재가입은 BE가 막지 않는다. |
+| 토큰 만료·재사용·이름/휴대폰 불일치  | 모두 401 TOKEN_INVALID. 본인인증부터 재진행.                                                                                                                                                                              |
+| 그 외 서버가 실패로 응답             | 소비 이후 실패·프로필 생성 보상 트랜잭션 포함, 본인인증부터 재진행하는 기본 분기.                                                                                                                                         |
+| 네트워크 단절·타임아웃으로 결과 불명 | 서버 실패가 확정된 응답과 구분. 성공 여부 확인·재시도 계약은 기술 확인 대상으로 남긴다.                                                                                                                                   |
 
 이메일 예외는 모든 409가 아니라 **409 EMAIL_ALREADY_EXISTS**다. 위 본인인증/회원가입의 TOKEN_INVALID 메시지가 “Access Token 유효성 검증 실패”여도 Access 갱신을 자동 실행하지 않는다. 이 재시도 규칙은 최신 BE 답변의 일반 회원가입 범위이며 소셜 가입으로 확대하지 않는다.
 
