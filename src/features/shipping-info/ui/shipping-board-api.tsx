@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { registerShipment } from "@/entities/fulfillment/api/fulfillment-api";
+import {
+  getSellerShipments,
+  registerShipment,
+  saveShipmentDraft,
+} from "@/entities/fulfillment/api/fulfillment-api";
 import {
   getSellerOrderShippingCounts,
   getSellerOrders,
@@ -17,9 +21,10 @@ import { Tab, TabList } from "@/shared/components/ui/tab";
 import { Toast } from "@/shared/components/ui/toast";
 import {
   sellerShippingFilter,
-  shipResultMessage,
+  shipmentResultMessage,
   shippingCounts,
   toShipment,
+  type ShipmentAction,
   type ShippingView,
 } from "../model/seller-shipment";
 import {
@@ -37,9 +42,9 @@ const noSelection: ReadonlySet<string> = new Set();
 
 type Draft = Partial<Pick<Shipment, "courier" | "trackingNo">>;
 
-/* UUID 프로젝트의 발송정보(#312). 탭·검색어·페이지를 URL에 두고 서버가 거른 목록을 그린다.
-   발송 처리는 송장 등록 API로 저장하며, 등록하면 서버에서 곧바로 발송 완료가 된다.
-   택배사·운송장만 따로 저장하는 API가 없어 저장 버튼은 준비중이다. */
+/* UUID 프로젝트의 발송정보(#312·#316). 탭·검색어·페이지를 URL에 두고 서버가 거른 목록을 그린다.
+   행의 택배사·운송장은 그 페이지 주문의 판매자 송장 조회로 채운다. 발송 처리는 송장 등록 API로
+   곧바로 발송 완료가 되고, 저장은 임시저장 API로 택배사·운송장만 남겨 발송 대기를 유지한다. */
 export function ShippingBoardApi({
   memberId,
   projectId,
@@ -50,6 +55,7 @@ export function ShippingBoardApi({
   const client = useQueryClient();
   const ordersKey = ["seller-shipping-orders", memberId, projectId];
   const countsKey = ["seller-shipping-counts", memberId, projectId];
+  const recordsKey = ["seller-shipping-records", memberId, projectId];
   const orders = useQuery({
     queryKey: [...ordersKey, status, search, page],
     queryFn: ({ signal }) =>
@@ -63,6 +69,14 @@ export function ShippingBoardApi({
     queryKey: countsKey,
     queryFn: ({ signal }) => getSellerOrderShippingCounts(projectId, signal),
   });
+  /* 목록 한 페이지(20건)의 송장을 한 번에 받는다. 실패해도 목록은 그대로 두고 표 위에 알린다. */
+  const fundingIds = (orders.data?.content ?? []).map((order) => order.orderId);
+  const records = useQuery({
+    queryKey: [...recordsKey, fundingIds],
+    queryFn: ({ signal }) => getSellerShipments(projectId, fundingIds, signal),
+    enabled: fundingIds.length > 0,
+  });
+  const recordById = new Map(records.data?.map((record) => [record.fundingId, record] as const));
 
   /* 입력 중인 택배사·운송장은 탭·페이지를 옮겨도 남긴다. 발송일은 발송 이벤트로 비동기 갱신되므로
      이 화면에서 발송 처리한 주문은 목록에 반영되기 전에도 발송 완료로 보여 준다. */
@@ -74,7 +88,7 @@ export function ShippingBoardApi({
   const selected = selection.view === view ? selection.ids : noSelection;
   const [bulkCourier, setBulkCourier] = useState<Courier | "">("");
   const [busy, setBusy] = useState(false);
-  const shipping = useRef(false);
+  const submitting = useRef(false);
   const [toastMessage, setToastMessage] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,9 +102,12 @@ export function ShippingBoardApi({
   /* 선택이 비면 일괄 택배사 값도 버린다. 다시 선택했을 때 이전 값이 남지 않게 한다. */
   if (selected.size === 0 && bulkCourier !== "") setBulkCourier("");
 
+  /* 발송 완료 행은 서버에 등록된 송장을 보여 주고, 입력값은 아직 발송 대기인 행에만 얹는다.
+     이 화면에서 방금 발송 처리한 주문은 다시 조회되기 전이라 보낸 입력값으로 보여 준다. */
   const shipments: Shipment[] = (orders.data?.content ?? []).map((order) => {
-    const row = { ...toShipment(order, status), ...drafts[order.orderId] };
-    return shippedIds.has(row.id) ? { ...row, status: "shipped" as const } : row;
+    const row = toShipment(order, recordById.get(order.orderId));
+    if (shippedIds.has(row.id)) return { ...row, ...drafts[row.id], status: "shipped" as const };
+    return row.status === "pending" ? { ...row, ...drafts[row.id] } : row;
   });
   const tabCounts = counts.data && shippingCounts(counts.data);
   const path = `/seller/projects/${projectId}/shipping`;
@@ -154,19 +171,22 @@ export function ShippingBoardApi({
     toastTimer.current = setTimeout(() => setToastMessage(""), 3000);
   }
 
-  async function ship(ids: ReadonlySet<string>) {
-    if (shipping.current) return;
+  /* 발송 처리는 등록 API로 곧바로 발송 완료가 되고, 저장은 임시저장 API로 발송 대기를 유지한다.
+     둘 다 택배사·운송장이 모두 있어야 보낸다(BE 필수값). */
+  async function submit(action: ShipmentAction, ids: ReadonlySet<string>) {
+    if (submitting.current) return;
     const targets = shipments.filter(
       (shipment) => ids.has(shipment.id) && shipment.status === "pending",
     );
     const ready = targets.filter(canShip);
-    const result = { shipped: 0, already: 0, skipped: targets.length - ready.length, failed: 0 };
+    const result = { done: 0, already: 0, skipped: targets.length - ready.length, failed: 0 };
     if (ready.length > 0) {
-      shipping.current = true;
+      submitting.current = true;
       setBusy(true);
+      const send = action === "ship" ? registerShipment : saveShipmentDraft;
       const outcomes = await Promise.allSettled(
         ready.map((shipment) =>
-          registerShipment(projectId, shipment.id, {
+          send(projectId, shipment.id, {
             carrier: shipment.courier,
             trackingNumber: shipment.trackingNo.trim(),
           }),
@@ -180,25 +200,29 @@ export function ShippingBoardApi({
         else if (outcome.reason instanceof ApiError && outcome.reason.code === "ALREADY_SHIPPED")
           already.add(id);
       });
-      result.shipped = done.size;
+      result.done = done.size;
       result.already = already.size;
       result.failed = ready.length - done.size - already.size;
-      /* 이미 발송된 주문은 서버에 등록된 송장을 판매자가 조회할 수 없으므로 입력값을 지워 오해를 막는다. */
+      /* 이미 발송된 주문은 송장을 고칠 수 없다. 입력값을 버리고 다시 조회한 등록값을 보여 준다. */
       setDrafts((current) => {
         const next = { ...current };
         for (const id of already) delete next[id];
         return next;
       });
-      setShippedIds((current) => new Set([...current, ...done, ...already]));
+      setShippedIds(
+        (current) => new Set([...current, ...already, ...(action === "ship" ? done : [])]),
+      );
+      /* 처리한 주문은 선택에서 뺀다. 빈 입력·실패 건은 입력과 선택을 남겨 다시 시도하게 한다. */
       setSelected(
         (current) => new Set([...current].filter((id) => !done.has(id) && !already.has(id))),
       );
-      shipping.current = false;
+      submitting.current = false;
       setBusy(false);
       void client.invalidateQueries({ queryKey: ordersKey });
       void client.invalidateQueries({ queryKey: countsKey });
+      void client.invalidateQueries({ queryKey: recordsKey });
     }
-    showFeedback(shipResultMessage(result));
+    showFeedback(shipmentResultMessage(action, result));
   }
 
   return (
@@ -254,7 +278,8 @@ export function ShippingBoardApi({
               count={selected.size}
               courier={bulkCourier}
               onCourierChange={applyBulkCourier}
-              onShip={() => void ship(selected)}
+              onShip={() => void submit("ship", selected)}
+              onSave={() => void submit("save", selected)}
             />
           )
         }
@@ -275,16 +300,26 @@ export function ShippingBoardApi({
             notFoundHref="/seller/projects"
           />
         ) : (
-          /* 등록 요청 중에는 표를 잠가 같은 주문을 두 번 보내지 않게 한다. */
-          <ShippingTable
-            readOnly={busy}
-            shipments={shipments}
-            selected={selected}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-            onChange={updateDraft}
-            onShip={(id) => void ship(new Set([id]))}
-          />
+          <>
+            {records.isError && (
+              <p role="alert" className="text-body-s mb-2">
+                등록된 택배사·운송장을 불러오지 못했습니다.{" "}
+                <button type="button" className="underline" onClick={() => void records.refetch()}>
+                  다시 시도
+                </button>
+              </p>
+            )}
+            {/* 등록·저장 요청 중에는 표를 잠가 같은 주문을 두 번 보내지 않게 한다. */}
+            <ShippingTable
+              readOnly={busy}
+              shipments={shipments}
+              selected={selected}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onChange={updateDraft}
+              onShip={(id) => void submit("ship", new Set([id]))}
+            />
+          </>
         )}
       </div>
 

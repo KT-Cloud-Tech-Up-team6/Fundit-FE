@@ -11,6 +11,8 @@ export type SellerOrder = {
     options: { optionValueId: number; optionGroupName: string; optionValue: string }[];
   }[];
   shippingAddress: OrderAddress;
+  /** 발송일. 발송 전이면 없다. 탭 필터·건수와 같은 값이다(BE PR #148). */
+  shippedAt?: string;
 };
 
 /** BE `ShippingFilter`. WAITING은 발송일이 없는 주문, SHIPPED는 발송일이 있는 주문이다. */
