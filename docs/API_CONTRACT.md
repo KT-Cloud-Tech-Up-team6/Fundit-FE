@@ -464,6 +464,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 
 리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. options는 `[{groupName, values: string[]}]`이며 현재 목업의 options 체크값과 다르다. 명세 보완값은 Swagger로 대조한 후 연동한다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
 
+리워드 등록은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #214). 키는 프로젝트 범위이며 같은 키·같은 본문(요청 SHA-256 해시)은 새 리워드 없이 기존 리워드를 200으로, 새 생성은 201로 돌려준다. 같은 키에 다른 본문이 오거나 같은 키 요청이 처리 중이면 409 `CONFLICT`다. 키는 리워드 행에 저장돼 유효기간이 없다. FE는 판매자·프로젝트마다 결과를 모르는 시도 하나의 UUID 키를 요청 전에 sessionStorage에 남기고 성공하거나 409를 받을 때까지 같은 키로 보낸다. 409는 이전 요청의 리워드가 있거나 처리 중이라는 뜻으로 보고 이번 내용은 저장하지 않았다고 알린 뒤 시도를 끝낸다.
+
 ### 5.3. 콘텐츠·업로드
 
 - introContent는 최신 답변 기준 순서 있는 평면 배열 `[{type: "TEXT" | "IMAGE" | "VIDEO_URL", value: "..."}]`이다. 이전 자유형 Map 설명을 폐기한다.

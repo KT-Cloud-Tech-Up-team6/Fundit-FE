@@ -7,7 +7,7 @@ import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
 import {
   getSellerRewards,
-  saveReward as persistReward,
+  updateReward,
   deleteReward,
   type RewardResponse,
 } from "@/entities/project/api/reward-api";
@@ -29,7 +29,11 @@ import {
 } from "../model/basic-info-demo";
 import { rewardOptionsError, rewardRequest, rewardToDraft } from "../model/reward-request";
 import { RewardFormModal } from "./reward-form-modal";
-import { createRewardOnce, RewardCreationUncertainError } from "../model/reward-create-attempt";
+import {
+  createRewardOnce,
+  RewardAlreadySubmittedError,
+  RewardCreationUncertainError,
+} from "../model/reward-create-attempt";
 
 /** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
 export function ProjectRewardManager({ projectId }: { projectId: string }) {
@@ -47,7 +51,8 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const [rewardMessage, setRewardMessage] = useState(""),
     [formMessage, setFormMessage] = useState("");
   const pending = useRef(false),
-    file = useRef<File | undefined>(undefined);
+    file = useRef<File | undefined>(undefined),
+    uploaded = useRef<{ file: File; url: string } | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const optionsChanged = useRef(false);
   function openReward(reward?: DemoReward) {
@@ -75,16 +80,22 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     pending.current = true;
     setBusy(true);
     try {
-      const imageUrl = file.current
-        ? await uploadProjectMedia(projectId, file.current, "image")
-        : undefined;
+      /* 저장에 실패한 뒤 같은 파일로 다시 저장하면 올려 둔 URL을 쓴다. 새로 올리면 URL이 바뀌어
+         본문이 달라지고, 결과를 모르던 생성의 같은 멱등 키가 409로 거절된다. */
+      const selected = file.current;
+      if (selected && uploaded.current?.file !== selected)
+        uploaded.current = {
+          file: selected,
+          url: await uploadProjectMedia(projectId, selected, "image"),
+        };
+      const imageUrl = selected ? uploaded.current?.url : undefined;
       const body = rewardRequest(draft, imageUrl, optionsChanged.current);
       let saved: RewardResponse;
       if (editing === undefined) {
         if (!state.user?.memberId) throw new Error("로그인이 필요합니다.");
         saved = await createRewardOnce(sessionStorage, state.user.memberId, projectId, body);
       } else {
-        saved = await persistReward(projectId, body, editing);
+        saved = await updateReward(editing, body);
       }
       cache.setQueryData<RewardResponse[]>(queryKey, (items = []) => {
         const previous = items.find((item) => item.rewardId === saved.rewardId);
@@ -99,8 +110,11 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
       void cache.invalidateQueries({ queryKey });
       setDraft(null);
     } catch (error) {
+      // 이전 요청이 만든 리워드가 목록에 보이도록 다시 조회한다.
+      if (error instanceof RewardAlreadySubmittedError) void cache.invalidateQueries({ queryKey });
       setRewardMessage(
         error instanceof RewardCreationUncertainError ||
+          error instanceof RewardAlreadySubmittedError ||
           error instanceof ProjectMediaValidationError
           ? error.message
           : "리워드를 저장하지 못했습니다. 입력 내용을 유지했으니 다시 시도해주세요.",

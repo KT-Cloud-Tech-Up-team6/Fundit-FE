@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { rewardOptionsError, rewardRequest, rewardToDraft } from "./reward-request.ts";
-import { saveReward, deleteReward } from "../../../entities/project/api/reward-api.ts";
+import {
+  createReward,
+  deleteReward,
+  updateReward,
+} from "../../../entities/project/api/reward-api.ts";
 import { uploadProjectMedia } from "../../../entities/project/api/media-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 
@@ -86,15 +90,15 @@ test("등록은 프로젝트 UUID, 수정·삭제는 서버 리워드 ID를 사�
     calls.push([url, init]);
     return init.method === "DELETE" ? new Response(null, { status: 204 }) : Response.json(reward);
   });
-  await saveReward("project-uuid", rewardRequest(rewardToDraft(reward)));
-  await saveReward("project-uuid", rewardRequest(rewardToDraft(reward)), 42);
+  await createReward("project-uuid", rewardRequest(rewardToDraft(reward)), "attempt-key");
+  await updateReward(42, rewardRequest(rewardToDraft(reward)));
   await deleteReward(42);
   assert.deepEqual(
-    calls.map(([url, init]) => [url, init.method]),
+    calls.map(([url, init]) => [url, init.method, init.headers.get("Idempotency-Key")]),
     [
-      ["/api/v1/projects/project-uuid/rewards", "POST"],
-      ["/api/v1/rewards/42", "PATCH"],
-      ["/api/v1/rewards/42", "DELETE"],
+      ["/api/v1/projects/project-uuid/rewards", "POST", "attempt-key"],
+      ["/api/v1/rewards/42", "PATCH", null],
+      ["/api/v1/rewards/42", "DELETE", null],
     ],
   );
   t.mock.method(globalThis, "fetch", async () =>
