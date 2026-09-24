@@ -68,13 +68,15 @@ export function getLiveDetail(liveId: string, signal?: AbortSignal) {
 
 /**
  * OBS 같은 송출 프로그램에 넣을 값(BE #147). 본인 LIVE만 조회하고 LIVE·채널이 없으면 404다.
- * BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽는다.
+ * BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽는다. 응답에 Cache-Control이 없어 비밀값이
+ * 브라우저 디스크 캐시에 남지 않게 no-store로 받는다.
  */
 export type StreamInfoResponse = { ingestEndpoint: string; streamKey: string };
 
 export function getStreamInfo(liveId: string, signal?: AbortSignal) {
   return apiRequest<StreamInfoResponse>(`/api/v1/lives/${encodeURIComponent(liveId)}/stream-info`, {
     auth: true,
+    cache: "no-store",
     signal,
   });
 }

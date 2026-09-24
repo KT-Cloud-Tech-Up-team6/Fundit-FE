@@ -47,45 +47,51 @@ export function StreamInfo({ owner, liveId }: { owner: string; liveId: string })
         </p>
       ) : (
         <dl className="bg-layer-surface-disabled flex flex-col gap-2 rounded-xs px-3 py-2">
+          {/* 모달 높이가 고정이라 값은 한 줄로 두고 길면 말줄임한다. 전체 값은 복사로 쓴다
+              (dev 스텁 키는 약 78자, 실제 IVS 키도 두 줄로 꺾일 수 있다). */}
           <div className="flex items-center gap-3">
             <dt className="text-text-secondary w-16 shrink-0">송출 주소</dt>
-            <dd className="text-text-default min-w-0 flex-1 break-all">
-              {info.data.ingestEndpoint}
+            <dd className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="text-text-default min-w-0 flex-1 truncate">
+                {info.data.ingestEndpoint}
+              </span>
+              <TextButton
+                showIcon={false}
+                aria-label="송출 주소 복사"
+                onClick={() => void copy("송출 주소", info.data.ingestEndpoint)}
+              >
+                복사
+              </TextButton>
             </dd>
-            <TextButton
-              showIcon={false}
-              aria-label="송출 주소 복사"
-              onClick={() => void copy("송출 주소", info.data.ingestEndpoint)}
-            >
-              복사
-            </TextButton>
           </div>
           <div className="flex items-center gap-3">
             <dt className="text-text-secondary w-16 shrink-0">스트림 키</dt>
-            <dd className="text-text-default min-w-0 flex-1 break-all">
-              {revealed ? (
-                info.data.streamKey
-              ) : (
-                <>
-                  <span aria-hidden>{MASKED_KEY}</span>
-                  <span className="sr-only">가려져 있음</span>
-                </>
-              )}
+            <dd className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="text-text-default min-w-0 flex-1 truncate">
+                {revealed ? (
+                  info.data.streamKey
+                ) : (
+                  <>
+                    <span aria-hidden>{MASKED_KEY}</span>
+                    <span className="sr-only">가려져 있음</span>
+                  </>
+                )}
+              </span>
+              <TextButton
+                showIcon={false}
+                aria-label={revealed ? "스트림 키 숨기기" : "스트림 키 보기"}
+                onClick={() => setRevealed(!revealed)}
+              >
+                {revealed ? "숨기기" : "보기"}
+              </TextButton>
+              <TextButton
+                showIcon={false}
+                aria-label="스트림 키 복사"
+                onClick={() => void copy("스트림 키", info.data.streamKey)}
+              >
+                복사
+              </TextButton>
             </dd>
-            <TextButton
-              showIcon={false}
-              aria-label={revealed ? "스트림 키 숨기기" : "스트림 키 보기"}
-              onClick={() => setRevealed(!revealed)}
-            >
-              {revealed ? "숨기기" : "보기"}
-            </TextButton>
-            <TextButton
-              showIcon={false}
-              aria-label="스트림 키 복사"
-              onClick={() => void copy("스트림 키", info.data.streamKey)}
-            >
-              복사
-            </TextButton>
           </div>
         </dl>
       )}
