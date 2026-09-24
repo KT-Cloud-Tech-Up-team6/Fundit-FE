@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ConsoleDialog } from "./console-dialog";
@@ -51,6 +51,14 @@ export function LiveCheckFlow({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
   const [unpublished, setUnpublished] = useState({ failed: 0, notReady: 0 });
+  /* 추가 요청 중에도 창을 닫을 수 있다. 닫은 뒤 도착한 결과로 창을 다시 열지 않는다. */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const selectable = questions.filter((q) => !publishedIds.includes(q.id));
   const detail =
     "questionId" in dialog ? questions.find((q) => q.id === dialog.questionId) : undefined;
@@ -60,6 +68,7 @@ export function LiveCheckFlow({
     setUnpublished({ failed: 0, notReady: 0 });
     try {
       const { failed, notReady } = await onPublish(selectedIds);
+      if (!mounted.current) return;
       if (failed.length || notReady.length) {
         setSelectedIds(selectedIds.filter((id) => failed.includes(id) || notReady.includes(id)));
         setUnpublished({ failed: failed.length, notReady: notReady.length });

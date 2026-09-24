@@ -225,7 +225,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           <article key={item.liveVerificationId} className="flex flex-col gap-2">
             {item.questionText && (
               <div>
-                <h3 className="text-body-strong">{item.questionText}</h3>
+                <h2 className="text-body-strong">{item.questionText}</h2>
                 <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
               </div>
             )}
