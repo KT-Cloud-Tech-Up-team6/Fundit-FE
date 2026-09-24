@@ -45,17 +45,23 @@ export function getSellerRewards(projectId: string, signal?: AbortSignal) {
   });
 }
 
-export function saveReward(projectId: string, body: RewardRequest, rewardId?: number) {
-  return apiRequest<RewardResponse>(
-    rewardId === undefined
-      ? `/api/v1/projects/${projectId}/rewards`
-      : `/api/v1/rewards/${rewardId}`,
-    {
-      auth: true,
-      method: rewardId === undefined ? "POST" : "PATCH",
-      body,
-    },
-  );
+/* 같은 키·같은 본문은 새 리워드 없이 기존 리워드를 200으로 돌려준다. 같은 키에 다른 본문이 오거나
+   같은 키 요청이 처리 중이면 409 CONFLICT다(BE #145). 키는 100자 이하, 유효기간 없이 리워드에 저장된다. */
+export function createReward(projectId: string, body: RewardRequest, idempotencyKey: string) {
+  return apiRequest<RewardResponse>(`/api/v1/projects/${projectId}/rewards`, {
+    auth: true,
+    method: "POST",
+    body,
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+}
+
+export function updateReward(rewardId: number, body: RewardRequest) {
+  return apiRequest<RewardResponse>(`/api/v1/rewards/${rewardId}`, {
+    auth: true,
+    method: "PATCH",
+    body,
+  });
 }
 
 export function deleteReward(rewardId: number) {
