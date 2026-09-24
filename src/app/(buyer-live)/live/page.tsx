@@ -1,5 +1,5 @@
-import { BuyerLiveMain } from "@/features/buyer-live/ui/buyer-live-main";
+import { BuyerLiveMainApi } from "@/features/buyer-live/ui/buyer-live-main-api";
 
 export default function LiveListPage() {
-  return <BuyerLiveMain />;
+  return <BuyerLiveMainApi />;
 }
