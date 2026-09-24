@@ -24,7 +24,7 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole("dialog", { name: "리워드 선택" });
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
-    await expect(canvas.getByRole("button", { name: "리워드" })).toHaveAttribute(
+    await expect(canvas.getByRole("button", { name: /^리워드 \(\d+개\)$/ })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
@@ -36,7 +36,7 @@ export const MultipleRewards: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole("dialog", { name: "리워드 선택" });
     const choose = async (name: string) => {
-      await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
+      await userEvent.click(canvas.getByRole("button", { name: /^리워드 \(\d+개\)$/ }));
       await userEvent.click(
         within(canvas.getByRole("group", { name: "리워드 목록" })).getByRole("button", {
           name: new RegExp(name),
@@ -72,7 +72,7 @@ export const MultipleOptionLines: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole("dialog", { name: "리워드 선택" });
-    await userEvent.click(canvas.getByRole("button", { name: "리워드" }));
+    await userEvent.click(canvas.getByRole("button", { name: /^리워드 \(\d+개\)$/ }));
     await userEvent.click(canvas.getByRole("button", { name: /얼리버드 클린포지 R1/ }));
     await expect(canvas.getByRole("button", { name: "펀딩하기" })).toBeDisabled();
     const select = canvas.getByRole("combobox", { name: /얼리버드 클린포지 R1 색상/ });

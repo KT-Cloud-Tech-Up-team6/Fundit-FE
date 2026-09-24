@@ -201,17 +201,15 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   if (view === "done") {
     return (
       <AuthScreen onBack={() => setView("information")}>
-        <div className="flex flex-col items-center pt-14 text-center">
-          <h1 className="text-heading-m text-text-title whitespace-pre-line">
+        {/* FL_C_ME_AUTH_8: 제목·그래픽(112px 프레임)을 가운데에 두고 Figma처럼 72px 올린다.
+            padding 대신 translate라서 낮은 화면에서도 버튼이 아래로 밀리지 않는다. */}
+        <div className="flex flex-1 -translate-y-18 flex-col items-center justify-center gap-10 text-center">
+          <h1 className="text-title-l text-text-default whitespace-pre-line">
             {"본인 확인이\n완료되었습니다"}
           </h1>
-          <Image
-            alt=""
-            className="mt-10 size-[100px]"
-            height={100}
-            src="/images/auth/verification-complete.svg"
-            width={100}
-          />
+          <div className="flex size-28 items-center justify-center">
+            <Image alt="" height={92} src="/images/auth/verification-complete.svg" width={92} />
+          </div>
         </div>
         <AuthBottomAction>
           <AuthButton onClick={() => router.push("/auth/signup/profile")}>다음</AuthButton>
