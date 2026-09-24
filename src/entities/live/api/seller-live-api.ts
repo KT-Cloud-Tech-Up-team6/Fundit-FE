@@ -15,6 +15,8 @@ export type LiveSummaryResponse = {
   scheduledStartAt: string | null;
   likeCount: number;
   createdAt: string;
+  /** 소비자 목록의 `sort=viewerCount`(실시간 순위)에서만 온다. IVS 실시간 시청자 수다. */
+  viewerCount?: number;
 };
 
 export type LivePage = {

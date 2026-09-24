@@ -607,6 +607,19 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
 - 송출 정보는 #344부터 BE #147의 `GET /stream-info`로 생성 확인 화면에 보여 준다. Figma 판매자 LIVE 흐름(`1230:15609`)과 와이어프레임에는 이 자리가 없어, 원래 "스트림 키 미제공" 안내가 있던 LIVE 시작 버튼 아래에 둔다. 송출 주소와 스트림 키는 각각 복사할 수 있고, 키는 기본으로 가렸다가 보기를 눌러야 드러난다. 모달 높이가 고정이라 값은 한 줄로 두고 길면 말줄임한다(전체 값은 복사로 쓴다). 응답에 `Cache-Control`이 없어 FE가 `cache: "no-store"`로 받아 키가 브라우저 캐시에 남지 않게 한다. BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽으며, dev는 IVS 스텁이라 가짜 값이 온다. 불러오지 못하면 다시 시도를 두고 LIVE 시작은 막지 않는다. 송출 정보는 BE #147(`ea3a30c`)로 추가돼 이 절의 기준 커밋(`47bee6ed`)에는 없고, `develop` `d701b42`와 대조했다.
 
+### 5.10. 소비자 LIVE 목록 (#345)
+
+기준은 BE `develop` `d701b42`의 `LiveController.findPublic`·`LiveQueryService.findPublic`이다. 화면 사용은 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md)의 #345 절을 따른다.
+
+| 동작             | Method·Path         | 요청 → 응답                                                                                            |
+| ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| 소비자 LIVE 목록 | GET `/api/v1/lives` | `status`(단일)·`sort`·`sellerId`(여러 값)·`page`·`size`(기본 20) → `PageResponse<LiveSummaryResponse>` |
+
+- 비인증이다. `DRAFT`는 쿼리에서 항상 빠지고, `status`가 없으면 `SCHEDULED`·`LIVE`·`ENDED`·`ERROR`가 모두 온다. 정렬은 `createdAt` 최신순 고정이다.
+- `sort=viewerCount`는 실시간 순위 전용이다. `LIVE`만 IVS 시청자 수 내림차순으로 오고 `status`·`sellerId`는 무시된다. `viewerCount`는 이때만 채워진다.
+- `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
+- 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
+
 ## 6. 최신 답변으로 정리한 차이
 
 아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.
