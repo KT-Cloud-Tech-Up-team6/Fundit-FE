@@ -591,18 +591,19 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 기준은 BE `develop` `47bee6ed`다.
 
-| 동작         | Method·Path                         | 요청 → 응답                                                                           |
-| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------- |
-| LIVE 시작    | POST `/api/v1/lives/{liveId}/start` | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
-| 내 LIVE 목록 | GET `/api/v1/lives/mine`            | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
-| 상태별 건수  | GET `/api/v1/lives/status-counts`   | → `{draft, scheduled, live, ended, error}`                                            |
-| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`        | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+| 동작         | Method·Path                              | 요청 → 응답                                                                           |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| LIVE 시작    | POST `/api/v1/lives/{liveId}/start`      | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
+| 내 LIVE 목록 | GET `/api/v1/lives/mine`                 | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
+| 상태별 건수  | GET `/api/v1/lives/status-counts`        | → `{draft, scheduled, live, ended, error}`                                            |
+| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`             | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+| 송출 정보    | GET `/api/v1/lives/{liveId}/stream-info` | → `{ingestEndpoint, streamKey}`(소유자 전용, 없으면 404)                              |
 
 - `POST /start`는 `DRAFT`·`SCHEDULED`·`ERROR`에서만 `LIVE`로 바뀐다. 이미 `LIVE`거나 `ENDED`면 409라 화면은 "이미 시작했거나 종료된 LIVE"로 따로 안내한다. 시작은 채팅방 생성과 AI 상품정보 준비까지 포함하고, 채팅방 생성이 실패하면 의존성 오류(5xx)이며 세션이 `ERROR`가 된다.
 - `status`는 `List<LiveStatus>`라 쉼표(`status=DRAFT,SCHEDULED`)와 반복 파라미터 둘 다 받는다. FE는 쉼표로 보낸다. 준비중 탭의 "전체를 받아 화면에서 거르던" #283 우회는 여기서 걷었다.
 - 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled`). `ERROR`는 어느 탭에도 속하지 않아 어느 건수에도 더하지 않는다.
 - 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
-- 송출 시작을 붙였어도 **스트림 키 조회 API는 여전히 없다.** 영상 송출 정보는 화면에서 안내만 하고 만들어 내지 않는다.
+- 송출 정보는 #344부터 BE #147의 `GET /stream-info`로 생성 확인 화면에 보여 준다. Figma 판매자 LIVE 흐름(`1230:15609`)과 와이어프레임에는 이 자리가 없어, 원래 "스트림 키 미제공" 안내가 있던 LIVE 시작 버튼 아래에 둔다. 송출 주소와 스트림 키는 각각 복사할 수 있고, 키는 기본으로 가렸다가 보기를 눌러야 드러난다. 모달 높이가 고정이라 값은 한 줄로 두고 길면 말줄임한다(전체 값은 복사로 쓴다). 응답에 `Cache-Control`이 없어 FE가 `cache: "no-store"`로 받아 키가 브라우저 캐시에 남지 않게 한다. BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽으며, dev는 IVS 스텁이라 가짜 값이 온다. 불러오지 못하면 다시 시도를 두고 LIVE 시작은 막지 않는다. 송출 정보는 BE #147(`ea3a30c`)로 추가돼 이 절의 기준 커밋(`47bee6ed`)에는 없고, `develop` `d701b42`와 대조했다.
 
 ## 6. 최신 답변으로 정리한 차이
 
