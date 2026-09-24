@@ -213,7 +213,8 @@ export function SignupProfileFlow({
         return;
       }
       /* 이름+전화번호 중복은 본인인증 토큰을 소비한 뒤 검사하므로 같은 토큰으로 다시 보낼 수 없다.
-         가입을 이어갈 수 없으니 입력한 비밀번호까지 진행 정보를 모두 비우고 결과 화면으로 넘긴다. */
+         가입을 이어갈 수 없으니 공유 진행 정보(토큰·본인정보·비밀번호 초안·약관)를 비우고 결과 화면으로 넘긴다.
+         폼 입력값은 결과 화면에서 다시 쓰지 않고 화면을 떠나면 함께 사라진다. */
       if (isApiError(error) && error.code === "ACCOUNT_ALREADY_EXISTS") {
         resetFlow();
         setView("account-exists");
@@ -230,10 +231,11 @@ export function SignupProfileFlow({
   }
 
   if (view === "account-exists") {
-    /* Figma에 이 상태의 시안이 없어 이메일 찾기 "회원정보를 찾을 수 없습니다"(FL_C_ME_IDFIND_5) 배치를 따른다.
-       가입 폼은 토큰이 소비돼 다시 제출할 수 없으므로 뒤로 가기로 돌아오지 않게 replace로 옮긴다. */
+    /* Figma에 이 상태의 시안이 없어 이메일 찾기 "회원정보를 찾을 수 없습니다"(FL_C_ME_IDFIND_5)의
+       문구 구성·텍스트 버튼 규격을 따른다. 가입 폼은 토큰이 소비돼 다시 제출할 수 없으므로
+       모든 이동을 replace로 해 뒤로 가기로 돌아오지 않게 한다. 헤더 뒤로가기는 가입 시작 화면이다. */
     return (
-      <AuthScreen onBack={() => router.back()}>
+      <AuthScreen onBack={() => router.replace("/auth/signup")}>
         <AuthTitle>이미 가입된 계정이 있습니다</AuthTitle>
         <p className="text-body-m text-text-default mt-2 font-medium whitespace-pre-line">
           {"본인인증한 정보로 가입된 계정이 있습니다.\n가입한 이메일을 찾아 로그인해 주세요."}
