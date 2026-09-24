@@ -104,7 +104,7 @@ export function RewardSheet({
           onClick={() => setExpanded(!expanded)}
           className="border-border-default text-text-secondary focus-visible:outline-border-primary flex h-13 w-full shrink-0 items-center justify-between rounded-xs border px-4 text-[14px] focus-visible:outline-2"
         >
-          리워드
+          리워드 ({rewards.length}개)
           <Icon name="arrowDown" className={`size-4 ${expanded ? "rotate-180" : ""}`} />
         </button>
         {expanded && (
@@ -168,7 +168,7 @@ export function RewardSheet({
               {lines.map((line, index) => (
                 <div
                   key={line.value ?? "quantity"}
-                  className="flex flex-wrap items-center justify-between gap-2"
+                  className={`flex flex-wrap items-center justify-between gap-2 ${index === 0 && reward.options[0] ? "mt-2" : ""}`}
                 >
                   {line.value && <span className="text-body-s">{line.value}</span>}
                   <QuantityStepper
@@ -215,7 +215,7 @@ export function RewardSheet({
       <form
         id={inlineFormId}
         aria-label="웹 리워드 선택"
-        className="mt-8"
+        className="mt-6"
         onSubmit={(event) => {
           event.preventDefault();
           submit();

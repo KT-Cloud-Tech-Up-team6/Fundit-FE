@@ -21,7 +21,7 @@ export function QuantityStepper({ value, onChange, label, min = 1, max }: Quanti
         disabled={atMin}
         onClick={() => onChange(Math.max(min, value - 1))}
       >
-        <span className="bg-text-secondary block size-3.5 [mask-image:url('/images/reward-selection/minus.svg')] [mask-size:contain] [mask-repeat:no-repeat]" />
+        <span className="bg-text-secondary block size-3.5 [mask-image:url('/images/reward-selection/minus.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
       </StepButton>
       {/* <output>은 암묵적으로 aria-live=polite인 라이브 리전이다. 여기에 aria-label을 달면
          일부 스크린리더가 값 대신 라벨을 읽어 수량 변화가 전달되지 않는다. 맥락은 위·아래
@@ -34,7 +34,7 @@ export function QuantityStepper({ value, onChange, label, min = 1, max }: Quanti
         disabled={atMax}
         onClick={() => onChange(max === undefined ? value + 1 : Math.min(max, value + 1))}
       >
-        <span className="bg-text-secondary block size-3.5 [mask-image:url('/images/reward-selection/plus.svg')] [mask-size:contain] [mask-repeat:no-repeat]" />
+        <span className="bg-text-secondary block size-3.5 [mask-image:url('/images/reward-selection/plus.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
       </StepButton>
     </div>
   );
