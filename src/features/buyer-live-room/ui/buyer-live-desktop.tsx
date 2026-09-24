@@ -231,7 +231,8 @@ export function BuyerLiveDesktop({
             숏 클립이면 제목만 그린다. */}
         {(demoMode || clip || seller) && (
           <section
-            aria-label="상품 정보"
+            /* 실제 실시간 시청에서는 이 패널에 판매자 행만 있다. */
+            aria-label={demoMode || clip ? "상품 정보" : "판매자 정보"}
             className="bg-layer-surface-default border-border-default h-[726px] rounded-sm border px-4 py-3"
           >
             {!demoMode && clip && <h1 className="text-title-s mt-3">{clipTitle}</h1>}

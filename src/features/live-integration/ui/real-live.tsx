@@ -201,11 +201,14 @@ export function RealBuyerLive({
     setFollowOverride({ memberId, sellerId: seller.sellerId, following: next });
     toggleFollow.mutate({ memberId, sellerId: seller.sellerId, next, previous });
   }
+  /* 로그인했지만 회원 정보를 받지 못하면(/members/me 일시 실패) 본인 LIVE인지·팔로우 여부를 알 수 없고
+     눌러도 보낼 수 없다. 반응 없는 버튼을 두지 않게 본인 LIVE처럼 그리지 않는다. */
+  const followUnknown = state.status === "authenticated" && memberId === undefined;
   /* 판매자 이름은 BE가 null을 줄 수 있어(판매자 프로필 없음) 기존 자리표시자로 둔다. */
   const liveSeller = seller && {
     name: seller.displayName || realProduct.seller,
     following,
-    onToggleFollow: ownLive ? undefined : onToggleFollow,
+    onToggleFollow: ownLive || followUnknown ? undefined : onToggleFollow,
   };
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
