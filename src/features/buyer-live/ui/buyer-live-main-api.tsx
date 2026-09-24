@@ -56,7 +56,9 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
       real={{
         newOpen: withViewerCounts(pickNewOpen(newOpen), ranking),
         ranking,
-        following,
+        /* 예정 탭의 팔로우 칸도 날짜별 예정과 같이 아직 시작 시각이 오지 않은 예정만 이른 순서로 고른다.
+           BE는 시각이 지나도 판매자가 시작하기 전까지 SCHEDULED로 둔다. */
+        following: upcoming ? pickUpcoming(following, openedAt) : following,
         scheduled: pickUpcoming(scheduled, openedAt),
       }}
     />

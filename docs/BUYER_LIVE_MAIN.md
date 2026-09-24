@@ -68,7 +68,7 @@
 - 섹션별 후보는 다음과 같다. 맞는 LIVE가 없거나 조회가 실패하면 그 섹션은 목업만 보이고 오류 안내는 없다.
   - 신규 오픈: `GET /lives`(최신순)에서 `LIVE`·`SCHEDULED`만 고른 첫 항목. 목록 응답에는 시청자 수가 없어, 같은 화면이 받은 실시간 순위 조회(첫 페이지)에 같은 LIVE가 있으면 그 `viewerCount`를 목업 카드와 같은 시청자 뱃지로 보인다. 순위에 없으면 숫자 대신 LIVE 뱃지, 예정이면 "예정됨" 뱃지를 쓴다.
   - 실시간 순위: `GET /lives?status=LIVE&sort=viewerCount`의 1위. 순위 번호는 칸 위치이고 시청자 수는 `viewerCount`다.
-  - 팔로우한 창작자: 실시간 탭은 `status=LIVE`, 예정 탭은 `status=SCHEDULED`에 팔로우 목록 앞 100명의 `sellerId`를 붙인 첫 항목.
+  - 팔로우한 창작자: 팔로우 목록 앞 100명의 `sellerId`를 붙여 실시간 탭은 `status=LIVE`의 첫 항목, 예정 탭은 `status=SCHEDULED`를 날짜별 예정과 같이 화면을 연 시각 이후 `scheduledStartAt` 오름차순으로 다시 세운 첫 항목. BE는 예정 시각이 지나도 판매자가 시작하기 전까지 `SCHEDULED`로 두므로 지난 예정은 뺀다.
   - 날짜별 예정: `GET /lives?status=SCHEDULED` 첫 페이지(20건)를 화면을 연 시각 이후의 `scheduledStartAt` 오름차순으로 다시 세운 첫 항목. 날짜 제목 `9/8일 (화)`는 목업 그대로라 실제 카드의 날짜와 다를 수 있다.
 - 실제 카드는 BE에 없는 판매자·아바타·카테고리·달성률·알림 신청 수를 비운다. 제목은 `introText`이고 비어 있으면 "소개 문구 없음"이다. 썸네일이 없으면 카드의 중립 배경만 남는다. 외부 썸네일 주소는 최적화 없이 그대로 쓴다. 예정 카드의 날짜·시간은 한국 시간이다.
 - 방송 중 카드는 `/live/{liveId}`로 간다. 예정 카드는 재생 정보가 없어 목업 예정 카드(`getUpcomingProjectHref`)처럼 실제 `projectId`의 프로젝트 상세(`/projects/{projectId}?tab=story`)로 간다.
