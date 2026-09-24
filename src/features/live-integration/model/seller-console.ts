@@ -37,6 +37,24 @@ export function formatOrderStats(stats: { paidCount: number; paidAmount: number 
   return `${stats.paidCount.toLocaleString("ko-KR")}건 · ${stats.paidAmount.toLocaleString("ko-KR")}원`;
 }
 
+/**
+ * 콘솔 주문 칸의 표시. 갱신이 잠깐 실패할 때는 마지막 값을 두어 칸이 깜빡이지 않게 하고, 마지막 성공 뒤
+ * `staleMs` 넘게 실패가 이어지면 멈춘 매출을 지금 값처럼 보이지 않게 `-`로 바꾼다.
+ * 시각은 쿼리의 `dataUpdatedAt`·`errorUpdatedAt`(ms)이다.
+ */
+export function orderStatsLabel(
+  query: {
+    data: { paidCount: number; paidAmount: number } | undefined;
+    isError: boolean;
+    dataUpdatedAt: number;
+    errorUpdatedAt: number;
+  },
+  staleMs: number,
+) {
+  if (query.isError && query.errorUpdatedAt - query.dataUpdatedAt >= staleMs) return "-";
+  return formatOrderStats(query.data);
+}
+
 /** Figma "2분 전" 자리. 아직 받은 적이 없으면 빈 문자열이다. */
 export function formatUpdatedAgo(updatedAt: number, now: number) {
   if (!updatedAt) return "";

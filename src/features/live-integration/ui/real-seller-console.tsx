@@ -42,9 +42,9 @@ import {
 import {
   answeredByName,
   formatElapsed,
-  formatOrderStats,
   formatUpdatedAgo,
   formatViewers,
+  orderStatsLabel,
   publishLiveChecks,
   questionSummaryState,
   toCheckQuestions,
@@ -59,6 +59,8 @@ const POLL_MS = 30_000;
 
 /* 방송 중 주문 지표의 BE 권장 주기(3~5초)다. 방송 중에만 다시 부르고, 끝나면 마지막 값을 둔다. */
 const ORDER_STATS_POLL_MS = 5_000;
+/* 갱신이 이만큼(3번) 이어서 실패하면 마지막 값 대신 `-`로 바꾼다. */
+const ORDER_STATS_STALE_MS = 15_000;
 
 /* 실제 채팅이 연결되지 않아 늘 빈 목록이다. 렌더마다 새 배열을 넘기면 채팅 패널의 스크롤 처리가 매번 돈다. */
 const noMessages: { id: string; author: string; text: string }[] = [];
@@ -242,7 +244,7 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
             viewerCount={detail.data?.viewerCount}
             elapsedSeconds={detail.data?.elapsedSeconds}
             elapsedAt={detail.dataUpdatedAt}
-            orders={formatOrderStats(orderStats.data)}
+            orders={orderStatsLabel(orderStats, ORDER_STATS_STALE_MS)}
             live={live}
             onCheckStream={() => setNotice("스트림 상태 확인은 준비 중입니다.")}
           />
