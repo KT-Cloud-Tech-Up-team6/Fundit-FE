@@ -17,6 +17,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
 import { desktopMessages, desktopProductDescription } from "../model/desktop-room-demo";
+import type { LiveSeller } from "../model/live-seller";
 import { roomDemo } from "../model/room-demo";
 import styles from "./buyer-live-desktop.module.css";
 
@@ -82,6 +83,7 @@ export function BuyerLiveDesktop({
   liked: likedProp,
   likeCount,
   onToggleLike,
+  seller,
   replayMessages,
 }: {
   liveId: string;
@@ -111,11 +113,17 @@ export function BuyerLiveDesktop({
   liked?: boolean;
   likeCount?: number;
   onToggleLike?: () => void;
+  /** 실제 경로의 판매자 행. 주면 목업 판매자 대신 Figma 위치(왼쪽 정보 패널)에 그린다. */
+  seller?: LiveSeller;
   /** 다시보기 구간 채팅. 주면 목업 채팅 대신 이 목록을 그린다. */
   replayMessages?: { id: string; author: string; text: string }[];
   onRefreshQuestions?: () => void;
 }) {
-  const [following, setFollowing] = useState(false);
+  const [internalFollowing, setInternalFollowing] = useState(false);
+  const following = seller ? seller.following : internalFollowing;
+  const onToggleFollow = seller
+    ? seller.onToggleFollow
+    : () => setInternalFollowing(!internalFollowing);
   const [internalLiked, setInternalLiked] = useState(false);
   const liked = likedProp ?? internalLiked;
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -219,13 +227,14 @@ export function BuyerLiveDesktop({
         aria-label={`${replay ? (clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
         className="mx-auto grid w-full max-w-300 grid-cols-3 items-start gap-6 pt-10 pb-16"
       >
-        {/* 실제 경로에는 판매자·상품 데이터가 없다. 숏 클립이면 Figma 위치(왼쪽 패널)에 제목만 그린다. */}
-        {(demoMode || clip) && (
+        {/* 실제 경로에는 상품 데이터가 없다. Figma 위치(왼쪽 패널)에 실시간 시청이면 판매자 행만,
+            숏 클립이면 제목만 그린다. */}
+        {(demoMode || clip || seller) && (
           <section
             aria-label="상품 정보"
             className="bg-layer-surface-default border-border-default h-[726px] rounded-sm border px-4 py-3"
           >
-            {!demoMode && <h1 className="text-title-s mt-3">{clipTitle}</h1>}
+            {!demoMode && clip && <h1 className="text-title-s mt-3">{clipTitle}</h1>}
             {demoMode && (
               <div className="flex gap-2">
                 <Badge variant={replay ? "neutral" : "accent"}>
@@ -238,26 +247,32 @@ export function BuyerLiveDesktop({
                 </Badge>
               </div>
             )}
-            {demoMode && (
-              <>
-                <div className="mt-2 flex items-center gap-2">
-                  <Avatar size={32}>
+            {(demoMode || seller) && (
+              <div className={`${demoMode ? "mt-2" : ""} flex items-center gap-2`}>
+                {/* 실제 판매자 프로필 이미지는 BE 응답에 없어 기본 아바타를 그린다. */}
+                <Avatar size={32}>
+                  {seller ? undefined : (
                     <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
-                  </Avatar>
-                  <span className="text-body-s text-text-secondary">{product.seller}</span>
+                  )}
+                </Avatar>
+                <span className="text-body-s text-text-secondary min-w-0 truncate">
+                  {seller?.name ?? product.seller}
+                </span>
+                {onToggleFollow && (
+                  /* Figma 1525:43639 button secondary/S: 62×36, 좌우 8px, Body/Medium_14. */
                   <Button
                     size="sm"
                     variant={following ? "primary" : "secondary"}
-                    className="text-body-s! ml-auto h-9! px-3"
+                    className="text-body-s! ml-auto h-9! min-w-[62px] font-medium"
                     aria-pressed={following}
-                    onClick={() => setFollowing(!following)}
+                    onClick={onToggleFollow}
                   >
                     {following ? "팔로잉" : "팔로우"}
                   </Button>
-                </div>
-                <h1 className="text-title-s mt-6">{clip ? clipTitle : product.title}</h1>
-              </>
+                )}
+              </div>
             )}
+            {demoMode && <h1 className="text-title-s mt-6">{clip ? clipTitle : product.title}</h1>}
             {demoMode && (
               <>
                 <h2 className="text-label-m text-text-secondary mt-6">상품 정보</h2>

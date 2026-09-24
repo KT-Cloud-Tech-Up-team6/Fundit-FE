@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { roomDemo, roomQuestions, sampleMessages } from "../model/room-demo";
+import type { LiveSeller } from "../model/live-seller";
 import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
@@ -28,6 +29,8 @@ type BuyerLiveRoomProps = {
   likeCount?: number;
   /** 주면 실제 경로에서도 좋아요 버튼을 노출하고 서버에 보낸다. */
   onToggleLike?: () => void;
+  /** 실제 경로의 판매자 행. 주면 목업 판매자 대신 그린다. 주지 않으면 목업에서만 판매자 행을 그린다. */
+  seller?: LiveSeller;
 };
 
 export function BuyerLiveRoom({
@@ -46,8 +49,13 @@ export function BuyerLiveRoom({
   liked: likedProp,
   likeCount,
   onToggleLike,
+  seller,
 }: BuyerLiveRoomProps) {
-  const [following, setFollowing] = useState(false);
+  const [internalFollowing, setInternalFollowing] = useState(false);
+  const following = seller ? seller.following : internalFollowing;
+  const onToggleFollow = seller
+    ? seller.onToggleFollow
+    : () => setInternalFollowing(!internalFollowing);
   const [internalLiked, setInternalLiked] = useState(false);
   const liked = likedProp ?? internalLiked;
   const [chatExpanded, setChatExpanded] = useState(initialChatExpanded);
@@ -173,34 +181,42 @@ export function BuyerLiveRoom({
       </header>
       <main className={styles.main}>
         <section aria-label="판매자와 라이브 현황" className={styles.seller}>
-          {demoMode && (
-            <>
-              <div className={styles.sellerRow}>
-                <Avatar size={32}>
+          {(demoMode || seller) && (
+            <div className={styles.sellerRow}>
+              {/* 실제 판매자 프로필 이미지는 BE 응답에 없어 기본 아바타를 그린다. */}
+              <Avatar size={32}>
+                {seller ? undefined : (
                   <Image src={product.avatar} alt="" fill sizes="32px" className="object-cover" />
-                </Avatar>
-                <span className="[text-shadow:0_0_4px_rgba(0,0,0,0.3)]">{product.seller}</span>
+                )}
+              </Avatar>
+              <span className="min-w-0 truncate [text-shadow:0_0_4px_rgba(0,0,0,0.3)]">
+                {seller?.name ?? product.seller}
+              </span>
+              {onToggleFollow && (
+                /* Figma 1408:42133 button secondary/XS: 높이 28, 좌우 12px, Caption/Medium_13. */
                 <Button
                   size="sm"
                   variant={following ? "primary" : "secondary"}
-                  className="text-body-s! ml-auto px-3"
+                  className="text-caption-s! ml-auto px-3 font-medium"
                   aria-pressed={following}
-                  onClick={() => setFollowing(!following)}
+                  onClick={onToggleFollow}
                 >
                   {following ? "팔로잉" : "팔로우"}
                 </Button>
-              </div>
-              <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
-                <span aria-label="펀딩 수치 목업">
-                  <Icon name="funding" className="inline-block size-3.5" />
-                  000,000
-                </span>
-                <span aria-label="시청자 수 목업">
-                  <RoomIcon name="viewers" className="size-3.5" />
-                  000,000
-                </span>
-              </div>
-            </>
+              )}
+            </div>
+          )}
+          {demoMode && (
+            <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
+              <span aria-label="펀딩 수치 목업">
+                <Icon name="funding" className="inline-block size-3.5" />
+                000,000
+              </span>
+              <span aria-label="시청자 수 목업">
+                <RoomIcon name="viewers" className="size-3.5" />
+                000,000
+              </span>
+            </div>
           )}
         </section>
         <div
