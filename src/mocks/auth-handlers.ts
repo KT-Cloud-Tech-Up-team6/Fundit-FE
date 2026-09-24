@@ -116,6 +116,10 @@ export const authHandlers = [
     if (verificationToken.startsWith("expired-")) {
       return error(401, "TOKEN_INVALID", "본인인증 토큰이 만료되었습니다.");
     }
+    /* 실제 BE는 본인인증한 이름+전화번호로 기존 계정을 찾는다. 목업은 이 번호 하나로 재현한다. */
+    if (body.phoneNumber === "01000000000") {
+      return error(409, "ACCOUNT_ALREADY_EXISTS", "이미 계정이 존재합니다.");
+    }
     /* 실제 백엔드(CompleteAddress)와 동일하게 all-or-nothing으로 검증한다:
        비어있거나 아예 없으면 통과, 하나라도 채웠으면 4개 필수 필드가 다 있어야 한다. */
     const address = body.address;

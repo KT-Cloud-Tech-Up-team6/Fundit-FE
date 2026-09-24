@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 
@@ -77,6 +77,14 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
   function abandonVerification() {
     runIdRef.current++;
   }
+
+  /* 약관 동의 없이 이 화면에 오면(새로고침, 중복 계정 결과 뒤 뒤로 가기 등) 본인인증을 마쳐도
+     마지막 가입 제출에서 약관 화면으로 돌아간다. 인증 전에 가입 시작 화면에서 약관부터 받는다.
+     모바일 콜백은 약관을 먼저 복구한 뒤 이 화면으로 오므로 걸리지 않는다. */
+  const termsMissing = selectedTermCodes.length === 0;
+  useEffect(() => {
+    if (termsMissing) router.replace("/auth/signup");
+  }, [router, termsMissing]);
 
   const identityMutation = useMutation({
     mutationFn: (input: { draft: IdentityDraft; redirectUrl: string }) =>
