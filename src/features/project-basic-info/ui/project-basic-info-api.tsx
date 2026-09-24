@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
@@ -48,6 +48,16 @@ export function ProjectBasicInfoApi({
   /* 신규 생성 화면은 ProjectCreateFlow의 동의 모달에서 필수 항목(개인정보 수집·이용 포함)에
      동의해야 쓸 수 있다. 그 동의를 공개 조건인 BE 개인정보 동의로 프로젝트마다 한 번 기록한다. */
   const consentedId = useRef<string | null>(null);
+  /* 생성을 마친 시도의 저장 이름. 모달 버튼 대신 뒤로 가기 등으로 화면을 떠나도 지워야 같은 탭의
+     다음 생성 화면이 이미 만든 프로젝트 id를 받아 그 기본정보를 덮어쓰지 않는다. 새로고침에서는
+     이 정리가 돌지 않아 아래 저장처럼 같은 프로젝트로 이어진다. */
+  const completedAttempt = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      if (completedAttempt.current) sessionStorage.removeItem(completedAttempt.current);
+    },
+    [],
+  );
   async function save(values: BasicInfoValues, partial = false) {
     if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
     const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
@@ -70,6 +80,7 @@ export function ProjectBasicInfoApi({
         sessionStorage.removeItem(projectAttemptKey(owner));
         router.replace(`/seller/projects/${id}?tab=basic-info`);
       } else {
+        completedAttempt.current = projectAttemptKey(owner);
         setCreatedId(id);
       }
     }
@@ -96,9 +107,6 @@ export function ProjectBasicInfoApi({
     return (
       <>
         <ProjectBasicInfoForm key={owner} onSave={save} />
-        <Link href="/seller/projects?status=draft" className="block py-4 underline">
-          내 프로젝트 목록에서 생성 여부 확인
-        </Link>
         {createdId && (
           <ProjectSavedModal
             onLater={() => leaveAfterCreate("basic-info")}
