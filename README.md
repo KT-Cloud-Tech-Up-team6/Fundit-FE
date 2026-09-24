@@ -219,7 +219,7 @@ GitOps·ArgoCD를 통한 실제 서비스 배포는 별도 인프라 단계입�
 - 확정된 Gateway 주소·계정·연관 데이터·배포 이미지로 실제 핵심 흐름을 검증해야 합니다.
 - BE가 화면용 목업을 제공할 경우 응답 형식뿐 아니라 저장 후 재조회·상태 변경 지원 여부도 확인합니다. Storybook과 자동 테스트용 목업은 별도로 유지합니다.
 - 실제 결제 승인, IVS·AI, 외부 배송 연동과 API 응답 누락 등은 해당 PR의 미완료·미검증 항목 및 [API 계약 문서](./docs/API_CONTRACT.md)를 확인합니다. API 클라이언트 구현이 실서비스 통합 완료를 뜻하지 않습니다.
-- 리워드([#214](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/214))·주문([#215](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/215)) 생성은 `Idempotency-Key`로 같은 시도의 서버 결과를 되찾습니다. 프로젝트 생성 멱등성과 불확실한 결과 복구는 [#213](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/213)에서 추적하며, 현재 프로젝트의 탭 단위 FE 방어는 다중 탭·기기 중복 방지나 서버 결과 복구를 보장하지 않습니다.
+- 프로젝트([#213](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/213))·리워드([#214](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/214))·주문([#215](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/215)) 생성은 `Idempotency-Key`로 같은 시도의 서버 결과를 되찾습니다. sessionStorage는 탭 복제 때만 공유되므로 서로 다른 탭·기기의 생성은 별개 시도입니다.
 - 구매자 목록·찜 카드의 숫자 ID와 공개 상세 UUID 연결은 [#216](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/216)에서 추적합니다. 매핑 계약이 없는 카드의 상세 이동은 비활성 상태입니다.
 
 ## 설계 문서
