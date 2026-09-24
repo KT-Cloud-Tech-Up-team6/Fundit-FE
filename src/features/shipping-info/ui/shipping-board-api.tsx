@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getSellerShipments,
   registerShipment,
@@ -69,12 +69,16 @@ export function ShippingBoardApi({
     queryKey: countsKey,
     queryFn: ({ signal }) => getSellerOrderShippingCounts(projectId, signal),
   });
-  /* 목록 한 페이지(20건)의 송장을 한 번에 받는다. 실패해도 목록은 그대로 두고 표 위에 알린다. */
+  /* 목록 한 페이지(20건)의 송장을 한 번에 받는다. 실패해도 목록은 그대로 두고 표 위에 알린다.
+     발송 처리로 목록에서 주문이 빠지면 키가 바뀐다. 새 조회가 끝날 때까지 이전 결과를 두어 저장해 둔
+     송장이 빈칸으로, 발송된 행이 발송 대기로 잠깐 돌아가지 않게 한다. 행은 fundingId로 찾으므로
+     이전 결과가 다른 주문에 붙지 않는다. */
   const fundingIds = (orders.data?.content ?? []).map((order) => order.orderId);
   const records = useQuery({
     queryKey: [...recordsKey, fundingIds],
     queryFn: ({ signal }) => getSellerShipments(projectId, fundingIds, signal),
     enabled: fundingIds.length > 0,
+    placeholderData: keepPreviousData,
   });
   const recordById = new Map(records.data?.map((record) => [record.fundingId, record] as const));
 
