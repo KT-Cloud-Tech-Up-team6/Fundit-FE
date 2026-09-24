@@ -96,9 +96,6 @@ export function ProjectBasicInfoApi({
     return (
       <>
         <ProjectBasicInfoForm key={owner} onSave={save} />
-        <Link href="/seller/projects?status=draft" className="block py-4 underline">
-          내 프로젝트 목록에서 생성 여부 확인
-        </Link>
         {createdId && (
           <ProjectSavedModal
             onLater={() => leaveAfterCreate("basic-info")}

@@ -73,10 +73,13 @@ export function getProjectCounts(signal?: AbortSignal) {
   );
 }
 
-export function createProject() {
+/* 같은 판매자가 같은 키로 다시 보내면 BE는 새로 만들지 않고 기존 프로젝트를 200으로 돌려준다
+   (BE #145). 키는 100자 이하, 유효기간 없이 프로젝트에 저장된다. */
+export function createProject(idempotencyKey: string) {
   return apiRequest<{ projectId: string; status: "DRAFT" }>("/api/v1/projects", {
     auth: true,
     method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
   });
 }
 

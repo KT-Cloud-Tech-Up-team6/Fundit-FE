@@ -460,6 +460,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.
 
+신규 생성은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #213). 키는 판매자 범위이며 같은 키는 새 DRAFT 없이 기존 프로젝트를 200으로, 새 생성은 201로 돌려준다. 같은 키 요청이 동시에 처리 중이면 409 `CONFLICT`다. 키는 프로젝트 행에 저장돼 유효기간이 없고, 삭제된 DRAFT의 키는 다시 쓸 수 있다. FE는 시도마다 UUID 키를 만들어 요청 전에 판매자별 sessionStorage에 남기고, 결과를 모르는 시도는 같은 키로 다시 보내 서버가 만든 프로젝트를 되찾는다. 본문이 없어 같은 키를 다시 보내도 거절되지 않으므로 확정 4xx에서도 키를 버리지 않고, 새 프로젝트 화면으로 떠날 때 시도를 지운다.
+
 기본정보 명세는 제목 40자, goalAmount 최소 500,000원, 등록된 카테고리 조합을 요구한다. businessType은 SOLE 예시만 있어 전체 enum을 추측하지 않는다. 카테고리 표시 문자열·공백도 저장 계약과 구분한다.
 
 리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. options는 `[{groupName, values: string[]}]`이며 현재 목업의 options 체크값과 다르다. 명세 보완값은 Swagger로 대조한 후 연동한다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
