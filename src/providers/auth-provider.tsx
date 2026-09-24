@@ -86,6 +86,20 @@ export async function getRestoredUser() {
   }
 }
 
+/* 다른 탭의 세션 변경과 백그라운드 refresh 실패 모두 세션을 끝낸다(`null` 알림). 캐시는 토큰이 있던
+   세션이 끝날 때만 비운다. 비로그인 방문의 세션 복구 실패도 `null`을 알리는데, 이때는 지울 회원
+   데이터가 없고, 비우면 화면이 막 보낸 요청까지 지워져 같은 요청이 한 번 더 나간다(조회 수 이중 집계). */
+export function subscribeSessionEnd(clearCache: () => void, endSession: () => void) {
+  let hadToken = authTokenStore.get() !== null;
+  return authTokenStore.subscribe((accessToken) => {
+    if (accessToken === null) {
+      if (hadToken) clearCache();
+      endSession();
+    }
+    hadToken = accessToken !== null;
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -98,15 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /* authenticate()·clearSession()이 먼저 끝나면 배경 세션 복구가 그 결과를 덮어쓰지 않게 막는다. */
   const restoreSupersededRef = useRef(false);
 
-  // 다른 탭의 세션 변경과 백그라운드 refresh 실패 모두 사용자 상태·캐시를 비운다.
   useEffect(() => {
-    return authTokenStore.subscribe((accessToken) => {
-      if (accessToken === null) {
+    return subscribeSessionEnd(
+      () => queryClient.clear(),
+      () => {
         restoreSupersededRef.current = true;
-        queryClient.clear();
         dispatch({ type: "SESSION_FAILED" });
-      }
-    });
+      },
+    );
   }, [queryClient]);
 
   useEffect(() => {
