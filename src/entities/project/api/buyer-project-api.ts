@@ -96,9 +96,19 @@ export function getRefundPolicy(id: string, signal?: AbortSignal) {
     rewardPolicies: { rewardId: number; simpleRefundDisabled: boolean }[];
   }>(`/api/v1/projects/${id}/refund-policy`, { signal });
 }
+/**
+ * LIVE 체크 탭. 답변을 등록한 질문만 온다. 질문 문구·건수는 방송 종료 뒤 BE가 받은 질문 요약에서
+ * 채우므로, 요약을 받기 전에 등록된 항목은 `questionText: null`·`questionCount: 0`이다.
+ */
 export function getLiveVerifications(id: string, signal?: AbortSignal) {
   return apiRequest<{
-    content: { liveVerificationId: number; questionCount: number; answer: string }[];
+    content: {
+      liveVerificationId: number;
+      questionSummaryId: string;
+      questionText: string | null;
+      questionCount: number;
+      answer: string;
+    }[];
   }>(`/api/v1/projects/${id}/live-verifications`, { signal });
 }
 export function getPublicCommunity(id: string, page: number, signal?: AbortSignal) {

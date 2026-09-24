@@ -1,4 +1,5 @@
 import type { CueSheetSegment } from "@/entities/live/model/live-cue-sheet";
+import { ApiError } from "@/shared/api/api-error";
 import type { AiStatus, AnsweredQuestion } from "../api/live-api";
 import { formatClock, formatPlaybackTime } from "./vod-chapters";
 
@@ -90,8 +91,9 @@ export function toCheckQuestions(answered: AnsweredQuestion[]) {
 }
 
 /**
- * 고른 질문을 한 건씩 LIVE 체크로 올리고 실패한 id를 돌려준다. BE가 한 번에 한 건만 받는다.
- * 순서대로 보내 같은 요청이 한꺼번에 몰리지 않게 한다.
+ * 고른 질문을 한 건씩 LIVE 체크로 올리고 추가하지 못한 id를 돌려준다. BE가 한 번에 한 건만 받는다.
+ * 순서대로 보내 같은 요청이 한꺼번에 몰리지 않게 한다. 이미 올린 질문(409)은 상세페이지에 이미 있어
+ * 추가된 것으로 친다. BE가 질문 요약을 아직 받지 못한 질문(404)은 `notReady`로 따로 돌려준다.
  */
 export async function publishLiveChecks(
   ids: string[],
@@ -99,6 +101,7 @@ export async function publishLiveChecks(
   create: (body: { questionSummaryId: string; answer: string }) => Promise<unknown>,
 ) {
   const failed: string[] = [];
+  const notReady: string[] = [];
   for (const id of ids) {
     const question = questions.find((item) => item.id === id);
     if (!question) {
@@ -107,9 +110,12 @@ export async function publishLiveChecks(
     }
     try {
       await create({ questionSummaryId: id, answer: question.answer });
-    } catch {
-      failed.push(id);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "LIVE_VERIFICATION_ALREADY_EXISTS") continue;
+      if (error instanceof ApiError && error.code === "LIVE_QUESTION_SUMMARY_NOT_FOUND")
+        notReady.push(id);
+      else failed.push(id);
     }
   }
-  return failed;
+  return { failed, notReady };
 }

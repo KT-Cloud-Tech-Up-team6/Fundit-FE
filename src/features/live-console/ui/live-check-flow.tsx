@@ -39,27 +39,32 @@ export function LiveCheckFlow({
   renderOriginals: (questionId: string) => ReactNode;
   /** 이미 LIVE 체크에 올린 질문. 다시 고르지 못하게 한다. */
   publishedIds?: string[];
-  /** 추가하지 못한 id를 돌려준다. 비어 있으면 추가 완료 모달로 넘어간다. */
-  onPublish: (ids: string[]) => Promise<string[]>;
+  /**
+   * 추가하지 못한 id를 돌려준다. `notReady`는 질문 요약이 아직 준비되지 않은 질문, `failed`는 그 밖의
+   * 실패다. 둘 다 비어 있으면 추가 완료 모달로 넘어간다.
+   */
+  onPublish: (ids: string[]) => Promise<{ failed: string[]; notReady: string[] }>;
   /** 상세페이지 LIVE 체크 탭 주소. 모르면 버튼을 비활성화한다. */
   projectHref?: string;
   onClose: () => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
-  const [failedCount, setFailedCount] = useState(0);
+  const [unpublished, setUnpublished] = useState({ failed: 0, notReady: 0 });
   const selectable = questions.filter((q) => !publishedIds.includes(q.id));
   const detail =
     "questionId" in dialog ? questions.find((q) => q.id === dialog.questionId) : undefined;
 
   async function publish() {
     setPending(true);
-    setFailedCount(0);
+    setUnpublished({ failed: 0, notReady: 0 });
     try {
-      const failed = await onPublish(selectedIds);
-      if (failed.length) {
-        setSelectedIds(failed);
-        setFailedCount(failed.length);
+      const { failed, notReady } = await onPublish(selectedIds);
+      if (failed.length || notReady.length) {
+        setSelectedIds(selectedIds.filter((id) => failed.includes(id) || notReady.includes(id)));
+        setUnpublished({ failed: failed.length, notReady: notReady.length });
+        /* 원문 보기에서도 추가할 수 있지만 안내는 질문 목록에만 있다. 목록으로 돌아가 보이게 한다. */
+        onDialog({ kind: "check" });
         return;
       }
       setSelectedIds([]);
@@ -193,10 +198,18 @@ export function LiveCheckFlow({
                   );
                 })}
               </ul>
-              {failedCount > 0 && (
-                <p role="alert" className="text-body-s text-text-warning">
-                  {failedCount}건을 추가하지 못했습니다. 다시 시도해 주세요.
-                </p>
+              {(unpublished.failed > 0 || unpublished.notReady > 0) && (
+                <div role="alert" className="text-body-s text-text-warning">
+                  {unpublished.notReady > 0 && (
+                    <p>
+                      {unpublished.notReady}건은 질문 요약이 아직 준비되지 않았습니다. 잠시 후 다시
+                      시도해 주세요.
+                    </p>
+                  )}
+                  {unpublished.failed > 0 && (
+                    <p>{unpublished.failed}건을 추가하지 못했습니다. 다시 시도해 주세요.</p>
+                  )}
+                </div>
               )}
               <Checkbox
                 className="mt-auto pt-4"

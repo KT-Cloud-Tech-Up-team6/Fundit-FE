@@ -186,7 +186,7 @@ export function LiveConsole({
             }}
             onPublish={async (ids) => {
               dispatch({ type: "publish", ids });
-              return [];
+              return { failed: [], notReady: [] };
             }}
             projectHref={projectId ? `/projects/${projectId}?tab=live-proof` : undefined}
             onClose={closeDialog}

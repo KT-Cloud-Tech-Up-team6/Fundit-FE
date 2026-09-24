@@ -12,6 +12,7 @@ import {
   toCheckQuestions,
   toConsoleCues,
 } from "./seller-console.ts";
+import { ApiError } from "../../../shared/api/api-error.ts";
 
 test("큐시트 구간은 누적 끝 시각과 줄 단위 개요로 바꾼다", () => {
   const cues = toConsoleCues([
@@ -110,22 +111,27 @@ test("LIVE 체크 후보는 답변 본문이 있는 질문만이다", () => {
   ]);
 });
 
-test("LIVE 체크는 한 건씩 올리고 실패·알 수 없는 id만 돌려준다", async () => {
+test("LIVE 체크는 한 건씩 올리고 이미 올린 질문은 추가된 것으로, 요약 전 질문은 따로 돌려준다", async () => {
+  const apiError = (code, status) => new ApiError({ code, status, message: code });
+  const errors = {
+    b: new Error("500"),
+    c: apiError("LIVE_VERIFICATION_ALREADY_EXISTS", 409),
+    d: apiError("LIVE_QUESTION_SUMMARY_NOT_FOUND", 404),
+    e: apiError("NOT_FOUND", 404),
+  };
   const sent = [];
-  const failed = await publishLiveChecks(
-    ["a", "b", "missing"],
-    [
-      { id: "a", answer: "답변 A" },
-      { id: "b", answer: "답변 B" },
-    ],
+  const result = await publishLiveChecks(
+    ["a", "b", "c", "d", "e", "missing"],
+    ["a", "b", "c", "d", "e"].map((id) => ({ id, answer: `답변 ${id}` })),
     async (body) => {
       sent.push(body);
-      if (body.questionSummaryId === "b") throw new Error("500");
+      const error = errors[body.questionSummaryId];
+      if (error) throw error;
     },
   );
-  assert.deepEqual(sent, [
-    { questionSummaryId: "a", answer: "답변 A" },
-    { questionSummaryId: "b", answer: "답변 B" },
-  ]);
-  assert.deepEqual(failed, ["b", "missing"]);
+  assert.deepEqual(
+    sent,
+    ["a", "b", "c", "d", "e"].map((id) => ({ questionSummaryId: id, answer: `답변 ${id}` })),
+  );
+  assert.deepEqual(result, { failed: ["b", "e", "missing"], notReady: ["d"] });
 });

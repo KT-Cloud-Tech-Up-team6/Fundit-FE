@@ -486,6 +486,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 
 LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 페이지 정보 없이 `{content: [...]}`만 반환한다. 기타 리워드/고시 조회처럼 단순 배열인 API까지 페이지 래퍼로 강제하지 않는다.
 
+항목은 `{liveVerificationId, questionSummaryId, questionText, questionCount, answer}`이고 답변을 등록한 질문만 온다(BE #156). 질문 요약을 받기 전에 등록된 항목은 `questionText: null`·`questionCount: 0`이다. 구매자 LIVE 체크 탭은 #351부터 Figma Q&A 카드(`1408:42965`)로 질문·건수·답변을 보여 준다. 날짜 필드가 없어 "N건 · 날짜"는 건수만 적고, 문구가 없는 항목은 답변만 보여 준다.
+
 명세상 프로젝트 목록 status 필터는 단일 enum이다. FE 준비중/진행중/종료 탭을 서버 페이지 일부에서만 필터링하면 건수·목록이 틀릴 수 있으므로 상태 그룹별 조회·페이지 처리 방식은 연동 시 정한다.
 
 ### 5.5. AI 스토리
@@ -579,15 +581,17 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | AI 상태                   | 5.6의 `/chat/insights` `aiStatus`                                                           |
 | 집계된 Q&A·LIVE 체크 목록 | 5.6의 `/chat/answered-questions`(시청자 Q&A와 같은 목록, IA 46)                             |
 | LIVE 체크 추가            | POST `/api/v1/projects/{projectId}/live-verifications` `{questionSummaryId, answer}` → 201  |
+| LIVE 체크 등록 여부       | GET `/api/v1/projects/{projectId}/live-questions`의 `answered`(#351)                        |
 
 - `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 큐시트 화면도 #326부터 이 단건 조회를 쓴다(5.7).
 - insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
 - 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
 - "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
-- LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
+- LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 추가하지 못한 건만 선택에 남겨 다시 보낼 수 있다. #351부터 BE #156 기준으로 처리한다. 이미 올린 질문의 409 `LIVE_VERIFICATION_ALREADY_EXISTS`는 상세페이지에 이미 있으므로 추가된 것으로 친다. 404 `LIVE_QUESTION_SUMMARY_NOT_FOUND`는 "질문 요약이 아직 준비되지 않았다"고 따로 안내한다. 그 밖의 실패는 "추가하지 못했다"고 안내한다.
+- 이미 올린 질문은 체크 흐름을 열 때 받는 `live-questions`의 `answered`로 "추가됨" 표시하고 다시 고르지 못하게 한다. 이 목록은 프로젝트 단위(`liveId` 없음)이고 `questionSummaryId`가 `answered-questions`의 `questionId`와 같다(live-service 질문 요약 id). 받기 전이나 조회가 실패해도 흐름을 막지 않는다. 다시 올리면 409라 결과가 같기 때문이다.
 - 송출 모니터링의 주문 칸(Figma `0건 · 0원`)은 #342부터 BE #151의 `GET /api/v1/orders/live-stats`로 채운다. 결제 완료(`paidCount`·`paidAmount`)만 "N건 · N원"으로 적고 결제 전(`pendingCount`·`pendingAmount`, 30분 뒤 만료)은 넣지 않는다(2026-09-24 결정). 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이고 방송 중 들어온 주문만 센다. 방송 중에만 5초마다 다시 부르고(BE 권장 3~5초), 종료하면 한 번 더 읽고 멈춘다. 처음 받기 전이나 첫 조회가 실패하면 `-`다. 이후 갱신이 잠깐 실패하면 칸이 깜빡이지 않게 마지막 값을 두고, 마지막 성공 뒤 15초(3번) 넘게 실패가 이어지면 멈춘 매출을 지금 값처럼 보이지 않게 `-`로 바꾼다. 소유자가 아니면 403, 세션이 없으면 404, live 조회 실패는 503이다. 대조한 BE는 `develop` `d701b42`이고, 실제 BE 연동(BE #151 배포, 인프라 `LIVE_SERVICE_BASE_URL` 반영)은 확인하지 못했다.
 - BE API가 없는 답변 완료 처리, 스트림 상태 확인, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 채팅 건수는 `-`다(2026-09-23 결정).
-- BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
+- 질문 문구·건수는 BE #156부터 project-service가 방송 종료 이벤트 `live.questions-summarized.v1`을 받아 저장하고 조회할 때 답변과 합친다. 이벤트는 종료 커밋 뒤 AI 최종 집계(상위 100개)를 거쳐 비동기로 발행된다. 그래서 종료 직후, AI 실패로 발행이 없을 때, 상위 100개 밖 질문의 등록은 404다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다. 대조한 BE는 `develop` `ee5d5b7`이고, 실제 BE 연동(BE #156 배포, project-service Kafka 구독)은 확인하지 못했다.
 
 ### 5.9. 판매자 LIVE 스튜디오 목록·시작 (#326)
 
