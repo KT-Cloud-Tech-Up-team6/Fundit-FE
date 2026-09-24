@@ -31,8 +31,9 @@ export type Shipment = {
   option: string;
   quantity: number;
   address: string;
-  /** 미선택은 빈 문자열. <select>의 빈 option과 값을 맞춘다. */
-  courier: Courier | "";
+  /** 미선택은 빈 문자열. <select>의 빈 option과 값을 맞춘다.
+      BE `carrier`는 자유 문자열이라 서버에 등록된 값은 `couriers` 밖일 수도 있다. */
+  courier: string;
   trackingNo: string;
   status: ShipmentStatus;
 };

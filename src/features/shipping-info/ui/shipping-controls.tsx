@@ -29,7 +29,7 @@ export function ShippingControls({ search, bulkBar }: { search: ReactNode; bulkB
   );
 }
 
-/** 선택한 주문의 일괄 택배사·발송 처리·저장. `onSave`가 없으면 저장은 준비중으로 막는다. */
+/** 선택한 주문의 일괄 택배사·발송 처리·저장. 저장은 발송 처리 없이 택배사·운송장만 남긴다. */
 export function ShippingBulkBar({
   count,
   courier,
@@ -42,7 +42,7 @@ export function ShippingBulkBar({
   courier: Courier | "";
   onCourierChange: (courier: Courier | "") => void;
   onShip: () => void;
-  onSave?: () => void;
+  onSave: () => void;
   busy?: boolean;
 }) {
   return (
@@ -77,11 +77,9 @@ export function ShippingBulkBar({
             발송 처리
           </button>
           <button
-            aria-label={onSave ? undefined : "저장 (준비중)"}
             className={`${bulkActionClasses} bg-layer-surface-primary text-text-inverse enabled:hover:bg-layer-surface-primary-hover min-w-0 flex-1 min-[1200px]:w-[146px] min-[1200px]:flex-none`}
-            disabled={busy || !onSave}
+            disabled={busy}
             onClick={onSave}
-            title={onSave ? undefined : "준비중"}
             type="button"
           >
             저장

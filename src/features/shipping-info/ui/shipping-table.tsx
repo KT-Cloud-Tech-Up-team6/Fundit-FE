@@ -4,7 +4,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Select } from "@/shared/components/ui/select";
 import { canShip, couriers, shipmentActionLabel } from "../model/shipping-demo";
-import type { Courier, Shipment } from "../model/shipping-demo";
+import type { Shipment } from "../model/shipping-demo";
 
 type ShippingTableProps = {
   readOnly?: boolean;
@@ -19,6 +19,8 @@ type ShippingTableProps = {
 /* Figma `shipping_table`(488:7605) 실측 열 폭: 40 / 100 / 56 / 164 / 120 / 164 / 180 / 60.
    table-fixed로 두면 내용 길이와 무관하게 이 비율이 유지된다. */
 const columnWidths = ["w-10", "w-25", "w-14", "w-41", "w-30", "w-41", "w-45", "w-15"];
+
+const courierNames: ReadonlySet<string> = new Set(couriers);
 
 const headerClasses = "text-body-m text-text-default h-10 px-2 text-left font-normal";
 const cellClasses = "text-body-s text-text-default h-10 px-2 py-1 align-middle";
@@ -116,13 +118,15 @@ export function ShippingTable({
                   <Select
                     aria-label={`주문 ${shipment.orderNo} 택배사`}
                     disabled={shipped}
-                    onChange={(event) =>
-                      onChange(shipment.id, { courier: event.target.value as Courier | "" })
-                    }
+                    onChange={(event) => onChange(shipment.id, { courier: event.target.value })}
                     size="xs"
                     value={shipment.courier}
                   >
                     <option value="">배송사를 선택하세요</option>
+                    {/* 목록 밖의 등록값도 빈 선택으로 바뀌어 보이지 않게 그대로 보여 준다. */}
+                    {shipment.courier !== "" && !courierNames.has(shipment.courier) && (
+                      <option value={shipment.courier}>{shipment.courier}</option>
+                    )}
                     {couriers.map((courier) => (
                       <option key={courier} value={courier}>
                         {courier}
