@@ -11,6 +11,8 @@ export type SellerOrder = {
     options: { optionValueId: number; optionGroupName: string; optionValue: string }[];
   }[];
   shippingAddress: OrderAddress;
+  /** 발송일. 발송 전이면 없다. 탭 필터·건수와 같은 값이다(BE PR #148). */
+  shippedAt?: string;
 };
 
 /** BE `ShippingFilter`. WAITING은 발송일이 없는 주문, SHIPPED는 발송일이 있는 주문이다. */
@@ -43,6 +45,25 @@ export function getSellerOrders(
 export function getSellerOrderShippingCounts(projectId: string, signal?: AbortSignal) {
   return apiRequest<{ waiting: number; shipped: number }>(
     `/api/v1/projects/${projectId}/orders/shipping-status-counts`,
+    { auth: true, signal },
+  );
+}
+
+/**
+ * 방송 중 들어온 주문 지표(BE #151). 방송 소유 판매자만 조회한다(남의 방송 403, 세션 없음 404).
+ * 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이다. `pending`은 결제 전(30분 뒤 만료) 주문이다.
+ */
+export type LiveOrderStats = {
+  liveId: string;
+  paidCount: number;
+  paidAmount: number;
+  pendingCount: number;
+  pendingAmount: number;
+};
+
+export function getLiveOrderStats(liveId: string, signal?: AbortSignal) {
+  return apiRequest<LiveOrderStats>(
+    `/api/v1/orders/live-stats?${new URLSearchParams({ liveId })}`,
     { auth: true, signal },
   );
 }

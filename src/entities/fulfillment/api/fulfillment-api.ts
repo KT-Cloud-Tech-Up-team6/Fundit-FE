@@ -123,6 +123,25 @@ export function registerShipment(
     body,
   });
 }
+/** 발송 처리 없이 택배사·운송장만 저장한다(PREPARING 유지, 발송 대기로 집계). 둘 다 필수이고 마지막 값으로 덮어쓴다. */
+export function saveShipmentDraft(
+  projectId: string,
+  fundingId: string,
+  body: { carrier: string; trackingNumber: string },
+) {
+  return apiRequest<Shipment>(
+    `/api/v2/projects/${projectId}/fundings/${fundingId}/shipment/draft`,
+    { auth: true, method: "POST", body },
+  );
+}
+/** 판매자 발송 목록 한 페이지의 송장(최대 100건). 요청 순서·건수대로 오고 발송 전 건은 PREPARING이다. */
+export function getSellerShipments(projectId: string, fundingIds: string[], signal?: AbortSignal) {
+  const params = new URLSearchParams({ fundingIds: fundingIds.join(",") });
+  return apiRequest<Shipment[]>(`/api/v2/projects/${projectId}/shipments?${params}`, {
+    auth: true,
+    signal,
+  });
+}
 export function confirmReceipt(projectId: string, fundingId: string) {
   return apiRequest<Shipment>(
     `/api/v2/projects/${projectId}/fundings/${fundingId}/shipment/confirm-receipt`,

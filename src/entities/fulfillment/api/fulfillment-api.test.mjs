@@ -7,7 +7,10 @@ import {
   changeSchedule,
   registerShipment,
   confirmReceipt,
+  getSellerShipments,
+  saveShipmentDraft,
 } from "./fulfillment-api.ts";
+import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 import {
   fulfillmentState,
   dateInKorea,
@@ -68,6 +71,29 @@ test("UUID 배송 경로와 단계 enum을 그대로 보내고 권한 오류를 
   } finally {
     globalThis.fetch = original;
   }
+});
+test("판매자 송장은 한 페이지 fundingIds를 쉼표로 묶어 조회하고 저장은 발송과 다른 draft 경로로 보낸다", async (t) => {
+  authTokenStore.set("seller-token");
+  t.after(() => authTokenStore.clear());
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls.push({ url, init });
+    return Response.json(url.includes("/shipments?") ? [] : { status: "PREPARING" });
+  });
+
+  await getSellerShipments("project", ["a", "b"]);
+  await saveShipmentDraft("project", "funding", { carrier: "CJ대한통운", trackingNumber: "123" });
+  const list = new URL(calls[0].url, "https://example.com");
+  assert.equal(list.pathname, "/api/v2/projects/project/shipments");
+  assert.equal(list.searchParams.get("fundingIds"), "a,b");
+  assert.equal(calls[1].url, "/api/v2/projects/project/fundings/funding/shipment/draft");
+  assert.equal(calls[1].init.method, "POST");
+  assert.deepEqual(JSON.parse(calls[1].init.body), {
+    carrier: "CJ대한통운",
+    trackingNumber: "123",
+  });
+  for (const { init } of calls)
+    assert.equal(new Headers(init.headers).get("Authorization"), "Bearer seller-token");
 });
 test("최신 기록만 화면 상태로 변환하며 한국 날짜와 서버 단계 상태를 유지한다", () => {
   const state = fulfillmentState({
