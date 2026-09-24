@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
-import { getSellerOrderShippingCounts, getSellerOrders } from "./seller-order-api.ts";
+import {
+  getLiveOrderStats,
+  getSellerOrderShippingCounts,
+  getSellerOrders,
+} from "./seller-order-api.ts";
 
 const projectId = "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f31";
 
@@ -46,5 +50,21 @@ test("탭 건수는 인증해서 발송 대기·완료 건수 경로로 요청�
 
   assert.deepEqual(await getSellerOrderShippingCounts(projectId), { waiting: 3, shipped: 5 });
   assert.equal(request.url, `/api/v1/projects/${projectId}/orders/shipping-status-counts`);
+  assert.equal(new Headers(request.init.headers).get("Authorization"), "Bearer seller-order-token");
+});
+
+test("방송 주문 지표는 인증해서 liveId로 요청한다", async (t) => {
+  authTokenStore.set("seller-order-token");
+  t.after(() => authTokenStore.clear());
+  const liveId = "0199c3a0-1b2c-7a3b-8c4d-5e6f7a8b9c0d";
+  const stats = { liveId, paidCount: 2, paidAmount: 30000, pendingCount: 5, pendingAmount: 70000 };
+  let request;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    request = { url, init };
+    return Response.json(stats);
+  });
+
+  assert.deepEqual(await getLiveOrderStats(liveId), stats);
+  assert.equal(request.url, `/api/v1/orders/live-stats?liveId=${liveId}`);
   assert.equal(new Headers(request.init.headers).get("Authorization"), "Bearer seller-order-token");
 });
