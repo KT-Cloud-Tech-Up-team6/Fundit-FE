@@ -94,10 +94,12 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
   - BE PR #130(`develop` `5898de5`)부터 응답이 `PageResponse`(`content`·`page`·`size`·`totalElements`·`totalPages`·`hasNext`)이고 `q`(수령인 이름·주문번호 부분 일치)·`shippingFilter`(`ALL`·`WAITING`·`SHIPPED`, 발송일 유무)·`page`(0부터)·`size`를 받는다. 대상은 목표 달성 주문이고 최신순이다. 탭 건수는 `GET /api/v1/projects/{projectId}/orders/shipping-status-counts`의 `{waiting, shipped}`이며 검색어와 무관하다.
   - #312에서 발송정보 화면의 탭·검색·페이지를 서버 조회로 연결했다. 판매자 프로젝트 목록처럼 `status`(`all`·`pending`·`shipped`)·`search`·`page`(1부터)를 URL에 둔다. 전체 탭 건수는 발송 대기와 발송 완료의 합이다.
   - Figma 주문번호 칸(`488:7625`)은 100px 한 줄의 짧은 번호(`0000 - 000000`)인데 응답에는 UUID만 있다. 표시용 주문번호가 없어 UUID 마지막 묶음(12자리)을 보여 주고 전체 UUID는 마우스를 올리면 보인다(2026-09-23 사용자 결정). 부분 일치 검색이라 이 12자리로도 찾을 수 있다.
-  - 응답에 주문별 발송 상태와 송장 정보가 없다. 발송 대기·완료 탭의 행은 탭 상태로 표시한다. Figma 상태 명세(`488:8247`)는 발송 처리·발송 완료 두 가지뿐이라 전체 탭의 행은 우선 발송 처리로 둔다(2026-09-23 사용자 결정). 주문별 발송 여부 필드가 생기면 실제 상태로 바꾼다. `ShipmentService.getShipment`는 구매자 본인만 허용해 판매자 송장 조회도 없어, 발송 완료 행의 택배사·운송장은 비어 보인다.
-  - 발송 처리(행·일괄)는 `POST /api/v2/projects/{projectId}/fundings/{fundingId}/shipment` `{carrier, trackingNumber}`로 등록한다. `carrier`는 자유 문자열이라 Figma 택배사 이름을 그대로 보낸다. 등록하면 서버에서 곧바로 SHIPPED가 되고 발송 이벤트로 주문 발송일이 비동기 갱신되므로, 화면에서 처리한 주문은 목록 반영 전에도 발송 완료로 표시하고 목록·건수를 다시 조회한다. 409 `ALREADY_SHIPPED`는 이미 발송된 건으로 표시하고 입력값을 지운다. 택배사·운송장이 빈 건은 보내지 않고, 실패한 건은 입력과 선택을 남겨 다시 시도하게 한다.
-  - 택배사·운송장만 저장하는 API가 없어 일괄 작업 바의 저장 버튼은 준비중(비활성)이다(2026-09-23 사용자 결정). 등록 API를 쓰면 저장만 하려던 주문이 발송 완료가 되기 때문이다.
-- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 판매자 송장 조회 권한, 전체 기록 계약과 실제 S3 업로드를 확인해야 한다.
+  - #316에서 BE PR #148(`develop` `d701b42`) 회신을 반영했다. 목록 항목의 `shippedAt`(발송 전이면 생략)은 탭 필터·건수와 같은 값이라 모든 탭의 행 상태를 이 값으로 정한다. 이 값은 발송 이벤트로 늦게 채워질 수 있어, 송장 조회의 `status`가 `SHIPPED` 이후여도 발송 완료로 표시한다. 그래서 반영 전까지는 발송 대기 탭에 발송 완료 행이 보일 수 있다.
+  - 행의 택배사·운송장은 목록 한 페이지의 orderId를 `GET /api/v2/projects/{projectId}/shipments?fundingIds={uuid},{uuid},...`(최대 100건, 소유자만)로 한 번에 조회해 채운다. 응답은 요청 순서·건수대로 `ShipmentResponseV2` 배열이고, 발송·저장 전 건은 송장 없이 `PREPARING`이다. 판매자 경로라 발송 전 저장값도 가리지 않는다(구매자 단건 조회는 `SHIPPED` 전 송장을 가려 구매자 화면에는 영향이 없다). 발송 완료 행은 등록된 값을 수정할 수 없게 보여 준다. 조회가 실패해도 목록은 그대로 두고 표 위에 다시 시도 안내를 보인다. `carrier`는 자유 문자열이라 Figma 목록 밖 값도 그대로 보여 준다.
+  - 발송 처리(행·일괄)는 `POST /api/v2/projects/{projectId}/fundings/{fundingId}/shipment` `{carrier, trackingNumber}`로 등록한다. `carrier`는 자유 문자열이라 Figma 택배사 이름을 그대로 보낸다. 등록하면 서버에서 곧바로 SHIPPED가 되고 발송 이벤트로 주문 발송일이 비동기 갱신되므로, 화면에서 처리한 주문은 목록 반영 전에도 발송 완료로 표시하고 목록·건수·송장을 다시 조회한다.
+  - 일괄 작업 바의 저장은 `POST .../shipment/draft`(본문은 등록과 같고 둘 다 필수)로 택배사·운송장만 저장한다. 상태는 `PREPARING`을 유지해 계속 발송 대기로 집계되고, 다시 저장하면 마지막 값으로 덮어쓴다. 저장한 주문은 선택에서 빠지고 입력값은 남는다.
+  - 발송 처리·저장 모두 409 `ALREADY_SHIPPED`면 발송 후에는 송장을 수정할 수 없다고 안내하고, 입력값을 지운 뒤 발송 완료로 표시해 다시 조회한 등록값을 보여 준다. 택배사·운송장이 빈 건은 보내지 않고, 실패한 건은 입력과 선택을 남겨 다시 시도하게 한다.
+- 실제 Gateway·판매자/구매자 테스트 계정·자동 택배 상태 연동은 미검증이다. 실서버 연결 전 전체 기록 계약과 실제 S3 업로드를 확인해야 한다.
 - 주문 생성 재시도는 사용자·프로젝트별로 요청 내용의 해시와 생성 결과를 보관합니다. 결제 대기 주문의 동일 요청만 재사용하며, 다른 요청은 기존 주문 확인·취소를 안내합니다. 서버에서 확인한 비대기 상태의 주문은 새 요청 결과로 재사용하지 않습니다. 결과가 불확실하거나 상태 조회가 실패하면 추가 생성하지 않습니다. 목표 달성 주문의 상세에서는 제작·배송 API 현황으로 이동합니다.
 
 ## 쿠폰 조건 표시·발급자별 선택 보완 (#218, #233)
@@ -571,6 +573,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | ------------------------- | ------------------------------------------------------------------------------------------- |
 | 헤더 LIVE 종료            | POST `/api/v1/lives/{liveId}/end` → `{liveId, status, ...}`. 진행 중이 아니면 409.          |
 | 송출 모니터링             | GET `/playback` 영상, GET `/api/v1/lives/{liveId}`의 `viewerCount`·`elapsedSeconds`(소유자) |
+| 송출 모니터링 주문 칸     | GET `/api/v1/orders/live-stats?liveId=`의 `paidCount`·`paidAmount`(#342)                    |
 | 큐시트 패널               | GET `/cue-sheet`(404는 "큐시트 없음")                                                       |
 | 질문 요약·원문·초안·등록  | 5.6의 `/chat/unanswered`·`/chat/questions/{id}`·`ai-answer`                                 |
 | AI 상태                   | 5.6의 `/chat/insights` `aiStatus`                                                           |
@@ -582,25 +585,27 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
 - "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
 - LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 실패한 건만 선택에 남겨 다시 보낼 수 있다. BE가 같은 질문의 중복 등록을 막지 않아 한 화면에서 올린 질문은 다시 고르지 못하게 한다. 새로고침하면 이 표시는 사라진다.
-- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 방송 중 펀딩 건수·금액, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 수치는 `-`다(2026-09-23 결정).
+- 송출 모니터링의 주문 칸(Figma `0건 · 0원`)은 #342부터 BE #151의 `GET /api/v1/orders/live-stats`로 채운다. 결제 완료(`paidCount`·`paidAmount`)만 "N건 · N원"으로 적고 결제 전(`pendingCount`·`pendingAmount`, 30분 뒤 만료)은 넣지 않는다(2026-09-24 결정). 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이고 방송 중 들어온 주문만 센다. 방송 중에만 5초마다 다시 부르고(BE 권장 3~5초), 종료하면 한 번 더 읽고 멈춘다. 처음 받기 전이나 첫 조회가 실패하면 `-`다. 이후 갱신이 잠깐 실패하면 칸이 깜빡이지 않게 마지막 값을 두고, 마지막 성공 뒤 15초(3번) 넘게 실패가 이어지면 멈춘 매출을 지금 값처럼 보이지 않게 `-`로 바꾼다. 소유자가 아니면 403, 세션이 없으면 404, live 조회 실패는 503이다. 대조한 BE는 `develop` `d701b42`이고, 실제 BE 연동(BE #151 배포, 인프라 `LIVE_SERVICE_BASE_URL` 반영)은 확인하지 못했다.
+- BE API가 없는 답변 완료 처리, 스트림 상태 확인, 판매자 채팅은 Figma 자리에 목업으로 둔다. 누르면 "준비 중"을 안내하고 채팅 건수는 `-`다(2026-09-23 결정).
 - BE는 방송 종료 시 `live.questions-summarized.v1`을 발행하지만 develop의 project-service에는 이 이벤트 소비자가 없다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다.
 
 ### 5.9. 판매자 LIVE 스튜디오 목록·시작 (#326)
 
 기준은 BE `develop` `47bee6ed`다.
 
-| 동작         | Method·Path                         | 요청 → 응답                                                                           |
-| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------- |
-| LIVE 시작    | POST `/api/v1/lives/{liveId}/start` | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
-| 내 LIVE 목록 | GET `/api/v1/lives/mine`            | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
-| 상태별 건수  | GET `/api/v1/lives/status-counts`   | → `{draft, scheduled, live, ended, error}`                                            |
-| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`        | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+| 동작         | Method·Path                              | 요청 → 응답                                                                           |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| LIVE 시작    | POST `/api/v1/lives/{liveId}/start`      | → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                    |
+| 내 LIVE 목록 | GET `/api/v1/lives/mine`                 | `status`(여러 값)·`projectId`·`q`·`page`·`size` → `PageResponse<LiveSummaryResponse>` |
+| 상태별 건수  | GET `/api/v1/lives/status-counts`        | → `{draft, scheduled, live, ended, error}`                                            |
+| 내 LIVE 단건 | GET `/api/v1/lives/{liveId}`             | → 5.8의 `LiveDetailResponse`(소유자 전용)                                             |
+| 송출 정보    | GET `/api/v1/lives/{liveId}/stream-info` | → `{ingestEndpoint, streamKey}`(소유자 전용, 없으면 404)                              |
 
 - `POST /start`는 `DRAFT`·`SCHEDULED`·`ERROR`에서만 `LIVE`로 바뀐다. 이미 `LIVE`거나 `ENDED`면 409라 화면은 "이미 시작했거나 종료된 LIVE"로 따로 안내한다. 시작은 채팅방 생성과 AI 상품정보 준비까지 포함하고, 채팅방 생성이 실패하면 의존성 오류(5xx)이며 세션이 `ERROR`가 된다.
 - `status`는 `List<LiveStatus>`라 쉼표(`status=DRAFT,SCHEDULED`)와 반복 파라미터 둘 다 받는다. FE는 쉼표로 보낸다. 준비중 탭의 "전체를 받아 화면에서 거르던" #283 우회는 여기서 걷었다.
 - 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled`). `ERROR`는 어느 탭에도 속하지 않아 어느 건수에도 더하지 않는다.
 - 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
-- 송출 시작을 붙였어도 **스트림 키 조회 API는 여전히 없다.** 영상 송출 정보는 화면에서 안내만 하고 만들어 내지 않는다.
+- 송출 정보는 #344부터 BE #147의 `GET /stream-info`로 생성 확인 화면에 보여 준다. Figma 판매자 LIVE 흐름(`1230:15609`)과 와이어프레임에는 이 자리가 없어, 원래 "스트림 키 미제공" 안내가 있던 LIVE 시작 버튼 아래에 둔다. 송출 주소와 스트림 키는 각각 복사할 수 있고, 키는 기본으로 가렸다가 보기를 눌러야 드러난다. 모달 높이가 고정이라 값은 한 줄로 두고 길면 말줄임한다(전체 값은 복사로 쓴다). 응답에 `Cache-Control`이 없어 FE가 `cache: "no-store"`로 받아 키가 브라우저 캐시에 남지 않게 한다. BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽으며, dev는 IVS 스텁이라 가짜 값이 온다. 불러오지 못하면 다시 시도를 두고 LIVE 시작은 막지 않는다. 송출 정보는 BE #147(`ea3a30c`)로 추가돼 이 절의 기준 커밋(`47bee6ed`)에는 없고, `develop` `d701b42`와 대조했다.
 
 ## 6. 최신 답변으로 정리한 차이
 
