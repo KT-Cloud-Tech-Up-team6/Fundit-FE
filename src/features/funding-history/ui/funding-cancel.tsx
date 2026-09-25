@@ -16,6 +16,7 @@ import {
   cancelDetailMaxLength,
   cancelReasons,
   canSubmitCancel,
+  isRefundAmountUndetermined,
   refundSubmissionFor,
   removeCancelPhoto,
   returnReasonsByType,
@@ -85,10 +86,8 @@ export function FundingCancel({
   const needsEvidence =
     submission?.supported === true &&
     (submission.kind === "defect" || submission.kind === "exchange");
-  /* 배송 지연·단순변심 계약은 fundingId만 받는다. 첨부·상세가 서버로 가지 않는다는 것을 알린다. */
-  const unsentAttachments =
-    submission?.supported === true &&
-    (submission.kind === "shipping-delay" || submission.kind === "simple-change-of-mind");
+  /* 배송 지연 계약은 fundingId만 받는다. 첨부·상세가 서버로 가지 않는다는 것을 알린다. */
+  const unsentAttachments = submission?.supported === true && submission.kind === "shipping-delay";
   const blockedReason =
     submission !== null && !submission.supported && reason !== "" ? submission.reason : "";
   const canSubmit =
@@ -351,15 +350,11 @@ export function FundingCancel({
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <dt className="text-body-m text-text-default">취소 수수료</dt>
-                <dd className="text-body-strong text-text-default flex-1 text-right">
-                  {refund.cancelFee === null ? " " : `-${formatWon(refund.cancelFee)}`}
-                </dd>
-              </div>
-              <div className="flex items-center gap-2">
                 <dt className="text-body-m text-text-default">실 환불 금액</dt>
                 <dd className="text-body-strong text-text-default flex-1 text-right">
-                  {amountText(refund.actualRefundAmount) || " "}
+                  {isReturn && isRefundAmountUndetermined(reason)
+                    ? "접수 후 확인하여 안내"
+                    : amountText(refund.actualRefundAmount) || " "}
                 </dd>
               </div>
             </dl>

@@ -37,7 +37,6 @@ export function FundingCancelDemo({
       refund={{
         pointRefundAmount: 0,
         shippingFee: null,
-        cancelFee: 0,
         actualRefundAmount: detail.amount,
       }}
       onSubmit={() => router.push(variant === "return" ? "/my/refunds" : "/my/fundings")}

@@ -69,8 +69,9 @@ export function actionsForStatus(id: string, status: FundingHistoryStatus): Fund
   };
   switch (status) {
     case "in_progress":
-    case "completed":
       return [{ label: "펀딩 취소", href: `/my/fundings/${id}/cancel` }, fulfillment];
+    /* 펀딩 완료(성공) 뒤에는 취소할 수 없다(환불 정책 V.1.0 PD 확인 요청 1). */
+    case "completed":
     case "production":
     case "shipping":
       return [fulfillment];

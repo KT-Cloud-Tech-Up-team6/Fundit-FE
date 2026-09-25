@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   addCancelPhotos,
   exchangeReasonDetail,
+  isRefundAmountUndetermined,
   refundSubmissionFor,
   toRefundInfo,
   canSubmitCancel,
@@ -22,8 +23,14 @@ test("예상 환불액은 서버 값을 그대로 옮기고 계약 없는 자리
       discountAmount: 0,
       refundAmount: 23_000,
     }),
-    { pointRefundAmount: null, shippingFee: null, cancelFee: null, actualRefundAmount: 23_000 },
+    { pointRefundAmount: null, shippingFee: null, actualRefundAmount: 23_000 },
   );
+});
+
+test("사유가 기타일 때만 환불 금액을 확정하지 않는다", () => {
+  assert.equal(isRefundAmountUndetermined("기타"), true);
+  assert.equal(isRefundAmountUndetermined("불량·하자"), false);
+  assert.equal(isRefundAmountUndetermined(""), false);
 });
 
 test("하자 사유는 DefectType으로, 배송 지연은 전용 계약으로 간다", () => {
@@ -48,11 +55,13 @@ test("하자 사유는 DefectType으로, 배송 지연은 전용 계약으로 �
   });
 });
 
-test("단순변심·구성품 누락·기타 반품도 BE 계약으로 간다", () => {
-  assert.deepEqual(refundSubmissionFor("반품", "단순변심"), {
-    supported: true,
-    kind: "simple-change-of-mind",
-  });
+test("단순변심 반품은 접수하지 않고 이유를 보여 준다", () => {
+  const submission = refundSubmissionFor("반품", "단순변심");
+  assert.equal(submission.supported, false);
+  assert.match(submission.reason, /단순변심/);
+});
+
+test("구성품 누락·기타 반품도 BE 계약으로 간다", () => {
   assert.deepEqual(refundSubmissionFor("반품", "구성품 누락"), {
     supported: true,
     kind: "defect",
@@ -63,7 +72,7 @@ test("단순변심·구성품 누락·기타 반품도 BE 계약으로 간다", 
     kind: "defect",
     defectType: "OTHER",
   });
-  for (const reason of returnReasonsByType["반품"]) {
+  for (const reason of returnReasonsByType["반품"].filter((reason) => reason !== "단순변심")) {
     assert.equal(refundSubmissionFor("반품", reason).supported, true, reason);
   }
 });
