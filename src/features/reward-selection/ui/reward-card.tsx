@@ -5,12 +5,14 @@ import type { Reward } from "../model/reward-demo";
 import { formatWon } from "../model/reward-demo";
 
 export function RewardCard({ reward, onSelect }: { reward: Reward; onSelect: () => void }) {
-  const badges = [
+  /* 다단계 결제 흐름 card_reward_item_default(2026-09-25 update_history 2323:55628): 선착순 한정은
+     primary로 가장 앞에, 얼리 버드와 나머지 혜택은 info로 그 뒤에 둔다. */
+  const badges: { label: string; variant: "primary" | "info" }[] = [
+    ...(reward.isLimited ? [{ label: "선착순 한정", variant: "primary" as const }] : []),
     ...(reward.isEarlyBird && reward.earlyBirdRate !== undefined
-      ? [`얼리 버드 ${reward.earlyBirdRate}%`]
+      ? [{ label: `얼리 버드 ${reward.earlyBirdRate}%`, variant: "info" as const }]
       : []),
-    ...(reward.isLimited ? ["선착순 한정"] : []),
-    ...reward.perks,
+    ...reward.perks.map((label) => ({ label, variant: "info" as const })),
   ];
   return (
     <button
@@ -21,8 +23,8 @@ export function RewardCard({ reward, onSelect }: { reward: Reward; onSelect: () 
       {badges.length > 0 && (
         <span className="flex flex-wrap gap-1">
           {badges.map((badge) => (
-            <Badge key={badge} shape="rounded" variant="neutral" className="text-text-info">
-              {badge}
+            <Badge key={badge.label} shape="rounded" variant={badge.variant}>
+              {badge.label}
             </Badge>
           ))}
         </span>

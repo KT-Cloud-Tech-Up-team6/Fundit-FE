@@ -45,16 +45,22 @@ export const RewardLifecycle: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: /^리워드 추가$/ }));
     const modal = within(canvas.getByRole("dialog", { name: "리워드 추가" }));
-    await userEvent.click(modal.getByRole("button", { name: /^등록$/ }));
-    expect(modal.getByRole("alert")).toHaveTextContent("리워드 이름을 입력해주세요");
+    const register = () => modal.getByRole("button", { name: /^등록$/ });
+    /* FL_S_PR_CREATE_12~15: 저장에 필요한 입력을 채우기 전에는 등록이 비활성이다. */
+    expect(register()).toBeDisabled();
     await userEvent.type(modal.getByRole("textbox", { name: "리워드 명" }), "테스트 패키지");
+    expect(register()).toBeDisabled();
     await userEvent.type(modal.getByRole("textbox", { name: /^가격$/ }), "29000");
+    expect(register()).toBeEnabled();
     await userEvent.click(modal.getByRole("checkbox", { name: "수량 제한" }));
+    expect(register()).toBeDisabled();
     await userEvent.type(modal.getByRole("textbox", { name: /^수량$/ }), "100");
     await userEvent.click(modal.getByRole("checkbox", { name: /할인 설정/ }));
+    expect(register()).toBeDisabled();
     await userEvent.type(modal.getByRole("textbox", { name: "할인 값" }), "5000");
     await userEvent.click(modal.getByRole("checkbox", { name: /옵션 설정/ }));
-    await userEvent.click(modal.getByRole("button", { name: /^등록$/ }));
+    expect(register()).toBeEnabled();
+    await userEvent.click(register());
     expect(canvas.getByRole("table")).toHaveTextContent("테스트 패키지");
     expect(canvas.getByRole("table")).toHaveTextContent("29,000원");
     await userEvent.click(canvas.getByRole("button", { name: "테스트 패키지 수정" }));

@@ -448,6 +448,7 @@ export function ProjectBasicInfoForm({
         error={rewardMessage}
         onClose={closeReward}
         onSave={saveReward}
+        canSave={draft ? !rewardError(draft) : false}
         onUpdate={updateDraft}
       />
     </>
