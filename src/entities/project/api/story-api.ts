@@ -47,18 +47,19 @@ export type FundingStorySummary = {
 export type FundingStorySession = {
   session_id: string;
   revision: number;
-  confirmed_revision: number | null;
+  confirmed_revision?: number | null;
   messages: FundingStoryMessage[];
   missing: string[];
-  summary: FundingStorySummary | null;
-  active_chat_id: string | null;
+  summary?: FundingStorySummary | null;
+  active_chat_id?: string | null;
 };
 
 export function isFundingStorySessionSynchronized(
   session: FundingStorySession,
   minimumRevision: number,
 ) {
-  return session.revision >= minimumRevision && session.active_chat_id === null;
+  // BE의 null 생략 응답에서도 진행 중인 채팅이 없다는 뜻은 같다.
+  return session.revision >= minimumRevision && session.active_chat_id == null;
 }
 export type FundingStoryChatAccepted = { chat_id: string; status: "queued" };
 export type FundingStoryAsyncError = {
@@ -86,7 +87,7 @@ export type FundingStoryRun = {
 const projectHeaders = (projectId: string) => ({ "X-Project-Id": projectId });
 
 export function getLatestFundingStorySession(projectId: string, signal?: AbortSignal) {
-  return apiRequest<{ session: FundingStorySession | null }>(`/api/v1/ai/sessions/latest`, {
+  return apiRequest<{ session?: FundingStorySession | null }>(`/api/v1/ai/sessions/latest`, {
     auth: true,
     headers: projectHeaders(projectId),
     signal,
