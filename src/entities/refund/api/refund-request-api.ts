@@ -48,15 +48,6 @@ export function requestShippingDelayRefund(fundingId: string) {
   });
 }
 
-/** 성립 이후 발송 전에만 판매자 검토 없이 전액 환불된다. 이미 발송됐으면 409 `ALREADY_SHIPPED`다. */
-export function requestSimpleChangeOfMindRefund(fundingId: string) {
-  return apiRequest<RefundRequestCreated>("/api/v2/refunds/simple-change-of-mind", {
-    auth: true,
-    method: "POST",
-    body: { fundingId },
-  });
-}
-
 /* 판매자 검토 대기(REQUESTED)로만 접수된다. 승인·완료는 BE 범위 밖이라 그 상태에서 멈춘다.
    교환 사유는 BE enum이 없어 `reasonDetail` 자유 문자열로 받는다. */
 export function requestExchange(body: {

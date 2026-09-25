@@ -10,11 +10,10 @@ const detail = {
   amount: 32000,
 };
 
-/** `GET /api/v1/refunds/estimate` 응답을 옮긴 값. 적립금·취소 수수료·배송비는 계약이 없어 비어 있다. */
+/** `GET /api/v1/refunds/estimate` 응답을 옮긴 값. 적립금·배송비는 계약이 없어 비어 있다. */
 const refund = {
   pointRefundAmount: null,
   shippingFee: null,
-  cancelFee: null,
   actualRefundAmount: 32000,
 };
 
@@ -55,6 +54,8 @@ export const Default: Story = {
     await expect(canvas.getByRole("heading", { name: "펀딩 취소" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "취소 신청" })).toBeDisabled();
     await expect(canvas.getByText("실 환불 금액").nextElementSibling).toHaveTextContent("32,000원");
+    /* 환불 정책 V.1.0 PD 확인 요청 2로 취소 수수료 행을 뺐다. */
+    await expect(canvas.queryByText("취소 수수료")).not.toBeInTheDocument();
     await expect(canvas.queryByText(/사진 첨부/)).not.toBeInTheDocument();
   },
 };
@@ -125,22 +126,35 @@ export const DefectNeedsEvidence: Story = {
   },
 };
 
-/** 단순변심은 fundingId만 보내 사진 없이 신청하고, 교환은 증빙이 필수라 사진 전에는 막힌다. */
-export const SimpleChangeOfMindAndExchange: Story = {
+/** 단순변심 반품은 받을 계약이 없어 이유를 보여 주고 막는다. 교환은 증빙이 필수라 사진 전에는 막힌다. */
+export const SimpleChangeOfMindBlockedAndExchange: Story = {
   args: { fundingId: "delivered", variant: "return" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "단순변심");
-    await expect(
-      canvas.getByText("단순변심 접수에는 사진과 상세 내용이 함께 전달되지 않습니다."),
-    ).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeEnabled();
+    await expect(canvas.getByText('"단순변심" 사유는 아직 접수할 수 없습니다.')).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "반품 신청" })).toBeDisabled();
 
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "교환");
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "구성품 누락");
     await expect(canvas.getByText("사진 첨부 (필수)")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "교환 신청" })).toBeDisabled();
+  },
+};
+
+/** 사유가 기타면 비용이 확인 후 정해져 금액 대신 안내 문구를 보여 준다(환불 정책 V.1.0 PD 확인 요청 3). */
+export const OtherReasonAmountUndetermined: Story = {
+  args: { fundingId: "delivered", variant: "return" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const amount = canvas.getByText("실 환불 금액").nextElementSibling;
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "유형" }), "반품");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "기타");
+    await expect(amount).toHaveTextContent("접수 후 확인하여 안내");
+
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "사유" }), "불량·하자");
+    await expect(amount).toHaveTextContent("32,000원");
   },
 };
 

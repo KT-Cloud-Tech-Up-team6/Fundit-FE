@@ -43,11 +43,10 @@ export const cancelDetailMaxLength = 100;
 export type RefundInfo = {
   pointRefundAmount: number | null;
   shippingFee: number | null;
-  cancelFee: number | null;
   actualRefundAmount: number | null;
 };
 
-/* 적립금 환불 금액(1165:16879 인접 2382)과 취소 수수료(2404)에 대응하는 응답 필드가 없다.
+/* 적립금 환불 금액(1165:16879 인접 2382)에 대응하는 응답 필드가 없다.
    배송비 행도 비운다 — `estimate.shippingFee`는 주문 때 낸 배송비이고 `refundAmount`에 이미
    포함돼 있어(BE RefundEstimateService) 차감액으로 쓰면 실 환불 금액과 어긋난다. 반품비
    차감(R04) 정책이 생기면 그 값을 넣는다. 서버가 계산한 refundAmount만 그대로 고지한다. */
@@ -55,16 +54,20 @@ export function toRefundInfo(estimate: RefundEstimate): RefundInfo {
   return {
     pointRefundAmount: null,
     shippingFee: null,
-    cancelFee: null,
     actualRefundAmount: estimate.refundAmount,
   };
+}
+
+/** 사유가 기타인 반품·교환은 확인 후 비용이 정해지므로 금액을 확정액처럼 보여 주지 않는다
+    (환불 정책 V.1.0 PD 확인 요청 3). */
+export function isRefundAmountUndetermined(reason: string): boolean {
+  return reason === "기타";
 }
 
 /** 원본의 유형·사유 조합을 실제 신청 계약에 대응시킨다. 없는 계약으로 치환하지 않는다. */
 export type RefundSubmission =
   | { supported: true; kind: "defect"; defectType: RefundDefectType }
   | { supported: true; kind: "shipping-delay" }
-  | { supported: true; kind: "simple-change-of-mind" }
   | { supported: true; kind: "exchange" }
   | { supported: false; reason: string };
 
@@ -83,7 +86,8 @@ export function refundSubmissionFor(type: ReturnType | "", reason: string): Refu
     return { supported: true, kind: "exchange" };
   }
   if (reason === "배송 지연") return { supported: true, kind: "shipping-delay" };
-  if (reason === "단순변심") return { supported: true, kind: "simple-change-of-mind" };
+  /* 단순변심은 받을 계약이 없다. BE `/simple-change-of-mind`는 성립 후 발송 전 취소라
+     정책(펀딩 성공 후 단순변심 취소 불가)과 맞지 않고, 발송 후 반품 계약은 아직 없다. */
   const defectType = defectTypeByReason[reason];
   if (defectType) return { supported: true, kind: "defect", defectType };
   return { supported: false, reason: `"${reason}" 사유는 아직 접수할 수 없습니다.` };

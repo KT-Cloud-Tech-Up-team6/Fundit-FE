@@ -10,10 +10,8 @@ import {
   requestDefectRefund,
   requestExchange,
   requestShippingDelayRefund,
-  requestSimpleChangeOfMindRefund,
   uploadRefundEvidence,
 } from "@/entities/refund/api/refund-request-api";
-import { ApiError } from "@/shared/api/api-error";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
@@ -28,7 +26,6 @@ import { FundingCancel, type FundingCancelSubmit } from "./funding-cancel";
 const emptyRefund: RefundInfo = {
   pointRefundAmount: null,
   shippingFee: null,
-  cancelFee: null,
   actualRefundAmount: null,
 };
 
@@ -95,8 +92,6 @@ function RefundRequest({
     try {
       if (submission.kind === "shipping-delay") {
         await requestShippingDelayRefund(fundingId);
-      } else if (submission.kind === "simple-change-of-mind") {
-        await requestSimpleChangeOfMindRefund(fundingId);
       } else {
         const evidenceUrls: string[] = [];
         for (const file of files) {
@@ -129,9 +124,7 @@ function RefundRequest({
       setError(
         failure instanceof RefundEvidenceValidationError
           ? failure.message
-          : failure instanceof ApiError && failure.code === "ALREADY_SHIPPED"
-            ? "이미 발송이 시작되어 단순변심으로 접수할 수 없습니다. 다른 사유를 선택해주세요."
-            : "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요.",
+          : "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요.",
       );
     } finally {
       saving.current = false;

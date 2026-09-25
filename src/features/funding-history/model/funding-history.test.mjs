@@ -61,6 +61,10 @@ test("상태별 액션 버튼 구성은 Figma 카드와 같다", () => {
     ["펀딩 취소", "제작·배송 현황"],
   );
   assert.deepEqual(
+    actionsForStatus("f1", "completed").map((action) => action.label),
+    ["제작·배송 현황"],
+  );
+  assert.deepEqual(
     actionsForStatus("f1", "production").map((action) => action.label),
     ["제작·배송 현황"],
   );
