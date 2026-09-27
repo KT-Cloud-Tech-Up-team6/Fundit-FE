@@ -101,12 +101,17 @@ export function splitSaveResults(
   return { saved, failed };
 }
 
-/** 저장에 성공한 클립의 공개 여부를 뒤집는다. 다시 조회가 끝나기 전에도 화면이 저장 결과를 보인다. */
+/**
+ * 저장에 성공한 클립을 요청한 공개 여부로 맞춘다. 다시 조회가 끝나기 전에도 화면이 저장 결과를 보인다.
+ * `saved`는 저장 전 값이라 요청 값은 그 반대다. 현재 목록 값을 뒤집지 않는 것은, 저장하는 사이에
+ * 목록이 먼저 새로 받아져 이미 요청 값이면 뒤집기가 다시 원래 값으로 돌려놓기 때문이다.
+ */
 export function applySaved(clips: readonly LiveClip[], saved: readonly LiveClip[]) {
-  const ids = new Set(saved.map((clip) => clip.highlightId));
-  return clips.map((clip) =>
-    ids.has(clip.highlightId) ? { ...clip, isPublic: !clip.isPublic } : clip,
-  );
+  const requested = new Map(saved.map((clip) => [clip.highlightId, !clip.isPublic]));
+  return clips.map((clip) => {
+    const isPublic = requested.get(clip.highlightId);
+    return isPublic === undefined ? clip : { ...clip, isPublic };
+  });
 }
 
 /** 실패한 클립만 저장 대기로 남긴다. 다시 [저장]하면 그 클립만 다시 보낸다. */

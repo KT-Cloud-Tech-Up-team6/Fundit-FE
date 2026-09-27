@@ -174,6 +174,14 @@ test("일부 실패하면 실패한 클립만 BE 문구와 함께 남기고 성�
       ["d", false],
     ],
   );
+  // 저장하는 사이에 목록이 먼저 새로 받아져 이미 요청 값이어도 그 값을 유지한다(뒤집지 않는다).
+  const refetched = clips.map((clip) =>
+    clip.highlightId === "b" ? { ...clip, isPublic: false } : clip,
+  );
+  assert.equal(
+    applySaved(refetched, saved).find((clip) => clip.highlightId === "b").isPublic,
+    false,
+  );
 });
 
 test("페이지는 6개씩이고 범위를 벗어나면 마지막 페이지, 숫자가 아니면 첫 페이지다", () => {
