@@ -6,6 +6,7 @@ import { getMyRefunds } from "@/entities/refund/api/refund-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { previousPage } from "@/shared/lib/previous-page";
 import {
   parseRefundFilterType,
   refundTypeOfFilter,
@@ -79,7 +80,11 @@ function Refunds({ memberId }: { memberId: string }) {
         <div className="bg-layer-surface-default flex items-center justify-between gap-3 px-5 py-4">
           <Button
             disabled={page === 0 || list.isPlaceholderData}
-            onClick={() => router.push(refundsHref({ page, inProgress, type }))}
+            onClick={() =>
+              router.push(
+                refundsHref({ page: previousPage(page + 1, list.data), inProgress, type }),
+              )
+            }
           >
             이전 페이지
           </Button>

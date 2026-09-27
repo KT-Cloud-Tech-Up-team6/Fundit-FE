@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getWishes, setWish, type Wish } from "@/entities/member/api/member-api";
+import { getWishes, setWish, WISH_PAGE_SIZE, type Wish } from "@/entities/member/api/member-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Tab, TabList } from "@/shared/components/ui/tab";
+import { previousPage } from "@/shared/lib/previous-page";
 import { projectDetailId } from "@/shared/lib/project-detail-id";
 
 export function BuyerWishlistApi() {
@@ -173,7 +174,13 @@ function Wishlist({ memberId }: { memberId: string }) {
                 <div className="flex justify-between">
                   <Button
                     disabled={page === 0}
-                    onClick={() => router.push(`/my/wishlist?page=${page}`)}
+                    onClick={() => {
+                      const previous = previousPage(page + 1, {
+                        totalElements: list.data.totalElements,
+                        pageSize: WISH_PAGE_SIZE,
+                      });
+                      router.push(`/my/wishlist?page=${previous}`);
+                    }}
                   >
                     이전 페이지
                   </Button>

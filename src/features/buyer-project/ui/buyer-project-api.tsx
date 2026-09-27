@@ -14,6 +14,7 @@ import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { previousPage } from "@/shared/lib/previous-page";
 import { BuyerProjectDetail } from "./buyer-project-detail";
 import styles from "./buyer-project-detail.module.css";
 import { RewardSummary } from "./reward-summary";
@@ -349,7 +350,11 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
             <div className="mt-4 flex justify-between">
               <Button
                 disabled={page === 0}
-                onClick={() => router.push(`/projects/${projectId}?tab=${tab}&page=${page}`)}
+                onClick={() =>
+                  router.push(
+                    `/projects/${projectId}?tab=${tab}&page=${previousPage(page + 1, paged)}`,
+                  )
+                }
               >
                 이전 페이지
               </Button>
