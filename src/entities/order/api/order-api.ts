@@ -140,9 +140,14 @@ export function createOrder(body: OrderRequest, idempotencyKey: string) {
 export function getOrder(id: string, signal?: AbortSignal) {
   return apiRequest<OrderDetail>(`/api/v1/orders/${id}`, { auth: true, signal });
 }
+export const ORDER_PAGE_SIZE = 20;
 /** 서버 목록에는 기본 정렬이 없어 최신 참여순을 명시한다(Spring `sort`, 엔티티 `createdAt`). */
 export function getOrders(page: number, signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: String(page), size: "20", sort: "createdAt,desc" });
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(ORDER_PAGE_SIZE),
+    sort: "createdAt,desc",
+  });
   return apiRequest<{ content: OrderSummary[]; totalElements: number; hasNext: boolean }>(
     `/api/v1/orders?${params}`,
     { auth: true, signal },

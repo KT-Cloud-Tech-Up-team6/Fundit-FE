@@ -1,11 +1,12 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getOrders, getOrder } from "@/entities/order/api/order-api";
+import { getOrders, getOrder, ORDER_PAGE_SIZE } from "@/entities/order/api/order-api";
 import { isConfirmed, localStore } from "@/features/payment-checkout/model/payment-attempt";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { previousPage } from "@/shared/lib/previous-page";
 import { toFundingCard, toFundingDetailView } from "../model/funding-history";
 import { FundingDetail, FundingDetailScreen } from "./funding-detail";
 import { FundingHistoryList, FundingListScreen } from "./funding-history-list";
@@ -44,6 +45,10 @@ function FundingList({ memberId }: { memberId: string }) {
     );
   }
 
+  const previous = previousPage(page + 1, {
+    totalElements: list.data.totalElements,
+    pageSize: ORDER_PAGE_SIZE,
+  });
   return (
     <FundingHistoryList
       cards={list.data.content.map(toFundingCard)}
@@ -54,7 +59,7 @@ function FundingList({ memberId }: { memberId: string }) {
         <div className="flex items-center justify-between gap-3 px-5 py-4">
           <Button
             disabled={page === 0 || list.isPlaceholderData}
-            onClick={() => router.push(listHref(page))}
+            onClick={() => router.push(listHref(previous))}
           >
             이전 페이지
           </Button>
