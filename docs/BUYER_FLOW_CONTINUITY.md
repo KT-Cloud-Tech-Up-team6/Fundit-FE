@@ -5,7 +5,7 @@ API 연동 전에도 구매자가 클릭만으로 플로우 끝까지 갈 수 �
 ## Design Source
 
 - [소비자 핵심 플로우 `1087:18097`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1087-18097)을 구매자 플로우의 기준으로 삼습니다.
-- 이 섹션은 `LIVE 탭 이동`에서 시작하며 **홈 화면이 등장하지 않습니다.** 구매자 화면 프레임 `FL_B_*` 40종에도 홈 원본이 없고, "홈"은 하단 메뉴 라벨 텍스트로만 존재합니다. `FL_B_MY_HOME`은 마이페이지이며 사이트 홈이 아닙니다.
+- 이 섹션은 `LIVE 탭 이동`에서 시작하며 **홈 화면이 등장하지 않습니다.** 이 작업 당시 구매자 화면 프레임 `FL_B_*` 40종에도 홈 원본이 없었고, "홈"은 하단 메뉴 라벨 텍스트로만 존재했습니다. `FL_B_MY_HOME`은 마이페이지이며 사이트 홈이 아닙니다. 2026-09-25 홈 Figma `2315:72822`(IA `FL_B_HM_HOME`)가 추가되어 #367에서 홈을 구현했습니다([BUYER_HOME.md](./BUYER_HOME.md)).
 - 파일 전체에서 플로우/IA 다이어그램은 `로그인 플로우/ IA`(`23:168`), `회원가입 플로우/ IA`(`38:91`)와 이 섹션 셋뿐입니다. 로그인 IA의 종착 노드 `홈 화면 진입`은 개념만 있고 대응 화면이 없습니다.
 - 알림함·설정·회원정보·배송지 관리·1:1 문의·공지사항·FAQ는 프레임 검색 결과 원본이 없습니다.
 
@@ -36,10 +36,8 @@ LIVE 탭 이동 → LIVE 방송 입장 → 방송 시청(AI 코파일럿 답변/
 
 ### 홈 경로
 
-- `/`는 `next.config.ts`의 라우팅 레벨 redirect로 `/live`에 보냅니다. 설계상 구매자 진입점이 LIVE 탭이고 홈 원본이 없어 화면을 임의로 만들지 않습니다.
-- 페이지에서 `redirect()`하면 `/`가 정적 라우트라 1초 `meta http-equiv="refresh"`로 내려갑니다. 라우팅 레벨로 옮겨 307을 즉시 보냅니다.
-- `permanent: false`를 사용합니다. 홈 디자인이 확정되면 이 항목을 지우고 `(buyer)/page.tsx`를 되살립니다.
-- 하단 메뉴와 헤더의 홈 항목은 원본에 있으므로 제거하지 않았습니다. 홈 탭과 LIVE 탭이 같은 목적지가 되고 홈 탭에는 활성 표시가 오지 않습니다. 홈 화면이 생기면 해소됩니다.
+- 현재(#367): `/`는 홈 화면이며 redirect하지 않습니다. 홈은 BuyerShell이 없는 `(buyer-home)` 그룹에 있고 하단 메뉴의 홈이 선택 상태로 보입니다. 로고, 로그인 기본 복귀(`safeReturnTo`), 회원 전용 화면의 로그아웃, 가입 완료의 [펀딩 시작하기], 구매자 모드 전환, 검색의 뒤로 가기 대체 경로가 모두 이 홈으로 옵니다.
+- 이전(#367 전): 홈 원본이 없어 `next.config.ts`의 라우팅 레벨 redirect(307, `permanent: false`)로 `/live`에 보냈습니다. 정적 라우트에서 페이지 `redirect()`는 1초 `meta refresh`가 되어 라우팅 레벨로 처리했습니다. 이 동안 홈 탭과 LIVE 탭은 같은 목적지였고 홈 탭에는 활성 표시가 오지 않았습니다.
 
 ### 목적지 미정 링크
 
@@ -74,9 +72,9 @@ LIVE 탭 이동 → LIVE 방송 입장 → 방송 시청(AI 코파일럿 답변/
 ## 검증
 
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`(98개), `pnpm build` 전부 통과했습니다.
-- 개발 서버에서 `/`가 307로 `/live`에 가고 `meta refresh`가 남지 않은 것을 확인했습니다.
+- 개발 서버에서 `/`가 307로 `/live`에 가고 `meta refresh`가 남지 않은 것을 확인했습니다(#367 전 기록. 지금 `/`는 홈으로 200이다).
 - `/live`, `/live/upcoming`, `/my`, `/my/fundings`, `/my/wishlist`, `/projects/demo-project`, `/funding/demo-project/checkout`, `/categories/tech-appliances`, `/search`가 200으로 응답합니다.
-- placeholder 라우트를 가리키는 링크를 전수 검색해 0건인 것을 확인했습니다. `/` 참조는 redirect로 처리됩니다.
+- placeholder 라우트를 가리키는 링크를 전수 검색해 0건인 것을 확인했습니다. `/` 참조는 당시 redirect로 처리됐고 #367부터 홈 화면으로 갑니다.
 - `(준비중)` `aria-label`이 `/my` 10곳, `/live` 4곳, `/live/upcoming` 3곳, `/my/fundings` 1곳에 렌더되는 것을 확인했습니다.
 - Storybook `Shared/UI/PendingDestination`의 `MenuRow`, `IconSlot`.
 - 실제 브라우저 확인과 반응형 점검은 별도입니다.
