@@ -48,7 +48,7 @@ Gateway는 `/api/v1/follows/**`를 member-service로 라우팅한다.
 - 판매자 한 명의 팔로우 여부를 묻는 API는 없다. FE는 `src/entities/seller/api/follow-api.ts`의 `getAllFollows`로 목록을 size 100으로 끝까지 읽어 판단하며, 쿼리 키 `followsQueryKey(memberId)`를 LIVE 시청 화면(#343)과 LIVE 메인 "팔로우한 창작자"가 함께 쓴다. LIVE 시청 화면의 판매자 식별자는 공개 프로젝트 상세의 `seller.sellerId`다(`displayName`은 null일 수 있다).
 - 찜 목록(`GET /api/v1/wishes`)과 합치지 않은 이유는 항목 모양이 다르고, 한 엔드포인트에 섞으면 페이지네이션이 하나로 묶여 탭 전환마다 커서가 꼬이기 때문이다. FE도 두 탭의 페이지 상태를 분리한다.
 
-**연결 대기 사유는 표시 필드 부족이다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. 화면의 다섯 정보 중 이름 하나만 채울 수 있어, 값을 지어내지 않는 원칙에 따라 연결을 보류한다.
+**목록·해제는 연결했고(#384), 표시 필드 일부가 없다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. LIVE 목록 응답에는 `sellerId`가 없어 FE가 방송 중 여부를 판매자별로 나눌 수도 없다. #257에서는 이름 하나만 채울 수 있어 목록 연결을 보류했으나, 2026-09-28 목록·해제는 연결하고 없는 값은 비워 두기로 바꿨다([관심 목록](./BUYER_WISHLIST.md#팔로잉-탭-연결-384)).
 
 BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법과 판매자 프로필 조회를 확장하는 방법 모두 가능하다.
 
@@ -59,6 +59,8 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 | 좋아요(찜) 수                | 하트 아이콘 옆 수치                           |
 | 진행 중 LIVE 여부            | 아바타 위 LIVE 배지                           |
 | 판매자 상세 경로에 쓸 식별자 | 행 선택 시 이동. 목적지 자체도 아직 미정이다. |
+
+- 목록 정렬은 팔로우한 최신순이다(`createdAt desc, sellerId desc`, BE `FollowJpaRepository`).
 
 ## 검색·카테고리 카드의 공개 상세 연결 (#216)
 
@@ -693,7 +695,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 기준·접근·구현 상태 | YAML 기준 커밋·추출 시점, 제외된 API와 일정, 개발 Gateway 주소·배포 버전·테스트 계정/데이터. 인증 방식은 YAML의 Bearer 기준이며 실제 연결은 확인 필요.         |
 | 인증·회원 DTO       | 4.6의 nickname·찜 삭제/페이지 범위 불일치(소셜은 목업으로 결정), 가입 address 내부 구조, 요청·응답 required/null·기본값, 가입·갱신 Set-Cookie 정의.            |
 | 오류 계약           | detail 설명과 object 스키마 불일치, API별 HTTP 상태·도메인 코드·대표 오류 응답 보완.                                                                           |
-| 화면 데이터         | 회원 이메일·이미지·등급·혜택, 찜 목록 판매자·달성률·종료 상태의 제공 API, 팔로우 목록·등록·해제와 목록 정렬 기준. 검색·LIVE 알림·환불 내역의 별도 서비스 명세. |
+| 화면 데이터         | 회원 이메일·이미지·등급·혜택, 찜 목록 판매자·달성률·종료 상태의 제공 API, 팔로잉 아바타·팔로워·♥·LIVE 여부(#384). 검색·LIVE 알림·환불 내역의 별도 서비스 명세. |
 | 프로젝트 DTO 보완   | businessType 전체 enum·카테고리 조회 방식, 성공 상태와 PATCH null 의미.                                                                                        |
 | 교차 서비스 ID      | Long JSON 범위. 프로젝트 UUID와 Member 찜의 숫자 projectId 연결은 #250에서 확정.                                                                               |
 | AI 세부 계약        | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                                                                        |

@@ -6,12 +6,16 @@
 - `page`가 마지막 페이지보다 뒤면 [이전 페이지]는 `totalElements`와 페이지 크기로 센 마지막 페이지(0건이면 첫 페이지)로 간다(#374, `shared/lib/previous-page.ts`).
 - BE PR #110의 `projectPublicId` UUID로 제목·썸네일에서 공개 상세로 이동한다(#250). 찜 해제·재등록에는 기존 숫자 `projectId`를 유지한다. UUID가 null이면 상세 링크 대신 정보 준비 중 안내를 표시하며 임의로 ID를 변환하지 않는다.
 - 응답에 없는 달성률·판매자·광고를 예시 데이터로 채우지 않는다. 제목·썸네일은 nullable로 처리한다.
-- 팔로우는 연결 대기로 표시한다. 계정별 캐시와 컴포넌트 상태를 분리하며 기존 디자인 확인용 컴포넌트는 유지한다.
 
-  2026-09-22 재확인(#257): Gateway 계약이 없다는 서술은 더 이상 맞지 않다. BE develop `ce5d882`에 `GET /api/v1/follows`, `PUT`/`DELETE /follows/{sellerId}`(UUID)가 있고 Gateway도 `/api/v1/follows/**`를 member-service로 라우팅한다. **대기 사유는 계약이 아니라 표시 필드 부족이다.** 목록 응답은 `{sellerId, sellerName, sellerNickname, createdAt}`뿐인데 `FL_B_LK_LIST_2`의 한 행은 아바타·LIVE 배지·판매자명·팔로워 수·좋아요 수를 보여준다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 나머지를 채우지 못한다. 없는 값을 지어내지 않으므로 BE가 아래 필드를 제공할 때까지 목록 연결을 보류한다.
+## 팔로잉 탭 연결 (#384)
 
-  - 판매자 프로필 이미지 URL(아바타 46px), 팔로워 수, 좋아요 수, 진행 중 LIVE 여부, 판매자 상세 이동에 쓸 식별자.
-  - 판매자 상세 목적지 자체도 아직 미정이다. 자세한 계약은 [API 계약](./API_CONTRACT.md#알림함수신설정과-팔로우-계약-257)에 있다.
+- `?tab=sellers`는 `GET /api/v1/follows`를 20명씩 조회한다(BE 정렬: 팔로우한 최신순). `page` 쿼리와 [이전 페이지]·[다음 페이지]는 찜 탭과 같고, 두 탭의 페이지 상태는 URL로 따로 둔다.
+- 행은 Figma `FL_B_LK_LIST_2`(`1249:24108`)의 `SellerRow`를 쓴다. 목록 응답이 `{sellerId, sellerName, sellerNickname, createdAt}`뿐이라 이름과 [팔로잉]만 채운다. 이름은 닉네임, 없으면 회원 이름, 둘 다 없으면 "판매자"다(`model/following.ts`).
+- 아바타는 기본 원이고, 팔로워 수·♥ 줄과 LIVE 배지는 숨긴다. LIVE 목록 응답(`LiveSummaryResponse`)에 `sellerId`가 없어 여러 판매자를 한 번에 조회하면 방송을 판매자별로 나눌 수 없다. BE가 아래 필드를 주면 연결한다.
+  - 판매자 프로필 이미지 URL(아바타 46px), 팔로워 수, ♥(판매자 프로젝트 찜 합산, PM 확정 2026-09-23), 진행 중 LIVE 여부.
+- [팔로잉]은 확인 없이 `DELETE /api/v1/follows/{sellerId}`를 보내고, 찜 탭처럼 "○○ 팔로우를 해제했습니다. [다시 팔로우]"를 보인다. 성공·실패와 관계없이 목록과 LIVE 화면이 쓰는 팔로우 목록(`followsQueryKey(memberId)`)을 다시 읽는다(팔로우·해제는 idempotent).
+- 판매자 상세 목적지가 없어(IA 메이커 정보 탭 제외) 행은 이동하지 않고, 광고는 찜 탭 실제 화면처럼 두지 않는다.
+- 원본에 없는 위 동작은 노션 「FE API 연동 남은 작업」의 FE 자체 판단 89~92번에 적었다. 계약 경위는 [API 계약](./API_CONTRACT.md#알림함수신설정과-팔로우-계약-257)에 있다.
 
 ## Design Source
 
