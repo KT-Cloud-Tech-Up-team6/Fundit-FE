@@ -29,7 +29,7 @@
 - 필터바는 총 개수·"진행 중만 보기"·유형 드롭다운(전체/취소/교환/환불)이다. 두 필터 모두 **서버 필터**다. URL `?inProgress=true`·`?type=cancel|exchange|refund`로 두고, 바꾸면 첫 페이지로 돌아간다. 모르는 `type` 값은 전체로 본다.
 - 총 개수는 서버가 필터를 적용한 `totalElements`다. 범위를 벗어난 페이지처럼 목록이 비면 0개로 보인다.
 - 상태 표시는 `Badge`다. 진행 중은 `variant="error"`(주황), 완료·반려는 `variant="info"`(회색)로 원본 badge state와 같다.
-- 페이지·필터를 바꾸는 동안에는 이전 목록을 유지한다(`placeholderData`). 새 목록이 도착할 때까지 페이지 이동 버튼은 잠그고 진행 중임을 알린다.
+- 페이지·필터를 바꾸는 동안에는 이전 목록을 유지한다(`placeholderData`). 새 목록이 도착할 때까지 필터바 바로 아래에 "목록을 불러오고 있습니다."(`role="status"`)를 알리고 목록에 `aria-busy`를 걸며, 페이지 이동 버튼은 잠근다. 한 페이지짜리 목록에는 페이지 이동 줄이 없으므로 안내를 그 밖에 둔다. 목록 아래에서 이동을 누르면 위 안내가 화면 밖이라, 페이지 이동 줄에도 같은 문구를 화면용(`aria-hidden`)으로 둔다. 원본에 이 상태가 없어 FE가 정했다(노션 FE 자체 판단 17).
 - 로딩·오류 화면도 목록과 같은 셸(제목·breadcrumb·하단 메뉴)을 쓴다.
 - 신청 폼·제출·취소 철회·재신청·상태 전이·환불 계산은 범위에 포함하지 않는다. 서버 eligibility 정책을 추정하지 않는다.
 - 관심 목록 PR의 상단바를 재사용하며 새 스타일은 Tailwind CSS로 작성한다.
@@ -49,9 +49,9 @@
 
 ## 검증
 
-- Storybook `Features/BuyerRefunds`의 Default, Empty, Desktop, FilteredCancel, ChooseType, ToggleInProgressOnly, ExpandHistory.
+- Storybook `Features/BuyerRefunds`의 Default, Empty, Desktop, FilteredCancel, ChooseType, ToggleInProgressOnly, LoadingNextList, ExpandHistory.
 - 펼치기·접기, 진행 중·반려·교환의 금액 미표시, 사유 문구, 저장 버튼 부재, 유형·진행 중 변경이 부모로 올라가는지 검증한다.
 - `pnpm test src/entities/refund/api/refund-api.test.mjs`에서 유형별 `triggerType` 반복 파라미터와 `inProgress` 조합을 검증한다.
 - `pnpm test src/features/buyer-refunds/model/refund-history.test.mjs`에서 유형·상태 문구, 사유 유형 문구와 폴백, 교환 금액 미표시, 키가 빠진 응답의 빈 자리, 날짜 절단, 드롭다운·URL 값 변환을 검증한다.
-- `pnpm test src/features/buyer-refunds/ui/buyer-refunds.test.mjs`에서 제목, 모든 항목 접힘 시작, 적립금 null·0·금액, 교환 금액 영역 부재, badge state, 반려 일자·사유 행과 상단 날짜 제외, 빈 자리 유지, 총 개수 기준을 검증한다.
+- `pnpm test src/features/buyer-refunds/ui/buyer-refunds.test.mjs`에서 제목, 모든 항목 접힘 시작, 적립금 null·0·금액, 교환 금액 영역 부재, badge state, 반려 일자·사유 행과 상단 날짜 제외, 빈 자리 유지, 총 개수 기준, 새 목록을 기다리는 동안의 안내 위치와 `aria-busy`를 검증한다.
 - 실제 서버 응답 대조는 BE QA 서버가 뜬 뒤에 한다. 현재 검증은 계약 기반이다.

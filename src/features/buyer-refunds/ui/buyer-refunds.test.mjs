@@ -90,6 +90,16 @@ test("총 개수는 서버가 필터를 적용한 전체 건수를 쓰고, 빈 �
   assert.match(render([], { total: 42 }), /총 0개/);
 });
 
+test("새 목록을 기다리는 동안 필터 바로 아래에 알리고 이전 목록을 busy로 둔다", () => {
+  assert.match(
+    render([cancelled], { loading: true }),
+    /유형 필터[\s\S]*role="status"[^>]*>목록을 불러오고 있습니다\.<\/p><div aria-busy="true"><details/,
+  );
+  const idle = render([cancelled]);
+  assert.doesNotMatch(idle, /목록을 불러오고 있습니다/);
+  assert.match(idle, /<div aria-busy="false"><details/);
+});
+
 test("유형 드롭다운과 진행 중만 보기는 받은 값을 그대로 보인다", () => {
   const html = render([delayed], { type: "cancel", inProgress: true });
   assert.match(html, /aria-label="유형 필터"[^>]*><span[^>]*>취소<\/span>/);

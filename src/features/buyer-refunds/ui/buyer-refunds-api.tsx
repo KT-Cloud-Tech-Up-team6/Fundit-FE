@@ -73,6 +73,7 @@ function Refunds({ memberId }: { memberId: string }) {
       onInProgressChange={(checked) =>
         router.push(refundsHref({ page: 1, inProgress: checked, type }))
       }
+      loading={list.isPlaceholderData}
     >
       {(page > 0 || list.data.hasNext) && (
         <div className="bg-layer-surface-default flex items-center justify-between gap-3 px-5 py-4">
@@ -82,9 +83,10 @@ function Refunds({ memberId }: { memberId: string }) {
           >
             이전 페이지
           </Button>
-          {/* 아직 이전 페이지가 보이는 동안, 누른 이동이 진행 중임을 알린다. */}
+          {/* 목록 아래에서 이동을 누르면 필터 아래 안내가 화면 밖이라 여기에도 보인다.
+              스크린리더 알림은 필터 아래 안내(role="status")가 맡으므로 중복해 읽히지 않게 숨긴다. */}
           {list.isPlaceholderData && (
-            <span role="status" className="text-caption-m text-text-secondary">
+            <span aria-hidden="true" className="text-caption-m text-text-secondary">
               목록을 불러오고 있습니다.
             </span>
           )}

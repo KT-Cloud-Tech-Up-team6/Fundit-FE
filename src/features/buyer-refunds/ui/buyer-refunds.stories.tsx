@@ -114,6 +114,19 @@ export const ToggleInProgressOnly: Story = {
   },
 };
 
+/** 필터·페이지를 바꾼 뒤 새 목록을 기다리는 동안: 이전 목록을 두고 필터 바로 아래에 알린다. */
+export const LoadingNextList: Story = {
+  args: { loading: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent("목록을 불러오고 있습니다.");
+    await expect(canvas.getByText(cancelled).closest("[aria-busy]")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  },
+};
+
 export const ExpandHistory: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
