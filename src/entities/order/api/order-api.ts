@@ -118,8 +118,9 @@ export const orderStatusLabels: Record<string, string> = {
   GOAL_ACHIEVED: "목표 달성",
   REFUNDED_AFTER_SUCCESS: "환불 완료",
 };
+export type CheckoutAddress = OrderAddress & { id: number; isDefault: boolean };
 export function getCheckoutAddresses(signal?: AbortSignal) {
-  return apiRequest<(OrderAddress & { id: number; isDefault: boolean })[]>("/api/v1/addresses", {
+  return apiRequest<CheckoutAddress[]>("/api/v1/addresses", {
     auth: true,
     signal,
   });
