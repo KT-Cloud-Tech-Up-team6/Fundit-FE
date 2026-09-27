@@ -1,30 +1,12 @@
 import { FundingCancelDemo } from "@/features/funding-history/ui/funding-cancel-demo";
 import { FundingRefundApi } from "@/features/funding-history/ui/funding-refund-api";
-import { returnDefaultsByQueryType } from "@/features/funding-history/model/funding-cancel";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 
+/* 유형·사유는 처음에 비어 있다(CL_4). 발송 지연 취소는 `/cancel`로 옮겨 `?type=` 쿼리를 읽지 않는다. */
 export default async function FundingReturnPage({
   params,
-  searchParams,
 }: PageProps<"/my/fundings/[fundingId]/refund/new">) {
   const { fundingId } = await params;
-  const query = await searchParams;
-  const type = query.type === "cancel" || query.type === "delay" ? query.type : "defect";
-  const { returnType, reason } = returnDefaultsByQueryType[type];
-  if (isPublicUuid(fundingId))
-    return (
-      <FundingRefundApi
-        fundingId={fundingId}
-        initialReturnType={returnType}
-        initialReason={reason}
-      />
-    );
-  return (
-    <FundingCancelDemo
-      fundingId={fundingId}
-      variant="return"
-      initialReturnType={returnType}
-      initialReason={reason}
-    />
-  );
+  if (isPublicUuid(fundingId)) return <FundingRefundApi fundingId={fundingId} />;
+  return <FundingCancelDemo fundingId={fundingId} variant="return" />;
 }

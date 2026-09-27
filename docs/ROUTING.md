@@ -59,7 +59,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
   - #174에서 최신 4개 화면과 히스토리 `1132:22416`을 대조하고, 구매자 제작 착수의 9월 12일 기록에 누락된 `지연` 상태를 반영했습니다. 완료 단계의 일반 기록에는 지연·업데이트 배지가 붙지 않으며, 단계 아이콘·기간·DLVR4 문구는 기존 구현과 일치합니다. 공통 모바일 전체 폭 변경은 #165에 포함됩니다.
   - #225는 9월 21일 히스토리 `1886:52745`에 따라 기록의 날짜·상태 행을 배지 유무와 관계없이 24px로 통일합니다. 데스크톱의 기존 24px 규격을 유지하고 모바일·API 화면이 공유하는 `BuyerTimeline`에도 적용합니다. 추가 댓글 대상인 제작 착수 9월 18일 문구(`1548:51670`)는 기존 데이터의 3줄 개행과 `whitespace-pre-wrap`을 유지합니다. UUID 주문의 API 화면은 서버 `detailText`를 표시하므로 디자인 예시 문구로 덮어쓰지 않습니다.
   - 기본 날짜·내용은 Figma 예시(2026.09.28 기준)로 고정합니다. #70의 7일 미갱신 안내·기록 없음·미시작·완료 처리는 유지합니다. 실제 주문별 프로젝트/제작 현황 조회·인증·5단계 ↔ 배송·배송완료 enum 매핑은 `docs/OPEN_DECISIONS.md` P1이며, 판매자 상태 저장과 연동되지 않습니다.
-- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)(이후 [필수 산출물 섹션 `1143:22492`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1143-22492)로 최신화)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소/반품·교환) 원본은 `(buyer-funding)` 그룹에 두며, 1199px 이하에서는 자체 상단 앱바와 `/my`의 공통 `compact` 하단 네비게이션을 사용합니다. 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨깁니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`·`.../refund/new`는 같은 `funding-history` 슬라이스이며 데모 id로 들어온 경로만 목업이고, 카드별 상태(펀딩 진행 중·펀딩 완료·제작 중·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. `FundingCancel` 컴포넌트는 `variant="cancel"`(펀딩 취소, 사진 첨부 없음)과 `variant="return"`(펀딩 반품/교환, 사진 첨부 포함)을 함께 렌더링하며 표시 전용입니다. `.../refund/new`는 #263에서 `FundingRefundApi`가 주문·예상 환불액·제출을 연결했고, 환불 금액은 `GET /api/v1/refunds/estimate` 응답을 그대로 고지합니다. 접수할 계약이 없는 사유(#356부터 반품 단순변심)는 원본 옵션을 남기되 제출만 막고 이유를 표시합니다. 이 화면으로 가는 링크는 주문 상세가 `availableActions`(`DEFECT_REFUND_REQUEST`·`SHIPPING_DELAY_REFUND_REQUEST`)에 따라 노출합니다. `.../cancel`은 UUID 주문이면 `FundingDetailApi`가 `POST /api/v1/orders/{orderId}/cancel`로 처리하고, 데모 id만 `FundingCancelDemo`가 목업으로 렌더링합니다 — 이 경로에는 제출 계약이 없어 확인 후 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
+- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)(이후 [필수 산출물 섹션 `1143:22492`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1143-22492)로 최신화)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소/반품·교환) 원본은 `(buyer-funding)` 그룹에 두며, 1199px 이하에서는 자체 상단 앱바와 `/my`의 공통 `compact` 하단 네비게이션을 사용합니다. 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨깁니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`·`.../refund/new`는 같은 `funding-history` 슬라이스이며 데모 id로 들어온 경로만 목업이고, 카드별 상태(펀딩 진행 중·펀딩 완료·제작 중·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. `FundingCancel` 컴포넌트는 `variant="cancel"`(펀딩 취소 `CL_1~3`), `variant="shipping-delay"`(발송 지연 취소 `CL_1-1`), `variant="return"`(리워드 반품/교환 `CL_4~8`, 사진 첨부 포함)을 렌더링하며 표시 전용입니다. #358부터 `.../cancel`은 UUID 주문이면 `FundingCancelApi`가 주문의 `availableActions`로 펀딩 취소(`CANCEL`)·발송 지연 취소(`SHIPPING_DELAY_REFUND_REQUEST`)·취소 불가 안내 중 하나를 열고, `.../refund/new`는 `FundingRefundApi`가 유형·사유에 맞춰 `/return`·`/defect`·`/exchange`로 제출합니다. 금액은 유형·사유별 `GET /api/v1/refunds/estimate` 응답을 그대로 고지합니다([API 계약](./API_CONTRACT.md#2026-09-27-취소반품교환-신청-계약-반영-358)). 주문 상세는 `DEFECT_REFUND_REQUEST`면 반품·교환 화면으로, `CANCEL`·`SHIPPING_DELAY_REFUND_REQUEST`면 취소 화면으로 링크합니다. 데모 id는 `FundingCancelDemo`가 목업 금액으로 렌더링하며 제출 계약이 없어 확인 후 목록으로 돌아갑니다. 확인 모달(`CL_9`, 반품 `2323:53647`)은 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
 
 ## 공통·인증
 
@@ -127,10 +127,10 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/my`                                          | 마이페이지               | member           | implemented (목업) |
 | `/my/fundings`                                 | 펀딩내역                 | member           | implemented (목업) |
 | `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented (목업) |
-| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
+| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소·발송 지연 취소 | owner + eligible | implemented        |
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
-| `/my/fundings/[fundingId]/refund/new`          | 펀딩 반품·교환           | owner + eligible | implemented        |
+| `/my/fundings/[fundingId]/refund/new`          | 리워드 반품·교환         | owner + eligible | implemented        |
 | `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented        |
 | `/my/wishlist`                                 | 관심 목록                | member           | implemented        |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
@@ -175,7 +175,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
 - 다시보기의 `view=clip`은 숏 클립 표시를 선택합니다. 구간 탐색은 화면 내부 상태로 전환합니다. UUID 라이브는 `&clip={highlightId}`가 가리키는 쇼츠(`clipUrl`)를 재생하고, 없거나 맞지 않으면 첫 쇼츠를 재생합니다(#317). 데모 id는 서버·영상 미연결 목업입니다. [BUYER_LIVE_REPLAY.md](./BUYER_LIVE_REPLAY.md)를 참고합니다.
-- 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
+- 반품·교환 신청(`.../refund/new`)은 #358부터 `type` 쿼리를 읽지 않고 유형·사유를 비워 둔 채 엽니다. 발송 지연 취소는 `.../cancel`이 주문의 `availableActions`로 엽니다. 진입 가능 여부는 서버 eligibility가 결정합니다.
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `basic-info`, `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `live`를 허용합니다. 정산 관리(`settlement`)는 MVP에서 빠져 허용 값에서 걷었습니다 — 직접 들어오면 기본 탭으로 보냅니다.

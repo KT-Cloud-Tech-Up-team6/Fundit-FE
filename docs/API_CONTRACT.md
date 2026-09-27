@@ -865,3 +865,74 @@ PM 「Fundit 환불 정책_V.1.0」(2026-09-23)에 맞춰 위 #298 동작 중 �
 | 취소 수수료 행   | 환불 정보에서 뺐다(PD 확인 요청 2).                                                                                                                                                                                                                                   |
 | 사유 기타의 금액 | 반품·교환에서 사유가 기타면 실 환불 금액 대신 "접수 후 확인하여 안내"를 보여 준다(PD 확인 요청 3). 서버 예상 환불액은 사유를 받지 않아 확정 여부를 알려 주지 않는다.                                                                                                  |
 | 펀딩 완료 카드   | 목업 목록·상세의 펀딩 완료 상태에서 "펀딩 취소" 버튼을 뺐다(PD 확인 요청 1). 실제 주문은 원래 `availableActions`의 `CANCEL`(펀딩 진행 중만)을 따른다.                                                                                                                 |
+
+### 2026-09-27 취소·반품·교환 신청 계약 반영 (#358)
+
+BE 08 회신(BE PR #160·#162·#164, `develop` `f127a6f`)과 Figma 섹션 `1143:22492`의 2026-09-25·26 개정을 참여 취소·반품·교환 신청 화면에 반영했다. 위 #263·#298·#356 절의 사유 매핑·금액 표시는 이 절로 바뀌었다. 오류 응답은 `{code, message, detail}`이고, BE는 null 필드를 JSON에서 뺀다.
+
+| 동작            | 경로                                   | 요청                                                               | 응답                                                                                                                                        |
+| --------------- | -------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 참여 취소       | `POST /api/v1/orders/{orderId}/cancel` | 선택 `{cancelReason, reasonDetail?(100자)}`. 본문 없이도 취소된다  | `{orderId, status}`                                                                                                                         |
+| 발송 지연 취소  | `POST /api/v2/refunds/shipping-delay`  | `{fundingId}`                                                      | 201 `{refundId, status}`                                                                                                                    |
+| 반품(구매자)    | `POST /api/v2/refunds/return`          | `{fundingId, returnReason, reasonDetail?(500자), evidenceUrls?}`   | 201 `{refundId, status, paymentAmount, returnShippingFee, estimatedRefundAmount}`                                                           |
+| 반품(하자·기타) | `POST /api/v2/refunds/defect`          | `{fundingId, defectType, reasonDetail?, evidenceUrls(1장 이상)}`   | 201 `{refundId, status}`                                                                                                                    |
+| 교환            | `POST /api/v2/refunds/exchange`        | `{fundingId, exchangeReason, reasonDetail?(500자), evidenceUrls?}` | 201 `{refundId, status, exchangeShippingFee, additionalPaymentAmount}`                                                                      |
+| 예상 금액       | `GET /api/v1/refunds/estimate`         | `?orderId=&triggerType=&defectType=&exchangeReason=`               | `{orderId, paymentAmount, rewardAmount, shippingFee, discountAmount, returnShippingFee, additionalPaymentAmount, refundAmount?, confirmed}` |
+
+`exchangeReason`은 BE에서 아직 선택이지만 FE 전환 뒤 필수가 되므로 항상 보낸다. 입력 내용은 `reasonDetail`에 그대로 담는다 — #298의 `"{사유}: {내용}"` 합치기는 없앴다. 교환 응답의 `exchangeShippingFee`는 사유와 무관하게 5,000원이라 구매자 부담액으로 쓰지 않는다.
+
+#### 화면 진입
+
+`GET /api/v1/orders/{orderId}`의 `availableActions`로 정한다.
+
+| 경로                           | 조건                                                  | 화면                           |
+| ------------------------------ | ----------------------------------------------------- | ------------------------------ |
+| `/my/fundings/{id}/cancel`     | `CANCEL`(결제 대기·펀딩 진행 중)                      | 펀딩 취소 `CL_1`~`3`           |
+| `/my/fundings/{id}/cancel`     | `SHIPPING_DELAY_REFUND_REQUEST`(실제로 지연된 미발송) | 발송 지연 취소 `CL_1-1`        |
+| `/my/fundings/{id}/cancel`     | 둘 다 없음                                            | "이 주문은 취소할 수 없습니다" |
+| `/my/fundings/{id}/refund/new` | 링크는 `DEFECT_REFUND_REQUEST`(수령 후 7일 안)        | 리워드 반품/교환 `CL_4`~`8`    |
+
+`refund/new`는 더 이상 `?type=` 쿼리를 읽지 않는다. 유형·사유는 처음에 비어 있다(`CL_4`). 기존 링크에 남은 `?type=defect`는 무시된다.
+
+#### 사유 → 계약
+
+| 화면           | 사유                                                                               | 보내는 요청                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)                  |
+| 참여 취소      | 기타 창작자 귀책                                                                   | `ETC` + `reasonDetail` "창작자 귀책" 또는 "창작자 귀책 · {내용}"(입력 선택, 91자. 임시, [미확정](./OPEN_DECISIONS.md)) |
+| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 숨김, 임시)                                                                                   |
+| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                              |
+| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER`             |
+| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                             |
+
+"상품이 잘못 배송됨"은 #291 이후 `DIFFERENT_FROM_DESCRIPTION`으로 보냈지만 `WRONG_DELIVERY`가 생겨 바꿨다.
+
+#### 예상 금액 조회와 표시
+
+사유를 고른 뒤에만 금액 영역을 보여 준다(발송 지연 취소는 처음부터). 조회 실패(결제 전 주문 404 등)면 금액 영역만 숨긴다. FE는 금액을 계산하지 않고 아래처럼 행에 놓기만 한다. 적립금 환불 금액 행은 그리지 않는다.
+
+| 신청                            | 조회 조건                                   | 영역 / 행                                                                                             |
+| ------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 취소·발송 지연 취소             | `orderId`만                                 | 환불 정보: 결제 금액 `paymentAmount` / 예상 환불액 `refundAmount`                                     |
+| 반품 구매자 귀책 (`CL_6`)       | `triggerType=RETURN_CHANGE_OF_MIND`         | 환불 정보: 결제 금액 / 반품 배송비 `-returnShippingFee` / 예상 환불액 `refundAmount`                  |
+| 반품 창작자 귀책 (`2323:53657`) | `triggerType=DEFECT&defectType=…`           | 환불 정보: 결제 금액 / 반품 배송비 "창작자 부담 예정" / 예상 환불액 `refundAmount` + 안내 문구        |
+| 반품 기타                       | `triggerType=DEFECT&defectType=OTHER`       | 환불 정보: 결제 금액 / 반품 배송비·예상 환불액 "접수 후 확인하여 안내"(`refundAmount` 없음)           |
+| 교환 구매자 귀책 (`2323:53675`) | `triggerType=EXCHANGE&exchangeReason=…`     | 결제 정보: 교환 배송비·추가 결제 금액 `additionalPaymentAmount`                                       |
+| 교환 창작자 귀책 (`CL_8`)       | `triggerType=EXCHANGE&exchangeReason=…`     | 결제 정보: 교환 배송비 "창작자 부담 예정" / 추가 결제 금액 `additionalPaymentAmount`(0원) + 안내 문구 |
+| 교환 기타                       | `triggerType=EXCHANGE&exchangeReason=OTHER` | 결제 정보: 교환 배송비·추가 결제 금액 "접수 후 확인하여 안내"                                         |
+
+#### 오류 안내
+
+| 코드                            | 상황                                             | 안내                                                                         |
+| ------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 410 `RESOURCE_EXPIRED`          | 참여 취소 — 결제 기한이 지난 주문                | 결제 기한이 지나 만료된 주문은 취소할 수 없습니다.                           |
+| 422 `ORDER_NOT_CANCELLABLE`     | 참여 취소 — 펀딩 종료                            | 펀딩이 종료되어 취소할 수 없습니다.                                          |
+| 409 `ALREADY_SHIPPED`           | 발송 지연 취소 — 이미 발송                       | 이미 발송이 시작되어 취소할 수 없습니다.                                     |
+| 422 `NOT_YET_DELAYED`           | 발송 지연 취소 — 아직 지연 아님                  | 아직 발송 예정일이 지나지 않아 취소할 수 없습니다.                           |
+| 409 `NOT_DELIVERED`             | 반품·교환 — 배송 완료 전                         | 배송이 완료된 뒤에 반품·교환을 신청할 수 있습니다.                           |
+| 409 `RETURN_PERIOD_EXPIRED`     | 반품·교환 — 수령 후 7일 경과                     | 반품·교환 가능 기간이 지났습니다.                                            |
+| 409 `REFUND_ALREADY_REQUESTED`  | 반품·교환 — 진행 중 신청이 이미 있음(주문당 1건) | 이미 접수된 반품·교환 신청이 있습니다. 취소·반품·교환 내역에서 확인해주세요. |
+| 422 `RETURN_FEE_EXCEEDS_AMOUNT` | 반품 — 결제 금액 5,000원 이하                    | 결제 금액이 반품 배송비(5,000원)보다 적어 반품을 신청할 수 없습니다.         |
+| 503 `DEPENDENCY_FAILURE`        | 주문·배송 조회 실패                              | 주문 정보를 확인하지 못해 신청하지 못했습니다. 잠시 후 다시 시도해주세요.    |
+
+그 밖의 실패는 취소면 "처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요."와 주문 재조회, 반품·교환이면 "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요."다. 성공하면 취소는 주문 상세로 교체 이동하고, 반품·교환은 `/my/refunds`로 이동한다.
