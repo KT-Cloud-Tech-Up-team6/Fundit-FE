@@ -22,6 +22,10 @@ export const projectManageTabs: readonly ProjectSidebarTab[] = [
   { value: "fulfillment", label: "제작 · 배송" },
 ];
 
+/* 운영 탭 끝에 붙는 LIVE 클립 관리(FL_S_LV_CLIP). 그 프로젝트로 LIVE를 진행한 판매자에게만
+   보인다(PM 2026-09-23) — 조건은 useProjectManageTabs가 종료된 LIVE 수로 판단한다. */
+export const liveClipTab: ProjectSidebarTab = { value: "live", label: "LIVE 클립 관리" };
+
 type ProjectSidebarProps = {
   activeTab: string;
   /** 하위 화면(발송정보 등)은 목록이 아니라 상위 탭으로 돌아간다. */

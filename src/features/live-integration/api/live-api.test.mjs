@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getAnsweredQuestions,
+  getHighlights,
   getInsights,
   getLiveLiked,
   getOriginals,
@@ -12,6 +13,7 @@ import {
   likeLive,
   recordHighlightClick,
   requestAnswer,
+  setHighlightVisibility,
   unlikeLive,
 } from "./live-api.ts";
 import { authTokenStore } from "@/shared/api/auth-token-store";
@@ -132,6 +134,35 @@ test("쇼츠 클릭은 비인증 POST로 하이라이트 id를 이스케이프�
     assert.match(calls[0][0], /\/lives\/live\/highlights\/h%2F1\/click$/);
     assert.equal(calls[0][1].method, "POST");
     assert.equal(calls[0][1].headers.get("Authorization"), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
+  }
+});
+
+test("판매자 하이라이트 목록은 인증 GET, 공개 설정은 인증 PATCH로 isPublic만 보낸다", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    if (init.method === "PATCH") return new Response(null, { status: 204 });
+    return response({ markers: [], clips: [] });
+  };
+  try {
+    authTokenStore.set("live-token");
+    const controller = new AbortController();
+    assert.deepEqual(await getHighlights("live", controller.signal), { markers: [], clips: [] });
+    assert.equal(await setHighlightVisibility("live", "h/1", false), undefined);
+
+    assert.match(calls[0][0], /\/lives\/live\/highlights$/);
+    assert.equal(calls[0][1].method, undefined);
+    assert.equal(calls[0][1].headers.get("Authorization"), "Bearer live-token");
+    assert.equal(calls[0][1].signal, controller.signal);
+
+    assert.match(calls[1][0], /\/lives\/live\/highlights\/h%2F1\/visibility$/);
+    assert.equal(calls[1][1].method, "PATCH");
+    assert.equal(calls[1][1].headers.get("Authorization"), "Bearer live-token");
+    assert.deepEqual(JSON.parse(calls[1][1].body), { isPublic: false });
   } finally {
     globalThis.fetch = originalFetch;
     authTokenStore.clear();

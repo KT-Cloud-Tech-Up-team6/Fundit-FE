@@ -17,11 +17,8 @@ import { basicInfoRequest, businessCodes, type BasicInfoValues } from "../model/
 import { ProjectBasicInfoForm } from "./project-basic-info-form";
 import { ProjectSavedModal } from "./project-saved-modal";
 import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
-import {
-  ProjectWorkspaceLayout,
-  projectEditTabs,
-  projectManageTabs,
-} from "@/entities/project/ui/project-sidebar";
+import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
+import { useProjectManageTabs } from "@/features/seller-live-clips/model/use-project-manage-tabs";
 
 /** 프로젝트 기본 정보 탭의 데이터를 조회하고 편집 화면에 전달한다. */
 export function ProjectBasicInfoApi({
@@ -36,6 +33,10 @@ export function ProjectBasicInfoApi({
   const cache = useQueryClient();
   const owner = state.user?.memberId;
   const enabled = state.status === "authenticated" && Boolean(owner);
+  /* 운영 사이드바를 쓰는 탭에서만 종료된 LIVE를 확인한다. 기본 정보 탭은 데모 id로도 열린다. */
+  const manageTabs = useProjectManageTabs(
+    tab === "basic-info" || tab === "refund-policy" ? undefined : projectId,
+  );
   const preview = useQuery({
     queryKey: ["seller-project-preview", owner, projectId],
     queryFn: ({ signal }) => getProjectPreview(projectId!, signal),
@@ -133,10 +134,10 @@ export function ProjectBasicInfoApi({
       projectName={data.title || "제목 없음"}
       tabs={
         tab === "community"
-          ? projectManageTabs
+          ? manageTabs
           : tab === "basic-info" || tab === "refund-policy" || data.status === "DRAFT"
             ? projectEditTabs
-            : projectManageTabs
+            : manageTabs
       }
     >
       <div className="w-full min-w-0 flex-1 lg:max-w-[792px]">

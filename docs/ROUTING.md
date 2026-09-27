@@ -145,20 +145,20 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 ## 판매자
 
-| URL                                     | 화면                    | 접근 조건               | 상태                                                                    |
-| --------------------------------------- | ----------------------- | ----------------------- | ----------------------------------------------------------------------- |
-| `/seller/projects`                      | 프로젝트 목록           | member + seller consent | implemented                                                             |
-| `/seller/live`                          | LIVE 스튜디오 홈        | member + seller consent | implemented                                                             |
-| `/seller/projects/new`                  | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                             |
-| `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder (`FL_S_PR_PREV`는 스토리 작성의 미리보기 모달이 담당)       |
-| `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                             |
-| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | implemented                                                             |
-| `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                             |
-| `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                             |
-| `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                             |
+| URL                                     | 화면                    | 접근 조건               | 상태                                                                           |
+| --------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `/seller/projects`                      | 프로젝트 목록           | member + seller consent | implemented                                                                    |
+| `/seller/live`                          | LIVE 스튜디오 홈        | member + seller consent | implemented                                                                    |
+| `/seller/projects/new`                  | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                                    |
+| `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment`·`live` 구현) |
+| `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder (`FL_S_PR_PREV`는 스토리 작성의 미리보기 모달이 담당)              |
+| `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                                    |
+| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | implemented                                                                    |
+| `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                                    |
 
-`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #322부터 필수 항목에 동의하고 만든 프로젝트는 생성 직후 `POST /privacy-consent`로 개인정보 수집 동의를 서버에 기록합니다. BE에는 이 값 하나만 있어 선택 약관은 저장하지 않습니다.
+`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, `/seller/projects/[projectId]?tab=live`는 프로젝트의 LIVE 클립 관리(`FL_S_LV_CLIP`)입니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #322부터 필수 항목에 동의하고 만든 프로젝트는 생성 직후 `POST /privacy-consent`로 개인정보 수집 동의를 서버에 기록합니다. BE에는 이 값 하나만 있어 선택 약관은 저장하지 않습니다.
 
 ## 쿼리 규칙
 
@@ -179,6 +179,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `basic-info`, `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `live`를 허용합니다. 정산 관리(`settlement`)는 MVP에서 빠져 허용 값에서 걷었습니다 — 직접 들어오면 기본 탭으로 보냅니다.
+- `live` 탭은 LIVE 클립 관리(`FL_S_LV_CLIP`, Figma `2321:46422`, #366)입니다. 판매자가 종료된 LIVE의 AI 숏 클립마다 상세페이지 공개 여부를 정하고 [저장]합니다. 운영 사이드바의 "LIVE 클립 관리"는 그 프로젝트에 종료된 LIVE가 하나 이상 있을 때만 보입니다(PM 2026-09-23). 없는 프로젝트에서 주소로 들어오면 빈 목록입니다. 카드는 6개씩이고 `page`는 1부터 셉니다. 숫자가 아니면 첫 페이지, 범위를 넘으면 마지막 페이지를 보여 주며 다른 쿼리는 유지합니다. 저장 전 토글은 페이지를 옮겨도 유지되고, 화면을 떠나면 경고 없이 사라집니다. 데모 프로젝트 id는 placeholder입니다.
 - `basic-info`·`rewards` 탭은 데모 프로젝트 id에서도 실제 기본 정보·리워드 화면과 API로 연결합니다(placeholder 우회 없음). `refund-policy`·`community`·`news` 탭은 IA상 제외 범위(정산관리와 동일하게 후순위)라 실제 화면 없이 사이드바에서 비활성 처리하고 링크·prefetch를 제거했습니다(#285).
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 

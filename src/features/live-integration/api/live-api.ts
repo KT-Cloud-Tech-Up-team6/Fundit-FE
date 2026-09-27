@@ -98,6 +98,21 @@ export const getPublicHighlights = (liveId: string, signal?: AbortSignal) =>
     { signal },
   );
 
+/* 판매자 검토용 목록. 비공개·생성 중·실패 항목까지 온다. `/public`과 달리 조회 수로 잡히지 않는다. */
+export const getHighlights = (liveId: string, signal?: AbortSignal) =>
+  apiRequest<{ markers: Highlight[]; clips: Highlight[] }>(`${livePath(liveId)}/highlights`, {
+    auth: true,
+    signal,
+  });
+
+/* 204라 본문이 없다. 생성이 끝나지 않은 항목을 공개하면 409, 남의 LIVE·항목이면 404다. */
+export const setHighlightVisibility = (liveId: string, highlightId: string, isPublic: boolean) =>
+  apiRequest<void>(`${livePath(liveId)}/highlights/${encodeURIComponent(highlightId)}/visibility`, {
+    auth: true,
+    method: "PATCH",
+    body: { isPublic },
+  });
+
 /* 쇼츠 클릭 기록(전환 동선 추적). 비인증이고 204라 본문이 없다. 조회 수(`/public`)와 따로 잡힌다. */
 export const recordHighlightClick = (liveId: string, highlightId: string) =>
   apiRequest<void>(`${livePath(liveId)}/highlights/${encodeURIComponent(highlightId)}/click`, {
