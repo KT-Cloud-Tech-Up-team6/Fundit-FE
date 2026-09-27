@@ -18,6 +18,7 @@ import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { OrderMemberAccess } from "./order-member-access";
 import { OrderAttemptError, submitOrderOnce } from "../model/order-attempt";
+import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
@@ -101,25 +102,7 @@ function Checkout({
   const [selectedCoupons, setSelectedCoupons] = useState<CouponSelection[]>([]);
   const selectedCouponCodes = couponCodes(selectedCoupons);
   const [couponOpen, setCouponOpen] = useState(false);
-  const valid =
-    lines.length > 0 &&
-    lines.every((line) => {
-      const reward = rewards.data?.find((item) => item.rewardId === line.rewardId);
-      return (
-        reward &&
-        !reward.soldOut &&
-        Number.isSafeInteger(line.quantity) &&
-        line.quantity > 0 &&
-        (reward.remainingStock == null || line.quantity <= reward.remainingStock) &&
-        line.optionValueIds.every((id) =>
-          reward.options.some((group) => group.values.some((value) => value.valueId === id)),
-        ) &&
-        line.optionValueIds.length === reward.options.length &&
-        reward.options.every((group) =>
-          line.optionValueIds.some((id) => group.values.some((value) => value.valueId === id)),
-        )
-      );
-    });
+  const valid = isOrderable(lines, rewards.data);
   const body = {
     projectId,
     lineItems: lines,
