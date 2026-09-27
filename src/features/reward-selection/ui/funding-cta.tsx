@@ -3,20 +3,29 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
-import { OrderCheckoutApi } from "@/features/order-checkout/ui/order-checkout-api";
 import { RewardSheet } from "./reward-sheet";
-import { isPublicUuid } from "@/shared/lib/public-uuid";
+import type { Reward, RewardCart } from "../model/reward-demo";
 
 type FundingCtaProps = {
   projectId: string;
   className?: string;
   more?: boolean;
   desktopFormId?: string;
+  /** 실제 프로젝트의 리워드와 제출 동작. 없으면 시트가 목업 리워드·데모 주문 세션을 쓴다. */
+  rewards?: Reward[];
+  onSubmit?: (cart: RewardCart) => void;
 };
 
 /* IA(FL_B_PY_RWRD)에서 리워드 선택은 바텀시트이고 프로젝트 상세의 "펀딩하기"로 열린다.
    상세 화면 본문은 이번 범위가 아니라, 이 트리거만 페이지에 얹는다(Issue #56). */
-export function FundingCta({ projectId, className, more = false, desktopFormId }: FundingCtaProps) {
+export function FundingCta({
+  projectId,
+  className,
+  more = false,
+  desktopFormId,
+  rewards,
+  onSubmit,
+}: FundingCtaProps) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!desktopFormId) return;
@@ -28,17 +37,6 @@ export function FundingCta({ projectId, className, more = false, desktopFormId }
     return () => desktop.removeEventListener("change", closeMobileSheet);
   }, [desktopFormId]);
 
-  if (isPublicUuid(projectId))
-    return (
-      <>
-        <Button className={className} onClick={() => setOpen(true)}>
-          펀딩하기
-        </Button>
-        {open && (
-          <OrderCheckoutApi projectId={projectId} selectionOnly onClose={() => setOpen(false)} />
-        )}
-      </>
-    );
   return (
     <>
       {more ? (
@@ -69,7 +67,13 @@ export function FundingCta({ projectId, className, more = false, desktopFormId }
           펀딩하기
         </Button>
       )}
-      <RewardSheet projectId={projectId} open={open} onClose={() => setOpen(false)} />
+      <RewardSheet
+        projectId={projectId}
+        open={open}
+        onClose={() => setOpen(false)}
+        rewards={rewards}
+        onSubmit={onSubmit}
+      />
     </>
   );
 }
