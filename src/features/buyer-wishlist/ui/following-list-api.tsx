@@ -99,7 +99,13 @@ export function FollowingListApi({ memberId, page }: { memberId: string; page: n
               ))}
             </div>
           ) : (
-            <p className="py-24 text-center">팔로우한 판매자가 없습니다.</p>
+            /* 마지막 페이지의 판매자를 모두 해제했거나 주소의 page가 범위를 벗어나면 전체 수는 남는다.
+               [이전 페이지]가 마지막 페이지로 보낸다(#374와 같이 자동으로 옮기지 않는다). */
+            <p className="py-24 text-center">
+              {list.data.totalElements
+                ? "이 페이지에 표시할 판매자가 없습니다."
+                : "팔로우한 판매자가 없습니다."}
+            </p>
           )}
           <div className="flex justify-between">
             <Button
