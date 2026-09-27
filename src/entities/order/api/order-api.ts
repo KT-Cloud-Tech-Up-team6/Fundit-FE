@@ -109,17 +109,6 @@ export type PaymentAttempt = {
   amount: number;
   orderName: string;
 };
-export type CheckoutReward = {
-  rewardId: number;
-  name: string;
-  description: string;
-  price: number;
-  isEarlyBird: boolean;
-  earlyBirdDiscountedPrice: number | null;
-  soldOut: boolean;
-  remainingStock: number | null;
-  options: { groupId: number; groupName: string; values: { valueId: number; value: string }[] }[];
-};
 export const orderStatusLabels: Record<string, string> = {
   PENDING: "결제 대기",
   FUNDING_IN_PROGRESS: "펀딩 진행 중",
@@ -129,9 +118,6 @@ export const orderStatusLabels: Record<string, string> = {
   GOAL_ACHIEVED: "목표 달성",
   REFUNDED_AFTER_SUCCESS: "환불 완료",
 };
-export function getCheckoutRewards(id: string, signal?: AbortSignal) {
-  return apiRequest<CheckoutReward[]>(`/api/v1/projects/${id}/rewards`, { signal });
-}
 export function getCheckoutAddresses(signal?: AbortSignal) {
   return apiRequest<(OrderAddress & { id: number; isDefault: boolean })[]>("/api/v1/addresses", {
     auth: true,

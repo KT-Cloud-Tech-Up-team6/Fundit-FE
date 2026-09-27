@@ -1,32 +1,43 @@
-/* 리워드 선택 바텀시트(FL_B_PY_RWRD)의 화면 데이터와 순수 헬퍼.
-   ponytail: 리워드 조회 API가 없어(docs/OPEN_DECISIONS.md P1) 값은 목업 상수다.
-   API가 생기면 이 파일의 타입을 응답 스키마(docs/API_CONTRACT.md §7)에 맞추고
-   포맷 헬퍼는 그대로 재사용한다. */
+/* 리워드 선택 바텀시트(FL_B_PY_RWRD)의 화면 모델과 순수 헬퍼.
+   데모 프로젝트는 아래 목업 리워드를 쓰고, 실제(UUID) 프로젝트는 리워드 조회 API 응답을
+   public-reward.ts의 toRewards로 이 모델에 옮겨 같은 시트·카드·장바구니 헬퍼를 쓴다. */
 
-/** docs/API_CONTRACT.md §7: options 는 [{groupName, values: string[]}] 형태. */
-export type RewardOptionGroup = { groupName: string; values: string[] };
+/** 옵션 값. id는 API 리워드의 옵션 값 id(주문 optionValueIds)이고 목업에는 없다. */
+export type RewardOptionValue = { label: string; id?: number };
+
+export type RewardOptionGroup = { groupName: string; values: RewardOptionValue[] };
 
 export type Reward = {
+  /** 장바구니 키. API 리워드는 숫자 키가 삽입 순서를 잃지 않도록 `reward-{rewardId}`로 둔다. */
   id: string;
+  /** API 리워드의 주문 전송 id. 목업에는 없다. */
+  rewardId?: number;
   name: string;
+  /** 화면·합계에 쓰는 단가. 얼리 버드면 할인가다. */
   price: number;
-  /** 정가 취소선용. 스키마에 비교가 필드가 없어 목업 고정값이다(Issue #56 미확정 항목). */
+  /** 정가 취소선용. */
   originalPrice?: number;
-  /** "얼리 버드 N%" 배지 문구용. 위와 같은 이유로 목업 고정값. */
+  /** "얼리 버드 N%" 배지 문구용. 없으면 "얼리 버드"만 단다. */
   earlyBirdRate?: number;
   isEarlyBird: boolean;
-  /** true 면 "선착순 한정" 배지를 단다(docs/API_CONTRACT.md §7 isLimited). */
+  /** true 면 "선착순 한정" 배지를 단다. */
   isLimited: boolean;
   /** 기타 혜택 칩 문구. 예: "소모품 1년치 포함". */
   perks: string[];
   /** 메타 줄에 가운뎃점으로 잇는 조각. 예: ["무료배송", "색상 2종"] / ["무료배송", "예상 발송일 2026.09.21"]. */
   meta: string[];
   shippingNote?: string;
+  /** 선택 카드의 발송 안내 줄. 예: "예상 발송일 2026.10.12". 없으면 줄을 그리지 않는다. */
+  expectedShipping?: string;
+  soldOut?: boolean;
+  /** 남은 재고. 없으면 수량 제한이 없다. 같은 리워드의 모든 줄 수량 합의 상한이다. */
+  remainingStock?: number;
   options: RewardOptionGroup[];
 };
 
-/** 담은 옵션 조합 1줄. 리워드에 옵션이 있으면 value 는 고른 값, 없으면 null(수량만). */
-export type RewardLine = { value: string | null; quantity: number };
+/** 담은 옵션 조합 1줄. value 는 고른 옵션 문구(그룹이 여럿이면 " / "로 잇는다), 옵션이 없으면 null(수량만).
+    optionValueIds 는 API 리워드의 옵션 값 id(그룹 순서)이고 목업에는 없다. */
+export type RewardLine = { value: string | null; quantity: number; optionValueIds?: number[] };
 
 /** rewardId → 담은 줄 목록. 키가 있으면 선택된 것이다(옵션 리워드는 줄이 0개일 수 있다). */
 export type RewardCart = Record<string, RewardLine[]>;
@@ -46,11 +57,52 @@ export function initialLines(reward: Pick<Reward, "options">): RewardLine[] {
   return reward.options.length === 0 ? [{ value: null, quantity: 1 }] : [];
 }
 
-/** 목록에 value 와 같은 줄이 있으면 그 줄 수량 +1, 없으면 새 줄 추가. */
-export function addOptionLine(lines: RewardLine[], value: string): RewardLine[] {
-  const index = lines.findIndex((line) => line.value === value);
-  if (index === -1) return [...lines, { value, quantity: 1 }];
+/** 같은 옵션 조합인지 가르는 키. API 리워드는 옵션 값 id로, 목업은 문구로 비교한다. */
+export function lineKey(line: Pick<RewardLine, "value" | "optionValueIds">): string {
+  return line.optionValueIds?.join(",") ?? line.value ?? "";
+}
+
+/** 목록에 같은 옵션 조합 줄이 있으면 그 줄 수량 +1, 없으면 새 줄 추가. */
+export function addOptionLine(
+  lines: RewardLine[],
+  value: string,
+  optionValueIds?: number[],
+): RewardLine[] {
+  const key = lineKey({ value, optionValueIds });
+  const index = lines.findIndex((line) => lineKey(line) === key);
+  if (index === -1)
+    return [
+      ...lines,
+      optionValueIds ? { value, quantity: 1, optionValueIds } : { value, quantity: 1 },
+    ];
   return lines.map((line, i) => (i === index ? { ...line, quantity: line.quantity + 1 } : line));
+}
+
+/** 옵션 그룹마다 고른 값 순번으로 줄에 담을 문구·id를 만든다. 아직 안 고른 그룹이 있으면 null.
+    picks[i]는 i번째 그룹에서 고른 값의 순번이다. */
+export function pickedOption(
+  reward: Pick<Reward, "options">,
+  picks: (number | undefined)[],
+): { value: string; optionValueIds?: number[] } | null {
+  const values = reward.options.map((group, index) => {
+    const pick = picks[index];
+    return pick === undefined ? undefined : group.values[pick];
+  });
+  if (!values.every((value): value is RewardOptionValue => value !== undefined)) return null;
+  const value = values.map((item) => item.label).join(" / ");
+  const ids = values.map((item) => item.id);
+  return ids.every((id): id is number => id !== undefined)
+    ? { value, optionValueIds: ids }
+    : { value };
+}
+
+/** 재고에서 이 리워드의 담은 줄 수량 합을 뺀 값. 재고 제한이 없으면 undefined. */
+export function remainingFor(
+  reward: Pick<Reward, "remainingStock">,
+  lines: RewardLine[],
+): number | undefined {
+  if (reward.remainingStock === undefined) return undefined;
+  return reward.remainingStock - lines.reduce((sum, line) => sum + line.quantity, 0);
 }
 
 /** 담은 모든 줄의 (리워드가 × 수량) 합. */
@@ -68,6 +120,9 @@ export function isCartSubmittable(cart: RewardCart): boolean {
   return lists.length > 0 && lists.every((lines) => lines.length > 0);
 }
 
+/** 목업 선택 카드의 발송 안내(Figma FL_B_PY_RWRD_7 1867:49809). */
+const DEMO_EXPECTED_SHIPPING = "예상 발송일 2026.10.12";
+
 export function demoRewards(): Reward[] {
   return [
     {
@@ -80,7 +135,8 @@ export function demoRewards(): Reward[] {
       isLimited: true,
       perks: [],
       meta: ["무료배송", "예상 발송일 2026.09.21"],
-      options: [{ groupName: "색상", values: ["블랙", "화이트"] }],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
+      options: [{ groupName: "색상", values: [{ label: "블랙" }, { label: "화이트" }] }],
     },
     {
       id: "reward-standard",
@@ -90,7 +146,8 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무료배송", "색상 2종"],
-      options: [{ groupName: "색상", values: ["블랙", "화이트"] }],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
+      options: [{ groupName: "색상", values: [{ label: "블랙" }, { label: "화이트" }] }],
     },
     {
       id: "reward-deluxe",
@@ -100,6 +157,7 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: ["소모품 1년치 포함"],
       meta: ["사이드브러시 4", "먼지봉투 6", "물걸레패드 4"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -110,6 +168,7 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["복층", "2대 사용 가구 추천"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
   ];
@@ -127,6 +186,7 @@ export function designRewards(): Reward[] {
       isLimited: true,
       perks: [],
       meta: ["무선청소기 본체", "기본 브러쉬", "충전 어댑터"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       shippingNote: "무료배송· 예상 발송일 2026.10.12",
       options: [],
     },
@@ -138,6 +198,7 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무선청소기 본체", "브러쉬 2종", "충전 어댑터"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -148,6 +209,7 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: ["추가 필터 포함"],
       meta: ["무선청소기 본체", "브러쉬 4종", "전용 거치대", "추가 필터 2개"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -158,6 +220,7 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무선청소기 본체", "브러쉬 3종", "충전 어댑터"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -169,6 +232,7 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: ["함께할수록 더 저렴하게"],
       meta: ["본체 2대", "기본 브러시 2개", "충전 어댑터 2개"],
+      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
   ];

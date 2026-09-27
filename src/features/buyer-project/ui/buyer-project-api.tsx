@@ -6,7 +6,6 @@ import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   getPublicProject,
-  getPublicRewards,
   getRefundPolicy,
   getLiveVerifications,
   getPublicCommunity,
@@ -16,8 +15,16 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerProjectDetail } from "./buyer-project-detail";
+import styles from "./buyer-project-detail.module.css";
 import { RewardSummary } from "./reward-summary";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
+import { RewardSheet } from "@/features/reward-selection/ui/reward-sheet";
+import {
+  publicRewardsQuery,
+  toOrderLines,
+  toRewards,
+} from "@/features/reward-selection/model/public-reward";
+import type { RewardCart } from "@/features/reward-selection/model/reward-demo";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import {
   safeStoryHtml,
@@ -119,11 +126,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     queryFn: ({ signal }) => getPublicProject(projectId, signal),
     enabled: state.status !== "checking",
   });
-  const rewards = useQuery({
-    queryKey: ["public-rewards", projectId],
-    queryFn: ({ signal }) => getPublicRewards(projectId, signal),
-    enabled: detail.isSuccess,
-  });
+  const rewards = useQuery({ ...publicRewardsQuery(projectId), enabled: detail.isSuccess });
   const refund = useQuery({
     queryKey: ["public-refund-policy", projectId],
     queryFn: ({ signal }) => getRefundPolicy(projectId, signal),
@@ -283,6 +286,19 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       onRetry={() => void rewards.refetch()}
     />
   );
+  /* 진행 중이고 리워드를 받았을 때만 Figma 리워드 선택(웹 인라인·모바일 시트)을 연다. 그 밖에는
+     기존 요약(불러오는 중·오류 재시도·종료)을 둔다. 담은 줄은 기존 실제 주문서 계약(items 쿼리)으로
+     넘기고, 로그인 확인은 주문서의 회원 게이트가 맡는다. */
+  const rewardList =
+    data.status === "ONGOING" && rewards.data
+      ? toRewards(rewards.data, summary.fundingDeadline)
+      : undefined;
+  const rewardFormId = `rewards-${projectId}`;
+  function toCheckout(cart: RewardCart) {
+    if (!rewardList) return;
+    const items = JSON.stringify(toOrderLines(rewardList, cart));
+    router.push(`/funding/${projectId}/checkout?${new URLSearchParams({ items })}`);
+  }
   return (
     <BuyerProjectDetail
       projectId={projectId}
@@ -299,10 +315,30 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
         goal: data.goalAmount?.toLocaleString("ko-KR") ?? "—",
       }}
       fundingAction={
-        data.status === "ONGOING" ? (
-          <FundingCta projectId={projectId} />
-        ) : (
+        data.status !== "ONGOING" ? (
           <Button disabled>현재 펀딩에 참여할 수 없습니다</Button>
+        ) : rewardList ? (
+          <FundingCta
+            projectId={projectId}
+            className={styles.funding}
+            desktopFormId={rewardFormId}
+            rewards={rewardList}
+            onSubmit={toCheckout}
+          />
+        ) : (
+          <Button className={styles.funding} disabled>
+            펀딩하기
+          </Button>
+        )
+      }
+      rewardSelection={
+        rewardList && (
+          <RewardSheet
+            projectId={projectId}
+            inlineFormId={rewardFormId}
+            rewards={rewardList}
+            onSubmit={toCheckout}
+          />
         )
       }
       tabContent={

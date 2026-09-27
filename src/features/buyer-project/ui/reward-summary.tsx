@@ -10,7 +10,7 @@ export type RewardSummaryItem = {
   description: string;
   price: number;
   isEarlyBird: boolean;
-  earlyBirdDiscountedPrice: number | null;
+  earlyBirdDiscountedPrice?: number | null;
   soldOut?: boolean;
 };
 
