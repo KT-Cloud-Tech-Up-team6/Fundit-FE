@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { submitOrderOnce } from "./order-attempt.ts";
+import { submitOrderOnce, OrderRejectedError } from "./order-attempt.ts";
 import {
   previewOrder,
   createPayment,
@@ -111,7 +111,12 @@ test("확정된 4xx 실패는 시도를 버리고 새 키로 다시 주문한다
     }
     return Response.json({ orderId: "server-order" });
   });
-  await assert.rejects(submitOrderOnce(store, "member", body), /재고 부족/);
+  await assert.rejects(submitOrderOnce(store, "member", body), (error) => {
+    assert.ok(error instanceof OrderRejectedError);
+    assert.equal(error.code, "INSUFFICIENT_STOCK");
+    assert.match(error.message, /남은 수량이 부족한 리워드가 있어 주문하지 못했습니다/);
+    return true;
+  });
   assert.equal((await submitOrderOnce(store, "member", body)).orderId, "server-order");
   assert.notEqual(log.sent[1].key, log.sent[0].key);
 });
@@ -267,3 +272,23 @@ test("응답에 주문 ID가 없으면 결과를 재사용하지 않고 같은 �
   assert.equal(log.sent.length, 2);
   assert.equal(log.sent[1].key, log.sent[0].key);
 });
+
+for (const [code, status, message] of [
+  ["COUPON_BUDGET_EXCEEDED", 422, /쿠폰이 모두 소진되어 주문하지 못했습니다/],
+  ["COUPON_NOT_APPLICABLE", 422, /적용할 수 없는 쿠폰이 있어 주문하지 못했습니다/],
+  ["NOT_FOUND", 404, /주문할 수 없는 리워드나 옵션이 있어 주문하지 못했습니다/],
+  ["INVALID_INPUT", 400, /주문 내용을 확인하지 못해 주문하지 못했습니다/],
+])
+  test(`확정 거절 ${code}는 주문이 만들어지지 않았다는 안내와 코드를 준다(BE 내부 메시지를 보이지 않는다)`, async (t) => {
+    const store = storage();
+    t.mock.method(globalThis, "fetch", async () =>
+      Response.json({ code, message: "내부 메시지 rewardId=11" }, { status }),
+    );
+    await assert.rejects(submitOrderOnce(store, "member", body), (error) => {
+      assert.ok(error instanceof OrderRejectedError);
+      assert.equal(error.code, code);
+      assert.match(error.message, message);
+      assert.doesNotMatch(error.message, /rewardId|생성 여부/);
+      return true;
+    });
+  });

@@ -22,7 +22,7 @@ import { ShippingAddressSection } from "./shipping-address-section";
 import { SavedAddressSheet } from "./saved-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { CheckoutLayout, PaymentSummarySection, ProjectOrderItems } from "./checkout-parts";
-import { OrderAttemptError, submitOrderOnce } from "../model/order-attempt";
+import { OrderAttemptError, OrderRejectedError, submitOrderOnce } from "../model/order-attempt";
 import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
@@ -144,7 +144,9 @@ function Checkout({
   const [addressSheet, setAddressSheet] = useState<"list" | "form" | null>(null);
   const [addressWarning, setAddressWarning] = useState(false);
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    /* 서버가 거절을 확정했으면 주문이 없으니 참여 내역 링크를 두지 않는다(#387). */
+    [rejected, setRejected] = useState(false);
   const saving = useRef(false);
   const [selectedCoupons, setSelectedCoupons] = useState<CouponSelection[]>([]);
   const selectedCouponCodes = couponCodes(selectedCoupons);
@@ -179,6 +181,7 @@ function Checkout({
     saving.current = true;
     setBusy(true);
     setError("");
+    setRejected(false);
     try {
       const order = await submitOrderOnce(sessionStorage, memberId, body);
       router.replace(`/payment/${order.orderId}`);
@@ -188,6 +191,12 @@ function Checkout({
           ? error.message
           : "주문을 완료하지 못했습니다. 참여 내역에서 생성 여부를 먼저 확인해주세요.",
       );
+      /* 서버가 거절한 이유(재고·쿠폰)가 주문 상품·쿠폰 안내에 보이도록 서버 값을 다시 읽는다(#387). */
+      if (error instanceof OrderRejectedError) {
+        setRejected(true);
+        if (error.code.startsWith("COUPON_")) void preview.refetch();
+        else void rewards.refetch();
+      }
       saving.current = false;
       setBusy(false);
     }
@@ -223,10 +232,15 @@ function Checkout({
           <div className="flex flex-col gap-1 text-center">
             {error && (
               <p role="alert" className="text-body-s text-text-warning">
-                {error}{" "}
-                <Link className="underline" href="/my/fundings">
-                  참여 내역 확인
-                </Link>
+                {error}
+                {!rejected && (
+                  <>
+                    {" "}
+                    <Link className="underline" href="/my/fundings">
+                      참여 내역 확인
+                    </Link>
+                  </>
+                )}
               </p>
             )}
             {/* 결제 수단은 주문 생성 뒤 Toss 결제위젯에서 고른다(노션 FE 자체 판단 79). */}
