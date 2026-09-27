@@ -164,7 +164,7 @@ export function BuyerProjectDetail({
   storyContent?: ReactNode;
   rewardSummary?: ReactNode;
   rewardSelection?: ReactNode;
-  server?: { remainingDays: number | null; participantCount: number };
+  server?: { remainingDays?: number | null; participantCount: number };
   tabContent?: ReactNode;
 }) {
   const Content = preview ? "div" : "main";
@@ -320,7 +320,7 @@ export function BuyerProjectDetail({
                   }
                 >
                   {server
-                    ? server.remainingDays === null
+                    ? server.remainingDays == null
                       ? "기간 미정"
                       : server.remainingDays <= 0
                         ? "종료"

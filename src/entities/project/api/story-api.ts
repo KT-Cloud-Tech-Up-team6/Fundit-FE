@@ -14,7 +14,8 @@ export type StoryPreviewResponse = {
     currentAmount: number;
     achievementRate: number;
     participantCount: number;
-    remainingDays: number | null;
+    /** 마감이 없으면 BE가 null로 계산하고 키를 뺀다(non_null). */
+    remainingDays?: number | null;
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };

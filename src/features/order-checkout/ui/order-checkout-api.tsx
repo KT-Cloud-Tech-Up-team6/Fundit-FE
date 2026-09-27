@@ -13,8 +13,6 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState } from "@/shared/components/ui/error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
-import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
-import { QuantityStepper } from "@/features/reward-selection/ui/quantity-stepper";
 import { publicRewardsQuery } from "@/features/reward-selection/model/public-reward";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
@@ -24,48 +22,79 @@ import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
 
+/* 리워드는 프로젝트 상세의 리워드 선택에서만 고른다. 주문서는 상세가 넘긴 `items` 줄(옵션 조합마다 한 줄)을
+   그대로 주문하고 고치지 않는다(#373, Figma FL_B_PY_ORD_1 1534:54000에 리워드 변경 없음). */
 export function OrderCheckoutApi({ projectId }: { projectId: string }) {
+  const lines = parseLines(useSearchParams().get("items"));
+  /* 주문할 줄이 없으면 로그인을 거치지 않고 데모 주문서처럼 안내와 상세 복귀 링크만 둔다. */
+  if (!lines.length) return <MissingLines projectId={projectId} />;
   return (
     <OrderMemberAccess>
       {(memberId) => (
-        <Checkout key={`${memberId}:${projectId}`} memberId={memberId} projectId={projectId} />
+        <Checkout
+          key={`${memberId}:${projectId}`}
+          memberId={memberId}
+          projectId={projectId}
+          lines={lines}
+        />
       )}
     </OrderMemberAccess>
   );
 }
-function Checkout({ memberId, projectId }: { memberId: string; projectId: string }) {
-  const router = useRouter(),
-    params = useSearchParams();
-  function initialLines(): OrderLine[] {
-    try {
-      const value: unknown = JSON.parse(params.get("items") ?? "[]");
-      return Array.isArray(value) &&
-        value.every(
-          (item) =>
-            item &&
-            Number.isSafeInteger(item.rewardId) &&
-            item.rewardId > 0 &&
-            Number.isSafeInteger(item.quantity) &&
-            item.quantity > 0 &&
-            Array.isArray(item.optionValueIds) &&
-            item.optionValueIds.every((id: unknown) => Number.isSafeInteger(id)),
-        )
-        ? value
-        : [];
-    } catch {
-      return [];
-    }
+function parseLines(items: string | null): OrderLine[] {
+  try {
+    const value: unknown = JSON.parse(items ?? "[]");
+    return Array.isArray(value) &&
+      value.every(
+        (item) =>
+          item &&
+          Number.isSafeInteger(item.rewardId) &&
+          item.rewardId > 0 &&
+          Number.isSafeInteger(item.quantity) &&
+          item.quantity > 0 &&
+          Array.isArray(item.optionValueIds) &&
+          item.optionValueIds.every((id: unknown) => Number.isSafeInteger(id)),
+      )
+      ? value
+      : [];
+  } catch {
+    return [];
   }
+}
+function MissingLines({ projectId }: { projectId: string }) {
+  return (
+    <div className="bg-layer-bg min-h-dvh">
+      <BuyerDesktopHeader />
+      <div className="mx-auto max-w-300">
+        <CheckoutTopBar title="주문 확인" />
+        <div className="bg-layer-surface-default space-y-4 px-5 py-16 text-center">
+          <p>리워드를 먼저 선택해주세요.</p>
+          <Link className="inline-block underline" href={`/projects/${projectId}`}>
+            리워드 선택으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Checkout({
+  memberId,
+  projectId,
+  lines,
+}: {
+  memberId: string;
+  projectId: string;
+  lines: OrderLine[];
+}) {
+  const router = useRouter();
   const rewards = useQuery(publicRewardsQuery(projectId));
   const addresses = useQuery({
     queryKey: ["checkout-addresses", memberId],
     queryFn: ({ signal }) => getCheckoutAddresses(signal),
   });
-  const [lines, setLines] = useState<OrderLine[]>(initialLines),
-    [address, setAddress] = useState<OrderAddress | null>(null);
+  const [address, setAddress] = useState<OrderAddress | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressOpen, setAddressOpen] = useState(false),
-    [rewardsOpen, setRewardsOpen] = useState(() => initialLines().length === 0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const saving = useRef(false);
@@ -103,11 +132,6 @@ function Checkout({ memberId, projectId }: { memberId: string; projectId: string
     enabled: valid && Boolean(address),
   });
   const couponError = preview.data ? couponPreviewError(preview.data, selectedCouponCodes) : "";
-  function updateLine(rewardId: number, change: Partial<OrderLine>) {
-    setLines((previous) =>
-      previous.map((line) => (line.rewardId === rewardId ? { ...line, ...change } : line)),
-    );
-  }
   async function submit() {
     if (
       saving.current ||
@@ -134,100 +158,6 @@ function Checkout({ memberId, projectId }: { memberId: string; projectId: string
       setBusy(false);
     }
   }
-  const rewardContent = (
-    <div className="space-y-4 p-5">
-      {rewards.isPending ? (
-        <p role="status">리워드를 불러오고 있습니다.</p>
-      ) : rewards.isError ? (
-        <ErrorState
-          variant="section"
-          description="리워드 조회를 실패하였습니다"
-          action={{ onClick: () => void rewards.refetch() }}
-        />
-      ) : (
-        rewards.data.map((reward) => {
-          const line = lines.find((item) => item.rewardId === reward.rewardId);
-          return (
-            <article
-              key={reward.rewardId}
-              className="border-border-default space-y-3 rounded-xs border p-4"
-            >
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={Boolean(line)}
-                  disabled={busy || reward.soldOut}
-                  onChange={(event) =>
-                    setLines((previous) =>
-                      event.target.checked
-                        ? [
-                            { rewardId: reward.rewardId, quantity: 1, optionValueIds: [] },
-                            ...previous,
-                          ]
-                        : previous.filter((item) => item.rewardId !== reward.rewardId),
-                    )
-                  }
-                />
-                <span className="text-title-s">{reward.name}</span>
-              </label>
-              <p>{reward.description}</p>
-              <p>
-                {(reward.isEarlyBird
-                  ? (reward.earlyBirdDiscountedPrice ?? reward.price)
-                  : reward.price
-                ).toLocaleString("ko-KR")}
-                원 {reward.soldOut && "품절"}
-              </p>
-              {line && (
-                <>
-                  {reward.options.map((group) => (
-                    <label key={group.groupId} className="block">
-                      {group.groupName}
-                      <select
-                        aria-label={`${reward.name} ${group.groupName}`}
-                        value={
-                          line.optionValueIds.find((id) =>
-                            group.values.some((value) => value.valueId === id),
-                          ) ?? ""
-                        }
-                        onChange={(event) =>
-                          updateLine(reward.rewardId, {
-                            optionValueIds: [
-                              ...line.optionValueIds.filter(
-                                (id) => !group.values.some((value) => value.valueId === id),
-                              ),
-                              Number(event.target.value),
-                            ],
-                          })
-                        }
-                        className="border-border-default ml-2 rounded-xs border p-2"
-                      >
-                        <option value="" disabled>
-                          선택해주세요
-                        </option>
-                        {group.values.map((value) => (
-                          <option key={value.valueId} value={value.valueId}>
-                            {value.value}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ))}
-                  <QuantityStepper
-                    label={reward.name}
-                    value={line.quantity}
-                    max={reward.remainingStock ?? undefined}
-                    onChange={(quantity) => updateLine(reward.rewardId, { quantity })}
-                  />
-                </>
-              )}
-            </article>
-          );
-        })
-      )}
-      {rewards.isSuccess && !rewards.data.length && <p>선택할 리워드가 없습니다.</p>}
-    </div>
-  );
   return (
     <div className="bg-layer-bg min-h-dvh">
       <BuyerDesktopHeader />
@@ -235,24 +165,44 @@ function Checkout({ memberId, projectId }: { memberId: string; projectId: string
         <CheckoutTopBar title="주문 확인" />
         <div className="grid gap-3 min-[1200px]:grid-cols-[minmax(0,746px)_386px] min-[1200px]:gap-10 min-[1200px]:py-8">
           <div className="space-y-3">
-            <section className="bg-layer-surface-default p-5">
+            <section className="bg-layer-surface-default space-y-3 p-5">
               <h2 className="text-title-s">선택한 리워드</h2>
-              {/* 리워드 선택 시트는 같은 리워드라도 옵션 조합마다 줄을 따로 넘기므로 옵션까지 적는다. */}
-              {lines.map((line, index) => {
-                const reward = rewards.data?.find((item) => item.rewardId === line.rewardId);
-                const options =
-                  reward?.options.flatMap((group) =>
-                    group.values
-                      .filter((value) => line.optionValueIds.includes(value.valueId))
-                      .map((value) => value.value),
-                  ) ?? [];
-                return (
-                  <p key={index}>{[reward?.name, ...options, `${line.quantity}개`].join(" · ")}</p>
-                );
-              })}
-              <Button disabled={busy} onClick={() => setRewardsOpen(true)}>
-                리워드 변경
-              </Button>
+              {rewards.isPending ? (
+                <p role="status">리워드를 불러오고 있습니다.</p>
+              ) : rewards.isError ? (
+                <ErrorState
+                  variant="section"
+                  description="리워드 조회를 실패하였습니다"
+                  action={{ onClick: () => void rewards.refetch() }}
+                />
+              ) : (
+                <>
+                  {/* 리워드 선택 시트는 같은 리워드라도 옵션 조합마다 줄을 따로 넘기므로 옵션까지 적는다. */}
+                  {lines.map((line, index) => {
+                    const reward = rewards.data.find((item) => item.rewardId === line.rewardId);
+                    const options =
+                      reward?.options.flatMap((group) =>
+                        group.values
+                          .filter((value) => line.optionValueIds.includes(value.valueId))
+                          .map((value) => value.value),
+                      ) ?? [];
+                    return (
+                      <p key={index}>
+                        {[reward?.name, ...options, `${line.quantity}개`].join(" · ")}
+                      </p>
+                    );
+                  })}
+                  {/* 품절·재고 초과·없는 옵션처럼 주문할 수 없는 줄은 여기서 고칠 수 없어 상세로 돌려보낸다. */}
+                  {!valid && (
+                    <p role="alert">
+                      주문할 수 없는 리워드가 있습니다.{" "}
+                      <Link className="underline" href={`/projects/${projectId}`}>
+                        리워드 선택으로 돌아가기
+                      </Link>
+                    </p>
+                  )}
+                </>
+              )}
             </section>
             <section className="bg-layer-surface-default space-y-3 p-5">
               <h2 className="text-title-s">배송지</h2>
@@ -370,19 +320,6 @@ function Checkout({ memberId, projectId }: { memberId: string; projectId: string
           </section>
         </div>
       </div>
-      <BottomSheet
-        open={rewardsOpen}
-        onClose={() => setRewardsOpen(false)}
-        title="리워드 선택"
-        desktopModal
-        footer={
-          <Button disabled={!valid} onClick={() => setRewardsOpen(false)} className="w-full">
-            선택 완료
-          </Button>
-        }
-      >
-        {rewardContent}
-      </BottomSheet>
       {couponOpen && address && valid && (
         <CouponApiSheet
           memberId={memberId}
