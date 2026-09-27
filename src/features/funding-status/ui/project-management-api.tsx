@@ -3,12 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
 import { getManagementProject } from "@/entities/project/api/project-management-api";
-import {
-  ProjectWorkspaceLayout,
-  projectManageTabs,
-  projectEditTabs,
-} from "@/entities/project/ui/project-sidebar";
+import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
 import { ProjectCommunityApi } from "@/features/project-community/ui/project-community-api";
+import { useProjectManageTabs } from "@/features/seller-live-clips/model/use-project-manage-tabs";
 import { FundingEmptyState } from "./funding-empty-state";
 import { FundingStatusApi } from "./funding-status-api";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
@@ -22,6 +19,7 @@ export function ProjectManagementApi({
   tab: "funding" | "news" | "community";
 }) {
   const { state } = useAuth();
+  const manageTabs = useProjectManageTabs(projectId);
   const query = useQuery({
     queryKey: ["seller-project-preview", state.user?.memberId, projectId],
     queryFn: ({ signal }) => getManagementProject(projectId, signal),
@@ -45,7 +43,7 @@ export function ProjectManagementApi({
       activeTab={tab}
       projectId={projectId}
       projectName={query.data.title ?? "제목 없음"}
-      tabs={tab === "news" ? projectEditTabs : projectManageTabs}
+      tabs={tab === "news" ? projectEditTabs : manageTabs}
     >
       <div className="flex min-w-0 flex-1 flex-col">
         {tab === "funding" && query.data.status === "DRAFT" ? (

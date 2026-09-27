@@ -626,6 +626,23 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
 
+### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
+
+기준은 BE `develop` `f127a6f`의 `LiveHighlightController`다. 둘 다 소유권 검증이다.
+
+| 동작           | Method·Path                                                        | 요청 → 응답                                                  |
+| -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 판매자 목록    | GET `/api/v1/lives/{liveId}/highlights`                            | → `{markers: [...], clips: [...]}`(비공개·생성 중·실패 포함) |
+| 공개 여부 변경 | PATCH `/api/v1/lives/{liveId}/highlights/{highlightId}/visibility` | `{isPublic}` → 204                                           |
+
+- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`caption`이 없을 수 있다.
+- `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
+- FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
+- 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
+- 응답에 클립 생성일·썸네일이 없다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. 클립 `createdAt`·썸네일과 프로젝트 단위 클립 목록은 BE 요청 후보다.
+- [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
+- dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
+
 ## 6. 최신 답변으로 정리한 차이
 
 아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.

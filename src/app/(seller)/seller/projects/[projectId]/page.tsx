@@ -4,6 +4,7 @@ import { ProjectManagementApi } from "@/features/funding-status/ui/project-manag
 import { ProjectStoryApi } from "@/features/project-story/ui/project-story-api";
 import { ProjectRewardsPage } from "@/features/project-basic-info/ui/project-reward-manager";
 import { ProjectBasicInfoApi } from "@/features/project-basic-info/ui/project-basic-info-api";
+import { SellerLiveClipsApi } from "@/features/seller-live-clips/ui/seller-live-clips-api";
 import {
   ProjectWorkspaceLayout,
   projectEditTabs,
@@ -32,7 +33,8 @@ const allowedTabs = new Set([
 ]);
 
 /* 사이드바는 두 묶음으로 갈린다 — 오픈 전 편집(FL_S_PR_DTL)과 오픈 후 운영(FL_S_DL_MNG).
-   live는 어느 사이드바에도 없는 별도 화면군이라 placeholder만 둔다. */
+   live(LIVE 클립 관리, FL_S_LV_CLIP)는 종료된 LIVE가 있는 실제 프로젝트에서만 운영 사이드바에
+   붙는다. 데모 프로젝트에는 LIVE가 없어 placeholder만 둔다. */
 const editTabs = new Set(projectEditTabs.map((tab) => tab.value));
 const manageTabs = new Set(projectManageTabs.map((tab) => tab.value));
 
@@ -55,6 +57,7 @@ export default async function SellerProjectPage({
     if (activeTab === "funding")
       return <ProjectManagementApi key={projectId} projectId={projectId} tab={activeTab} />;
     if (activeTab === "story") return <ProjectStoryApi key={projectId} projectId={projectId} />;
+    if (activeTab === "live") return <SellerLiveClipsApi key={projectId} projectId={projectId} />;
     return <ProjectBasicInfoApi key={projectId} projectId={projectId} tab={activeTab} />;
   }
   const projectName = `프로젝트 이름이 들어갈 자리 (${projectId})`;
@@ -150,8 +153,8 @@ export default async function SellerProjectPage({
     <PagePlaceholder
       eyebrow="Seller · Project"
       title={`프로젝트 관리 · ${projectId}`}
-      description="LIVE 탭은 별도 화면군이라 자리만 잡아둡니다."
-      screenIds="FL_S_LV_HOME"
+      description="데모 프로젝트에는 LIVE가 없어 LIVE 클립 관리 자리만 잡아둡니다."
+      screenIds="FL_S_LV_CLIP"
       access="owner"
       sections={["프로젝트 요약", `${activeTab} 탭`, "저장·공개 상태"]}
     />
