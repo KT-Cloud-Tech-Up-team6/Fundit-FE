@@ -13,6 +13,7 @@ import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { previousPage } from "@/shared/lib/previous-page";
 import { projectDetailId } from "@/shared/lib/project-detail-id";
+import { FollowingListApi } from "./following-list-api";
 
 export function BuyerWishlistApi() {
   return (
@@ -86,7 +87,7 @@ function Wishlist({ memberId }: { memberId: string }) {
         className="space-y-3 px-5 pt-3 pb-5"
       >
         {sellers ? (
-          <p>팔로잉 조회는 준비 중입니다.</p>
+          <FollowingListApi memberId={memberId} page={page} />
         ) : (
           <>
             {error && <p role="alert">{error}</p>}
