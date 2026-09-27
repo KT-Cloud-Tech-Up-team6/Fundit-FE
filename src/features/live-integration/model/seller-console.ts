@@ -1,6 +1,6 @@
 import type { CueSheetSegment } from "@/entities/live/model/live-cue-sheet";
 import { ApiError } from "@/shared/api/api-error";
-import type { AiStatus, AnsweredQuestion } from "../api/live-api";
+import type { AiStatus, AnswerDraft, AnsweredQuestion } from "../api/live-api";
 import { formatClock, formatPlaybackTime } from "./vod-chapters";
 
 /* 실제 판매자 콘솔이 서버 응답을 Figma 콘솔 패널 모양으로 바꾸는 순수 함수들이다. */
@@ -67,6 +67,12 @@ export function formatUpdatedAgo(updatedAt: number, now: number) {
 
 export function answeredByName(value: string) {
   return value === "AI" ? "AI 자동답변" : value === "SELLER" ? "판매자" : "답변자 미확인";
+}
+
+/** 받은 초안 응답에 초안이 없는지. BE는 null인 `draftAnswer`를 빼고 보내고(non_null),
+    초안 조회가 끝나기 전(`undefined`)에는 판단하지 않는다(#386). */
+export function draftUnavailable(draft: AnswerDraft | undefined) {
+  return draft !== undefined && draft.draftAnswer == null;
 }
 
 /**
