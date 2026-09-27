@@ -1,92 +1,102 @@
-import Link from "next/link";
+import { Fragment, type ReactNode } from "react";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Button } from "@/shared/components/ui/button";
-import {
-  actionsForStatus,
-  demoFundingDetail,
-  formatDate,
-  formatWon,
-} from "../model/funding-history";
+import { formatWon, toFundingDetailView, type FundingDetailView } from "../model/funding-history";
+import { demoOrderDetail } from "../model/funding-orders-demo";
+import { FundingActionButtons, FundingThumbnail } from "./funding-card-parts";
 
-/* ponytail: 펀딩 상세 조회 API가 없어(docs/OPEN_DECISIONS.md P1) demoFundingDetail 목업을 쓴다.
-   API가 생기면 fundingId로 서버 조회하도록 이 자리만 바꾼다. */
-
-export function FundingDetail({ fundingId }: { fundingId: string }) {
-  const detail = demoFundingDetail(fundingId);
-
+/** 상세·로딩·오류가 같은 껍데기를 쓰도록 제목·breadcrumb·하단 메뉴를 한곳에 둔다. */
+export function FundingDetailScreen({
+  children,
+  fullPage = false,
+}: {
+  children: ReactNode;
+  fullPage?: boolean;
+}) {
   return (
     <BuyerAccountScreen
       title="펀딩 상세 내역"
       backHref="/my/fundings"
       backLabel="펀딩 내역으로 돌아가기"
       breadcrumb={["마이페이지", "펀딩내역", "펀딩 상세 내역"]}
-      className="flex min-w-0 flex-col"
+      fullPage={fullPage}
     >
-      <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-1 flex-col gap-2 min-[1200px]:pb-16">
-        <section className="bg-layer-surface-default flex flex-col gap-2 px-4 py-3">
-          <p className="text-body-emphasis text-text-default">{detail.orderNumber}</p>
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={detail.imageSrc}
-                alt=""
-                className="size-16 shrink-0 rounded-xs object-cover"
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="text-body-m text-text-default">{detail.creatorName}</p>
-                <p className="text-body-emphasis text-text-default truncate">
-                  {detail.projectTitle}
-                </p>
-                <p className="text-body-m text-text-default flex gap-1">
-                  <span className="truncate">{detail.rewardOption}</span>
-                  <span aria-hidden>·</span>
-                  <span className="shrink-0">{detail.rewardQuantity}개</span>
-                </p>
-              </div>
+      {children}
+      <BuyerBottomNavigation
+        activeHref="/my"
+        compact
+        className="fixed inset-x-0 bottom-0 z-20 w-full min-[1200px]:hidden"
+      />
+    </BuyerAccountScreen>
+  );
+}
+
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-[9px]">
+      <dt className="text-body-s text-text-secondary w-[78px] shrink-0">{label}</dt>
+      <dd className="min-w-0 flex-1 break-words">{children}</dd>
+    </div>
+  );
+}
+
+/** 펀딩 상세 내역(FL_B_MY_FUND_MNG 2323:53132). 결제 대기 주문의 결제 안내처럼 원본에 없는
+    요소는 children으로 받아 펀딩 정보 아래에 둔다. */
+export function FundingDetail({
+  detail,
+  children,
+}: {
+  detail: FundingDetailView;
+  children?: ReactNode;
+}) {
+  return (
+    <FundingDetailScreen>
+      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
+        {/* 원본 첫 줄의 주문번호(FD…)는 BE에 없는 값이라 두지 않는다(노션 FE 자체 판단 39). */}
+        <section className="flex flex-col gap-4 px-4 py-3">
+          <div className="flex gap-3">
+            <FundingThumbnail src={detail.imageSrc} className="size-16 shrink-0" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h2 className="text-label-l">{detail.projectTitle || " "}</h2>
+              <p className="text-caption-s flex gap-1">
+                <span className="truncate">{detail.reward}</span>
+                <span aria-hidden>·</span>
+                <span className="shrink-0">{detail.quantity}개</span>
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              {actionsForStatus(detail.id, detail.status).map((action) => (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className="border-border-default text-body-m text-text-default flex h-10 flex-1 items-center justify-center rounded-xs border px-3 text-center"
-                >
-                  {action.label}
-                </Link>
-              ))}
-            </div>
+          </div>
+          <FundingActionButtons actions={detail.actions} />
+        </section>
+
+        {/* card_fdinfo_item(2323:53155): 위 테두리, 좌우 20px·위아래 16px. */}
+        <section className="border-border-default flex flex-col gap-4 border-t px-5 py-4">
+          <h2 className="text-body-strong">펀딩 정보</h2>
+          <dl className="flex flex-col gap-2">
+            {detail.paidAt && (
+              <InfoRow label="결제일">
+                <span className="text-body-s">{detail.paidAt}</span>
+              </InfoRow>
+            )}
+            {detail.items.map((item, index) => (
+              <Fragment key={index}>
+                <InfoRow label="리워드">
+                  <span className="text-caption-m">{item.reward}</span>
+                </InfoRow>
+                <InfoRow label="옵션 · 수량">
+                  <span className="text-caption-m">{item.option}</span>
+                </InfoRow>
+              </Fragment>
+            ))}
+          </dl>
+          <div className="flex items-end justify-between gap-3">
+            <p className="text-body-emphasis">펀딩 금액</p>
+            <p className="text-title-s">{formatWon(detail.amount)}</p>
           </div>
         </section>
 
-        <section className="bg-layer-surface-default flex flex-col gap-3 px-5 py-4">
-          <h2 className="text-body-strong text-text-default">펀딩 정보</h2>
-          <dl className="flex flex-col gap-2">
-            <div className="text-body-m flex items-center gap-2">
-              <dt className="text-text-default w-20 shrink-0">참여 일</dt>
-              <dd className="text-text-default flex-1">{formatDate(detail.participatedAt)}</dd>
-            </div>
-            <div className="text-body-m flex items-center gap-2">
-              <dt className="text-text-default w-20 shrink-0">결제 일</dt>
-              <dd className="text-text-default flex-1">{formatDate(detail.paidAt)}</dd>
-            </div>
-            <div className="text-body-m flex items-center gap-2">
-              <dt className="text-text-default w-20 shrink-0">리워드</dt>
-              <dd className="text-text-default flex-1 truncate">{detail.rewardOption}</dd>
-            </div>
-            <div className="text-body-m flex items-center gap-2">
-              <dt className="text-text-default w-20 shrink-0">옵션 · 수량</dt>
-              <dd className="text-text-default flex-1">
-                {detail.optionName} · {detail.rewardQuantity}개
-              </dd>
-            </div>
-          </dl>
-          <div className="flex items-end justify-between">
-            <p className="text-body-emphasis text-text-default">펀딩 금액</p>
-            <p className="text-body-emphasis text-text-default">{formatWon(detail.amount)}</p>
-          </div>
-        </section>
+        {children}
+
         <div className="hidden justify-center px-5 py-3 min-[1200px]:flex">
           <Button
             href="/my/fundings"
@@ -98,12 +108,12 @@ export function FundingDetail({ fundingId }: { fundingId: string }) {
             돌아가기
           </Button>
         </div>
-        <BuyerBottomNavigation
-          compact
-          activeHref="/my"
-          className="sticky bottom-0 mt-auto min-[1200px]:hidden"
-        />
       </div>
-    </BuyerAccountScreen>
+    </FundingDetailScreen>
   );
+}
+
+/** 데모 id(`/my/fundings/in_progress` 등) 경로. 실주문과 같은 화면을 목업 응답으로 그린다. */
+export function FundingDetailDemo({ fundingId }: { fundingId: string }) {
+  return <FundingDetail detail={toFundingDetailView(demoOrderDetail(fundingId))} />;
 }

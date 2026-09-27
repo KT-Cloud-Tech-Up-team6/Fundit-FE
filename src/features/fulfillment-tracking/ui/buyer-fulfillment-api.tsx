@@ -11,6 +11,7 @@ import {
   type Shipment,
 } from "@/entities/fulfillment/api/fulfillment-api";
 import { Button } from "@/shared/components/ui/button";
+import { toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { fundingProjectQuery } from "../model/funding-project-query";
@@ -89,6 +90,9 @@ function Tracking({
     state = data ? fulfillmentState(data) : null;
   const [preview, setPreview] = useState<MediaItem | null>(null);
   const route = `/my/fundings/${fundingId}/fulfillment`;
+  /* 제작·배송 트래커는 펀딩이 성립될 때 만들어져 모금 중에는 404다. 펀딩 내역은 진행 중에도 이 화면으로
+     보내므로(Figma FUND_1·IA 46·47) 오류 대신 안내하고, 성립 전이라 배송 현황도 두지 않는다. */
+  const notEstablished = status.isError && toErrorStatus(status.error) === "notFound";
   return (
     <>
       <BuyerDesktopHeader />
@@ -100,9 +104,24 @@ function Tracking({
           <h1 className="text-title-s min-w-0 truncate">{title || "제작·배송 현황"}</h1>
         </header>
         <div className="grid gap-3 min-[1200px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <section className="bg-layer-surface-default space-y-5 p-5">
+          <section
+            className={`bg-layer-surface-default space-y-5 p-5 ${notEstablished ? "min-[1200px]:col-span-2" : ""}`}
+          >
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
+            ) : notEstablished ? (
+              <div className="flex flex-col items-center gap-6 py-16 text-center">
+                <p className="text-body-m">펀딩이 성립되면 제작·배송 현황을 볼 수 있어요.</p>
+                <Button
+                  href={`/my/fundings/${fundingId}`}
+                  variant="secondary"
+                  appearance="cta"
+                  size="lg"
+                  className="w-[189px]"
+                >
+                  펀딩 상세로 돌아가기
+                </Button>
+              </div>
             ) : status.isError ? (
               <QueryErrorState
                 variant="section"
@@ -168,26 +187,28 @@ function Tracking({
               )
             )}
           </section>
-          <section className="bg-layer-surface-default space-y-3 p-5">
-            <h2 className="text-title-s">배송 현황</h2>
-            {shipment.isPending ? (
-              <p role="status">배송 현황을 불러오고 있습니다.</p>
-            ) : shipment.isError ? (
-              <QueryErrorState
-                variant="section"
-                error={shipment.error}
-                description="배송 현황을 불러오지 못했습니다."
-                onRetry={() => void shipment.refetch()}
-              />
-            ) : (
-              <Receipt
-                memberId={memberId}
-                projectId={projectId}
-                fundingId={fundingId}
-                data={shipment.data}
-              />
-            )}
-          </section>
+          {!notEstablished && (
+            <section className="bg-layer-surface-default space-y-3 p-5">
+              <h2 className="text-title-s">배송 현황</h2>
+              {shipment.isPending ? (
+                <p role="status">배송 현황을 불러오고 있습니다.</p>
+              ) : shipment.isError ? (
+                <QueryErrorState
+                  variant="section"
+                  error={shipment.error}
+                  description="배송 현황을 불러오지 못했습니다."
+                  onRetry={() => void shipment.refetch()}
+                />
+              ) : (
+                <Receipt
+                  memberId={memberId}
+                  projectId={projectId}
+                  fundingId={fundingId}
+                  data={shipment.data}
+                />
+              )}
+            </section>
+          )}
         </div>
         <MediaLightbox media={preview} onClose={() => setPreview(null)} />
       </main>

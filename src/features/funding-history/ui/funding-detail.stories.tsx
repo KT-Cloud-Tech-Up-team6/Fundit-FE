@@ -1,44 +1,43 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
+import { toFundingDetailView } from "../model/funding-history";
+import { demoOrderDetail } from "../model/funding-orders-demo";
 import { FundingDetail } from "./funding-detail";
+
+const inProgress = toFundingDetailView(demoOrderDetail("in_progress"));
+const delivered = demoOrderDetail("delivered");
 
 const meta = {
   title: "Features/Funding History/Detail",
   component: FundingDetail,
-  args: { fundingId: "in_progress" },
+  args: { detail: inProgress },
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
     viewport: {
       options: {
         figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
-        desktop: { name: "Desktop 1280 × 800", styles: { width: "1280px", height: "800px" } },
+        desktop: { name: "Desktop 1440 × 900", styles: { width: "1440px", height: "900px" } },
       },
     },
   },
   globals: { viewport: { value: "figma390" } },
-  decorators: [
-    (Story) => (
-      <div className="bg-layer-bg py-6">
-        <Story />
-      </div>
-    ),
-  ],
   tags: ["autodocs"],
 } satisfies Meta<typeof FundingDetail>;
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
-
-/** 진행 중 펀딩 — 펀딩 취소 + 제작·배송 현황 버튼을 모두 보여준다. */
+/** FL_B_MY_FUND_MNG. 주문번호·창작자·참여일은 상세 응답에 없어 두지 않는다. */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "펀딩 상세 내역" })).toBeVisible();
-    await expect(canvas.getByText("FD000000-000000")).toBeVisible();
-    await expect(canvas.getByRole("link", { name: "펀딩 취소" })).toHaveAttribute(
+    await expect(canvas.queryByText(/^FD/)).toBeNull();
+    await expect(canvas.queryByText("참여일")).toBeNull();
+    await expect(canvas.getByText("2026.09.15")).toBeVisible();
+    await expect(canvas.getByText("단일옵션 · 1개")).toBeVisible();
+    await expect(canvas.getByRole("link", { name: "참여 취소" })).toHaveAttribute(
       "href",
       "/my/fundings/in_progress/cancel",
     );
@@ -49,24 +48,50 @@ export const Default: Story = {
   },
 };
 
-/** 배송 중 펀딩 — 취소 버튼 없이 제작·배송 현황만 보여준다. */
-export const Shipping: Story = {
-  args: { fundingId: "shipping" },
+export const Delivered: Story = {
+  args: { detail: toFundingDetailView(delivered) },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.queryByRole("link", { name: "펀딩 취소" })).toBeNull();
-    await expect(canvas.getByRole("link", { name: "제작·배송 현황" })).toBeVisible();
+    await expect(
+      within(canvasElement).getByRole("link", { name: "반품·교환 신청" }),
+    ).toHaveAttribute("href", "/my/fundings/delivered/refund/new");
   },
 };
 
-/** 배송 완료 펀딩 — 펀딩 환불 + 제작·배송 현황 버튼을 보여준다. */
-export const Delivered: Story = {
-  args: { fundingId: "delivered" },
+/** 수령 후 7일이 지나 서버가 반품·교환 액션을 주지 않는 배송 완료 주문. */
+export const ReturnPeriodOver: Story = {
+  args: { detail: toFundingDetailView({ ...delivered, availableActions: [] }) },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole("link", { name: "펀딩 환불" })).toHaveAttribute(
-      "href",
-      "/my/fundings/delivered/refund/new?type=defect",
-    );
+    await expect(
+      within(canvasElement).getByRole("button", { name: "반품·교환 가능 기간이 지났어요" }),
+    ).toBeDisabled();
   },
 };
+
+/** 리워드가 여럿이면 펀딩 정보의 리워드·옵션·수량 행을 반복하고 상단은 첫 리워드 외 N건이다. */
+export const MultipleRewards: Story = {
+  args: {
+    detail: toFundingDetailView({
+      ...delivered,
+      paidAt: undefined,
+      lineItems: [
+        ...delivered.lineItems,
+        {
+          rewardId: 2,
+          rewardName: "여행용 미니 바디미스트",
+          quantity: 2,
+          unitPrice: 9_000,
+          options: [{ optionGroupName: "향", optionValue: "화이트 머스크" }],
+        },
+      ],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("바디미스트 2종 세트 외 1건")).toBeVisible();
+    await expect(canvas.getAllByText("리워드")).toHaveLength(2);
+    await expect(canvas.getByText("향 화이트 머스크 · 2개")).toBeVisible();
+    await expect(canvas.queryByText("결제일")).toBeNull();
+  },
+};
+
+export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
