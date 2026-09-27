@@ -6,6 +6,9 @@ import {
   type RefundSummary,
   type RefundType,
 } from "@/entities/refund/api/refund-api";
+/* 서버 Instant(UTC ISO)를 펀딩 내역과 같은 한국 날짜로 옮긴다. 시간대를 Asia/Seoul로 고정해
+   서버·클라이언트 렌더 결과가 같다(#388: 앞 10자리를 쓰면 한국 시간 새벽 건이 하루 전으로 보였다). */
+import { formatKoreanDate } from "@/features/funding-history/model/funding-history";
 
 /** 원본 RFND_3(2323:52976)의 유형 드롭다운(2323:53086) 그대로다. value는 URL `?type=` 값이다. */
 export const refundTypeOptions = [
@@ -53,12 +56,6 @@ export type RefundEntry = {
 
 const emptyItem: RefundEntryItem = { product: "", option: "", price: null, quantity: null };
 
-/* 서버는 Instant를 UTC ISO로 내려준다. 지역 시간대로 옮기면 서버·클라이언트 렌더 결과가
-   갈리므로 기존 화면들과 같이 앞 10자리만 쓴다. */
-function isoDate(value: string | undefined): string {
-  return value ? value.slice(0, 10).replaceAll("-", ".") : "";
-}
-
 /** 사유 유형 문구에 구매자가 쓴 상세를 잇는다. 유형이 없는 건은 상세 원문을, 둘 다 없으면
     트리거 문구를 쓴다(발송 지연·목표 미달, 사유가 저장되지 않는 참여 취소). */
 export function refundReasonText(summary: RefundSummary): string {
@@ -85,8 +82,8 @@ export function toRefundEntry(summary: RefundSummary): RefundEntry {
     stage,
     status: `${type} ${stage}`,
     title: summary.projectTitle ?? "",
-    requestedAt: isoDate(summary.requestedAt),
-    completedAt: isoDate(summary.completedAt),
+    requestedAt: formatKoreanDate(summary.requestedAt),
+    completedAt: formatKoreanDate(summary.completedAt),
     reason: refundReasonText(summary),
     rejectedReason: summary.rejectedReason ?? "",
     items: items.length ? items : [emptyItem],

@@ -62,10 +62,13 @@ export function getFulfillment(projectId: string, signal?: AbortSignal) {
   return apiRequest<Fulfillment>(`/api/v2/projects/${projectId}/fulfillment`, { signal });
 }
 export function getOwnedProject(projectId: string, signal?: AbortSignal) {
-  return apiRequest<{ projectId: string; title: string }>(`/api/v1/projects/${projectId}/preview`, {
-    auth: true,
-    signal,
-  });
+  return apiRequest<{ projectId: string; title: string; status?: string }>(
+    `/api/v1/projects/${projectId}/preview`,
+    {
+      auth: true,
+      signal,
+    },
+  );
 }
 export function transitionStage(projectId: string, stage: Stage) {
   return apiRequest(`/api/v2/projects/${projectId}/fulfillment/stage`, {
@@ -96,7 +99,8 @@ export function changeSchedule(
   body: {
     stage: Stage;
     reasonType: keyof typeof reasons;
-    reasonDetail: string;
+    /** 선택 값이다. 비우면 보내지 않는다 — BE는 null일 때만 기록 문구의 콜론을 뺀다(#389). */
+    reasonDetail?: string;
     newPlannedDate: string;
   },
 ) {

@@ -44,6 +44,7 @@ import {
 } from "../api/live-api";
 import {
   answeredByName,
+  draftUnavailable,
   formatElapsed,
   formatUpdatedAgo,
   formatViewers,
@@ -462,9 +463,9 @@ function QuestionPanel({
   const question =
     "questionId" in view ? items.find((item) => item.questionId === view.questionId) : undefined;
   const draftKey = (questionId: string) => [...ownerKey, "draft", questionId];
-  /* 초안을 받아 본 질문만 알 수 있다. 근거가 없어 초안이 비면(null) 목록에서도 경고로 표시한다. */
+  /* 초안을 받아 본 질문만 알 수 있다. 근거가 없어 초안이 비면 목록에서도 경고로 표시한다. */
   const unavailable = (questionId: string) =>
-    cache.getQueryData<AnswerDraft>(draftKey(questionId))?.draftAnswer === null;
+    draftUnavailable(cache.getQueryData<AnswerDraft>(draftKey(questionId)));
   const aggregated = answered.data ?? [];
   const back = () => onView({ kind: "summary" });
 
@@ -686,7 +687,7 @@ function AnswerView({
   /* 답변 완료 질문은 서버에 등록된 답변이 기준이다. 초안 캐시는 등록 전 AI 원본이라, 판매자가
      재생성을 누르기 전에는 등록한 답변을 먼저 보인다. */
   const showDraft = !question.complete || regenerated;
-  const noDraft = showDraft && draft.data?.draftAnswer === null;
+  const noDraft = showDraft && draftUnavailable(draft.data);
   const value =
     edited ??
     (showDraft

@@ -81,7 +81,7 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
         return {
           id: `${stat.rewardId}:${stat.optionValueId ?? "total"}`,
           name: reward?.name ?? `리워드 ${stat.rewardId}`,
-          option: stat.optionValueId === null ? "리워드 합계" : (option ?? "옵션 정보 없음"),
+          option: stat.optionValueId == null ? "리워드 합계" : (option ?? "옵션 정보 없음"),
           quantity: stat.purchasedQuantity,
           amount: stat.purchasedAmount,
         };

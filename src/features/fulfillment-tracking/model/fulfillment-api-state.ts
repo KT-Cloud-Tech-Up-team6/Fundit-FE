@@ -8,6 +8,13 @@ export const viewStage: Record<Stage, FulfillmentStage> = {
   SHIPPING_OUT: "release",
   DELIVERY: "delivery",
 };
+/** 트래커가 없는(404) 판매자 제작·배송 탭 안내(#389). 트래커는 펀딩이 성립될 때 만들어진다. */
+export function sellerNotEstablishedMessage(projectStatus: string | undefined) {
+  return projectStatus === "FAILED"
+    ? "펀딩이 성립되지 않아 제작·배송을 진행하지 않아요."
+    : "펀딩이 성립되면 제작·배송 현황을 기록할 수 있어요.";
+}
+
 export function dateInKorea(value?: string) {
   return value
     ? new Intl.DateTimeFormat("sv-SE", {
