@@ -1,7 +1,177 @@
-/* 참여/배송 내역 목록(FL_B_MY_FUND)의 화면 데이터와 순수 헬퍼.
-   ponytail: Funding 상태·전이가 미확정이라(docs/OPEN_DECISIONS.md P1) 이 4개 값은
-   Figma 카드 제목을 그대로 옮긴 표시용 값이지 BE 계약이 아니다. 계약이 생기면
-   이 타입을 응답 enum에 맞추고 라벨·헬퍼는 그대로 재사용한다. */
+/* 펀딩 내역 목록(FL_B_MY_FUND_1 2323:52376)·상세(FL_B_MY_FUND_MNG 2323:53132)의 화면 데이터.
+   진행 단계·버튼은 BE 08 회신의 `progressStage`·`availableActions`·`refundRequests`로 정하고,
+   조합은 Figma 정리표 "진행 단계 별 노출 될 버튼"(2323:53727)을 따른다. */
+import type {
+  OrderDetail,
+  OrderLineItem,
+  OrderRefundRequest,
+  OrderSummary,
+} from "../../../entities/order/api/order-api";
+import { refundTypeByTrigger } from "../../../entities/refund/api/refund-api";
+
+export function formatWon(value: number): string {
+  return `${value.toLocaleString("ko-KR")}원`;
+}
+
+/** 서버 Instant(UTC ISO)를 한국 날짜 `yyyy.mm.dd`로 옮긴다. 값이 없으면 빈 문자열이다. */
+export function formatKoreanDate(value: string | undefined): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date(value))
+    .replaceAll("-", ".");
+}
+
+/* 정리표(2323:53727)에 있는 여섯 단계는 정리표 문구를, 없는 세 단계는 기존 주문 상태 문구를 쓴다.
+   목록 FUND_1의 "펀딩 완료"는 정리표·분류 필터·IA(취소선)를 따라 "펀딩 성공"으로 쓴다(노션 FE 자체 판단 33·34). */
+export const fundingStageLabels: Record<string, string> = {
+  FUNDING_IN_PROGRESS: "펀딩 진행 중",
+  FUNDING_SUCCEEDED: "펀딩 성공",
+  SHIPPING_DELAYED: "발송 지연",
+  SHIPPING: "배송 중",
+  DELIVERED: "배송 완료",
+  GOAL_FAILED: "펀딩 목표 미달",
+  CANCELLED: "참여 취소",
+  PAYMENT_EXPIRED: "결제 기한 만료",
+  REFUNDED: "환불 완료",
+};
+
+/** 카드·상세의 버튼. `href`가 없으면 누를 수 없는 안내 버튼이다. */
+export type FundingAction = { label: string; href?: string };
+
+const returnActions = ["RETURN_REQUEST", "EXCHANGE_REQUEST", "DEFECT_REFUND_REQUEST"];
+
+/* 정리표의 "내역" 버튼은 목적지가 적혀 있지 않다. 가장 최근 신청의 유형으로 취소·반품·교환 내역의
+   유형 필터(`/my/refunds?type=`)를 골라 연다(노션 FE 자체 판단 35). */
+function historyAction(request: OrderRefundRequest | undefined): FundingAction | undefined {
+  if (!request) return undefined;
+  const type = refundTypeByTrigger[request.triggerType] ?? "환불";
+  if (type === "취소") return { label: "취소 내역", href: "/my/refunds?type=cancel" };
+  if (type === "교환") return { label: "반품·교환 내역", href: "/my/refunds?type=exchange" };
+  return request.triggerType === "GOAL_FAILED_AUTO" ||
+    request.triggerType === "SYSTEM_RECONCILIATION"
+    ? { label: "환불 내역", href: "/my/refunds?type=refund" }
+    : { label: "반품·교환 내역", href: "/my/refunds?type=refund" };
+}
+
+/**
+ * 단계별 버튼. 신청 버튼은 서버가 허락한 액션이 있을 때만 두고, 신청 이력이 있으면 내역 버튼으로 바꾼다.
+ * `availableActions`는 이미 낸 신청을 반영하지 않아 `refundRequests`를 먼저 본다(BE 08 회신).
+ */
+export function fundingActions(
+  order: Pick<OrderSummary, "orderId" | "progressStage" | "availableActions" | "refundRequests">,
+): FundingAction[] {
+  const base = `/my/fundings/${order.orderId}`;
+  const fulfillment = { label: "제작·배송 현황", href: `${base}/fulfillment` };
+  const history = historyAction(order.refundRequests[0]);
+  switch (order.progressStage) {
+    case "FUNDING_IN_PROGRESS":
+    case "SHIPPING_DELAYED": {
+      if (history) return [history];
+      /* 발송 지연의 참여 취소도 같은 경로다. 취소 화면이 액션을 보고 발송 지연 취소(CL_1-1)를 연다. */
+      const cancellable = order.availableActions.some(
+        (action) => action === "CANCEL" || action === "SHIPPING_DELAY_REFUND_REQUEST",
+      );
+      return cancellable
+        ? [{ label: "참여 취소", href: `${base}/cancel` }, fulfillment]
+        : [fulfillment];
+    }
+    case "FUNDING_SUCCEEDED":
+    case "SHIPPING":
+      return [fulfillment];
+    /* 기본·신청 후는 FUND_1·IA 46·47처럼 제작·배송 현황을 함께 두고, 수령 후 7일이 지나 서버가
+       반품·교환 액션을 내려주지 않으면 정리표의 비활성 버튼 하나만 둔다(노션 FE 자체 판단 36). */
+    case "DELIVERED":
+      if (history) return [history, fulfillment];
+      return order.availableActions.some((action) => returnActions.includes(action))
+        ? [{ label: "반품·교환 신청", href: `${base}/refund/new` }, fulfillment]
+        : [{ label: "반품·교환 가능 기간이 지났어요" }];
+    case "GOAL_FAILED":
+      return [{ label: "환불 내역", href: "/my/refunds?type=refund" }];
+    default:
+      return history ? [history] : [];
+  }
+}
+
+/** BE 목록의 `rewardSummary`와 같은 규칙(첫 리워드명 외 N건)을 상세 응답에 적용한다. */
+function rewardSummaryOf(lineItems: OrderLineItem[]): string {
+  const [first, ...rest] = lineItems;
+  if (!first) return "";
+  return rest.length ? `${first.rewardName} 외 ${rest.length}건` : first.rewardName;
+}
+
+/** 목록 카드(card_funding_item 2323:52379). 채우지 못한 값은 빈 문자열이다. */
+export type FundingCard = {
+  id: string;
+  stage: string;
+  /** `yyyy.mm.dd`. 결제 전이거나 옛 주문이면 비어 있고 화면에서 숨긴다. */
+  paidAt: string;
+  creatorName: string;
+  projectTitle: string;
+  imageSrc: string;
+  reward: string;
+  quantity: number;
+  amount: number;
+  actions: FundingAction[];
+};
+
+export function toFundingCard(order: OrderSummary): FundingCard {
+  return {
+    id: order.orderId,
+    stage: fundingStageLabels[order.progressStage] ?? order.progressStage,
+    paidAt: formatKoreanDate(order.paidAt),
+    creatorName: order.sellerDisplayName ?? "",
+    projectTitle: order.projectTitle ?? "",
+    imageSrc: order.thumbnailUrl ?? "",
+    reward: order.rewardSummary,
+    quantity: order.totalQuantity,
+    amount: order.finalAmount,
+    actions: fundingActions(order),
+  };
+}
+
+/** 펀딩 정보(card_fdinfo_item 2323:53155)의 리워드·옵션 한 벌. */
+export type FundingDetailItem = { reward: string; option: string };
+
+/** 상세(FL_B_MY_FUND_MNG). 주문번호·창작자·참여일은 상세 응답에 없어 두지 않는다(노션 FE 자체 판단 39). */
+export type FundingDetailView = {
+  id: string;
+  projectTitle: string;
+  imageSrc: string;
+  reward: string;
+  quantity: number;
+  /** `yyyy.mm.dd`. 비어 있으면 결제일 행을 숨긴다. */
+  paidAt: string;
+  items: FundingDetailItem[];
+  amount: number;
+  actions: FundingAction[];
+};
+
+export function toFundingDetailView(order: OrderDetail): FundingDetailView {
+  return {
+    id: order.orderId,
+    projectTitle: order.projectTitle ?? "",
+    imageSrc: order.thumbnailUrl ?? "",
+    reward: rewardSummaryOf(order.lineItems),
+    quantity: order.lineItems.reduce((sum, item) => sum + item.quantity, 0),
+    paidAt: formatKoreanDate(order.paidAt),
+    /* 원본은 옵션이 없는 리워드를 "단일옵션"으로 그린다. 여러 옵션은 내역 화면처럼 ` · `로 잇는다. */
+    items: order.lineItems.map((item) => ({
+      reward: item.rewardName,
+      option: `${
+        item.options.map((o) => `${o.optionGroupName} ${o.optionValue}`).join(" · ") || "단일옵션"
+      } · ${item.quantity}개`,
+    })),
+    amount: order.finalAmount,
+    actions: fundingActions(order),
+  };
+}
+
+// 데모 id(`/my/fundings/in_progress` 등)와 다른 기능의 목업이 쓰는 표시값 ---------------------
 
 export const fundingHistoryStatuses = [
   "in_progress",
@@ -12,36 +182,6 @@ export const fundingHistoryStatuses = [
 ] as const;
 
 export type FundingHistoryStatus = (typeof fundingHistoryStatuses)[number];
-
-export const fundingHistoryStatusLabel: Record<FundingHistoryStatus, string> = {
-  in_progress: "펀딩 진행 중",
-  completed: "펀딩 완료",
-  production: "제작 중",
-  shipping: "배송 중",
-  delivered: "배송 완료",
-};
-
-export const fundingPeriodOptions = [
-  { value: "1m", label: "최근 한 달" },
-  { value: "3m", label: "최근 3개월" },
-  { value: "6m", label: "최근 6개월" },
-  { value: "1y", label: "최근 1년" },
-  { value: "custom", label: "기간 선택" },
-] as const;
-
-export type FundingPeriod = (typeof fundingPeriodOptions)[number]["value"];
-
-export type FundingPeriodRange = {
-  startDate?: string;
-  endDate?: string;
-  /** 테스트·목업에서 기준일을 고정할 때 쓴다. `yyyy-mm-dd` 형식이다. */
-  referenceDate?: string;
-};
-
-export type FundingHistoryAction = {
-  label: string;
-  href: string;
-};
 
 export type FundingHistoryItem = {
   id: string;
@@ -55,87 +195,6 @@ export type FundingHistoryItem = {
   paidAt: string;
   imageSrc: string;
 };
-
-export function formatWon(value: number): string {
-  return `${value.toLocaleString("ko-KR")}원`;
-}
-
-/** 상태별 카드 액션 버튼. Figma 4개 카드가 그린 조합을 그대로 옮긴다 — 실제 취소·환불
-    가능 여부는 서버 eligibility를 따른다(docs/OPEN_DECISIONS.md). */
-export function actionsForStatus(id: string, status: FundingHistoryStatus): FundingHistoryAction[] {
-  const fulfillment: FundingHistoryAction = {
-    label: "제작·배송 현황",
-    href: `/my/fundings/${id}/fulfillment`,
-  };
-  switch (status) {
-    case "in_progress":
-    case "completed":
-      return [{ label: "펀딩 취소", href: `/my/fundings/${id}/cancel` }, fulfillment];
-    case "production":
-    case "shipping":
-      return [fulfillment];
-    case "delivered":
-      return [
-        { label: "펀딩 환불", href: `/my/fundings/${id}/refund/new?type=defect` },
-        fulfillment,
-      ];
-  }
-}
-
-/** 검색어(제목)와 상태 필터를 함께 적용한 목록. */
-export function filterFundingHistory(
-  items: FundingHistoryItem[],
-  query: string,
-  status: FundingHistoryStatus | "all",
-): FundingHistoryItem[] {
-  const keyword = query.trim().toLowerCase();
-  return items.filter((item) => {
-    const matchesStatus = status === "all" || item.status === status;
-    const matchesKeyword =
-      keyword.length === 0 || item.projectTitle.toLowerCase().includes(keyword);
-    return matchesStatus && matchesKeyword;
-  });
-}
-
-function currentDateString(): string {
-  const now = new Date();
-  return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
-    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
-    .join("-");
-}
-
-/** 기간 시작일을 날짜-only 산술로 계산해 시간대와 월말 overflow의 영향을 받지 않게 한다. */
-export function getFundingPeriodStartDate(
-  period: Exclude<FundingPeriod, "custom">,
-  referenceDate: string,
-): string {
-  const [year, month, day] = referenceDate.split("-").map(Number);
-  const monthCount = period === "1m" ? 1 : period === "3m" ? 3 : period === "6m" ? 6 : 12;
-  const targetMonthIndex = year * 12 + (month - 1) - monthCount;
-  const targetYear = Math.floor(targetMonthIndex / 12);
-  const targetMonth = targetMonthIndex % 12;
-  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  const clampedDay = Math.min(day, daysInTargetMonth);
-  return [targetYear, targetMonth + 1, clampedDay]
-    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
-    .join("-");
-}
-
-/** 결제일을 선택 기간 안에 포함하는 카드만 남긴다. 날짜는 `yyyy-mm-dd`라 문자열 비교가 가능하다. */
-export function filterFundingHistoryByPeriod(
-  items: FundingHistoryItem[],
-  period: FundingPeriod,
-  { startDate, endDate, referenceDate = currentDateString() }: FundingPeriodRange = {},
-): FundingHistoryItem[] {
-  if (period === "custom") {
-    return items.filter(
-      (item) => (!startDate || item.paidAt >= startDate) && (!endDate || item.paidAt <= endDate),
-    );
-  }
-
-  const periodStart = getFundingPeriodStartDate(period, referenceDate);
-  return items.filter((item) => item.paidAt >= periodStart && item.paidAt <= referenceDate);
-}
 
 /* Figma FL_B_MY_FUND_CL_1(1165:16434) 카드 4개를 그대로 옮긴 값이다.
    ponytail: "production"(제작 중)은 Figma에 예시 카드가 없어 기존 placeholder 상품으로 채운다. */
@@ -190,45 +249,12 @@ const FUNDING_HISTORY_DEMO: Record<
   },
 };
 
-export function demoFundingHistoryItems(): FundingHistoryItem[] {
-  // 최신 Figma 목록은 제작 중 예시를 포함하지 않은 네 개의 카드로 구성된다.
-  return (["in_progress", "completed", "shipping", "delivered"] as const).map((status) => ({
-    id: status,
-    status,
-    ...FUNDING_HISTORY_DEMO[status],
-  }));
-}
-
-export type FundingDetail = FundingHistoryItem & {
-  orderNumber: string;
-  /** `yyyy-mm-dd`. */
-  participatedAt: string;
-  /** `yyyy-mm-dd`. */
-  paidAt: string;
-  optionName: string;
-};
-
-/** `yyyy-mm-dd` → `yyyy.mm.dd`. 형식이 다르면 원문을 그대로 돌려준다. */
-export function formatDate(date: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  return match ? `${match[1]}.${match[2]}.${match[3]}` : date;
-}
-
 function isFundingHistoryStatus(value: string): value is FundingHistoryStatus {
   return (fundingHistoryStatuses as readonly string[]).includes(value);
 }
 
-/** 목업 상세. 목록의 id가 상태 키 그대로라 같은 id로 진입하면 해당 상태로 보인다.
-    참여 일·결제 일은 Figma FL_B_MY_FUND_MNG처럼 결제 일과 같은 날로 둔다. */
-export function demoFundingDetail(fundingId: string): FundingDetail {
+/** 목업 상품. id가 상태 키 그대로라 같은 id로 진입하면 해당 상태로 보이고, 모르는 id는 진행 중이다. */
+export function demoFundingDetail(fundingId: string): FundingHistoryItem {
   const status = isFundingHistoryStatus(fundingId) ? fundingId : "in_progress";
-  const demo = FUNDING_HISTORY_DEMO[status];
-  return {
-    id: fundingId,
-    status,
-    ...demo,
-    orderNumber: "FD000000-000000",
-    participatedAt: demo.paidAt,
-    optionName: "옵션 명",
-  };
+  return { id: fundingId, status, ...FUNDING_HISTORY_DEMO[status] };
 }

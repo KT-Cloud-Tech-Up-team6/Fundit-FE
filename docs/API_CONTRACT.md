@@ -113,7 +113,7 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 ## 주문·결제 코드 대조 및 FE 연결 (#197)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 preview/생성/목록은 `/api/v1/orders`의 UUID 계약을 사용한다. 이전 `/api/v2/orders` 컨트롤러와 Gateway 매핑은 제거됐다. 상세/취소는 기존 `/api/v1/orders/{orderId}`를 유지한다. 리워드·옵션은 조회 응답의 숫자 ID를 전달한다.
-- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 `/my/fundings/{orderId}`로 이동한다. BE develop `ae1e032`에서 주문 목록의 `finalAmount`는 리워드 합계+배송비−할인액으로 보완됐다. #233은 목록에도 서버 최종 금액을 표시하며 FE가 할인을 다시 차감하지 않는다.
+- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 결제 화면 `/payment/{orderId}`로 교체 이동한다. BE develop `ae1e032`에서 주문 목록의 `finalAmount`는 리워드 합계+배송비−할인액으로 보완됐다. #233은 목록에도 서버 최종 금액을 표시하며 FE가 할인을 다시 차감하지 않는다.
 - `/my/fundings`는 서버 상태/페이지 필터를 사용하며 기존 목업 검색·기간 필터는 서버 계약에 없어 적용하지 않는다. 상세의 `availableActions`에 CANCEL이 있을 때만 취소를 제공한다. `/payment/result?orderId={UUID}`는 새로고침 가능한 주문 조회다.
 - `/api/v2/payments`의 시도 생성은 서버 주문 UUID를 사용한다. `/confirm`의 `orderId`는 별도의 `pgOrderId`이며 주문 UUID와 혼용하지 않는다.
 - 현재 BE의 결제 승인은 실제 Toss 클라이언트를 호출한다. 목업은 테스트 코드에서만 확인됐으므로 FE는 임의 paymentKey를 생성하거나 결제 성공을 합성하지 않는다. PortOne 본인인증과 별개다.
@@ -125,6 +125,25 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 - 주문 생성 `POST /api/v1/orders`는 선택 헤더 `Idempotency-Key`를 받는다(BE #124, #215). 키는 회원 범위이며 같은 키·같은 본문은 새 주문 없이 기존 주문을 200으로, 새 주문은 201로 돌려준다. 같은 키에 다른 본문이거나 같은 키 요청이 처리 중이면 409 `CONFLICT`, 재고 부족은 409 `INSUFFICIENT_STOCK`이다. BE 코드에 키 유효기간은 없다.
 - FE는 시도마다 UUID 키를 만들고 요청 전에 회원·프로젝트별 sessionStorage에 키·본문을 남긴다. 네트워크·5xx·파싱 실패·주문 ID 누락·새로고침 뒤에는 새 주문 대신 같은 키·같은 본문으로 다시 보내 서버 결과를 확정한다. `CONFLICT`와 401·403·408·429(이 응답만으로는 이전 요청의 생성 여부를 확정할 수 없음)는 시도를 유지하고, 그 밖의 4xx 확정 실패만 시도를 버려 다음 주문에 새 키를 쓴다. 확정된 주문이 결제 대기면 재사용하고 종료 상태면 새 키로 주문한다. 같은 탭 동시 호출은 요청 하나를 공유한다. sessionStorage는 탭 복제 시에만 공유되므로 서로 다른 탭·기기의 주문은 별개 시도로 처리되며 동일 프로젝트 재주문 정책은 BE 보완이 필요하다.
 - 쿠폰은 보유 목록·주문 미리보기·플랫폼/메이커 각 1개 선택을 연결한다. `appliedCoupons` 항목은 BE의 `couponCode`·`issuerType`·`discountType`을 사용하며 쿠폰별 할인액을 가정하지 않는다. 적립금·결제수단 선택·승인 완료 화면의 API 연결은 제외한다. 실제 Gateway/PG 검증은 미완료이며 HTTP 테스트 대역 검증과 구분한다.
+
+## 소비자 리워드 조회와 리워드 선택 (#368)
+
+BE develop `f127a6f`의 `RewardConsumerResponse`·`RewardQueryService`·`Reward`를 대조했다. `GET /api/v1/projects/{projectId}/rewards`는 sortOrder 순 배열이고, project-service는 `default-property-inclusion: non_null`이라 null 필드는 키가 빠진다.
+
+| 필드                                                                                              | FE 사용                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rewardId`                                                                                        | 주문 줄 `rewardId`. 장바구니 키는 숫자 키가 삽입 순서를 잃지 않도록 `reward-{rewardId}`로 둔다.                                                                 |
+| `name`·`description`                                                                              | 카드 이름, 메타 줄 첫 조각.                                                                                                                                     |
+| `price`·`isEarlyBird`·`earlyBirdDiscountType`·`earlyBirdDiscountValue`·`earlyBirdDiscountedPrice` | 얼리 버드면 할인가를 표시·합계 단가로 쓰고 `price`를 취소선으로 둔다. `RATE`는 "얼리 버드 N%", `AMOUNT`는 "얼리 버드".                                          |
+| `isLimited`                                                                                       | "선착순 한정" 배지.                                                                                                                                             |
+| `remainingStock`·`soldOut`                                                                        | 재고는 같은 리워드 모든 줄 수량 합의 상한(없으면 무제한), 품절은 선택 불가. BE는 `remainingStock <= 0`을 품절로 계산한다.                                       |
+| `options[{groupId, groupName, values[{valueId, value}]}]`                                         | 그룹마다 선택 상자. 모든 그룹을 고른 조합이 한 줄이고 `optionValueIds`는 그룹 순서의 `valueId`다.                                                               |
+| `shippingFee`                                                                                     | 0은 "무료배송", 그 밖에는 "배송비 N원". 없으면 적지 않는다.                                                                                                     |
+| `estimatedDeliveryDays`                                                                           | "펀딩 종료 후 N일"(BE `Reward` 주석). 공개 상세 `fundingStatus.fundingDeadline`에 더해 "예상 발송일 YYYY.MM.DD"(한국 날짜), 마감이 없으면 "N일 이내 발송 예정". |
+| `rewardDisplayCode`·`imageUrl`                                                                    | 사용하지 않는다.                                                                                                                                                |
+
+- 선택 결과는 `/funding/{UUID}/checkout?items=[{rewardId, quantity, optionValueIds}]`로 넘기고 주문서가 같은 조회 캐시(`public-rewards`)로 검증한다. 같은 리워드라도 옵션 조합이 다르면 줄이 따로다. BE 주문 금액 계산(`OrderPricingService`)은 줄마다 리워드를 찾아 계산하므로 같은 `rewardId` 줄이 여럿이어도 된다.
+- BE 확인 사항: `OrderPricingService`는 리워드 `price`만 곱해 얼리 버드 할인을 반영하지 않고, 배송비를 리워드 `shippingFee`가 아닌 설정값(`order.policy.default-shipping-fee`)으로 받는다. 선택 화면 합계(할인가)와 주문서 미리보기 금액이 다를 수 있으며 FE에서 보정하지 않는다.
 
 이하 계약 초안은 2026-09-07 작성, 2026-09-14 갱신 당시 전달 명세를 기록한 내용이다. 이후 구현에 확인한 차이는 위 도메인별 코드 대조 절과 각 기능 문서에 기록하며, 전체 계약 확정을 뜻하지 않는다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
 
@@ -269,13 +288,14 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 
 최신 답변에서 확인한 도메인 코드는 다음과 같다. 서비스는 이 외에도 전용 코드를 추가할 수 있다.
 
-| HTTP | 도메인 코드               | 의미                                     |
-| ---- | ------------------------- | ---------------------------------------- |
-| 409  | `EMAIL_ALREADY_EXISTS`    | 이메일 중복. 회원가입 토큰 소비 전 검사. |
-| 423  | `ACCOUNT_LOCKED`          | 계정 잠금.                               |
-| 422  | `PROJECT_NOT_DELETABLE`   | DRAFT 외 프로젝트 삭제 불가.             |
-| 422  | `PROJECT_NOT_SUBMITTABLE` | 심사 제출 상태·필수 조건 불충족.         |
-| 422  | `PROJECT_NOT_REVIEWABLE`  | PENDING_REVIEW 외 심사 처리 불가.        |
+| HTTP | 도메인 코드               | 의미                                                                                            |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| 409  | `EMAIL_ALREADY_EXISTS`    | 이메일 중복. 회원가입 토큰 소비 전 검사.                                                        |
+| 409  | `ACCOUNT_ALREADY_EXISTS`  | 일반가입 1인 1계정. 본인인증한 이름+전화번호로 계정이 이미 있음. 토큰 소비 후 검사(BE PR #158). |
+| 423  | `ACCOUNT_LOCKED`          | 계정 잠금.                                                                                      |
+| 422  | `PROJECT_NOT_DELETABLE`   | DRAFT 외 프로젝트 삭제 불가.                                                                    |
+| 422  | `PROJECT_NOT_SUBMITTABLE` | 심사 제출 상태·필수 조건 불충족.                                                                |
+| 422  | `PROJECT_NOT_REVIEWABLE`  | PENDING_REVIEW 외 심사 처리 불가.                                                               |
 
 `TOKEN_INVALID`는 Access Token뿐 아니라 본인인증 토큰에도 쓰인다. HTTP·코드만으로 자동 갱신 또는 로그아웃하지 않고 요청 경로·용도를 함께 구분한다.
 
@@ -341,13 +361,13 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 다음은 **이전 Markdown 근거를 보존한 항목이며 당시 YAML에는 없는 경로**다. 이메일 찾기·재설정의 현재 계약은 아래 4.7의 BE 코드 대조로 갱신했다. 나머지 경로의 구현 상태는 이 표만으로 추정하지 않는다.
 
-| 경로                                                           | 이전 근거와 남은 확인                                                                                                         |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| POST `/api/v1/auth/find-email`                                 | phoneNumber, verificationToken → 안내 message, 이메일은 SMS 전달 설명.                                                        |
-| POST `/api/v1/auth/reset-password`                             | email → 안내 message, 재설정 링크 이메일 발송 설명.                                                                           |
-| POST `/api/v1/auth/reset-password/confirm`                     | resetToken, newPassword → message, 단기·일회성 토큰 설명.                                                                     |
-| POST `/api/v1/auth/login/social`, `/api/v1/auth/signup/social` | KAKAO/GOOGLE, needsSignup·signupToken 분기는 이전 명세 설명. 이번 연동 범위·최종 DTO·TTL 확인 필요.                           |
-| POST `/api/v1/members`                                         | 이전 명세의 auth-service 전용 프로필 생성. YAML에 MemberCreateRequest/Response 스키마만 있다고 FE 공개 API로 취급하지 않는다. |
+| 경로                                                           | 이전 근거와 남은 확인                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/find-email`                                 | phoneNumber, verificationToken → 안내 message, 이메일은 SMS 전달 설명.                                                                                                                                                                                                                                |
+| POST `/api/v1/auth/reset-password`                             | email → 안내 message, 재설정 링크 이메일 발송 설명.                                                                                                                                                                                                                                                   |
+| POST `/api/v1/auth/reset-password/confirm`                     | resetToken, newPassword → message, 단기·일회성 토큰 설명.                                                                                                                                                                                                                                             |
+| POST `/api/v1/auth/login/social`, `/api/v1/auth/signup/social` | KAKAO/GOOGLE, needsSignup·signupToken 분기는 이전 명세 설명. 소셜은 사업자 등록 제약으로 목업이라 FE가 호출하지 않는다(2026-09-24). 가입 요청은 BE PR #158부터 `verificationToken` 없이 signupToken·name·phoneNumber·nickname·agreedTerms(선택 email·address)이며 FE 타입은 필수 필드만 맞췄다(#353). |
+| POST `/api/v1/members`                                         | 이전 명세의 auth-service 전용 프로필 생성. YAML에 MemberCreateRequest/Response 스키마만 있다고 FE 공개 API로 취급하지 않는다.                                                                                                                                                                         |
 
 ### 4.3. 로그인·로그아웃·비밀번호
 
@@ -381,12 +401,13 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 이하 오류·TTL·소비·재시도 규칙은 2026-09-08 답변을 보존한 내용이며 이번 YAML이 새로 명시한 계약은 아니다. 당시 답변은 인증 실패 401 TOKEN_INVALID, PortOne 연동 실패 503 DEPENDENCY_FAILURE, verificationToken 30분·1회성과 Redis get-and-delete 소비, 이름·휴대폰번호 일치 검증을 설명했다.
 
-| 회원가입 결과                        | 최신 구현 답변 기준 FE 처리                                                                                |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 409 EMAIL_ALREADY_EXISTS             | 소비 전 중복 검사이므로 이메일을 변경해 동일 토큰으로 재시도 가능. 토큰 자체의 만료시간은 연장되지 않는다. |
-| 토큰 만료·재사용·이름/휴대폰 불일치  | 모두 401 TOKEN_INVALID. 본인인증부터 재진행.                                                               |
-| 그 외 서버가 실패로 응답             | 소비 이후 실패·프로필 생성 보상 트랜잭션 포함, 본인인증부터 재진행하는 기본 분기.                          |
-| 네트워크 단절·타임아웃으로 결과 불명 | 서버 실패가 확정된 응답과 구분. 성공 여부 확인·재시도 계약은 기술 확인 대상으로 남긴다.                    |
+| 회원가입 결과                        | 최신 구현 답변 기준 FE 처리                                                                                                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 409 EMAIL_ALREADY_EXISTS             | 소비 전 중복 검사이므로 이메일을 변경해 동일 토큰으로 재시도 가능. 토큰 자체의 만료시간은 연장되지 않는다.                                                                                                                |
+| 409 ACCOUNT_ALREADY_EXISTS           | 본인인증한 이름+전화번호로 계정이 이미 있음(BE PR #158). 토큰 소비 후 검사라 재시도할 수 없다. 가입 진행 정보를 비우고 결과 화면에서 이메일 찾기·로그인으로 안내한다(#353). 전화번호를 바꾼 뒤 재가입은 BE가 막지 않는다. |
+| 토큰 만료·재사용·이름/휴대폰 불일치  | 모두 401 TOKEN_INVALID. 본인인증부터 재진행.                                                                                                                                                                              |
+| 그 외 서버가 실패로 응답             | 소비 이후 실패·프로필 생성 보상 트랜잭션 포함, 본인인증부터 재진행하는 기본 분기.                                                                                                                                         |
+| 네트워크 단절·타임아웃으로 결과 불명 | 서버 실패가 확정된 응답과 구분. 성공 여부 확인·재시도 계약은 기술 확인 대상으로 남긴다.                                                                                                                                   |
 
 이메일 예외는 모든 409가 아니라 **409 EMAIL_ALREADY_EXISTS**다. 위 본인인증/회원가입의 TOKEN_INVALID 메시지가 “Access Token 유효성 검증 실패”여도 Access 갱신을 자동 실행하지 않는다. 이 재시도 규칙은 최신 BE 답변의 일반 회원가입 범위이며 소셜 가입으로 확대하지 않는다.
 
@@ -400,13 +421,13 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 비교 대상은 BE develop의 [931d6f80f85b84bb669e064556b7a716374365ab](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/tree/931d6f80f85b84bb669e064556b7a716374365ab)다. 코드·기존 테스트를 읽은 결과이며 테스트 실행·배포 확인 결과가 아니다. YAML의 추출 커밋이 없어 어느 쪽이 더 최신인지 단정하지 않는다. 아래 차이는 YAML을 임의로 수정하거나 코드 값을 FE 계약으로 채택할 근거가 아니다.
 
-| 항목                | 최신 YAML                                        | 코드 대조·확인할 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 회원가입 nickname   | SignupRequest에 없음.                            | [SignupRequest](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SignupRequest.java)는 필수·최대 50자. 연동 대상 필드 확인.                                                                                                                                                                                                                                                                                                           |
-| 소셜 인증           | 경로 없음.                                       | [AuthController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/controller/AuthController.java)에 login/social, signup/social, social/link가 있음. [SocialLoginResponse](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SocialLoginResponse.java)는 needsSignup·needsLink로 분기. 포함 여부·최종 DTO 확인. |
-| 찜 삭제·페이지 범위 | DELETE 200, page 기본 0·size 기본 20, 범위 없음. | [WishController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/presentation/controller/WishController.java)는 DELETE 204, page ≥ 0·size 1~100. 성공 상태와 검증 제약 확인.                                                                                                                                                                                                                                                                      |
-| 반복 찜 등록·해제   | 반복 호출 결과 설명 없음.                        | [WishJpaRepository](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/infrastructure/persistence/wish/WishJpaRepository.java)는 중복 등록을 무시하고 없는 항목 삭제도 정상 처리. 공식 계약 반영 여부 확인.                                                                                                                                                                                                                                          |
-| 가입·갱신 쿠키      | 응답 Set-Cookie 정의 없음.                       | AuthController는 가입·갱신 성공 시 쿠키를 설정. 명세 보완과 실제 환경 대조 필요.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 항목                | 최신 YAML                                        | 코드 대조·확인할 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 회원가입 nickname   | SignupRequest에 없음.                            | [SignupRequest](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SignupRequest.java)는 필수·최대 50자. 연동 대상 필드 확인.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 소셜 인증           | 경로 없음.                                       | [AuthController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/controller/AuthController.java)에 login/social, signup/social, social/link가 있음. [SocialLoginResponse](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/auth-service/src/main/java/com/fundit/auth/presentation/dto/SocialLoginResponse.java)는 needsSignup·needsLink로 분기. 포함 여부·최종 DTO 확인. → 2026-09-24 소셜은 목업으로 결정해 FE가 호출하지 않는다. 가입 DTO 변경(BE PR #158)은 4.2 참고(#353). |
+| 찜 삭제·페이지 범위 | DELETE 200, page 기본 0·size 기본 20, 범위 없음. | [WishController](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/presentation/controller/WishController.java)는 DELETE 204, page ≥ 0·size 1~100. 성공 상태와 검증 제약 확인.                                                                                                                                                                                                                                                                                                                                                                            |
+| 반복 찜 등록·해제   | 반복 호출 결과 설명 없음.                        | [WishJpaRepository](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/blob/931d6f80f85b84bb669e064556b7a716374365ab/services/member-service/src/main/java/com/fundit/member/infrastructure/persistence/wish/WishJpaRepository.java)는 중복 등록을 무시하고 없는 항목 삭제도 정상 처리. 공식 계약 반영 여부 확인.                                                                                                                                                                                                                                                                                                                                                |
+| 가입·갱신 쿠키      | 응답 Set-Cookie 정의 없음.                       | AuthController는 가입·갱신 성공 시 쿠키를 설정. 명세 보완과 실제 환경 대조 필요.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 마이페이지의 이메일·프로필 이미지·등급·혜택은 MemberMeResponse에 없다. 찜 목록에는 판매자명·달성률·종료 상태가 없으며 판매자 팔로우 API도 이번 파일에 없다. 다른 API에서 조합할지 DTO를 확장할지 확인한다. 프로젝트 공개 UUID와 찜 int64 projectId 연결은 BE PR #110의 projectPublicId로 확정해 #250에서 연결했다. 통합 검색·LIVE 알림·취소/환불/교환 내역은 담당 서비스의 별도 명세가 필요하며 Auth·Member 파일에 없다는 이유로 미구현으로 분류하지 않는다.
 
@@ -468,7 +489,7 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 
 기본정보 명세는 제목 40자, goalAmount 최소 500,000원, 등록된 카테고리 조합을 요구한다. businessType은 SOLE 예시만 있어 전체 enum을 추측하지 않는다. 카테고리 표시 문자열·공백도 저장 계약과 구분한다.
 
-리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. options는 `[{groupName, values: string[]}]`이며 현재 목업의 options 체크값과 다르다. 명세 보완값은 Swagger로 대조한 후 연동한다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
+리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. 등록·수정 요청의 options는 `[{optionGroupId?, groupName, values: string[]}]`(BE `RewardOptionRequest`)이고, 조회 응답의 options는 `[{groupId, groupName, values: [{valueId, value}]}]`다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
 
 리워드 등록은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #214). 키는 프로젝트 범위이며 같은 키·같은 본문(요청 SHA-256 해시)은 새 리워드 없이 기존 리워드를 200으로, 새 생성은 201로 돌려준다. 같은 키에 다른 본문이 오거나 같은 키 요청이 처리 중이면 409 `CONFLICT`다. 키는 리워드 행에 저장돼 유효기간이 없다. FE는 판매자·프로젝트마다 결과를 모르는 시도 하나의 UUID 키를 요청 전에 sessionStorage에 남기고 성공하거나 409를 받을 때까지 같은 키로 보낸다. 409는 이전 요청의 리워드가 있거나 처리 중이라는 뜻으로 보고 이번 내용은 저장하지 않았다고 알린 뒤 시도를 끝낸다.
 
@@ -624,6 +645,23 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
 
+### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
+
+기준은 BE `develop` `f127a6f`의 `LiveHighlightController`다. 둘 다 소유권 검증이다.
+
+| 동작           | Method·Path                                                        | 요청 → 응답                                                  |
+| -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 판매자 목록    | GET `/api/v1/lives/{liveId}/highlights`                            | → `{markers: [...], clips: [...]}`(비공개·생성 중·실패 포함) |
+| 공개 여부 변경 | PATCH `/api/v1/lives/{liveId}/highlights/{highlightId}/visibility` | `{isPublic}` → 204                                           |
+
+- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`caption`이 없을 수 있다.
+- `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
+- FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
+- 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
+- 응답에 클립 생성일·썸네일이 없다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. 클립 `createdAt`·썸네일과 프로젝트 단위 클립 목록은 BE 요청 후보다.
+- [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
+- dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
+
 ## 6. 최신 답변으로 정리한 차이
 
 아래 표는 2026-09-08 답변으로 정리했던 차이를 보존한다. 2026-09-14 인증·회원 YAML 반영 내용과 코드 불일치는 4장이 우선한다.
@@ -653,7 +691,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 항목                | 확인할 내용                                                                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 기준·접근·구현 상태 | YAML 기준 커밋·추출 시점, 제외된 API와 일정, 개발 Gateway 주소·배포 버전·테스트 계정/데이터. 인증 방식은 YAML의 Bearer 기준이며 실제 연결은 확인 필요.         |
-| 인증·회원 DTO       | 4.6의 nickname·소셜·찜 삭제/페이지 범위 불일치, 가입 address 내부 구조, 요청·응답 required/null·기본값, 가입·갱신 Set-Cookie 정의.                             |
+| 인증·회원 DTO       | 4.6의 nickname·찜 삭제/페이지 범위 불일치(소셜은 목업으로 결정), 가입 address 내부 구조, 요청·응답 required/null·기본값, 가입·갱신 Set-Cookie 정의.            |
 | 오류 계약           | detail 설명과 object 스키마 불일치, API별 HTTP 상태·도메인 코드·대표 오류 응답 보완.                                                                           |
 | 화면 데이터         | 회원 이메일·이미지·등급·혜택, 찜 목록 판매자·달성률·종료 상태의 제공 API, 팔로우 목록·등록·해제와 목록 정렬 기준. 검색·LIVE 알림·환불 내역의 별도 서비스 명세. |
 | 프로젝트 DTO 보완   | businessType 전체 enum·카테고리 조회 방식, 성공 상태와 PATCH null 의미.                                                                                        |
@@ -661,7 +699,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | AI 세부 계약        | 추가 질문·답변 제출·오류/재시도 필드 및 실제 구현 여부.                                                                                                        |
 | 결과 불명 복구      | 가입·생성 등 요청 타임아웃 시 성공 여부 확인·중복 방지 방법.                                                                                                   |
 | 재고 조회 실패      | 프로젝트 명세의 remainingStock null 정상 응답과 503 오류 중 실제 응답.                                                                                         |
-| 계정 복구·소셜      | 계정 복구 계약은 4.7에서 코드 확인. 실제 메일·PortOne 설정 검증, 소셜 인증의 연동 범위·일정·TTL 확인.                                                          |
+| 계정 복구·소셜      | 계정 복구 계약은 4.7에서 코드 확인. 실제 메일·PortOne 설정 검증. 소셜 인증은 사업자 등록 제약으로 목업 결정(2026-09-24), FE 미호출.                            |
 
 ### 8.2. 정책·환경 협의
 
@@ -692,58 +730,86 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 Gateway가 `/api/v1/refunds/**`와 `/api/v2/refunds/**`를 payment-service로 보낸다. 목록은 **v2를 쓴다** — v1 `RefundSummaryResponse`의 `fundingId`는 결제 도메인이 UUID만 저장해 항상 null이다.
 
-`GET /api/v2/refunds?page&size` → `PageResponse<RefundSummaryResponseV2>`
+이 절은 #360(2026-09-27)에서 BE `develop` `f127a6f`(`RefundControllerV2`·`RefundQueryService`·`RefundSummaryResponseV2`·`RefundReasonTag`) 기준으로 갱신했다. 아래 #298 절의 내역 관련 행은 당시 기록이다.
 
-| 필드             | 형                                            | 비고                                                                                         |
-| ---------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `refundId`       | Long                                          | 하자환불 결정(`PATCH /api/v1/refunds/{refundId}/decision`)의 경로 값과 같다                  |
-| `fundingId`      | UUID                                          | order-service publicId                                                                       |
-| `triggerType`    | String                                        | `SIMPLE_CHANGE_OF_MIND`·`GOAL_FAILED_AUTO`·`DEFECT`·`SHIPPING_DELAY`·`SYSTEM_RECONCILIATION` |
-| `status`         | String                                        | `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`·`COMPLETED`·`REJECTED`                    |
-| `amount`         | long                                          | `payment.amount`. 반품비 차감 정책이 없어 현재는 전액이다                                    |
-| `requestedAt`    | Instant                                       | 서버 정렬은 이 값 내림차순 고정                                                              |
-| `completedAt`    | Instant \| null                               | 최종 결정 전이면 null                                                                        |
-| `reasonDetail`   | String \| null                                | DEFECT는 `[DEFECTIVE] 설명`처럼 하자 유형 태그가 앞에 붙어 저장된다                          |
-| `rejectedReason` | String \| null                                | 반려된 건에만 채워진다                                                                       |
-| `projectTitle`   | String \| null                                | order-service 배치 조회 결과                                                                 |
-| `lineItems`      | `{rewardName, quantity, unitPrice}[]` \| null | 위와 같음                                                                                    |
+`GET /api/v2/refunds?page&size&inProgress&triggerType` → `PageResponse<RefundSummaryResponseV2>`
 
-`projectTitle`·`lineItems`는 **부가 정보라 order-service 조회가 실패하면 목록은 그대로 내려오고 이 둘만 null이 된다**(`RefundQueryService`). FE는 이 응답에서도 화면이 깨지지 않게 처리한다.
+| 파라미터      | 의미                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `inProgress`  | `true`는 `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`, `false`는 `COMPLETED`·`REJECTED`, 생략하면 전체. FE는 `true`만 보낸다 |
+| `triggerType` | 여러 번 보내면 합집합(`?triggerType=A&triggerType=B`), 생략하면 전체. `inProgress`와는 AND다                                       |
 
-**서버 필터·정렬 파라미터가 없다.** 유형·진행 여부 필터는 현재 페이지 안에서만 동작한다.
+정렬은 `requestedAt` 내림차순 고정이다. `totalElements`는 필터를 적용한 건수다.
+
+payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inclusion: non_null`). 아래 "없을 수 있음"은 null이 아니라 키가 없다는 뜻이다.
+
+| 필드                      | 형                                                                                           | 비고                                                                                                                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refundId`                | Long                                                                                         | 하자환불 결정(`PATCH /api/v1/refunds/{refundId}/decision`)의 경로 값과 같다                                                                                                               |
+| `fundingId`               | UUID                                                                                         | order-service publicId                                                                                                                                                                    |
+| `triggerType`             | String                                                                                       | `SIMPLE_CHANGE_OF_MIND`(모금 중 참여 취소)·`SHIPPING_DELAY`·`GOAL_FAILED_AUTO`·`DEFECT`·`RETURN_CHANGE_OF_MIND`(발송 후 단순 변심·옵션 선택 오류 반품)·`EXCHANGE`·`SYSTEM_RECONCILIATION` |
+| `status`                  | String                                                                                       | `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`·`COMPLETED`·`REJECTED`                                                                                                                 |
+| `amount`                  | long                                                                                         | 실행된 PG 취소액의 합, 취소 전이면 결제 원금. 교환은 환불이 없어 결제 원금이다                                                                                                            |
+| `returnShippingFee`       | long, 없을 수 있음                                                                           | `RETURN_CHANGE_OF_MIND`에만 5,000                                                                                                                                                         |
+| `additionalPaymentAmount` | long, 없을 수 있음                                                                           | `EXCHANGE`에만. 구매자 귀책 사유면 교환 배송비, 그 외 0                                                                                                                                   |
+| `requestedAt`             | Instant                                                                                      | 정렬 기준                                                                                                                                                                                 |
+| `reasonType`              | String, 없을 수 있음                                                                         | 서버가 저장값 `[TYPE] 상세`의 태그를 떼어 준 사유 유형. 태그 없는 사유(발송 지연·목표 미달, 태그 도입 전 저장값)면 없다                                                                   |
+| `reasonDetail`            | String, 없을 수 있음                                                                         | 구매자가 쓴 상세만. 태그 없는 저장값은 원문 그대로다(예: FE가 `사유: 내용`으로 보낸 옛 교환 신청)                                                                                         |
+| `rejectedReason`          | String, 없을 수 있음                                                                         | 반려된 건에만                                                                                                                                                                             |
+| `completedAt`             | Instant, 없을 수 있음                                                                        | 최종 결정 전이면 없다. 반려 처리 시각도 담는다                                                                                                                                            |
+| `projectTitle`            | String, 없을 수 있음                                                                         | order-service 배치 조회 결과                                                                                                                                                              |
+| `lineItems`               | `{rewardName, quantity, unitPrice, options[{optionGroupName, optionValue}]}[]`, 없을 수 있음 | 위와 같음                                                                                                                                                                                 |
+
+`projectTitle`·`lineItems`는 **부가 정보라 order-service 조회가 실패하면 목록은 그대로 내려오고 이 둘만 빠진다**(`RefundQueryService`). FE는 이 응답에서도 화면이 깨지지 않게 처리한다.
+
+참여 취소는 BE가 취소 사유를 환불 행에 저장하지 않아 `reasonType`·`reasonDetail`이 오지 않는다. BE 버그로 협의 대기이며 FE는 우회하지 않는다.
 
 #### 표시 매핑
 
-`RefundTriggerType.toOrderServiceReason()`의 매핑을 근거로 원본의 유형 문구에 대응시킨다.
+원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터(전체/취소/교환/환불)에 대응시킨다. 유형 필터는 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다.
 
-| triggerType                                           | 유형 |
-| ----------------------------------------------------- | ---- |
-| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`             | 취소 |
-| `DEFECT`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
+| triggerType                                                                    | 유형 |
+| ------------------------------------------------------------------------------ | ---- |
+| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`                                      | 취소 |
+| `EXCHANGE`                                                                     | 교환 |
+| `DEFECT`, `RETURN_CHANGE_OF_MIND`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
 
-| status                                                | 표시                      | Badge     |
-| ----------------------------------------------------- | ------------------------- | --------- |
-| `REQUESTED`, `UNDER_REVIEW`, `APPROVED`, `PROCESSING` | `{유형} 진행 중`          | `warning` |
-| `COMPLETED`                                           | `{유형} 완료`             | `neutral` |
-| `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `neutral` |
+| status                                                | 표시                      | Badge   |
+| ----------------------------------------------------- | ------------------------- | ------- |
+| `REQUESTED`, `UNDER_REVIEW`, `APPROVED`, `PROCESSING` | `{유형} 진행 중`          | `error` |
+| `COMPLETED`                                           | `{유형} 완료`             | `info`  |
+| `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `info`  |
 
-실 환불 금액은 `COMPLETED`에서만 고지한다. 진행 중·반려는 확정 금액이 아니다.
+실 환불 금액은 취소·환불 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
+
+접수 사유는 `reasonType`을 09-25 신청 화면 드롭다운 문구로 바꾸고 `reasonDetail`이 있으면 `·`로 잇는다. `reasonType`이 없으면 `reasonDetail` 원문, 둘 다 없으면 트리거 문구다(`SHIPPING_DELAY` 발송 지연, `GOAL_FAILED_AUTO` 목표 미달 자동 환불, `SIMPLE_CHANGE_OF_MIND` 참여 취소 등). 모르는 `reasonType`은 enum 이름 그대로 보인다.
+
+| reasonType                                | 문구               |
+| ----------------------------------------- | ------------------ |
+| `SIMPLE_CHANGE_OF_MIND`, `CHANGE_OF_MIND` | 단순 변심          |
+| `OPTION_SELECTION_ERROR`, `WRONG_OPTION`  | 옵션 선택 오류     |
+| `PAYMENT_INFO_ERROR`                      | 결제 정보 오류     |
+| `DEFECTIVE`                               | 불량·하자          |
+| `DAMAGED`                                 | 상품 파손          |
+| `WRONG_DELIVERY`                          | 상품이 잘못 배송됨 |
+| `MISSING_COMPONENTS`                      | 구성품 누락        |
+| `DIFFERENT_FROM_DESCRIPTION`              | 상품 설명과 다름   |
+| `OTHER`, `ETC`                            | 기타               |
 
 #### 아직 계약이 없어 채우지 못하는 값
 
-원본에 자리가 있으나 응답에 대응 필드가 없다. 값을 만들지 않고 자리만 유지한다.
+원본에 자리가 있으나 응답에 대응 필드가 없다. 값을 만들지 않는다.
 
-| 화면 요소                       | 필요한 것                                                             |
-| ------------------------------- | --------------------------------------------------------------------- |
-| 유형 필터 "교환"                | 교환 신청·조회 계약 일체. `RefundTriggerType`에 교환이 없다           |
-| 펀딩번호 `FD<yyyyMMdd>-<6자리>` | 목록 응답의 주문번호 필드. 현재는 `fundingId`(UUID)뿐이다             |
-| 옵션                            | `lineItems`의 옵션명·옵션값                                           |
-| 적립금 환불 금액                | 적립금 환불 계약                                                      |
-| 유형·진행 여부 서버 필터        | 목록의 필터 파라미터. `totalElements`는 제공되므로 총 개수와는 별개다 |
+| 화면 요소                       | 필요한 것                                                 |
+| ------------------------------- | --------------------------------------------------------- |
+| 펀딩번호 `FD<yyyyMMdd>-<6자리>` | 목록 응답의 주문번호 필드. 현재는 `fundingId`(UUID)뿐이다 |
+| 적립금 환불 금액                | 적립금 환불 계약                                          |
+
+반대로 `returnShippingFee`·`additionalPaymentAmount`는 응답에 있으나 원본 카드에 자리가 없어 표시하지 않는다.
 
 환불 **신청**(`POST /api/v2/refunds/defect`, `POST /api/v2/refunds/shipping-delay`, `GET /api/v1/refunds/estimate`, `POST /api/v1/refunds/evidence/upload-url`)은 이번 연결 범위가 아니다.
 
-조사 기준은 BE `origin/develop` `ce5d882`다. 실제 서버 응답과의 대조는 BE QA 서버가 뜬 뒤에 한다.
+첫 조사 기준은 BE `origin/develop` `ce5d882`였고 #360에서 `f127a6f`로 다시 대조했다. 실제 서버 응답과의 대조는 BE QA 서버가 뜬 뒤에 한다.
 
 ### 2026-09-22 환불 신청 제출 연결 (#263)
 
@@ -823,4 +889,138 @@ BE PR #124(`develop` `7dd5bd5`)로 위 두 절의 "계약 없음" 중 아래 항
 | 내역 옵션             | `lineItems[].options[] {optionGroupName, optionValue}`                                    | `그룹 값`을 `·`로 이어 옵션 행에 표시                                                      |
 | 신청 화면 헤더        | `OrderDetailResponse.projectTitle`·`thumbnailUrl` (project-service 실패 시 null)          | null이면 자리만 유지                                                                       |
 
-`triggerType` 필터는 값 하나만 받아 여러 트리거를 묶는 "취소"·"환불" 유형을 표현하지 못한다. 유형 필터는 계속 현재 페이지 안에서만 걸린다. 펀딩번호·적립금 환불 금액은 여전히 계약이 없다.
+`triggerType` 필터는 값 하나만 받아 여러 트리거를 묶는 "취소"·"환불" 유형을 표현하지 못한다. 유형 필터는 계속 현재 페이지 안에서만 걸린다. 펀딩번호·적립금 환불 금액은 여전히 계약이 없다. 이후 BE가 `triggerType` 다중값을 받게 돼 #360에서 유형 필터를 서버 필터로 바꿨다(위 #261 절).
+
+### 2026-09-25 환불 정책 V.1.0 반영 (#356)
+
+PM 「Fundit 환불 정책_V.1.0」(2026-09-23)에 맞춰 위 #298 동작 중 아래를 바꿨다. 위 절은 당시 기록이다.
+
+| 항목             | FE 동작                                                                                                                                                                                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 반품 단순변심    | 접수하지 않고 "아직 접수할 수 없습니다"를 표시한다. `POST /api/v2/refunds/simple-change-of-mind`는 성립 후 발송 전 전액 환불이라 정책(펀딩 성공 후 단순변심 취소 불가)과 맞지 않고, 발송 후 단순변심 반품(반품 배송비 5,000원) 계약은 아직 없다. FE 호출 함수도 뺐다. |
+| 취소 수수료 행   | 환불 정보에서 뺐다(PD 확인 요청 2).                                                                                                                                                                                                                                   |
+| 사유 기타의 금액 | 반품·교환에서 사유가 기타면 실 환불 금액 대신 "접수 후 확인하여 안내"를 보여 준다(PD 확인 요청 3). 서버 예상 환불액은 사유를 받지 않아 확정 여부를 알려 주지 않는다.                                                                                                  |
+| 펀딩 완료 카드   | 목업 목록·상세의 펀딩 완료 상태에서 "펀딩 취소" 버튼을 뺐다(PD 확인 요청 1). 실제 주문은 원래 `availableActions`의 `CANCEL`(펀딩 진행 중만)을 따른다.                                                                                                                 |
+
+### 2026-09-27 취소·반품·교환 신청 계약 반영 (#358)
+
+BE 08 회신(BE PR #160·#162·#164, `develop` `f127a6f`)과 Figma 섹션 `1143:22492`의 2026-09-25·26 개정을 참여 취소·반품·교환 신청 화면에 반영했다. 위 #263·#298·#356 절의 사유 매핑·금액 표시는 이 절로 바뀌었다. 오류 응답은 `{code, message, detail}`이고, BE는 null 필드를 JSON에서 뺀다.
+
+| 동작            | 경로                                   | 요청                                                               | 응답                                                                                                                                        |
+| --------------- | -------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 참여 취소       | `POST /api/v1/orders/{orderId}/cancel` | 선택 `{cancelReason, reasonDetail?(100자)}`. 본문 없이도 취소된다  | `{orderId, status}`                                                                                                                         |
+| 발송 지연 취소  | `POST /api/v2/refunds/shipping-delay`  | `{fundingId}`                                                      | 201 `{refundId, status}`                                                                                                                    |
+| 반품(구매자)    | `POST /api/v2/refunds/return`          | `{fundingId, returnReason, reasonDetail?(500자), evidenceUrls?}`   | 201 `{refundId, status, paymentAmount, returnShippingFee, estimatedRefundAmount}`                                                           |
+| 반품(하자·기타) | `POST /api/v2/refunds/defect`          | `{fundingId, defectType, reasonDetail?, evidenceUrls(1장 이상)}`   | 201 `{refundId, status}`                                                                                                                    |
+| 교환            | `POST /api/v2/refunds/exchange`        | `{fundingId, exchangeReason, reasonDetail?(500자), evidenceUrls?}` | 201 `{refundId, status, exchangeShippingFee, additionalPaymentAmount}`                                                                      |
+| 예상 금액       | `GET /api/v1/refunds/estimate`         | `?orderId=&triggerType=&defectType=&exchangeReason=`               | `{orderId, paymentAmount, rewardAmount, shippingFee, discountAmount, returnShippingFee, additionalPaymentAmount, refundAmount?, confirmed}` |
+
+`exchangeReason`은 BE에서 아직 선택이지만 FE 전환 뒤 필수가 되므로 항상 보낸다. 입력 내용은 `reasonDetail`에 그대로 담는다 — #298의 `"{사유}: {내용}"` 합치기는 없앴다. 교환 응답의 `exchangeShippingFee`는 사유와 무관하게 5,000원이라 구매자 부담액으로 쓰지 않는다.
+
+#### 화면 진입
+
+`GET /api/v1/orders/{orderId}`의 `availableActions`로 정한다.
+
+| 경로                           | 조건                                                  | 화면                           |
+| ------------------------------ | ----------------------------------------------------- | ------------------------------ |
+| `/my/fundings/{id}/cancel`     | `CANCEL`(결제 대기·펀딩 진행 중)                      | 펀딩 취소 `CL_1`~`3`           |
+| `/my/fundings/{id}/cancel`     | `SHIPPING_DELAY_REFUND_REQUEST`(실제로 지연된 미발송) | 발송 지연 취소 `CL_1-1`        |
+| `/my/fundings/{id}/cancel`     | 둘 다 없음                                            | "이 주문은 취소할 수 없습니다" |
+| `/my/fundings/{id}/refund/new` | 링크는 `DEFECT_REFUND_REQUEST`(수령 후 7일 안)        | 리워드 반품/교환 `CL_4`~`8`    |
+
+`refund/new`는 더 이상 `?type=` 쿼리를 읽지 않는다. 유형·사유는 처음에 비어 있다(`CL_4`). 기존 링크에 남은 `?type=defect`는 무시된다.
+
+#### 사유 → 계약
+
+| 화면           | 사유                                                                               | 보내는 요청                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)                  |
+| 참여 취소      | 기타 창작자 귀책                                                                   | `ETC` + `reasonDetail` "창작자 귀책" 또는 "창작자 귀책 · {내용}"(입력 선택, 91자. 임시, [미확정](./OPEN_DECISIONS.md)) |
+| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 숨김, 임시)                                                                                   |
+| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                              |
+| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER`             |
+| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                             |
+
+"상품이 잘못 배송됨"은 #291 이후 `DIFFERENT_FROM_DESCRIPTION`으로 보냈지만 `WRONG_DELIVERY`가 생겨 바꿨다.
+
+#### 예상 금액 조회와 표시
+
+사유를 고른 뒤에만 금액 영역을 보여 준다(발송 지연 취소는 처음부터). 조회 실패(결제 전 주문 404 등)면 금액 영역만 숨긴다. FE는 금액을 계산하지 않고 아래처럼 행에 놓기만 한다. 적립금 환불 금액 행은 그리지 않는다.
+
+| 신청                            | 조회 조건                                   | 영역 / 행                                                                                             |
+| ------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 취소·발송 지연 취소             | `orderId`만                                 | 환불 정보: 결제 금액 `paymentAmount` / 예상 환불액 `refundAmount`                                     |
+| 반품 구매자 귀책 (`CL_6`)       | `triggerType=RETURN_CHANGE_OF_MIND`         | 환불 정보: 결제 금액 / 반품 배송비 `-returnShippingFee` / 예상 환불액 `refundAmount`                  |
+| 반품 창작자 귀책 (`2323:53657`) | `triggerType=DEFECT&defectType=…`           | 환불 정보: 결제 금액 / 반품 배송비 "창작자 부담 예정" / 예상 환불액 `refundAmount` + 안내 문구        |
+| 반품 기타                       | `triggerType=DEFECT&defectType=OTHER`       | 환불 정보: 결제 금액 / 반품 배송비·예상 환불액 "접수 후 확인하여 안내"(`refundAmount` 없음)           |
+| 교환 구매자 귀책 (`2323:53675`) | `triggerType=EXCHANGE&exchangeReason=…`     | 결제 정보: 교환 배송비·추가 결제 금액 `additionalPaymentAmount`                                       |
+| 교환 창작자 귀책 (`CL_8`)       | `triggerType=EXCHANGE&exchangeReason=…`     | 결제 정보: 교환 배송비 "창작자 부담 예정" / 추가 결제 금액 `additionalPaymentAmount`(0원) + 안내 문구 |
+| 교환 기타                       | `triggerType=EXCHANGE&exchangeReason=OTHER` | 결제 정보: 교환 배송비·추가 결제 금액 "접수 후 확인하여 안내"                                         |
+
+#### 오류 안내
+
+| 코드                            | 상황                                             | 안내                                                                         |
+| ------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 410 `RESOURCE_EXPIRED`          | 참여 취소 — 결제 기한이 지난 주문                | 결제 기한이 지나 만료된 주문은 취소할 수 없습니다.                           |
+| 422 `ORDER_NOT_CANCELLABLE`     | 참여 취소 — 펀딩 종료                            | 펀딩이 종료되어 취소할 수 없습니다.                                          |
+| 409 `ALREADY_SHIPPED`           | 발송 지연 취소 — 이미 발송                       | 이미 발송이 시작되어 취소할 수 없습니다.                                     |
+| 422 `NOT_YET_DELAYED`           | 발송 지연 취소 — 아직 지연 아님                  | 아직 발송 예정일이 지나지 않아 취소할 수 없습니다.                           |
+| 409 `NOT_DELIVERED`             | 반품·교환 — 배송 완료 전                         | 배송이 완료된 뒤에 반품·교환을 신청할 수 있습니다.                           |
+| 409 `RETURN_PERIOD_EXPIRED`     | 반품·교환 — 수령 후 7일 경과                     | 반품·교환 가능 기간이 지났습니다.                                            |
+| 409 `REFUND_ALREADY_REQUESTED`  | 반품·교환 — 진행 중 신청이 이미 있음(주문당 1건) | 이미 접수된 반품·교환 신청이 있습니다. 취소·반품·교환 내역에서 확인해주세요. |
+| 422 `RETURN_FEE_EXCEEDS_AMOUNT` | 반품 — 결제 금액 5,000원 이하                    | 결제 금액이 반품 배송비(5,000원)보다 적어 반품을 신청할 수 없습니다.         |
+| 503 `DEPENDENCY_FAILURE`        | 주문·배송 조회 실패                              | 주문 정보를 확인하지 못해 신청하지 못했습니다. 잠시 후 다시 시도해주세요.    |
+
+그 밖의 실패는 취소면 "처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요."와 주문 재조회, 반품·교환이면 "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요."다. 성공하면 취소는 주문 상세로 교체 이동하고, 반품·교환은 `/my/refunds`로 이동한다.
+
+### 2026-09-27 펀딩 내역 목록·상세 연결 (#359)
+
+BE 08 회신(`develop` `f127a6f`)의 주문 응답 필드로 `/my/fundings` 목록·상세를 Figma `FL_B_MY_FUND_1`(`2323:52376`)·`FL_B_MY_FUND_MNG`(`2323:53132`)에 맞춰 그린다. 단계별 버튼은 정리표 "진행 단계 별 노출 될 버튼"(`2323:53727`)을 따른다. 위 #197 절의 상태 필터와 "목표 달성 주문만 제작·배송 현황" 규칙은 이 절로 바뀌었다.
+
+| 필드                                        | 응답                                                                                     | FE 사용                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
+| `progressStage`                             | 목록·상세. 9종, `status`를 대체하지 않는다                                               | 단계 문구·버튼                   |
+| `availableActions`                          | 목록·상세                                                                                | 신청 버튼을 둘지                 |
+| `refundRequests`                            | 목록·상세 `{refundId, triggerType, status, requestedAt}` 최신순. 조회에 실패해도 빈 배열 | 내역 버튼으로 바꿀지             |
+| `paidAt`                                    | 결제 전이거나 결제 시각이 기록되기 전의 옛 주문이면 키가 없다                            | 결제일(한국 날짜). 없으면 숨긴다 |
+| `sellerDisplayName`·`thumbnailUrl`          | 목록만. project-service 조회가 실패하면 키가 없다                                        | 창작자·썸네일. 없으면 줄·빈 자리 |
+| `rewardSummary`·`totalQuantity`·`lineItems` | 목록. 요약은 "첫 리워드명 외 N건"                                                        | 카드의 "리워드 · N개"            |
+
+목록은 `GET /api/v1/orders?page=&size=20&sort=createdAt,desc`로 받는다. 서버 목록에 기본 정렬이 없어 최신 참여순을 명시한다. `status` 필터는 보내지 않는다. Figma의 검색·기간·분류를 서버가 받지 않아 필터를 두지 않았다(노션 FE 자체 판단 31). 페이지 이동은 취소·반품·교환 내역과 같은 이전/다음 방식이다.
+
+#### 단계와 버튼
+
+| `progressStage`       | 문구           | 버튼                                                                                                                                                                                           |
+| --------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FUNDING_IN_PROGRESS` | 펀딩 진행 중   | [참여 취소](`CANCEL`이 있을 때) [제작·배송 현황]. 결제 대기(`PENDING`)도 이 단계다                                                                                                             |
+| `FUNDING_SUCCEEDED`   | 펀딩 성공      | [제작·배송 현황]                                                                                                                                                                               |
+| `SHIPPING_DELAYED`    | 발송 지연      | [참여 취소](`SHIPPING_DELAY_REFUND_REQUEST`가 있을 때, 취소 화면이 `CL_1-1`을 연다) [제작·배송 현황]                                                                                           |
+| `SHIPPING`            | 배송 중        | [제작·배송 현황]                                                                                                                                                                               |
+| `DELIVERED`           | 배송 완료      | [반품·교환 신청](`RETURN_REQUEST`·`EXCHANGE_REQUEST`·`DEFECT_REFUND_REQUEST` 중 하나가 있을 때) [제작·배송 현황]. 액션이 없으면(수령 후 7일 경과) 비활성 [반품·교환 가능 기간이 지났어요] 하나 |
+| `GOAL_FAILED`         | 펀딩 목표 미달 | [환불 내역] `/my/refunds?type=refund`                                                                                                                                                          |
+| `CANCELLED`           | 참여 취소      | 신청 이력이 있으면 내역 버튼 하나, 없으면 없음                                                                                                                                                 |
+| `PAYMENT_EXPIRED`     | 결제 기한 만료 | 위와 같음                                                                                                                                                                                      |
+| `REFUNDED`            | 환불 완료      | 위와 같음                                                                                                                                                                                      |
+
+`availableActions`는 이미 낸 신청을 반영하지 않는다. 그래서 `refundRequests`가 있으면 신청 버튼 대신 가장 최근 신청의 내역 버튼을 둔다. 배송 완료는 내역 버튼 옆에 [제작·배송 현황]을 유지한다.
+
+| 최근 신청 `triggerType`                    | 버튼           | 목적지                      |
+| ------------------------------------------ | -------------- | --------------------------- |
+| `SIMPLE_CHANGE_OF_MIND`·`SHIPPING_DELAY`   | 취소 내역      | `/my/refunds?type=cancel`   |
+| `EXCHANGE`                                 | 반품·교환 내역 | `/my/refunds?type=exchange` |
+| `DEFECT`·`RETURN_CHANGE_OF_MIND`           | 반품·교환 내역 | `/my/refunds?type=refund`   |
+| `GOAL_FAILED_AUTO`·`SYSTEM_RECONCILIATION` | 환불 내역      | `/my/refunds?type=refund`   |
+
+반품·교환 신청 링크는 `?type=` 없이 `/refund/new`로 간다. 신청 화면은 진입 때 조건을 다시 보지 않는다. URL로 직접 들어오면 지금처럼 제출할 때 BE 오류 문구로 안내한다(노션 FE 자체 판단 30).
+
+#### 상세
+
+- 주문번호(FD…)·창작자·참여일은 상세 응답에 없어 두지 않는다. 배송비·할인·배송지는 Figma에 없어 뺐다. 펀딩 금액은 배송비·할인이 반영된 `finalAmount`다.
+- 리워드마다 리워드·옵션·수량 행을 둔다. 옵션이 없으면 원본처럼 "단일옵션", 여러 옵션은 `·`로 잇는다.
+- 결제 대기(`PENDING`)면 [결제하기]·반영 중 안내·[주문 상태 새로고침]을 펀딩 정보 아래에 둔다. 원본에는 없지만 결제를 마칠 길이 필요하다.
+
+#### 제작·배송 현황
+
+제작·배송 트래커는 펀딩이 성립될 때 만들어져 모금 중에는 `GET /api/v2/projects/{projectId}/fulfillment`가 404다. 진행 중 카드도 [제작·배송 현황]으로 보내므로 구매자 화면은 이때 오류 대신 "펀딩이 성립되면 제작·배송 현황을 볼 수 있어요."와 [펀딩 상세로 돌아가기]를 보이고 배송 현황은 두지 않는다(노션 FE 자체 판단 41).
+
+BE 요청 후보(미전달): 상세 응답의 `createdAt`·`sellerDisplayName`, 목록의 검색·기간·진행 단계 필터.

@@ -44,25 +44,35 @@ export type PublicProject = {
     currentAmount: number;
     achievementRate: number;
     participantCount: number;
-    remainingDays: number | null;
+    /** 마감이 없으면 BE가 null로 계산하고 키를 뺀다(non_null). */
+    remainingDays?: number | null;
+    /** 펀딩 마감 시각(UTC ISO). 마감이 없으면 BE가 키를 뺀다. */
+    fundingDeadline?: string;
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };
 };
+/** BE `RewardConsumerResponse`(sortOrder 순). BE는 null 필드를 JSON에서 빼므로 값이 없을 수
+    있는 필드는 선택 키다. */
 export type PublicReward = {
   rewardId: number;
+  rewardDisplayCode: string;
   name: string;
   description: string;
-  imageUrl: string | null;
+  imageUrl?: string;
   price: number;
   isEarlyBird: boolean;
-  earlyBirdDiscountedPrice: number | null;
+  earlyBirdDiscountType?: "AMOUNT" | "RATE";
+  earlyBirdDiscountValue?: number;
+  earlyBirdDiscountedPrice?: number;
   isLimited: boolean;
-  remainingStock: number | null;
+  /** 재고를 모르면 빠진다. */
+  remainingStock?: number;
   options: { groupId: number; groupName: string; values: { valueId: number; value: string }[] }[];
   soldOut: boolean;
-  shippingFee: number | null;
-  estimatedDeliveryDays: number | null;
+  shippingFee?: number;
+  /** 펀딩 종료 후 N일(BE `Reward` 주석). */
+  estimatedDeliveryDays?: number;
 };
 export function searchProjects(
   keyword: string,
@@ -82,6 +92,15 @@ export function searchProjects(
   return apiRequest<ApiPage<ProjectCardResponse>>(`/api/v1/search/projects?${params}`, {
     signal,
     auth: authenticated,
+  });
+}
+/**
+ * 홈 "지금 주목받는 프로젝트"(search-service). 진행 중 프로젝트를 참여자·찜 많은 순으로 준다.
+ * 페이지 없이 `size`개(기본 20, 최대 100)만 오고, 카드 모양은 검색 상품 탭과 같다. 비인증이다.
+ */
+export function getHomeFeed(size: number, signal?: AbortSignal) {
+  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?size=${size}`, {
+    signal,
   });
 }
 export function getPublicProject(id: string, signal?: AbortSignal) {

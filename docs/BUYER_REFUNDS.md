@@ -2,53 +2,57 @@
 
 ## Design Source
 
-- [환불 내역 `891:9113`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-9113).
-- 필터바와 유형 드롭다운 열린 상태는 `1143:22492`·`1165:16386`.
-- 디자인 파트가 오류로 삭제한 저장 버튼은 최신 원본에서 삭제를 확인했으며 구현하지 않는다.
+- 09-25 원본 [`FL_B_MY_RFND_1`~`4`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=2323-52793)(`2323:52793`·`52871`·`52976`·`53087`)과 화면정의 `2323:52291`~`52306`, interaction_spec `2323:53650`("FL_B_MY_RFND, FL_B_RF_CNCL 두 페이지 기능을 하나로 합침"), update_history `1143:23610`.
+- 이전 원본 [`891:9113`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-9113)은 참고용이다. 필터바 원본이던 `1165:16386`은 삭제됐다.
+- 원본 안에서 이름이 갈린다. 화면 헤더는 "취소/반품/교환 내역", 화면정의·마이페이지 메뉴는 "취소/환불/교환 내역"이고 유형 필터·카드 유형은 "취소/교환/환불"이다. **화면 헤더를 따라** 제목·breadcrumb·로딩·빈 목록 문구를 "취소/반품/교환 내역"으로 쓰고, 유형 문구는 원본대로 "취소/교환/환불"을 쓴다. 마이페이지 메뉴 문구는 이 화면 범위 밖이라 그대로다.
+- 디자인 파트가 오류로 삭제한 저장 버튼은 최신 원본에서 삭제를 확인했으며 구현하지 않는다. 09-25 원본에도 CTA가 없다.
 - `/my/refunds`를 전용 `(buyer-refunds)` 그룹에 둔다.
 
 ## 데이터 출처
 
 `GET /api/v2/refunds`의 응답만 그린다. 계약·매핑·degrade 규칙은 [API 계약](./API_CONTRACT.md#2026-09-22-구매자-환불-내역-조회-연결-261)에 있다.
 
-- `src/entities/refund/api/refund-api.ts`가 호출과 enum 문구를 맡는다.
-- `src/features/buyer-refunds/model/refund-history.ts`가 응답을 화면 항목으로 옮기고 필터를 건다.
-- `src/features/buyer-refunds/ui/buyer-refunds-api.tsx`가 조회·로딩·오류·페이지 이동을 맡고, `buyer-refunds.tsx`는 표현만 한다.
+- `src/entities/refund/api/refund-api.ts`가 호출, 트리거→유형 묶음, enum 문구를 맡는다.
+- `src/features/buyer-refunds/model/refund-history.ts`가 응답을 화면 항목으로 옮기고 유형 드롭다운 값과 URL 값을 오간다.
+- `src/features/buyer-refunds/ui/buyer-refunds-api.tsx`가 URL 필터·조회·로딩·오류·페이지 이동을 맡고, `buyer-refunds.tsx`는 표현만 한다.
 - `refunds-demo.ts`는 Storybook·테스트 전용 응답 예시다. 화면은 이 값을 쓰지 않는다.
 
 ## 구현 범위
 
-- 취소·환불의 진행 중·완료·반려 내역을 표시한다. 유형은 `triggerType`, 진행 상태는 `status`에서 온다.
-- 각 항목은 독립적으로 펼치고 접는다. 초기에는 ID와 관계없이 유형이 취소이고 완료된 항목이 열려 있다.
-- 신청 일자·사유·상품·옵션·판매가·수량과 완료된 환불 금액을 조회한다. 진행 중과 반려는 실 환불 금액을 표시하지 않는다.
+- 취소·환불·교환의 진행 중·완료·반려 내역을 표시한다. 유형은 `triggerType`, 진행 상태는 `status`에서 온다.
+- 각 항목은 독립적으로 펼치고 접는다. 09-25 원본의 기본(RFND_1)·필터 적용(RFND_4) 화면처럼 모든 항목이 접힌 채 시작한다. 이전 원본(`891:9113`)을 따라 취소 완료 건을 처음부터 열어 두던 규칙은 뺐다.
+- 신청 일자·사유·상품·옵션·판매가·수량과 완료된 환불 금액을 조회한다. 진행 중·반려와 교환은 실 환불 금액을 표시하지 않는다. 교환은 환불이 없어 `amount`가 결제 원금으로 오기 때문이다.
 - 반려된 건은 같은 카드 형식으로 두고 반려 일자·반려 사유 행을 덧붙인다. 원본에 대응 화면이 없지만 존재하는 신청을 감추지 않기 위해서다. 응답 `completedAt`은 반려 처리 시각도 담으므로 카드 상단 날짜는 완료된 건에만 세운다.
-- `reasonDetail`에 붙어 오는 `[DEFECTIVE]` 형태의 하자 유형 태그는 한국어 문구로 바꿔 보여준다. 사유가 비어 오는 자동 환불은 트리거 문구를 쓴다.
+- 접수 사유는 응답 `reasonType`을 09-25 신청 화면 드롭다운의 사유 문구로 바꾸고 `reasonDetail`이 있으면 `·`로 잇는다. `reasonType`이 없으면 `reasonDetail` 원문을, 둘 다 없으면 트리거 문구(발송 지연·목표 미달 자동 환불 등)를 쓴다. 참여 취소는 BE가 사유를 저장하지 않아(BE 협의 대기) "참여 취소"로 나온다.
 - `lineItems`가 여러 건이면 접수 상품·옵션·판매가·신청 수량 행을 항목 수만큼 반복한다.
 - 환불 금액 영역에서 적립금 값이 없으면 해당 행을 숨기며, 명시적으로 0이면 0원으로 표시한다.
-- 필터바(총 개수·"진행 중만 보기" 토글·유형 드롭다운)는 클라이언트 필터다. 상태 표시는 `Badge`(`variant="warning"`|`"neutral"`)를 사용한다.
-- 총 개수는 필터를 걸지 않은 동안 서버 `totalElements`를, 필터를 건 동안 걸러진 건수를 보여준다.
-- 페이지를 넘기는 동안에는 이전 페이지 목록을 유지한다(`placeholderData`). 목록이 사라지면 화면이 들고 있는 유형·진행 중 필터가 풀리기 때문이다. 새 페이지가 도착할 때까지 이동 버튼은 잠그고 진행 중임을 알린다.
+- 필터바는 총 개수·"진행 중만 보기"·유형 드롭다운(전체/취소/교환/환불)이다. 두 필터 모두 **서버 필터**다. URL `?inProgress=true`·`?type=cancel|exchange|refund`로 두고, 바꾸면 첫 페이지로 돌아간다. 모르는 `type` 값은 전체로 본다.
+- 총 개수는 서버가 필터를 적용한 `totalElements`다. 범위를 벗어난 페이지처럼 목록이 비면 0개로 보인다.
+- 상태 표시는 `Badge`다. 진행 중은 `variant="error"`(주황), 완료·반려는 `variant="info"`(회색)로 원본 badge state와 같다.
+- 페이지·필터를 바꾸는 동안에는 이전 목록을 유지한다(`placeholderData`). 새 목록이 도착할 때까지 필터바 바로 아래에 "목록을 불러오고 있습니다."(`role="status"`)를 알리고 목록에 `aria-busy`를 걸며, 페이지 이동 버튼은 잠근다. 한 페이지짜리 목록에는 페이지 이동 줄이 없으므로 안내를 그 밖에 둔다. 목록 아래에서 이동을 누르면 위 안내가 화면 밖이라, 페이지 이동 줄에도 같은 문구를 화면용(`aria-hidden`)으로 둔다. 원본에 이 상태가 없어 FE가 정했다(노션 FE 자체 판단 17).
+- 주소를 고쳤거나 항목이 줄어 URL `page`가 마지막 페이지보다 뒤면, [이전 페이지]는 한 칸 앞이 아니라 응답의 `totalPages`로 센 마지막 페이지로 간다. 0건이면 첫 페이지다. 자동으로 옮기지는 않는다(#374, 노션 FE 자체 판단 74). 펀딩 내역도 같은 방식이며, 주문 목록 응답 타입에 `totalPages`를 두지 않아 `totalElements`와 페이지 크기로 센다. 규칙은 `shared/lib/previous-page.ts`에 있다.
 - 로딩·오류 화면도 목록과 같은 셸(제목·breadcrumb·하단 메뉴)을 쓴다.
 - 신청 폼·제출·취소 철회·재신청·상태 전이·환불 계산은 범위에 포함하지 않는다. 서버 eligibility 정책을 추정하지 않는다.
 - 관심 목록 PR의 상단바를 재사용하며 새 스타일은 Tailwind CSS로 작성한다.
-- 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨긴다. 1199px 이하에서는 기존 모바일 정보 구조를 유지한다.
-- 색상·제목·진행 상태는 공통 토큰을 사용한다. 상세 정보의 14px/18px 조합은 대응하는 타이포그래피 토큰이 없어 로컬 예외로 유지한다. 펼치기·접기는 native details/summary를 사용한다.
+- 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨긴다. 1199px 이하에서는 모바일 원본의 정보 구조를 따른다. 09-25 기록에 따라 배경은 모든 폭에서 surface_default다.
+- 색상·제목·진행 상태는 공통 토큰을 사용한다. 상세 영수증 배경은 원본 fill `#F7F7F7`과 값이 같은 `layer-bg`, 배지와 날짜 사이는 4px, 펼친 영역 아래 여백은 16px다. 상세 정보의 14px/18px 조합은 대응하는 타이포그래피 토큰이 없어 로컬 예외로 유지한다. 펼치기·접기는 native details/summary를 사용한다.
 
-## 계약이 없어 비워 두는 자리
+## 원본과 다르게 둔 자리
 
-원본에 있으나 응답에 대응 필드가 없다. **행과 옵션은 그대로 두고 값만 비운다.** 값을 지어내지 않는다.
-
-| 자리                        | 현재 표시 | 필요한 계약                                 |
-| --------------------------- | --------- | ------------------------------------------- |
-| 펀딩번호 `891:9127`         | 빈 줄     | 목록 응답의 `FD<yyyyMMdd>-<6자리>` 주문번호 |
-| 적립금 환불 금액 `891:9176` | 행 숨김   | 적립금 환불 계약                            |
-
-#298(BE #124)부터 옵션 행은 `lineItems[].options`로 채우고, 유형 필터 "교환"은 `EXCHANGE` 트리거를 보여준다. "진행 중만 보기"는 URL `?inProgress=true`로 서버가 거른다. 서버 `triggerType`은 값 하나만 받아 "취소"·"환불" 묶음을 표현하지 못하므로 **유형 필터는 현재 페이지 안에서만** 걸린다.
+| 자리                            | 현재                  | 이유                                                                                       |
+| ------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| 주문번호 `FD<yyyyMMdd>-<6자리>` | 행 없음               | 목록 응답에 주문번호가 없다. #294에서 빈 행을 뺐다                                         |
+| 적립금 환불 금액                | 행 숨김               | 적립금 환불 계약이 없다                                                                    |
+| 모바일 헤더 알림 아이콘         | 표시                  | 09-25 원본 헤더에는 없지만 공용 `BuyerAccountScreen` 헤더라 이 화면 범위에서 바꾸지 않는다 |
+| 모바일 하단 메뉴                | 표시                  | 원본에는 없고, 마이페이지 하위 화면의 공통 compact 하단 메뉴를 유지한다                    |
+| 완료 badge 배경                 | `info` 토큰 `#E4E5E8` | 원본 badge 인스턴스 fill은 `#EEEEF0`이다. 공용 토큰이라 이 화면에서 바꾸지 않는다          |
+| 반품 배송비·교환 추가 결제액    | 표시 안 함            | 응답 `returnShippingFee`·`additionalPaymentAmount`에 대응하는 자리가 원본 카드에 없다      |
 
 ## 검증
 
-- Storybook `Features/BuyerRefunds`의 Default, Empty, Desktop, FilterByType, FilterExchange, FilterInProgressOnly, ExpandHistory.
-- 펼치기·접기, 진행 중·반려의 금액 미표시, 저장 버튼 부재, 유형·진행 중 필터 동작을 검증한다.
-- `pnpm test src/features/buyer-refunds/model/refund-history.test.mjs`에서 유형·상태 문구, 하자 태그 분리, degrade 응답의 빈 자리, 날짜 절단, 필터 조합을 검증한다.
-- `pnpm test src/features/buyer-refunds/ui/buyer-refunds.test.mjs`에서 취소 완료 초기 펼침, 적립금 null·0·금액, 반려 일자·사유 행과 상단 날짜 제외, 빈 자리 유지, 총 개수 기준을 검증한다.
+- Storybook `Features/BuyerRefunds`의 Default, Empty, Desktop, FilteredCancel, ChooseType, ToggleInProgressOnly, LoadingNextList, ExpandHistory.
+- 펼치기·접기, 진행 중·반려·교환의 금액 미표시, 사유 문구, 저장 버튼 부재, 유형·진행 중 변경이 부모로 올라가는지 검증한다.
+- `pnpm test src/entities/refund/api/refund-api.test.mjs`에서 유형별 `triggerType` 반복 파라미터와 `inProgress` 조합을 검증한다.
+- `pnpm test src/features/buyer-refunds/model/refund-history.test.mjs`에서 유형·상태 문구, 사유 유형 문구와 폴백, 교환 금액 미표시, 키가 빠진 응답의 빈 자리, 날짜 절단, 드롭다운·URL 값 변환을 검증한다.
+- `pnpm test src/features/buyer-refunds/ui/buyer-refunds.test.mjs`에서 제목, 모든 항목 접힘 시작, 적립금 null·0·금액, 교환 금액 영역 부재, badge state, 반려 일자·사유 행과 상단 날짜 제외, 빈 자리 유지, 총 개수 기준, 새 목록을 기다리는 동안의 안내 위치와 `aria-busy`를 검증한다.
 - 실제 서버 응답 대조는 BE QA 서버가 뜬 뒤에 한다. 현재 검증은 계약 기반이다.

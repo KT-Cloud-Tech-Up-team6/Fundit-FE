@@ -8,6 +8,7 @@ import {
   formatWon,
   initialLines,
   isCartSubmittable,
+  remainingFor,
 } from "./reward-demo.ts";
 
 test("금액은 천 단위 구분과 원 단위를 붙인다", () => {
@@ -23,7 +24,20 @@ test("총액은 가격 × 수량이고 수량은 최소 1로 본다", () => {
 
 test("담을 때 초기 줄: 옵션 없으면 수량 1 한 줄, 옵션 있으면 빈 목록", () => {
   assert.deepEqual(initialLines({ options: [] }), [{ value: null, quantity: 1 }]);
-  assert.deepEqual(initialLines({ options: [{ groupName: "색상", values: ["블랙"] }] }), []);
+  assert.deepEqual(
+    initialLines({ options: [{ groupName: "색상", values: [{ label: "블랙" }] }] }),
+    [],
+  );
+});
+
+test("재고는 같은 리워드의 모든 줄 수량 합의 상한이다", () => {
+  const lines = [
+    { value: "블랙", quantity: 2 },
+    { value: "화이트", quantity: 1 },
+  ];
+  assert.equal(remainingFor({}, lines), undefined);
+  assert.equal(remainingFor({ remainingStock: 5 }, lines), 2);
+  assert.equal(remainingFor({ remainingStock: 3 }, lines), 0);
 });
 
 test("옵션 줄 추가: 새 값은 줄을 만들고, 같은 값은 기존 줄 수량 +1", () => {

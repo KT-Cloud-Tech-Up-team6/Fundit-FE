@@ -39,16 +39,16 @@ test("UUID 주문 미리보기·생성·목록은 통합된 v1 계약으로 요�
   assert.equal((await previewOrder(body)).finalAmount, 17000);
   assert.equal((await createOrder(body, "attempt-key")).orderId, orderId);
   const signal = new AbortController().signal;
-  await getOrders(1, "GOAL_ACHIEVED", signal);
-  await getOrders(0, "");
+  await getOrders(1, signal);
+  await getOrders(0);
 
   assert.deepEqual(
     calls.map(({ url }) => url),
     [
       "/api/v1/orders/preview",
       "/api/v1/orders",
-      "/api/v1/orders?page=1&size=20&status=GOAL_ACHIEVED",
-      "/api/v1/orders?page=0&size=20",
+      "/api/v1/orders?page=1&size=20&sort=createdAt%2Cdesc",
+      "/api/v1/orders?page=0&size=20&sort=createdAt%2Cdesc",
     ],
   );
   for (const { init } of calls) {
@@ -86,4 +86,18 @@ test("주문 상세·취소는 v1, 결제 시도·승인은 v2와 PG 주문번�
   );
   assert.deepEqual(JSON.parse(calls[2].init.body), { fundingId: "order-uuid" });
   assert.deepEqual(JSON.parse(calls[3].init.body), confirmation);
+});
+
+test("참여 취소는 사유가 있으면 본문으로 보내고 없으면 본문 없이 보낸다", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls.push(init);
+    return Response.json({ orderId: "order-uuid", status: "CANCELLED_BY_MEMBER" });
+  });
+  await cancelOrder("order-uuid", { cancelReason: "ETC", reasonDetail: "주소 변경" });
+  await cancelOrder("order-uuid");
+  assert.deepEqual(JSON.parse(calls[0].body), { cancelReason: "ETC", reasonDetail: "주소 변경" });
+  assert.equal(calls[0].headers.get("Content-Type"), "application/json");
+  assert.equal(calls[1].body, undefined);
+  assert.equal(calls[1].headers.get("Content-Type"), null);
 });

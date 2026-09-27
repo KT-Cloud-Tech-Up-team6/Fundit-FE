@@ -99,3 +99,8 @@ export const PasswordMatched: Story = {
 export const AddressForm: Story = {
   args: { initialView: "address" },
 };
+
+/* 가입 제출이 409 ACCOUNT_ALREADY_EXISTS(본인인증한 이름+전화번호로 기존 계정 있음)로 끝난 결과 화면. */
+export const AccountExists: Story = {
+  args: { initialView: "account-exists" },
+};

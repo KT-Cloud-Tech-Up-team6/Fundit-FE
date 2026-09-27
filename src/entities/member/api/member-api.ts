@@ -51,9 +51,10 @@ export function deleteAddress(addressId: number) {
     method: "DELETE",
   });
 }
+export const WISH_PAGE_SIZE = 20;
 export function getWishes(page: number, signal?: AbortSignal) {
   return apiRequest<{ content: Wish[]; totalElements: number; hasNext: boolean }>(
-    `/api/v1/wishes?page=${page}&size=20`,
+    `/api/v1/wishes?page=${page}&size=${WISH_PAGE_SIZE}`,
     { auth: true, signal },
   );
 }

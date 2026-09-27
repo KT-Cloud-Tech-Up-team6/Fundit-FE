@@ -1,193 +1,122 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
-import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Icon } from "@/shared/components/ui/icon";
-import { SearchField } from "@/shared/components/ui/search-field";
-import {
-  actionsForStatus,
-  demoFundingHistoryItems,
-  filterFundingHistory,
-  filterFundingHistoryByPeriod,
-  formatDate,
-  formatWon,
-  fundingHistoryStatusLabel,
-  fundingHistoryStatuses,
-  fundingPeriodOptions,
-  type FundingHistoryStatus,
-  type FundingPeriod,
-} from "../model/funding-history";
+import { formatWon, type FundingCard } from "../model/funding-history";
+import { FundingActionButtons, FundingThumbnail } from "./funding-card-parts";
 
-/* ponytail: 펀딩 집계 API가 없어(docs/OPEN_DECISIONS.md P1) 목록은 useState 목업이다.
-   API가 생기면 demoFundingHistoryItems 자리를 서버 응답으로 바꾼다. */
-
-const statusFilterOptions = [
-  { value: "all", label: "전체" },
-  ...fundingHistoryStatuses.map((value) => ({ value, label: fundingHistoryStatusLabel[value] })),
-];
-
-export function FundingHistoryList({
-  referenceDate,
+/** 목록·로딩·오류가 같은 껍데기를 쓰도록 제목·breadcrumb·하단 메뉴를 한곳에 둔다. */
+export function FundingListScreen({
+  children,
+  fullPage = false,
 }: {
-  /** 기간 필터의 기준일(`yyyy-mm-dd`). 목업 결제일이 고정이라 스토리에서 날짜를 고정할 때 쓴다. */
-  referenceDate?: string;
+  children: ReactNode;
+  fullPage?: boolean;
 }) {
-  const [items] = useState(demoFundingHistoryItems);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<FundingHistoryStatus | "all">("all");
-  const [period, setPeriod] = useState<FundingPeriod>(fundingPeriodOptions[0].value);
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-
-  const filtered = useMemo(
-    () =>
-      filterFundingHistoryByPeriod(filterFundingHistory(items, query, status), period, {
-        startDate: customStartDate || undefined,
-        endDate: customEndDate || undefined,
-        referenceDate,
-      }),
-    [items, query, status, period, customStartDate, customEndDate, referenceDate],
-  );
-
   return (
     <BuyerAccountScreen
       title="참여/배송 내역"
       breadcrumb={["마이페이지", "펀딩내역"]}
-      className="flex min-w-0 flex-col"
+      fullPage={fullPage}
     >
-      <div className="bg-layer-bg min-[1200px]:bg-layer-surface-default flex flex-1 flex-col min-[1200px]:pb-16">
-        <div className="bg-layer-surface-default min-[1200px]:border-border-default flex flex-col gap-2 px-5 py-2 min-[1200px]:rounded-xs min-[1200px]:border min-[1200px]:py-4">
-          <SearchField
-            size="lg"
-            placeholder="검색어를 입력하세요"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onClear={() => setQuery("")}
-          />
-          <div className="flex items-center justify-between gap-1 pt-3 pb-2">
-            <p className="text-body-m text-text-default">총 {filtered.length}개</p>
-            <div className="flex w-[225px] items-center justify-end gap-1 min-[1200px]:w-auto">
-              <Dropdown
-                size="xs"
-                className="min-w-[88px]"
-                aria-label="기간 필터"
-                value={period}
-                options={fundingPeriodOptions}
-                onValueChange={(value) => setPeriod(value as FundingPeriod)}
-              />
-              <Dropdown
-                size="xs"
-                className="min-w-[54px]"
-                aria-label="상태 필터"
-                value={status}
-                options={statusFilterOptions}
-                onValueChange={(value) => setStatus(value as FundingHistoryStatus | "all")}
-              />
-            </div>
-          </div>
-          {period === "custom" && (
-            <div className="flex items-center gap-2" aria-label="직접 기간 선택">
-              <label className="text-caption-m text-text-secondary flex min-w-0 flex-1 items-center gap-1">
-                <span className="sr-only">시작일</span>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  max={customEndDate || undefined}
-                  onChange={(event) => setCustomStartDate(event.target.value)}
-                  className="border-border-default h-8 min-w-0 flex-1 rounded-xs border px-2"
-                />
-              </label>
-              <span aria-hidden className="text-text-secondary">
-                ~
-              </span>
-              <label className="text-caption-m text-text-secondary flex min-w-0 flex-1 items-center gap-1">
-                <span className="sr-only">종료일</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  min={customStartDate || undefined}
-                  onChange={(event) => setCustomEndDate(event.target.value)}
-                  className="border-border-default h-8 min-w-0 flex-1 rounded-xs border px-2"
-                />
-              </label>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-2 flex flex-1 flex-col gap-2">
-          {filtered.length === 0 ? (
-            <p className="text-body-m text-text-secondary bg-layer-surface-default px-5 py-10 text-center">
-              조건에 맞는 참여 내역이 없어요.
-            </p>
-          ) : (
-            filtered.map((item) => (
-              <article
-                key={item.id}
-                className="bg-layer-surface-default flex flex-col gap-4 px-4 py-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-body-emphasis text-text-default">
-                    {fundingHistoryStatusLabel[item.status]}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <p className="text-caption-m text-text-secondary">
-                      결제 일 {formatDate(item.paidAt)}
-                    </p>
-                    <Link
-                      href={`/my/fundings/${item.id}`}
-                      className="text-caption-m text-text-secondary flex items-center gap-1 p-1"
-                    >
-                      펀딩 상세
-                      <Icon name="next" className="size-3.5" />
-                    </Link>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  {/* Figma 원본 상품 썸네일을 프로젝트 자산으로 보관한다. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.imageSrc}
-                    alt=""
-                    className="size-[76px] shrink-0 rounded-xs object-cover"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <p className="text-body-m text-text-default">{item.creatorName}</p>
-                    <p className="text-body-emphasis text-text-default truncate">
-                      {item.projectTitle}
-                    </p>
-                    <p className="text-body-m text-text-default flex gap-1">
-                      <span className="truncate">{item.rewardOption}</span>
-                      <span aria-hidden>·</span>
-                      <span className="shrink-0">{item.rewardQuantity}개</span>
-                    </p>
-                    <p className="text-body-m text-text-default">{formatWon(item.amount)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {actionsForStatus(item.id, item.status).map((action) => (
-                    <Link
-                      key={action.label}
-                      href={action.href}
-                      className="border-border-default text-body-m text-text-default flex h-10 flex-1 items-center justify-center rounded-xs border px-3 text-center"
-                    >
-                      {action.label}
-                    </Link>
-                  ))}
-                </div>
-              </article>
-            ))
-          )}
-        </div>
-
-        <BuyerBottomNavigation
-          compact
-          activeHref="/my"
-          className="sticky bottom-0 mt-auto min-[1200px]:hidden"
-        />
-      </div>
+      {children}
+      <BuyerBottomNavigation
+        activeHref="/my"
+        compact
+        className="fixed inset-x-0 bottom-0 z-20 w-full min-[1200px]:hidden"
+      />
     </BuyerAccountScreen>
+  );
+}
+
+/* card_funding_item(2323:52379): 위 12px·좌우 16px, 아래 테두리 #DDDEE2. */
+function FundingCardItem({ card }: { card: FundingCard }) {
+  return (
+    <article className="border-border-default flex flex-col gap-2 border-b px-4 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-label-l shrink-0">{card.stage}</p>
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          {card.paidAt && (
+            <p className="text-label-m text-text-secondary flex gap-1 font-medium whitespace-nowrap">
+              <span>결제일</span>
+              <span>{card.paidAt}</span>
+            </p>
+          )}
+          <Link
+            href={`/my/fundings/${card.id}`}
+            className="text-caption-s flex shrink-0 items-center gap-1 font-medium"
+          >
+            펀딩 상세
+            <span className="flex px-1 py-2">
+              <Icon name="next" className="size-3.5" />
+            </span>
+          </Link>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-3">
+          <FundingThumbnail src={card.imageSrc} className="size-[76px] shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              {card.creatorName && (
+                <p className="text-caption-m text-text-secondary truncate">{card.creatorName}</p>
+              )}
+              <h2 className="text-label-l truncate">{card.projectTitle || " "}</h2>
+              <p className="text-caption-s flex gap-1">
+                <span className="truncate">{card.reward}</span>
+                <span aria-hidden>·</span>
+                <span className="shrink-0">{card.quantity}개</span>
+              </p>
+            </div>
+            <p className="text-caption-m">{formatWon(card.amount)}</p>
+          </div>
+        </div>
+        <FundingActionButtons actions={card.actions} />
+      </div>
+    </article>
+  );
+}
+
+/** 참여/배송 내역(FL_B_MY_FUND_1). 서버 목록이 검색·기간·분류를 받지 않아 필터는 두지 않는다
+    (노션 FE 자체 판단 31). 페이지 이동은 children으로 받는다. */
+export function FundingHistoryList({
+  cards,
+  total,
+  loading = false,
+  children,
+}: {
+  /** 서버가 최신순으로 준 현재 페이지. */
+  cards: FundingCard[];
+  /** 서버 전체 건수(totalElements). */
+  total: number;
+  /** 페이지를 바꾼 뒤 새 목록을 기다리는 동안 이전 목록을 보여 주고 있다. */
+  loading?: boolean;
+  /** 페이지 이동처럼 목록 아래에 덧붙일 요소. */
+  children?: ReactNode;
+}) {
+  /* 범위를 벗어난 page로 들어오면 content가 비어 있는데 totalElements는 그대로라 0개로 보인다. */
+  const count = cards.length > 0 ? total : 0;
+
+  return (
+    <FundingListScreen>
+      {/* 09-25 기록: 전체 배경색을 surface_default로 바꿨다(update_history 1143:23610). */}
+      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
+        <p className="text-body-s px-5 py-2">총 {count}개</p>
+        {loading && (
+          <p role="status" className="text-caption-m text-text-secondary px-5 pb-3">
+            목록을 불러오고 있습니다.
+          </p>
+        )}
+        <div aria-busy={loading}>
+          {cards.length === 0 ? (
+            <p className="text-body-s px-5 py-24 text-center">참여 내역이 없습니다.</p>
+          ) : (
+            cards.map((card) => <FundingCardItem key={card.id} card={card} />)
+          )}
+        </div>
+        {children}
+      </div>
+    </FundingListScreen>
   );
 }

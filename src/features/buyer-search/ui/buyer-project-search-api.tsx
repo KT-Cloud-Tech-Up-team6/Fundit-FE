@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { searchProjects } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { previousPage } from "@/shared/lib/previous-page";
 import { projectCard } from "@/entities/project/model/project-card";
 import {
   deleteRecentKeyword,
@@ -143,7 +144,10 @@ function SearchSession({ memberId, ready }: { memberId: string | null; ready: bo
         footer:
           active.data && query.tab !== "live" ? (
             <div className="mt-4 flex justify-between">
-              <Button disabled={page === 0} onClick={() => move(page - 1)}>
+              <Button
+                disabled={page === 0}
+                onClick={() => move(previousPage(page + 1, active.data) - 1)}
+              >
                 이전 페이지
               </Button>
               <span>{page + 1}</span>

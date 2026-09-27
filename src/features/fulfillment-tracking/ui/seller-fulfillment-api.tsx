@@ -14,11 +14,8 @@ import {
   type Fulfillment,
   type Stage,
 } from "@/entities/fulfillment/api/fulfillment-api";
-import {
-  ProjectPageHeader,
-  ProjectWorkspaceLayout,
-  projectManageTabs,
-} from "@/entities/project/ui/project-sidebar";
+import { ProjectPageHeader, ProjectWorkspaceLayout } from "@/entities/project/ui/project-sidebar";
+import { useProjectManageTabs } from "@/features/seller-live-clips/model/use-project-manage-tabs";
 import { ProjectMediaValidationError, uploadProjectMedia } from "@/entities/project/api/media-api";
 import { isApiError } from "@/shared/api/api-error";
 import { Button } from "@/shared/components/ui/button";
@@ -64,6 +61,7 @@ function Seller({
   projectId: string;
   shipping?: ShippingView;
 }) {
+  const manageTabs = useProjectManageTabs(projectId);
   const owner = useQuery({
     queryKey: ["fulfillment-owner", memberId, projectId],
     queryFn: ({ signal }) => getOwnedProject(projectId, signal),
@@ -89,7 +87,7 @@ function Seller({
       backLabel={shipping ? "제작 · 배송" : undefined}
       projectId={projectId}
       projectName={owner.data.title}
-      tabs={projectManageTabs}
+      tabs={manageTabs}
     >
       {/* 발송정보 표는 8열(최소 940px)이라 데모 화면처럼 폭 제한 없이 둔다. */}
       <div className={shipping ? "min-w-0 flex-1" : "max-w-[792px] min-w-0 flex-1"}>

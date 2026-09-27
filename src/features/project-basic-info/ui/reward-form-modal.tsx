@@ -16,6 +16,8 @@ type RewardFormModalProps = {
   onClose: () => void;
   onSave: () => void;
   onUpdate: (patch: Partial<RewardDraft>) => void;
+  /** 저장에 필요한 입력을 다 채웠는지. 부르는 쪽이 저장할 때 쓰는 검사와 같은 값을 넘긴다. */
+  canSave?: boolean;
   busy?: boolean;
   optionsReadOnly?: boolean;
   onFile?: (file?: File) => void;
@@ -28,6 +30,7 @@ export function RewardFormModal({
   onClose,
   onSave,
   onUpdate,
+  canSave = true,
   busy = false,
   optionsReadOnly = false,
   onFile,
@@ -157,12 +160,10 @@ export function RewardFormModal({
             shape="square"
             checked={draft.discount}
             onChange={(event) => onUpdate({ discount: event.target.checked })}
-            className="min-h-11 w-full items-start gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
+            className="min-h-11 w-full gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
           >
             <span className="text-body-emphasis">리워드 할인 설정</span>
-            <span className="text-caption-s ml-2">
-              선착순 후원자에게 별도 할인 가격 · 한정 수량으로 제공해요
-            </span>
+            <span className="text-caption-s ml-2">선착순 후원자에게 별도 할인 가격을 제공해요</span>
           </Checkbox>
           {draft.discount && (
             <div className="flex gap-2 pl-6">
@@ -204,7 +205,7 @@ export function RewardFormModal({
             checked={draft.options}
             disabled={optionsReadOnly}
             onChange={(event) => onUpdate({ options: event.target.checked })}
-            className="min-h-11 w-full items-start gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
+            className="min-h-11 w-full gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
           >
             <span className="text-body-emphasis">옵션 설정</span>
             <span className="text-caption-s ml-2">
@@ -235,7 +236,16 @@ export function RewardFormModal({
           </p>
         )}
         <div className="flex justify-end">
-          <Button type="button" appearance="cta" size="lg" className="w-[172px]" onClick={onSave}>
+          {/* Figma 리워드 추가 모달(FL_S_PR_CREATE_12~15)의 color=disabled(#CDCED4)는
+              Button 기본 비활성 토큰(#DDDEE2)과 달라 리워드 선택 시트와 같이 덮어쓴다. */}
+          <Button
+            type="button"
+            appearance="cta"
+            size="lg"
+            className="w-[172px] disabled:bg-[#cdced4]!"
+            disabled={!canSave}
+            onClick={onSave}
+          >
             등록
           </Button>
         </div>

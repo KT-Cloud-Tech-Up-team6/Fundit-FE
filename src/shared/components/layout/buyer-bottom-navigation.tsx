@@ -44,7 +44,10 @@ function NavigationAsset({
           ? `url(/icons/buyer-account/${compactAssets[name]}.svg)`
           : flat && name === "live-navigation" && selected
             ? "url(/images/buyer-live/c4001.svg)"
-            : `url(/icons/buyer-live/${name}.svg)`,
+            : /* 홈 선택 상태는 채운 아이콘이다(Figma 홈 `2315:71533`). */
+              flat && name === "home" && selected
+              ? "url(/icons/buyer-live/home-fill.svg)"
+              : `url(/icons/buyer-live/${name}.svg)`,
         maskSize: "contain",
         maskPosition: "center",
         maskRepeat: "no-repeat",

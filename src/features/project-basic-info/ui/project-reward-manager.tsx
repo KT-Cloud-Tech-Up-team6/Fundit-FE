@@ -35,6 +35,15 @@ import {
   RewardCreationUncertainError,
 } from "../model/reward-create-attempt";
 
+/** 서버 리워드 저장 전 검사. 모달의 등록 버튼 활성 조건도 같은 결과를 쓴다. */
+function rewardSaveError(draft: RewardDraft) {
+  return (
+    rewardError(draft) ||
+    rewardOptionsError(draft) ||
+    (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "")
+  );
+}
+
 /** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
 export function ProjectRewardManager({ projectId }: { projectId: string }) {
   const { state } = useAuth();
@@ -69,10 +78,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   }
   async function saveReward() {
     if (!draft || pending.current) return;
-    const error =
-      rewardError(draft) ||
-      rewardOptionsError(draft) ||
-      (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "");
+    const error = rewardSaveError(draft);
     if (error) {
       setRewardMessage(error);
       return;
@@ -290,6 +296,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
         error={rewardMessage}
         onClose={closeReward}
         onSave={() => void saveReward()}
+        canSave={draft ? !rewardSaveError(draft) : false}
         onUpdate={(patch) => {
           if ("options" in patch || "optionGroups" in patch) optionsChanged.current = true;
           setDraft((value) => (value ? { ...value, ...patch } : value));

@@ -28,6 +28,8 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 - 구매자 프로젝트 상세는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md)를 참고한다. `(buyer-project)` 그룹의 story·live-proof 탭은 전용 화면이며 나머지 탭은 기존 BuyerShell을 유지한다.
 
+- 구매자 홈은 [BUYER_HOME.md](./BUYER_HOME.md)를 참고한다. `/`는 전용 `(buyer-home)` 그룹에서 공통 구매자 데스크톱 헤더와 하단 메뉴(홈 선택)를 직접 그린다(#367). 지금 주목받는 프로젝트·실시간 LIVE는 실제 API, 히어로 배너·마감 임박·추천 프로젝트는 FE 목업이다.
+
 - 구매자 LIVE 메인은 [구현 범위와 확인 방법](./BUYER_LIVE_MAIN.md)을 참고한다. `/live`, `/live/upcoming`, `/live/[liveId]`를 전용 `(buyer-live)` 그룹에 둔다. 시청·채팅 및 다시보기 구분은 [BUYER_LIVE_ROOM.md](./BUYER_LIVE_ROOM.md)를 참고한다. 다른 구매자 화면은 기존 BuyerShell을 유지한다.
 
 - 구매자 카테고리 리스트 `/categories/[slug]`는 전용 헤더·하단 탭을 사용하는 `(buyer-category)` 그룹에 둔다. 현재 카테고리와 소분류는 화면 확인용 목업이다. `BuyerBottomNavigation`의 카테고리 탭은 `/categories/tech-appliances`(첫 번째 카테고리)로 진입하며, 진입 시 현재 경로를 `sessionStorage`(`buyer-category-return-path`, `src/shared/lib/category-return-path.ts`)에 기록해뒀다가 카테고리 탭을 다시 누르면 그 경로로 돌아간다. 기록이 없으면(예: 카테고리 탭을 거치지 않고 처음 들어온 딥링크) 홈으로 대체하고, 새로고침으로는 기록이 사라지지 않는다.
@@ -59,7 +61,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
   - #174에서 최신 4개 화면과 히스토리 `1132:22416`을 대조하고, 구매자 제작 착수의 9월 12일 기록에 누락된 `지연` 상태를 반영했습니다. 완료 단계의 일반 기록에는 지연·업데이트 배지가 붙지 않으며, 단계 아이콘·기간·DLVR4 문구는 기존 구현과 일치합니다. 공통 모바일 전체 폭 변경은 #165에 포함됩니다.
   - #225는 9월 21일 히스토리 `1886:52745`에 따라 기록의 날짜·상태 행을 배지 유무와 관계없이 24px로 통일합니다. 데스크톱의 기존 24px 규격을 유지하고 모바일·API 화면이 공유하는 `BuyerTimeline`에도 적용합니다. 추가 댓글 대상인 제작 착수 9월 18일 문구(`1548:51670`)는 기존 데이터의 3줄 개행과 `whitespace-pre-wrap`을 유지합니다. UUID 주문의 API 화면은 서버 `detailText`를 표시하므로 디자인 예시 문구로 덮어쓰지 않습니다.
   - 기본 날짜·내용은 Figma 예시(2026.09.28 기준)로 고정합니다. #70의 7일 미갱신 안내·기록 없음·미시작·완료 처리는 유지합니다. 실제 주문별 프로젝트/제작 현황 조회·인증·5단계 ↔ 배송·배송완료 enum 매핑은 `docs/OPEN_DECISIONS.md` P1이며, 판매자 상태 저장과 연동되지 않습니다.
-- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)(이후 [필수 산출물 섹션 `1143:22492`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1143-22492)로 최신화)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소/반품·교환) 원본은 `(buyer-funding)` 그룹에 두며, 1199px 이하에서는 자체 상단 앱바와 `/my`의 공통 `compact` 하단 네비게이션을 사용합니다. 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨깁니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`·`.../refund/new`는 같은 `funding-history` 슬라이스이며 데모 id로 들어온 경로만 목업이고, 카드별 상태(펀딩 진행 중·펀딩 완료·제작 중·배송 중·배송 완료)와 액션 버튼 구성은 Figma를 그대로 옮긴 표시값입니다 — Funding 상태·전이는 `docs/OPEN_DECISIONS.md` P1로 미확정입니다. `FundingCancel` 컴포넌트는 `variant="cancel"`(펀딩 취소, 사진 첨부 없음)과 `variant="return"`(펀딩 반품/교환, 사진 첨부 포함)을 함께 렌더링하며 표시 전용입니다. `.../refund/new`는 #263에서 `FundingRefundApi`가 주문·예상 환불액·제출을 연결했고, 환불 금액은 `GET /api/v1/refunds/estimate` 응답을 그대로 고지합니다. 계약이 없는 유형·사유(교환 전체, 단순변심·상품이 잘못 배송됨·구성품 누락·기타)는 원본 옵션을 남기되 제출만 막고 이유를 표시합니다. 이 화면으로 가는 링크는 주문 상세가 `availableActions`(`DEFECT_REFUND_REQUEST`·`SHIPPING_DELAY_REFUND_REQUEST`)에 따라 노출합니다. `.../cancel`은 UUID 주문이면 `FundingDetailApi`가 `POST /api/v1/orders/{orderId}/cancel`로 처리하고, 데모 id만 `FundingCancelDemo`가 목업으로 렌더링합니다 — 이 경로에는 제출 계약이 없어 확인 후 목록으로 돌아갑니다. `FL_B_MY_FUND_CL_2`(확인 모달)는 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
+- 구매자 참여/배송 내역은 [공유 Figma의 참여/배송 내역 영역](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=891-8900)(이후 [필수 산출물 섹션 `1143:22492`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1143-22492)로 최신화)을 기준으로 합니다. `FL_B_MY_FUND`(목록)·`FL_B_MY_FUND_MNG`(상세)·`FL_B_MY_FUND_CL`(취소/반품·교환) 원본은 `(buyer-funding)` 그룹에 두며, 1199px 이하에서는 자체 상단 앱바와 `/my`의 공통 `compact` 하단 네비게이션을 사용합니다. 1200px 이상에서는 공통 구매자 데스크톱 헤더·breadcrumb·793px 콘텐츠 열을 사용하고 하단 메뉴를 숨깁니다. `/my/fundings`·`/my/fundings/[fundingId]`·`.../cancel`·`.../refund/new`는 같은 `funding-history` 슬라이스이며 데모 id로 들어온 경로만 목업입니다. #359부터 목록·상세는 주문 응답의 `progressStage`·`availableActions`·`refundRequests`로 단계 문구와 버튼을 정리표 `2323:53727`대로 그리고, 데모 id도 같은 화면에 목업 응답을 넣습니다([API 계약](./API_CONTRACT.md#2026-09-27-펀딩-내역-목록상세-연결-359)). 목록은 서버가 검색·기간·분류를 받지 않아 필터 없이 최신순 20건씩 페이지를 넘깁니다. `FundingCancel` 컴포넌트는 `variant="cancel"`(펀딩 취소 `CL_1~3`), `variant="shipping-delay"`(발송 지연 취소 `CL_1-1`), `variant="return"`(리워드 반품/교환 `CL_4~8`, 사진 첨부 포함)을 렌더링하며 표시 전용입니다. #358부터 `.../cancel`은 UUID 주문이면 `FundingCancelApi`가 주문의 `availableActions`로 펀딩 취소(`CANCEL`)·발송 지연 취소(`SHIPPING_DELAY_REFUND_REQUEST`)·취소 불가 안내 중 하나를 열고, `.../refund/new`는 `FundingRefundApi`가 유형·사유에 맞춰 `/return`·`/defect`·`/exchange`로 제출합니다. 금액은 유형·사유별 `GET /api/v1/refunds/estimate` 응답을 그대로 고지합니다([API 계약](./API_CONTRACT.md#2026-09-27-취소반품교환-신청-계약-반영-358)). 목록·상세는 반품·교환 액션이 있으면 반품·교환 화면(`?type=` 없음)으로, `CANCEL`·`SHIPPING_DELAY_REFUND_REQUEST`면 취소 화면으로 링크하고, 신청 이력이 있으면 `/my/refunds?type=`의 내역으로 보냅니다. 데모 id는 `FundingCancelDemo`가 목업 금액으로 렌더링하며 제출 계약이 없어 확인 후 목록으로 돌아갑니다. 확인 모달(`CL_9`, 반품 `2323:53647`)은 별도 URL 없이 같은 화면의 다이얼로그 상태로 구현했습니다.
 
 ## 공통·인증
 
@@ -82,7 +84,7 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 | URL                                    | 화면                    | 접근 조건                 | 상태                                                    |
 | -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
-| `/`                                    | 홈 (→ `/live` redirect) | public                    | 원본 없음                                               |
+| `/`                                    | 홈                      | public                    | implemented (주목·LIVE 실제 API, 나머지 목업, #367)     |
 | `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
 | `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | `/live`로 redirect (next.config, #307)                  |
 | `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
@@ -108,7 +110,11 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 리워드 선택은 #223에서 [9월 21일 작업 히스토리 `1071:10318`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1071-10318)와 최신 `FL_B_PY_RWRD_1~7`(`1867:48973`~`1867:49809`)을 대조했습니다. 선택 카드의 삭제 버튼은 32×32px 터치 영역 안에 14px 아이콘을 우측 상단에 배치합니다. 드롭다운의 마지막 항목에는 구분선을 표시하지 않습니다. 지시문 `1441:72103`에 따라 리워드를 선택하면 드롭다운이 즉시 닫히고 새 선택 카드가 맨 위에 추가되며, 드롭다운을 다시 펼치면 선택 카드 목록은 최대 높이 128px에서 세로 스크롤됩니다. 삭제 버튼의 프로토타입 클릭 연결은 목적지 ID가 비어 있어 화면 간 이동 근거로 사용하지 않습니다. 이 변경은 기존 목업 리워드 선택 UI에 적용하며 실제 API 주문·결제 연동 완료를 의미하지 않습니다.
 
-스타터는 정가 219,900원·판매가 199,000원·무료배송이며 누적 수량·얼리버드·유효 쿠폰·적립금으로 최종 금액을 계산합니다. 주문·배송지 정보는 브라우저 저장소에 기록하지 않으며 새로고침 시 초기화합니다. 선택 없는 주문서·영수증 없는 완료 URL은 안내와 복귀 링크를 표시합니다. 기존 펀딩 내역은 별도 조회 목업이며 주문 저장·목록 동기화는 포함하지 않습니다.
+#368부터 실제(UUID) 프로젝트도 같은 리워드 선택 UI(웹 인라인 폼·모바일 바텀시트)를 씁니다. 리워드 조회 응답을 시트 모델로 옮기고, 펀딩하기는 담은 줄을 `items` 쿼리(`[{rewardId, quantity, optionValueIds}]`, 옵션 조합마다 한 줄)로 실제 주문서 `/funding/{UUID}/checkout`에 넘깁니다. 주문서는 회원 전용이라 비로그인이면 선택이 담긴 주소를 `returnTo`로 로그인했다가 돌아오고, 주문 생성 후 `/payment/{orderId}`로 교체 이동합니다. 주문서는 넘겨받은 줄을 그대로 주문하고 고치지 않습니다(#373에서 원본에 없는 "리워드 변경" 모달 제거). `items`가 없거나 형식이 잘못되면 로그인을 거치지 않고 데모 주문서처럼 "리워드를 먼저 선택해주세요." 안내와 상세(`/projects/{UUID}`) 복귀 링크를 표시합니다. 리워드 조회 결과와 맞지 않는 줄(품절·재고 초과·옵션 불일치·없는 리워드)이 있으면 주문 생성을 막고 같은 복귀 링크를 둡니다. 데모 프로젝트는 메모리 세션 흐름을 그대로 씁니다. 카드 표시·옵션·재고 규칙은 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md#실제-프로젝트-리워드-선택-368)에 둡니다.
+
+#382부터 실제 주문서도 데모와 같은 Figma 주문서(`FL_B_PY_ORD_1` `1534:54000`) 배치를 씁니다. 배송지(없음·미입력 경고·있음, 저장 배송지 선택·신규 배송지), 주문 상품(프로젝트 썸네일·제목 한 번, 옵션 줄마다 리워드·수량·예상 발송일·금액), 쿠폰 적용, 결제 금액(총 주문 금액·펀딩 금액·배송비·총 할인 금액·쿠폰 사용·최종 결제 금액), "N원 결제" 버튼 순서이며 결제 금액은 BE 주문 미리보기 값입니다. 결제 수단·적립금 영역은 두지 않고, 결제 버튼은 주문을 만든 뒤 `/payment/{orderId}`로 교체 이동해 Toss 결제위젯에서 결제 수단을 고릅니다. 실제·데모 주문서의 차이는 [BUYER_PROJECT_DETAIL.md](./BUYER_PROJECT_DETAIL.md#실제-주문서-382)에 둡니다.
+
+데모 주문서의 스타터는 정가 219,900원·판매가 199,000원·무료배송이며 누적 수량·얼리버드·유효 쿠폰·적립금으로 최종 금액을 계산합니다. 데모 주문·배송지 정보는 브라우저 저장소에 기록하지 않으며 새로고침 시 초기화합니다. 선택 없는 주문서·영수증 없는 완료 URL은 안내와 복귀 링크를 표시합니다. 기존 펀딩 내역은 별도 조회 목업이며 주문 저장·목록 동기화는 포함하지 않습니다.
 
 결제 시트는 공통 BottomSheet의 내부 간격을 맞추기 위해 범위가 제한된 CSS Module을 사용합니다. 비활성 CTA는 이 영역 Figma의 `button/disabled` 값 `#cdced4`를 사용합니다. 기존 공통 보조 버튼 색과 달라 이 영역에만 예외를 적용합니다.
 
@@ -125,12 +131,12 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | URL                                            | 화면                     | 접근 조건        | 상태               |
 | ---------------------------------------------- | ------------------------ | ---------------- | ------------------ |
 | `/my`                                          | 마이페이지               | member           | implemented (목업) |
-| `/my/fundings`                                 | 펀딩내역                 | member           | implemented (목업) |
-| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented (목업) |
-| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소                | owner + eligible | implemented (목업) |
+| `/my/fundings`                                 | 펀딩내역                 | member           | implemented        |
+| `/my/fundings/[fundingId]`                     | 개별 펀딩 관리           | owner            | implemented        |
+| `/my/fundings/[fundingId]/cancel`              | 펀딩 취소·발송 지연 취소 | owner + eligible | implemented        |
 | `/my/fundings/[fundingId]/fulfillment`         | 제작·배송 현황           | owner            | implemented (목업) |
 | `/my/fundings/[fundingId]/fulfillment/history` | 제작·배송 세부 진행 기록 | owner            | implemented (목업) |
-| `/my/fundings/[fundingId]/refund/new`          | 펀딩 반품·교환           | owner + eligible | implemented        |
+| `/my/fundings/[fundingId]/refund/new`          | 리워드 반품·교환         | owner + eligible | implemented        |
 | `/my/refunds`                                  | 취소·환불·교환 내역      | member           | implemented        |
 | `/my/wishlist`                                 | 관심 목록                | member           | implemented        |
 | `/my/notifications`                            | 알림함                   | member           | placeholder        |
@@ -145,20 +151,20 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 ## 판매자
 
-| URL                                     | 화면                    | 접근 조건               | 상태                                                                    |
-| --------------------------------------- | ----------------------- | ----------------------- | ----------------------------------------------------------------------- |
-| `/seller/projects`                      | 프로젝트 목록           | member + seller consent | implemented                                                             |
-| `/seller/live`                          | LIVE 스튜디오 홈        | member + seller consent | implemented                                                             |
-| `/seller/projects/new`                  | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                             |
-| `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment` 구현) |
-| `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder (`FL_S_PR_PREV`는 스토리 작성의 미리보기 모달이 담당)       |
-| `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                             |
-| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | implemented                                                             |
-| `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                             |
-| `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                             |
-| `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                             |
+| URL                                     | 화면                    | 접근 조건               | 상태                                                                           |
+| --------------------------------------- | ----------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `/seller/projects`                      | 프로젝트 목록           | member + seller consent | implemented                                                                    |
+| `/seller/live`                          | LIVE 스튜디오 홈        | member + seller consent | implemented                                                                    |
+| `/seller/projects/new`                  | 프로젝트 기본정보 등록  | member + seller consent | implemented                                                                    |
+| `/seller/projects/[projectId]`          | 프로젝트 작성·운영 탭   | owner                   | 부분 구현 (`story`·`basic-info`·`rewards`·`funding`·`fulfillment`·`live` 구현) |
+| `/seller/projects/[projectId]/preview`  | 구매자 화면 미리보기    | owner                   | placeholder (`FL_S_PR_PREV`는 스토리 작성의 미리보기 모달이 담당)              |
+| `/seller/projects/[projectId]/shipping` | 발송정보                | owner                   | implemented                                                                    |
+| `/seller/projects/[projectId]/live/new` | LIVE 생성               | owner                   | implemented                                                                    |
+| `/seller/live/[liveId]/cue-sheet`       | AI 큐시트               | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/console`         | LIVE 송출·채팅·Copilot  | live owner              | implemented                                                                    |
+| `/seller/live/[liveId]/review`          | 방송 후 검증·하이라이트 | live owner              | placeholder                                                                    |
 
-`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, 프로젝트별 회차 관리는 `/seller/projects/[projectId]?tab=live`에서 처리합니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #322부터 필수 항목에 동의하고 만든 프로젝트는 생성 직후 `POST /privacy-consent`로 개인정보 수집 동의를 서버에 기록합니다. BE에는 이 값 하나만 있어 선택 약관은 저장하지 않습니다.
+`/seller/live`는 판매자 GNB의 LIVE 스튜디오 진입점이고, `/seller/projects/[projectId]?tab=live`는 프로젝트의 LIVE 클립 관리(`FL_S_LV_CLIP`)입니다. 개인정보 동의는 최신 Figma `1539:55349`에 따라 판매자 최초 진입이 아닌 프로젝트 신규 생성마다 `/seller/projects/new`에서 받습니다. 필수 3종 동의 후 기본 정보를 작성하며, 동의 모달을 닫으면 `/seller/projects`로 돌아갑니다. #322부터 필수 항목에 동의하고 만든 프로젝트는 생성 직후 `POST /privacy-consent`로 개인정보 수집 동의를 서버에 기록합니다. BE에는 이 값 하나만 있어 선택 약관은 저장하지 않습니다.
 
 ## 쿼리 규칙
 
@@ -175,10 +181,11 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 - 프로젝트 상세 `tab`은 `story`, `live-proof`, `news`, `community`, `supporters`, `refund-policy`, `reward-info`, `maker`를 허용합니다.
 - LIVE `mode`는 `live`, `replay`를 사용하며 서버 LIVE 상태를 최종 기준으로 삼습니다.
 - 다시보기의 `view=clip`은 숏 클립 표시를 선택합니다. 구간 탐색은 화면 내부 상태로 전환합니다. UUID 라이브는 `&clip={highlightId}`가 가리키는 쇼츠(`clipUrl`)를 재생하고, 없거나 맞지 않으면 첫 쇼츠를 재생합니다(#317). 데모 id는 서버·영상 미연결 목업입니다. [BUYER_LIVE_REPLAY.md](./BUYER_LIVE_REPLAY.md)를 참고합니다.
-- 환불 `type`은 `cancel`, `defect`, `delay`를 사용하며 서버 eligibility가 진입 가능 여부를 결정합니다.
+- 반품·교환 신청(`.../refund/new`)은 #358부터 `type` 쿼리를 읽지 않고 유형·사유를 비워 둔 채 엽니다. 발송 지연 취소는 `.../cancel`이 주문의 `availableActions`로 엽니다. 진입 가능 여부는 서버 eligibility가 결정합니다.
 - 판매자 프로젝트 목록 `status`는 `active`, `draft`, `closed`를 사용하고 미지정·잘못된 값은 `active`로 정규화합니다.
 - 판매자 프로젝트 목록 `page`는 1부터 시작하고 API 호출 시 서버 기준으로 변환합니다.
 - 판매자 프로젝트 `tab`은 `basic-info`, `story`, `rewards`, `refund-policy`, `news`, `funding`, `community`, `fulfillment`, `live`를 허용합니다. 정산 관리(`settlement`)는 MVP에서 빠져 허용 값에서 걷었습니다 — 직접 들어오면 기본 탭으로 보냅니다.
+- `live` 탭은 LIVE 클립 관리(`FL_S_LV_CLIP`, Figma `2321:46422`, #366)입니다. 판매자가 종료된 LIVE의 AI 숏 클립마다 상세페이지 공개 여부를 정하고 [저장]합니다. 운영 사이드바의 "LIVE 클립 관리"는 그 프로젝트에 종료된 LIVE가 하나 이상 있을 때만 보입니다(PM 2026-09-23). 없는 프로젝트에서 주소로 들어오면 빈 목록입니다. 카드는 6개씩이고 `page`는 1부터 셉니다. 숫자가 아니면 첫 페이지, 범위를 넘으면 마지막 페이지를 보여 주며 다른 쿼리는 유지합니다. 저장 전 토글은 페이지를 옮겨도 유지되고, 화면을 떠나면 경고 없이 사라집니다. 데모 프로젝트 id는 placeholder입니다.
 - `basic-info`·`rewards` 탭은 데모 프로젝트 id에서도 실제 기본 정보·리워드 화면과 API로 연결합니다(placeholder 우회 없음). `refund-policy`·`community`·`news` 탭은 IA상 제외 범위(정산관리와 동일하게 후순위)라 실제 화면 없이 사이드바에서 비활성 처리하고 링크·prefetch를 제거했습니다(#285).
 - LIVE 검토 `tab`은 `verification`, `highlights`를 허용합니다.
 
@@ -188,7 +195,6 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 
 | 이전 URL                                         | 이동 URL                                       |
 | ------------------------------------------------ | ---------------------------------------------- |
-| `/`                                              | `/live`                                        |
 | `/auth/signup/terms`                             | `/auth/signup`                                 |
 | `/auth/signup/done`                              | `/auth/signup/complete`                        |
 | `/auth/recovery?view=email`                      | `/auth/recovery/email`                         |
@@ -203,7 +209,7 @@ PG·서버 주문 검증·인증, 실제 쿠폰·적립금·배송지 저장은 
 | `/seller/projects/[projectId]/live-proof`        | `/seller/projects/[projectId]?tab=live`        |
 | `/seller/live/[liveId]/setup`                    | `/seller/live/[liveId]/cue-sheet`              |
 
-구매자 홈은 Figma에 화면 원본이 없고 [소비자 핵심 플로우 `1087:18097`](https://www.figma.com/design/ifJ8lcDbezIb223WrS5m6d/?node-id=1087-18097)도 `LIVE 탭 이동`에서 시작합니다. 화면을 임의로 만들지 않고 `next.config.ts`의 라우팅 레벨 redirect로 `/live`에 보냅니다. 정적 라우트라 페이지 `redirect()`는 1초 `meta refresh`가 되므로 사용하지 않으며, 홈 디자인이 확정되면 되돌립니다. 목적지 미정 링크의 비활성 처리와 함께 [BUYER_FLOW_CONTINUITY.md](./BUYER_FLOW_CONTINUITY.md)에 기록합니다.
+`/`는 홈 원본이 없던 동안 `next.config.ts`의 redirect로 `/live`에 보냈습니다. 2026-09-25 홈 Figma `2315:72822`가 정식 범위가 되어 #367에서 redirect를 지우고 `/`에 홈 화면을 두었습니다([BUYER_HOME.md](./BUYER_HOME.md)). 이전 경위는 [BUYER_FLOW_CONTINUITY.md](./BUYER_FLOW_CONTINUITY.md)에 남깁니다.
 
 ## 접근 제어 계약
 
