@@ -1,0 +1,43 @@
+.screen a:focus-visible,
+.screen button:focus-visible,
+.screen [tabindex]:focus-visible {
+  outline: 2px solid var(--border-primary);
+  outline-offset: -2px;
+}
+
+/* 가로 목록·배너는 스크롤바를 숨기고 데스크톱 마우스 드래그(useHorizontalDrag)로도 넘긴다.
+   mobileScroller는 1200px 이상에서 격자·한 줄로 펼쳐져 넘길 것이 없는 목록이다. */
+.scroller,
+.mobileScroller {
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar,
+.mobileScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scroller {
+  cursor: grab;
+  user-select: none;
+}
+
+@media (max-width: 1199.98px) {
+  .mobileScroller {
+    cursor: grab;
+    user-select: none;
+  }
+}
+
+.scroller[data-dragging],
+.mobileScroller[data-dragging] {
+  cursor: grabbing;
+}
+
+.heroTrack {
+  scroll-snap-type: x mandatory;
+}
+
+.heroSlide {
+  scroll-snap-align: start;
+}

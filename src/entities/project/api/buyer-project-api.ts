@@ -84,6 +84,15 @@ export function searchProjects(
     auth: authenticated,
   });
 }
+/**
+ * 홈 "지금 주목받는 프로젝트"(search-service). 진행 중 프로젝트를 참여자·찜 많은 순으로 준다.
+ * 페이지 없이 `size`개(기본 20, 최대 100)만 오고, 카드 모양은 검색 상품 탭과 같다. 비인증이다.
+ */
+export function getHomeFeed(size: number, signal?: AbortSignal) {
+  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?size=${size}`, {
+    signal,
+  });
+}
 export function getPublicProject(id: string, signal?: AbortSignal) {
   return apiRequest<PublicProject>(`/api/v1/projects/${id}`, { signal });
 }
