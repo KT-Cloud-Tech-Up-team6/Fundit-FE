@@ -15,6 +15,7 @@ import {
 } from "@/entities/project/api/project-management-api";
 import { NoticeDetail } from "./notice-detail";
 import { formatNoticeDate } from "../model/notice-date";
+import { noticePageCount } from "../model/notice-pages";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Badge } from "@/shared/components/ui/badge";
@@ -325,12 +326,7 @@ export function ProjectCommunityApi({
     notices.data && Number.isFinite(notices.data.totalElements)
       ? Math.max(0, notices.data.totalElements)
       : (notices.data?.content.length ?? 0);
-  const noticeTotalPages =
-    notices.data && Number.isFinite(notices.data.totalPages) && notices.data.totalPages >= 1
-      ? Math.floor(notices.data.totalPages)
-      : notices.data?.hasNext
-        ? page + 2
-        : page + 1;
+  const noticeTotalPages = noticePageCount(notices.data, page);
   const [expanded, setExpanded] = useState<number | null>(null);
   return (
     <section className="w-full max-w-198">
