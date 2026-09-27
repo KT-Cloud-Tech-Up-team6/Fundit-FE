@@ -1,10 +1,11 @@
 import { apiRequest } from "@/shared/api/client";
 
-/** `GET /api/v1/follows` 항목(BE `FollowListItemResponse`). */
+/** `GET /api/v1/follows` 항목(BE `FollowListItemResponse`). 이름은 회원 실명, 닉네임은 회원 닉네임이다.
+    BE가 null 필드를 응답에서 빼므로 둘 다 없을 수 있다. */
 export type FollowedSeller = {
   sellerId: string;
-  sellerName: string;
-  sellerNickname: string;
+  sellerName?: string;
+  sellerNickname?: string;
   createdAt: string;
 };
 
@@ -19,6 +20,16 @@ type FollowPage = {
 
 /** BE가 받는 한 페이지 최대 크기다. */
 const FOLLOW_PAGE_SIZE = 100;
+/** 관심 목록 팔로잉 탭 한 페이지 크기. 찜 탭과 같다. */
+export const FOLLOW_LIST_PAGE_SIZE = 20;
+
+/** 관심 목록 팔로잉 탭 한 페이지. BE 정렬은 팔로우한 최신순이다. */
+export function getFollows(page: number, signal?: AbortSignal) {
+  return apiRequest<FollowPage>(`/api/v1/follows?page=${page}&size=${FOLLOW_LIST_PAGE_SIZE}`, {
+    auth: true,
+    signal,
+  });
+}
 
 /* 판매자 한 명을 팔로우하는지 묻는 API가 없어 LIVE 시청 화면의 팔로우 여부와 LIVE 메인의
    "팔로우한 창작자" 모두 내 팔로우 목록 전체로 판단한다. 두 화면이 같은 결과를 쓰도록 키를 하나로 둔다. */
