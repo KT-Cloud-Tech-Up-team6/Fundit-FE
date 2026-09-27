@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   answeredByName,
+  draftUnavailable,
   formatElapsed,
   formatOrderStats,
   formatUpdatedAgo,
@@ -134,4 +135,11 @@ test("LIVE 체크는 한 건씩 올리고 이미 올린 질문은 추가된 것�
     ["a", "b", "c", "d", "e"].map((id) => ({ questionSummaryId: id, answer: `답변 ${id}` })),
   );
   assert.deepEqual(result, { failed: ["b", "e", "missing"], notReady: ["d"] });
+});
+
+test("초안 응답에 draftAnswer가 없거나 null이면 초안 없음으로, 조회 전에는 판단하지 않는다", () => {
+  assert.equal(draftUnavailable(undefined), false);
+  assert.equal(draftUnavailable({ referenceChunks: [], sent: false }), true);
+  assert.equal(draftUnavailable({ draftAnswer: null, referenceChunks: [], sent: false }), true);
+  assert.equal(draftUnavailable({ draftAnswer: "초안", referenceChunks: [], sent: false }), false);
 });

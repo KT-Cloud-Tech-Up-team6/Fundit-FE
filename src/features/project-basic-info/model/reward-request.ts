@@ -8,11 +8,11 @@ export function rewardToDraft(reward: RewardResponse): DemoReward {
     description: reward.description,
     price: String(reward.price),
     limited: reward.isLimited,
-    quantity: reward.quantity === null ? "" : String(reward.quantity),
+    quantity: reward.quantity == null ? "" : String(reward.quantity),
     discount: reward.isEarlyBird,
     discountUnit: reward.earlyBirdDiscountType === "RATE" ? "percent" : "won",
     discountValue:
-      reward.earlyBirdDiscountValue === null ? "" : String(reward.earlyBirdDiscountValue),
+      reward.earlyBirdDiscountValue == null ? "" : String(reward.earlyBirdDiscountValue),
     imageName: reward.imageUrl ?? "",
     options: reward.hasOption,
     optionGroups: (reward.options ?? []).map((group) => ({

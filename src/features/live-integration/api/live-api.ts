@@ -30,7 +30,8 @@ export type Insight = {
 };
 export type PendingQuestion = { questionId: string; representativeText: string; count: number };
 export type OriginalMessage = { commentId: string; content: string; atMs: number };
-export type AnswerDraft = { draftAnswer: string | null; referenceChunks: string[]; sent: boolean };
+/** 초안을 만들지 못하면 BE가 null인 `draftAnswer`를 응답에서 뺀다(non_null). */
+export type AnswerDraft = { draftAnswer?: string | null; referenceChunks: string[]; sent: boolean };
 
 const livePath = (liveId: string) => `/api/v1/lives/${encodeURIComponent(liveId)}`;
 

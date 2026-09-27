@@ -1,22 +1,24 @@
 import { apiRequest } from "../../../shared/api/client";
 
+/** BE `RewardResponse`. null인 필드는 응답에서 빠진다(non_null) — 무제한 리워드의 `quantity`,
+    얼리버드가 아닌 리워드의 할인 필드 등. */
 export type RewardResponse = {
   rewardId: number;
   rewardDisplayCode: string;
   name: string;
   description: string;
-  imageUrl: string | null;
+  imageUrl?: string | null;
   price: number;
   isLimited: boolean;
-  quantity: number | null;
+  quantity?: number | null;
   hasOption: boolean;
   sortOrder: number;
   isEarlyBird: boolean;
-  earlyBirdDiscountType: "AMOUNT" | "RATE" | null;
-  earlyBirdDiscountValue: number | null;
-  earlyBirdDiscountedPrice: number | null;
-  shippingFee: number | null;
-  estimatedDeliveryDays: number | null;
+  earlyBirdDiscountType?: "AMOUNT" | "RATE" | null;
+  earlyBirdDiscountValue?: number | null;
+  earlyBirdDiscountedPrice?: number | null;
+  shippingFee?: number | null;
+  estimatedDeliveryDays?: number | null;
   simpleRefundDisabled: boolean;
   options: {
     groupId: number;

@@ -121,3 +121,12 @@ test("서명 URL에는 인증 정보를 보내지 않고 PUT 실패를 저장 �
   assert.equal(uploadInit.body, file);
   assert.equal(uploadInit.headers.Authorization, undefined);
 });
+
+test("BE가 빼고 보낸 수량·할인값은 빈 입력으로 복원한다(undefined 문자열이 되지 않는다)", () => {
+  const omitted = { ...reward, isEarlyBird: false };
+  delete omitted.quantity;
+  delete omitted.earlyBirdDiscountValue;
+  const draft = rewardToDraft(omitted);
+  assert.equal(draft.quantity, "");
+  assert.equal(draft.discountValue, "");
+});
