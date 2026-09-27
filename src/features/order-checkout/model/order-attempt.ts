@@ -9,6 +9,31 @@ import {
 
 export class OrderAttemptError extends Error {}
 
+/** 서버가 주문 생성을 확정적으로 거절했다. 주문은 만들어지지 않았다(#387). `code`는 BE 오류 코드다. */
+export class OrderRejectedError extends OrderAttemptError {
+  constructor(readonly code: string) {
+    super(rejectedOrderMessage(code));
+  }
+}
+
+/* BE 메시지에는 `rewardId=…`·`couponCode=…` 같은 내부 값이 있어 코드별 문구를 쓴다
+   (BE OrderCreateService·OrderPricingService가 주문 생성에서 던지는 코드). */
+function rejectedOrderMessage(code: string) {
+  switch (code) {
+    case "INSUFFICIENT_STOCK":
+      return "남은 수량이 부족한 리워드가 있어 주문하지 못했습니다. 수량을 확인해주세요.";
+    case "COUPON_BUDGET_EXCEEDED":
+    case "COUPON_EXHAUSTED":
+      return "쿠폰이 모두 소진되어 주문하지 못했습니다. 쿠폰을 다시 선택해주세요.";
+    case "COUPON_NOT_APPLICABLE":
+      return "적용할 수 없는 쿠폰이 있어 주문하지 못했습니다. 쿠폰을 다시 선택해주세요.";
+    case "NOT_FOUND":
+      return "주문할 수 없는 리워드나 옵션이 있어 주문하지 못했습니다. 프로젝트에서 리워드를 다시 선택해주세요.";
+    default:
+      return "주문 내용을 확인하지 못해 주문하지 못했습니다. 리워드와 쿠폰을 확인한 뒤 다시 시도해주세요.";
+  }
+}
+
 type AttemptStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 /** 주문 시도 하나. `order`가 없으면 서버가 주문을 만들었는지 아직 모른다. */
@@ -82,7 +107,7 @@ async function send(
       !unconfirmedStatuses.has(error.status)
     ) {
       storage.removeItem(storageKey);
-      throw error;
+      throw new OrderRejectedError(error.code);
     }
     throw new OrderAttemptError(
       "주문 결과를 확인하지 못했습니다. 다시 시도하면 같은 주문으로 이어집니다.",
