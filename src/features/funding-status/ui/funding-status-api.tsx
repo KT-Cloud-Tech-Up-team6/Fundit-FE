@@ -67,7 +67,7 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
         backerCount: data.participantCount,
         wishlistCount: wishes.data.wishCount,
         openAlertCount: wishes.data.openNotifyCount,
-        dday: data.remainingDays === null ? "기간 미정" : ddayLabel(data.remainingDays),
+        dday: data.remainingDays == null ? "기간 미정" : ddayLabel(data.remainingDays),
         closedBadge:
           project.status === "SUCCEEDED"
             ? { label: "펀딩 성공", variant: "success" }

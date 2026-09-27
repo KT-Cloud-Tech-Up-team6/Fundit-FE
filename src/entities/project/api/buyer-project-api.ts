@@ -44,7 +44,8 @@ export type PublicProject = {
     currentAmount: number;
     achievementRate: number;
     participantCount: number;
-    remainingDays: number | null;
+    /** 마감이 없으면 BE가 null로 계산하고 키를 뺀다(non_null). */
+    remainingDays?: number | null;
     /** 펀딩 마감 시각(UTC ISO). 마감이 없으면 BE가 키를 뺀다. */
     fundingDeadline?: string;
   };
