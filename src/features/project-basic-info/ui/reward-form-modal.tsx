@@ -23,6 +23,12 @@ type RewardFormModalProps = {
   onFile?: (file?: File) => void;
 };
 
+/* 필드 라벨은 Figma Title/Semibold_18(1200px 이상), 모바일은 16px로 줄인다(#394). */
+const labelClass = "text-body-emphasis min-[1200px]:text-title-s";
+/* 할인·옵션 배너 설명은 모바일에서 제목 옆에 붙으면 어색하게 줄바꿈돼 제목 아래 줄로 둔다(#394). */
+const bannerDescriptionClass =
+  "text-caption-s block break-keep min-[1200px]:ml-2 min-[1200px]:inline";
+
 export function RewardFormModal({
   draft,
   editing,
@@ -49,10 +55,14 @@ export function RewardFormModal({
       size="m"
       title={editing ? "리워드 수정" : "리워드 추가"}
     >
-      {/* Figma modal_web content: 필드·옵션·CTA 묶음 사이 간격은 모두 24px이다. */}
-      <fieldset disabled={busy} className="mt-6 min-w-0 space-y-6">
+      {/* Figma modal_web content: 필드·옵션·CTA 묶음 사이 간격은 모두 24px이다. 모바일 원본은 없어
+          1199px 이하는 간격 16px·라벨 16px로 줄인다(#394, 노션 FE 자체 판단 95). */}
+      <fieldset
+        disabled={busy}
+        className="mt-4 min-w-0 space-y-4 min-[1200px]:mt-6 min-[1200px]:space-y-6"
+      >
         <label className="block space-y-2">
-          <span className="text-title-s">리워드 명</span>
+          <span className={labelClass}>리워드 명</span>
           <Input
             size="md"
             shape="compact"
@@ -63,7 +73,7 @@ export function RewardFormModal({
           />
         </label>
         <div className="space-y-2">
-          <p className="text-title-s">리워드 이미지</p>
+          <p className={labelClass}>리워드 이미지</p>
           <div className="flex gap-2">
             <Input
               size="md"
@@ -96,7 +106,7 @@ export function RewardFormModal({
           </div>
         </div>
         <label className="block space-y-2">
-          <span className="text-title-s">리워드 설명</span>
+          <span className={labelClass}>리워드 설명</span>
           <Input
             size="md"
             shape="compact"
@@ -108,7 +118,7 @@ export function RewardFormModal({
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-2">
-            <span className="text-title-s block">가격</span>
+            <span className={`${labelClass} block`}>가격</span>
             <Input
               size="md"
               shape="compact"
@@ -123,7 +133,7 @@ export function RewardFormModal({
           </label>
           <div className="space-y-2">
             <div className="flex h-[26px] items-center justify-between">
-              <label className="text-title-s" htmlFor="reward-quantity">
+              <label className={labelClass} htmlFor="reward-quantity">
                 수량
               </label>
               <Checkbox
@@ -163,10 +173,13 @@ export function RewardFormModal({
             className="min-h-11 w-full gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
           >
             <span className="text-body-emphasis">리워드 할인 설정</span>
-            <span className="text-caption-s ml-2">선착순 후원자에게 별도 할인 가격을 제공해요</span>
+            <span className={bannerDescriptionClass}>
+              선착순 후원자에게 별도 할인 가격을 제공해요
+            </span>
           </Checkbox>
           {draft.discount && (
-            <div className="flex gap-2 pl-6">
+            /* 원본에 켠 상태가 없어 입력칸을 할인 배너에 붙이고 아래 옵션 배너와는 16px 띄운다(#394). */
+            <div className="mt-1 mb-4 flex gap-2 pl-6">
               <Input
                 size="md"
                 shape="compact"
@@ -208,7 +221,7 @@ export function RewardFormModal({
             className="min-h-11 w-full gap-2 py-2 [&>span:first-of-type]:m-1 [&>span:first-of-type]:size-5"
           >
             <span className="text-body-emphasis">옵션 설정</span>
-            <span className="text-caption-s ml-2">
+            <span className={bannerDescriptionClass}>
               색상·사이즈처럼 후원자가 고를 수 있는 옵션이 있다면 켜주세요
             </span>
           </Checkbox>
@@ -219,10 +232,13 @@ export function RewardFormModal({
             </p>
           )}
           {!optionsReadOnly && draft.options && (
-            <RewardOptionEditor
-              groups={draft.optionGroups ?? []}
-              onChange={(optionGroups) => onUpdate({ optionGroups })}
-            />
+            /* 할인 입력칸처럼 옵션 편집도 배너에 붙이지 않고 위를 띄운다(#394). */
+            <div className="mt-2">
+              <RewardOptionEditor
+                groups={draft.optionGroups ?? []}
+                onChange={(optionGroups) => onUpdate({ optionGroups })}
+              />
+            </div>
           )}
           {editing && draft.simpleRefundDisabled !== undefined && (
             <Checkbox shape="square" checked={Boolean(draft.simpleRefundDisabled)} disabled>
