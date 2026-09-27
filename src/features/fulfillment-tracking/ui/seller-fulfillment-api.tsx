@@ -20,6 +20,7 @@ import { ProjectMediaValidationError, uploadProjectMedia } from "@/entities/proj
 import { isApiError } from "@/shared/api/api-error";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { toErrorStatus } from "@/shared/components/ui/error-state";
 import { Icon } from "@/shared/components/ui/icon";
 import { MediaDropzone } from "./media-dropzone";
 import { MediaLightbox } from "./media-lightbox";
@@ -27,7 +28,12 @@ import { StageTabs } from "./stage-tabs";
 import { StageTimeline } from "./stage-timeline";
 import { FulfillmentAccess } from "./fulfillment-access";
 import type { MediaItem, MediaLimit } from "../model/fulfillment-demo";
-import { fulfillmentState, viewStage, dateInKorea } from "../model/fulfillment-api-state";
+import {
+  fulfillmentState,
+  viewStage,
+  dateInKorea,
+  sellerNotEstablishedMessage,
+} from "../model/fulfillment-api-state";
 import type { ShippingView } from "@/features/shipping-info/model/seller-shipment";
 import { ShippingBoardApi } from "@/features/shipping-info/ui/shipping-board-api";
 
@@ -110,6 +116,11 @@ function Seller({
             />
             {status.isPending ? (
               <p role="status">제작 현황을 불러오고 있습니다.</p>
+            ) : status.isError && toErrorStatus(status.error) === "notFound" ? (
+              /* 트래커는 펀딩이 성립될 때 만들어져 그 전에는 404다. 구매자 화면처럼 오류 대신 안내한다(#389). */
+              <p role="status" className="text-body-m py-16 text-center">
+                {sellerNotEstablishedMessage(owner.data.status)}
+              </p>
             ) : status.isError ? (
               <QueryErrorState
                 variant="section"
@@ -337,7 +348,7 @@ function Editor({
                     changeSchedule(projectId, {
                       stage: selected,
                       reasonType: reason,
-                      reasonDetail: reasonDetail.trim(),
+                      ...(reasonDetail.trim() && { reasonDetail: reasonDetail.trim() }),
                       newPlannedDate: new Date(`${date}T00:00:00+09:00`).toISOString(),
                     }),
                   () => {
