@@ -416,6 +416,18 @@ button {
   height: 6px;
 }
 
+/* 페이지(뷰포트) 스크롤바는 숨기고 위 스타일은 내부 스크롤 영역에만 남긴다.
+   스크롤바가 폭을 차지하는 데스크톱에서 페이지 높이가 화면을 넘나들거나 다이얼로그가
+   body 스크롤을 잠그면 스크롤바가 생겼다 사라지며 화면 폭이 흔들린다(#361).
+   scrollbar-gutter: stable은 위 ::-webkit-scrollbar와 함께 쓰면 자리를 잡아 두지 못했다.
+   스크롤은 휠·터치·키보드로 그대로 된다. 뒤 규칙은 표준 속성이 없는 WebKit용이다. */
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
 /* Tiptap Placeholder 확장은 빈 노드에 이 클래스·data attribute만 붙이고 스타일은 안 준다.
    토큰 색만 여기서 지정한다 (project-story-form의 스토리 에디터). */
 .tiptap p.is-editor-empty:first-child::before {
