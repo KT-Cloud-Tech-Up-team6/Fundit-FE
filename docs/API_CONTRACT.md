@@ -694,58 +694,86 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 Gateway가 `/api/v1/refunds/**`와 `/api/v2/refunds/**`를 payment-service로 보낸다. 목록은 **v2를 쓴다** — v1 `RefundSummaryResponse`의 `fundingId`는 결제 도메인이 UUID만 저장해 항상 null이다.
 
-`GET /api/v2/refunds?page&size` → `PageResponse<RefundSummaryResponseV2>`
+이 절은 #360(2026-09-27)에서 BE `develop` `f127a6f`(`RefundControllerV2`·`RefundQueryService`·`RefundSummaryResponseV2`·`RefundReasonTag`) 기준으로 갱신했다. 아래 #298 절의 내역 관련 행은 당시 기록이다.
 
-| 필드             | 형                                            | 비고                                                                                         |
-| ---------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `refundId`       | Long                                          | 하자환불 결정(`PATCH /api/v1/refunds/{refundId}/decision`)의 경로 값과 같다                  |
-| `fundingId`      | UUID                                          | order-service publicId                                                                       |
-| `triggerType`    | String                                        | `SIMPLE_CHANGE_OF_MIND`·`GOAL_FAILED_AUTO`·`DEFECT`·`SHIPPING_DELAY`·`SYSTEM_RECONCILIATION` |
-| `status`         | String                                        | `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`·`COMPLETED`·`REJECTED`                    |
-| `amount`         | long                                          | `payment.amount`. 반품비 차감 정책이 없어 현재는 전액이다                                    |
-| `requestedAt`    | Instant                                       | 서버 정렬은 이 값 내림차순 고정                                                              |
-| `completedAt`    | Instant \| null                               | 최종 결정 전이면 null                                                                        |
-| `reasonDetail`   | String \| null                                | DEFECT는 `[DEFECTIVE] 설명`처럼 하자 유형 태그가 앞에 붙어 저장된다                          |
-| `rejectedReason` | String \| null                                | 반려된 건에만 채워진다                                                                       |
-| `projectTitle`   | String \| null                                | order-service 배치 조회 결과                                                                 |
-| `lineItems`      | `{rewardName, quantity, unitPrice}[]` \| null | 위와 같음                                                                                    |
+`GET /api/v2/refunds?page&size&inProgress&triggerType` → `PageResponse<RefundSummaryResponseV2>`
 
-`projectTitle`·`lineItems`는 **부가 정보라 order-service 조회가 실패하면 목록은 그대로 내려오고 이 둘만 null이 된다**(`RefundQueryService`). FE는 이 응답에서도 화면이 깨지지 않게 처리한다.
+| 파라미터      | 의미                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `inProgress`  | `true`는 `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`, `false`는 `COMPLETED`·`REJECTED`, 생략하면 전체. FE는 `true`만 보낸다 |
+| `triggerType` | 여러 번 보내면 합집합(`?triggerType=A&triggerType=B`), 생략하면 전체. `inProgress`와는 AND다                                       |
 
-**서버 필터·정렬 파라미터가 없다.** 유형·진행 여부 필터는 현재 페이지 안에서만 동작한다.
+정렬은 `requestedAt` 내림차순 고정이다. `totalElements`는 필터를 적용한 건수다.
+
+payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inclusion: non_null`). 아래 "없을 수 있음"은 null이 아니라 키가 없다는 뜻이다.
+
+| 필드                      | 형                                                                                           | 비고                                                                                                                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refundId`                | Long                                                                                         | 하자환불 결정(`PATCH /api/v1/refunds/{refundId}/decision`)의 경로 값과 같다                                                                                                               |
+| `fundingId`               | UUID                                                                                         | order-service publicId                                                                                                                                                                    |
+| `triggerType`             | String                                                                                       | `SIMPLE_CHANGE_OF_MIND`(모금 중 참여 취소)·`SHIPPING_DELAY`·`GOAL_FAILED_AUTO`·`DEFECT`·`RETURN_CHANGE_OF_MIND`(발송 후 단순 변심·옵션 선택 오류 반품)·`EXCHANGE`·`SYSTEM_RECONCILIATION` |
+| `status`                  | String                                                                                       | `REQUESTED`·`UNDER_REVIEW`·`APPROVED`·`PROCESSING`·`COMPLETED`·`REJECTED`                                                                                                                 |
+| `amount`                  | long                                                                                         | 실행된 PG 취소액의 합, 취소 전이면 결제 원금. 교환은 환불이 없어 결제 원금이다                                                                                                            |
+| `returnShippingFee`       | long, 없을 수 있음                                                                           | `RETURN_CHANGE_OF_MIND`에만 5,000                                                                                                                                                         |
+| `additionalPaymentAmount` | long, 없을 수 있음                                                                           | `EXCHANGE`에만. 구매자 귀책 사유면 교환 배송비, 그 외 0                                                                                                                                   |
+| `requestedAt`             | Instant                                                                                      | 정렬 기준                                                                                                                                                                                 |
+| `reasonType`              | String, 없을 수 있음                                                                         | 서버가 저장값 `[TYPE] 상세`의 태그를 떼어 준 사유 유형. 태그 없는 사유(발송 지연·목표 미달, 태그 도입 전 저장값)면 없다                                                                   |
+| `reasonDetail`            | String, 없을 수 있음                                                                         | 구매자가 쓴 상세만. 태그 없는 저장값은 원문 그대로다(예: FE가 `사유: 내용`으로 보낸 옛 교환 신청)                                                                                         |
+| `rejectedReason`          | String, 없을 수 있음                                                                         | 반려된 건에만                                                                                                                                                                             |
+| `completedAt`             | Instant, 없을 수 있음                                                                        | 최종 결정 전이면 없다. 반려 처리 시각도 담는다                                                                                                                                            |
+| `projectTitle`            | String, 없을 수 있음                                                                         | order-service 배치 조회 결과                                                                                                                                                              |
+| `lineItems`               | `{rewardName, quantity, unitPrice, options[{optionGroupName, optionValue}]}[]`, 없을 수 있음 | 위와 같음                                                                                                                                                                                 |
+
+`projectTitle`·`lineItems`는 **부가 정보라 order-service 조회가 실패하면 목록은 그대로 내려오고 이 둘만 빠진다**(`RefundQueryService`). FE는 이 응답에서도 화면이 깨지지 않게 처리한다.
+
+참여 취소는 BE가 취소 사유를 환불 행에 저장하지 않아 `reasonType`·`reasonDetail`이 오지 않는다. BE 버그로 협의 대기이며 FE는 우회하지 않는다.
 
 #### 표시 매핑
 
-`RefundTriggerType.toOrderServiceReason()`의 매핑을 근거로 원본의 유형 문구에 대응시킨다.
+원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터(전체/취소/교환/환불)에 대응시킨다. 유형 필터는 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다.
 
-| triggerType                                           | 유형 |
-| ----------------------------------------------------- | ---- |
-| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`             | 취소 |
-| `DEFECT`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
+| triggerType                                                                    | 유형 |
+| ------------------------------------------------------------------------------ | ---- |
+| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`                                      | 취소 |
+| `EXCHANGE`                                                                     | 교환 |
+| `DEFECT`, `RETURN_CHANGE_OF_MIND`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
 
-| status                                                | 표시                      | Badge     |
-| ----------------------------------------------------- | ------------------------- | --------- |
-| `REQUESTED`, `UNDER_REVIEW`, `APPROVED`, `PROCESSING` | `{유형} 진행 중`          | `warning` |
-| `COMPLETED`                                           | `{유형} 완료`             | `neutral` |
-| `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `neutral` |
+| status                                                | 표시                      | Badge   |
+| ----------------------------------------------------- | ------------------------- | ------- |
+| `REQUESTED`, `UNDER_REVIEW`, `APPROVED`, `PROCESSING` | `{유형} 진행 중`          | `error` |
+| `COMPLETED`                                           | `{유형} 완료`             | `info`  |
+| `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `info`  |
 
-실 환불 금액은 `COMPLETED`에서만 고지한다. 진행 중·반려는 확정 금액이 아니다.
+실 환불 금액은 취소·환불 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
+
+접수 사유는 `reasonType`을 09-25 신청 화면 드롭다운 문구로 바꾸고 `reasonDetail`이 있으면 `·`로 잇는다. `reasonType`이 없으면 `reasonDetail` 원문, 둘 다 없으면 트리거 문구다(`SHIPPING_DELAY` 발송 지연, `GOAL_FAILED_AUTO` 목표 미달 자동 환불, `SIMPLE_CHANGE_OF_MIND` 참여 취소 등). 모르는 `reasonType`은 enum 이름 그대로 보인다.
+
+| reasonType                                | 문구               |
+| ----------------------------------------- | ------------------ |
+| `SIMPLE_CHANGE_OF_MIND`, `CHANGE_OF_MIND` | 단순 변심          |
+| `OPTION_SELECTION_ERROR`, `WRONG_OPTION`  | 옵션 선택 오류     |
+| `PAYMENT_INFO_ERROR`                      | 결제 정보 오류     |
+| `DEFECTIVE`                               | 불량·하자          |
+| `DAMAGED`                                 | 상품 파손          |
+| `WRONG_DELIVERY`                          | 상품이 잘못 배송됨 |
+| `MISSING_COMPONENTS`                      | 구성품 누락        |
+| `DIFFERENT_FROM_DESCRIPTION`              | 상품 설명과 다름   |
+| `OTHER`, `ETC`                            | 기타               |
 
 #### 아직 계약이 없어 채우지 못하는 값
 
-원본에 자리가 있으나 응답에 대응 필드가 없다. 값을 만들지 않고 자리만 유지한다.
+원본에 자리가 있으나 응답에 대응 필드가 없다. 값을 만들지 않는다.
 
-| 화면 요소                       | 필요한 것                                                             |
-| ------------------------------- | --------------------------------------------------------------------- |
-| 유형 필터 "교환"                | 교환 신청·조회 계약 일체. `RefundTriggerType`에 교환이 없다           |
-| 펀딩번호 `FD<yyyyMMdd>-<6자리>` | 목록 응답의 주문번호 필드. 현재는 `fundingId`(UUID)뿐이다             |
-| 옵션                            | `lineItems`의 옵션명·옵션값                                           |
-| 적립금 환불 금액                | 적립금 환불 계약                                                      |
-| 유형·진행 여부 서버 필터        | 목록의 필터 파라미터. `totalElements`는 제공되므로 총 개수와는 별개다 |
+| 화면 요소                       | 필요한 것                                                 |
+| ------------------------------- | --------------------------------------------------------- |
+| 펀딩번호 `FD<yyyyMMdd>-<6자리>` | 목록 응답의 주문번호 필드. 현재는 `fundingId`(UUID)뿐이다 |
+| 적립금 환불 금액                | 적립금 환불 계약                                          |
+
+반대로 `returnShippingFee`·`additionalPaymentAmount`는 응답에 있으나 원본 카드에 자리가 없어 표시하지 않는다.
 
 환불 **신청**(`POST /api/v2/refunds/defect`, `POST /api/v2/refunds/shipping-delay`, `GET /api/v1/refunds/estimate`, `POST /api/v1/refunds/evidence/upload-url`)은 이번 연결 범위가 아니다.
 
-조사 기준은 BE `origin/develop` `ce5d882`다. 실제 서버 응답과의 대조는 BE QA 서버가 뜬 뒤에 한다.
+첫 조사 기준은 BE `origin/develop` `ce5d882`였고 #360에서 `f127a6f`로 다시 대조했다. 실제 서버 응답과의 대조는 BE QA 서버가 뜬 뒤에 한다.
 
 ### 2026-09-22 환불 신청 제출 연결 (#263)
 
@@ -825,7 +853,7 @@ BE PR #124(`develop` `7dd5bd5`)로 위 두 절의 "계약 없음" 중 아래 항
 | 내역 옵션             | `lineItems[].options[] {optionGroupName, optionValue}`                                    | `그룹 값`을 `·`로 이어 옵션 행에 표시                                                      |
 | 신청 화면 헤더        | `OrderDetailResponse.projectTitle`·`thumbnailUrl` (project-service 실패 시 null)          | null이면 자리만 유지                                                                       |
 
-`triggerType` 필터는 값 하나만 받아 여러 트리거를 묶는 "취소"·"환불" 유형을 표현하지 못한다. 유형 필터는 계속 현재 페이지 안에서만 걸린다. 펀딩번호·적립금 환불 금액은 여전히 계약이 없다.
+`triggerType` 필터는 값 하나만 받아 여러 트리거를 묶는 "취소"·"환불" 유형을 표현하지 못한다. 유형 필터는 계속 현재 페이지 안에서만 걸린다. 펀딩번호·적립금 환불 금액은 여전히 계약이 없다. 이후 BE가 `triggerType` 다중값을 받게 돼 #360에서 유형 필터를 서버 필터로 바꿨다(위 #261 절).
 
 ### 2026-09-25 환불 정책 V.1.0 반영 (#356)
 
