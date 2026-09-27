@@ -39,16 +39,16 @@ test("UUID 주문 미리보기·생성·목록은 통합된 v1 계약으로 요�
   assert.equal((await previewOrder(body)).finalAmount, 17000);
   assert.equal((await createOrder(body, "attempt-key")).orderId, orderId);
   const signal = new AbortController().signal;
-  await getOrders(1, "GOAL_ACHIEVED", signal);
-  await getOrders(0, "");
+  await getOrders(1, signal);
+  await getOrders(0);
 
   assert.deepEqual(
     calls.map(({ url }) => url),
     [
       "/api/v1/orders/preview",
       "/api/v1/orders",
-      "/api/v1/orders?page=1&size=20&status=GOAL_ACHIEVED",
-      "/api/v1/orders?page=0&size=20",
+      "/api/v1/orders?page=1&size=20&sort=createdAt%2Cdesc",
+      "/api/v1/orders?page=0&size=20&sort=createdAt%2Cdesc",
     ],
   );
   for (const { init } of calls) {

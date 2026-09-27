@@ -49,25 +49,59 @@ export type OrderCreated = {
   finalAmount: number;
   paymentExpiresAt: string;
 };
+export type OrderLineItem = {
+  rewardId: number;
+  rewardName: string;
+  quantity: number;
+  unitPrice: number;
+  options: { optionGroupName: string; optionValue: string }[];
+};
+/** 이 주문의 취소·반품·교환 신청 이력(최신순). 값은 payment-service enum 이름 그대로다.
+    BE는 조회에 실패해도 빈 배열로 내려준다(부가 정보). */
+export type OrderRefundRequest = {
+  refundId: number;
+  triggerType: string;
+  status: string;
+  requestedAt: string;
+};
 export type OrderDetail = {
   orderId: string;
   /* project-service 배치 조회가 실패하면 null로 내려온다(BE OrderDetailResponse). */
   projectTitle: string | null;
   thumbnailUrl: string | null;
   status: string;
+  /** 화면 배지용 진행 단계(BE `FundingProgressStage` 9종). `status`를 대체하지 않는다. */
+  progressStage: string;
   finalAmount: number;
   shippingFee: number;
   discountAmount: number;
   shippingAddress: OrderAddress;
+  /** 결제 전이거나 결제 시각이 기록되기 전의 옛 주문이면 키가 없다. */
   paidAt?: string;
   availableActions: string[];
-  lineItems: {
-    rewardId: number;
-    rewardName: string;
-    quantity: number;
-    unitPrice: number;
-    options: { optionGroupName: string; optionValue: string }[];
-  }[];
+  refundRequests: OrderRefundRequest[];
+  lineItems: OrderLineItem[];
+};
+/** 목록 응답(BE `OrderSummaryResponse`). BE는 null 필드를 JSON에서 빼므로 값이 없을 수 있는
+    필드는 선택 키다. 판매자명·썸네일은 project-service 조회가 실패하면 빠진다. */
+export type OrderSummary = {
+  orderId: string;
+  projectId: string;
+  projectTitle?: string;
+  status: string;
+  progressStage: string;
+  discountAmount: number;
+  finalAmount: number;
+  createdAt: string;
+  paidAt?: string;
+  sellerDisplayName?: string;
+  thumbnailUrl?: string;
+  /** "첫 리워드명 외 N건". 리워드가 하나면 그 이름이다. */
+  rewardSummary: string;
+  totalQuantity: number;
+  lineItems: OrderLineItem[];
+  availableActions: string[];
+  refundRequests: OrderRefundRequest[];
 };
 export type PaymentAttempt = {
   paymentId: string;
@@ -120,22 +154,13 @@ export function createOrder(body: OrderRequest, idempotencyKey: string) {
 export function getOrder(id: string, signal?: AbortSignal) {
   return apiRequest<OrderDetail>(`/api/v1/orders/${id}`, { auth: true, signal });
 }
-export function getOrders(page: number, status: string, signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: String(page), size: "20" });
-  if (status) params.set("status", status);
-  return apiRequest<{
-    content: {
-      orderId: string;
-      projectId: string;
-      projectTitle: string;
-      status: string;
-      discountAmount: number;
-      finalAmount: number;
-      createdAt: string;
-    }[];
-    totalElements: number;
-    hasNext: boolean;
-  }>(`/api/v1/orders?${params}`, { auth: true, signal });
+/** 서버 목록에는 기본 정렬이 없어 최신 참여순을 명시한다(Spring `sort`, 엔티티 `createdAt`). */
+export function getOrders(page: number, signal?: AbortSignal) {
+  const params = new URLSearchParams({ page: String(page), size: "20", sort: "createdAt,desc" });
+  return apiRequest<{ content: OrderSummary[]; totalElements: number; hasNext: boolean }>(
+    `/api/v1/orders?${params}`,
+    { auth: true, signal },
+  );
 }
 /** BE `CancelReason`. `ETC`는 `reasonDetail`이 비어 있으면 400 `INVALID_INPUT`이다. */
 export type OrderCancelReason =
