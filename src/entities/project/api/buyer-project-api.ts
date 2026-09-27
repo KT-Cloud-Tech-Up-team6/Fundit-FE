@@ -45,24 +45,33 @@ export type PublicProject = {
     achievementRate: number;
     participantCount: number;
     remainingDays: number | null;
+    /** 펀딩 마감 시각(UTC ISO). 마감이 없으면 BE가 키를 뺀다. */
+    fundingDeadline?: string;
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };
 };
+/** BE `RewardConsumerResponse`(sortOrder 순). BE는 null 필드를 JSON에서 빼므로 값이 없을 수
+    있는 필드는 선택 키다. */
 export type PublicReward = {
   rewardId: number;
+  rewardDisplayCode: string;
   name: string;
   description: string;
-  imageUrl: string | null;
+  imageUrl?: string;
   price: number;
   isEarlyBird: boolean;
-  earlyBirdDiscountedPrice: number | null;
+  earlyBirdDiscountType?: "AMOUNT" | "RATE";
+  earlyBirdDiscountValue?: number;
+  earlyBirdDiscountedPrice?: number;
   isLimited: boolean;
-  remainingStock: number | null;
+  /** 재고를 모르면 빠진다. */
+  remainingStock?: number;
   options: { groupId: number; groupName: string; values: { valueId: number; value: string }[] }[];
   soldOut: boolean;
-  shippingFee: number | null;
-  estimatedDeliveryDays: number | null;
+  shippingFee?: number;
+  /** 펀딩 종료 후 N일(BE `Reward` 주석). */
+  estimatedDeliveryDays?: number;
 };
 export function searchProjects(
   keyword: string,

@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
-  getCheckoutRewards,
   getCheckoutAddresses,
   previewOrder,
   type OrderLine,
@@ -16,6 +15,7 @@ import { ErrorState } from "@/shared/components/ui/error-state";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { QuantityStepper } from "@/features/reward-selection/ui/quantity-stepper";
+import { publicRewardsQuery } from "@/features/reward-selection/model/public-reward";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { OrderMemberAccess } from "./order-member-access";
@@ -24,44 +24,19 @@ import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
 
-export function OrderCheckoutApi({
-  projectId,
-  selectionOnly = false,
-  onClose,
-}: {
-  projectId: string;
-  selectionOnly?: boolean;
-  onClose?: () => void;
-}) {
+export function OrderCheckoutApi({ projectId }: { projectId: string }) {
   return (
     <OrderMemberAccess>
       {(memberId) => (
-        <Checkout
-          key={`${memberId}:${projectId}`}
-          memberId={memberId}
-          projectId={projectId}
-          selectionOnly={selectionOnly}
-          onClose={onClose}
-        />
+        <Checkout key={`${memberId}:${projectId}`} memberId={memberId} projectId={projectId} />
       )}
     </OrderMemberAccess>
   );
 }
-function Checkout({
-  memberId,
-  projectId,
-  selectionOnly,
-  onClose,
-}: {
-  memberId: string;
-  projectId: string;
-  selectionOnly: boolean;
-  onClose?: () => void;
-}) {
+function Checkout({ memberId, projectId }: { memberId: string; projectId: string }) {
   const router = useRouter(),
     params = useSearchParams();
   function initialLines(): OrderLine[] {
-    if (selectionOnly) return [];
     try {
       const value: unknown = JSON.parse(params.get("items") ?? "[]");
       return Array.isArray(value) &&
@@ -81,14 +56,10 @@ function Checkout({
       return [];
     }
   }
-  const rewards = useQuery({
-    queryKey: ["checkout-rewards", projectId],
-    queryFn: ({ signal }) => getCheckoutRewards(projectId, signal),
-  });
+  const rewards = useQuery(publicRewardsQuery(projectId));
   const addresses = useQuery({
     queryKey: ["checkout-addresses", memberId],
     queryFn: ({ signal }) => getCheckoutAddresses(signal),
-    enabled: !selectionOnly,
   });
   const [lines, setLines] = useState<OrderLine[]>(initialLines),
     [address, setAddress] = useState<OrderAddress | null>(null);
@@ -257,31 +228,6 @@ function Checkout({
       {rewards.isSuccess && !rewards.data.length && <p>선택할 리워드가 없습니다.</p>}
     </div>
   );
-  if (selectionOnly)
-    return (
-      <BottomSheet
-        open
-        onClose={() => onClose?.()}
-        title="리워드 선택"
-        desktopModal
-        footer={
-          <Button
-            disabled={!valid}
-            className="w-full"
-            onClick={() => {
-              router.push(
-                `/funding/${projectId}/checkout?${new URLSearchParams({ items: JSON.stringify(lines) })}`,
-              );
-              onClose?.();
-            }}
-          >
-            펀딩하기
-          </Button>
-        }
-      >
-        {rewardContent}
-      </BottomSheet>
-    );
   return (
     <div className="bg-layer-bg min-h-dvh">
       <BuyerDesktopHeader />
@@ -291,12 +237,19 @@ function Checkout({
           <div className="space-y-3">
             <section className="bg-layer-surface-default p-5">
               <h2 className="text-title-s">선택한 리워드</h2>
-              {lines.map((line) => (
-                <p key={line.rewardId}>
-                  {rewards.data?.find((reward) => reward.rewardId === line.rewardId)?.name} ·{" "}
-                  {line.quantity}개
-                </p>
-              ))}
+              {/* 리워드 선택 시트는 같은 리워드라도 옵션 조합마다 줄을 따로 넘기므로 옵션까지 적는다. */}
+              {lines.map((line, index) => {
+                const reward = rewards.data?.find((item) => item.rewardId === line.rewardId);
+                const options =
+                  reward?.options.flatMap((group) =>
+                    group.values
+                      .filter((value) => line.optionValueIds.includes(value.valueId))
+                      .map((value) => value.value),
+                  ) ?? [];
+                return (
+                  <p key={index}>{[reward?.name, ...options, `${line.quantity}개`].join(" · ")}</p>
+                );
+              })}
               <Button disabled={busy} onClick={() => setRewardsOpen(true)}>
                 리워드 변경
               </Button>

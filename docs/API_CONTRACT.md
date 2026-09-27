@@ -113,7 +113,7 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 ## 주문·결제 코드 대조 및 FE 연결 (#197)
 
 - 2026-09-20 BE develop `e435378f`(#78) 기준으로 주문 preview/생성/목록은 `/api/v1/orders`의 UUID 계약을 사용한다. 이전 `/api/v2/orders` 컨트롤러와 Gateway 매핑은 제거됐다. 상세/취소는 기존 `/api/v1/orders/{orderId}`를 유지한다. 리워드·옵션은 조회 응답의 숫자 ID를 전달한다.
-- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 `/my/fundings/{orderId}`로 이동한다. BE develop `ae1e032`에서 주문 목록의 `finalAmount`는 리워드 합계+배송비−할인액으로 보완됐다. #233은 목록에도 서버 최종 금액을 표시하며 FE가 할인을 다시 차감하지 않는다.
+- `/funding/{UUID}/checkout`은 실제 리워드·배송지와 서버 미리보기 금액을 사용한다. 주문 생성 후 결제 화면 `/payment/{orderId}`로 교체 이동한다. BE develop `ae1e032`에서 주문 목록의 `finalAmount`는 리워드 합계+배송비−할인액으로 보완됐다. #233은 목록에도 서버 최종 금액을 표시하며 FE가 할인을 다시 차감하지 않는다.
 - `/my/fundings`는 서버 상태/페이지 필터를 사용하며 기존 목업 검색·기간 필터는 서버 계약에 없어 적용하지 않는다. 상세의 `availableActions`에 CANCEL이 있을 때만 취소를 제공한다. `/payment/result?orderId={UUID}`는 새로고침 가능한 주문 조회다.
 - `/api/v2/payments`의 시도 생성은 서버 주문 UUID를 사용한다. `/confirm`의 `orderId`는 별도의 `pgOrderId`이며 주문 UUID와 혼용하지 않는다.
 - 현재 BE의 결제 승인은 실제 Toss 클라이언트를 호출한다. 목업은 테스트 코드에서만 확인됐으므로 FE는 임의 paymentKey를 생성하거나 결제 성공을 합성하지 않는다. PortOne 본인인증과 별개다.
@@ -125,6 +125,25 @@ BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법
 - 주문 생성 `POST /api/v1/orders`는 선택 헤더 `Idempotency-Key`를 받는다(BE #124, #215). 키는 회원 범위이며 같은 키·같은 본문은 새 주문 없이 기존 주문을 200으로, 새 주문은 201로 돌려준다. 같은 키에 다른 본문이거나 같은 키 요청이 처리 중이면 409 `CONFLICT`, 재고 부족은 409 `INSUFFICIENT_STOCK`이다. BE 코드에 키 유효기간은 없다.
 - FE는 시도마다 UUID 키를 만들고 요청 전에 회원·프로젝트별 sessionStorage에 키·본문을 남긴다. 네트워크·5xx·파싱 실패·주문 ID 누락·새로고침 뒤에는 새 주문 대신 같은 키·같은 본문으로 다시 보내 서버 결과를 확정한다. `CONFLICT`와 401·403·408·429(이 응답만으로는 이전 요청의 생성 여부를 확정할 수 없음)는 시도를 유지하고, 그 밖의 4xx 확정 실패만 시도를 버려 다음 주문에 새 키를 쓴다. 확정된 주문이 결제 대기면 재사용하고 종료 상태면 새 키로 주문한다. 같은 탭 동시 호출은 요청 하나를 공유한다. sessionStorage는 탭 복제 시에만 공유되므로 서로 다른 탭·기기의 주문은 별개 시도로 처리되며 동일 프로젝트 재주문 정책은 BE 보완이 필요하다.
 - 쿠폰은 보유 목록·주문 미리보기·플랫폼/메이커 각 1개 선택을 연결한다. `appliedCoupons` 항목은 BE의 `couponCode`·`issuerType`·`discountType`을 사용하며 쿠폰별 할인액을 가정하지 않는다. 적립금·결제수단 선택·승인 완료 화면의 API 연결은 제외한다. 실제 Gateway/PG 검증은 미완료이며 HTTP 테스트 대역 검증과 구분한다.
+
+## 소비자 리워드 조회와 리워드 선택 (#368)
+
+BE develop `f127a6f`의 `RewardConsumerResponse`·`RewardQueryService`·`Reward`를 대조했다. `GET /api/v1/projects/{projectId}/rewards`는 sortOrder 순 배열이고, project-service는 `default-property-inclusion: non_null`이라 null 필드는 키가 빠진다.
+
+| 필드                                                                                              | FE 사용                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rewardId`                                                                                        | 주문 줄 `rewardId`. 장바구니 키는 숫자 키가 삽입 순서를 잃지 않도록 `reward-{rewardId}`로 둔다.                                                                 |
+| `name`·`description`                                                                              | 카드 이름, 메타 줄 첫 조각.                                                                                                                                     |
+| `price`·`isEarlyBird`·`earlyBirdDiscountType`·`earlyBirdDiscountValue`·`earlyBirdDiscountedPrice` | 얼리 버드면 할인가를 표시·합계 단가로 쓰고 `price`를 취소선으로 둔다. `RATE`는 "얼리 버드 N%", `AMOUNT`는 "얼리 버드".                                          |
+| `isLimited`                                                                                       | "선착순 한정" 배지.                                                                                                                                             |
+| `remainingStock`·`soldOut`                                                                        | 재고는 같은 리워드 모든 줄 수량 합의 상한(없으면 무제한), 품절은 선택 불가. BE는 `remainingStock <= 0`을 품절로 계산한다.                                       |
+| `options[{groupId, groupName, values[{valueId, value}]}]`                                         | 그룹마다 선택 상자. 모든 그룹을 고른 조합이 한 줄이고 `optionValueIds`는 그룹 순서의 `valueId`다.                                                               |
+| `shippingFee`                                                                                     | 0은 "무료배송", 그 밖에는 "배송비 N원". 없으면 적지 않는다.                                                                                                     |
+| `estimatedDeliveryDays`                                                                           | "펀딩 종료 후 N일"(BE `Reward` 주석). 공개 상세 `fundingStatus.fundingDeadline`에 더해 "예상 발송일 YYYY.MM.DD"(한국 날짜), 마감이 없으면 "N일 이내 발송 예정". |
+| `rewardDisplayCode`·`imageUrl`                                                                    | 사용하지 않는다.                                                                                                                                                |
+
+- 선택 결과는 `/funding/{UUID}/checkout?items=[{rewardId, quantity, optionValueIds}]`로 넘기고 주문서가 같은 조회 캐시(`public-rewards`)로 검증한다. 같은 리워드라도 옵션 조합이 다르면 줄이 따로다. BE 주문 금액 계산(`OrderPricingService`)은 줄마다 리워드를 찾아 계산하므로 같은 `rewardId` 줄이 여럿이어도 된다.
+- BE 확인 사항: `OrderPricingService`는 리워드 `price`만 곱해 얼리 버드 할인을 반영하지 않고, 배송비를 리워드 `shippingFee`가 아닌 설정값(`order.policy.default-shipping-fee`)으로 받는다. 선택 화면 합계(할인가)와 주문서 미리보기 금액이 다를 수 있으며 FE에서 보정하지 않는다.
 
 이하 계약 초안은 2026-09-07 작성, 2026-09-14 갱신 당시 전달 명세를 기록한 내용이다. 이후 구현에 확인한 차이는 위 도메인별 코드 대조 절과 각 기능 문서에 기록하며, 전체 계약 확정을 뜻하지 않는다. 관련 작업은 [#47](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-FE/issues/47)이다.
 
@@ -470,7 +489,7 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 
 기본정보 명세는 제목 40자, goalAmount 최소 500,000원, 등록된 카테고리 조합을 요구한다. businessType은 SOLE 예시만 있어 전체 enum을 추측하지 않는다. 카테고리 표시 문자열·공백도 저장 계약과 구분한다.
 
-리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. options는 `[{groupName, values: string[]}]`이며 현재 목업의 options 체크값과 다르다. 명세 보완값은 Swagger로 대조한 후 연동한다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
+리워드 명세에서 isLimited=true이면 quantity는 0 이상, false이면 null이다. 등록·수정 요청의 options는 `[{optionGroupId?, groupName, values: string[]}]`(BE `RewardOptionRequest`)이고, 조회 응답의 options는 `[{groupId, groupName, values: [{valueId, value}]}]`다. PATCH에서 수량 제한 해제 시 null과 생략의 갱신 의미도 확인한다.
 
 리워드 등록은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #214). 키는 프로젝트 범위이며 같은 키·같은 본문(요청 SHA-256 해시)은 새 리워드 없이 기존 리워드를 200으로, 새 생성은 201로 돌려준다. 같은 키에 다른 본문이 오거나 같은 키 요청이 처리 중이면 409 `CONFLICT`다. 키는 리워드 행에 저장돼 유효기간이 없다. FE는 판매자·프로젝트마다 결과를 모르는 시도 하나의 UUID 키를 요청 전에 sessionStorage에 남기고 성공하거나 409를 받을 때까지 같은 키로 보낸다. 409는 이전 요청의 리워드가 있거나 처리 중이라는 뜻으로 보고 이번 내용은 저장하지 않았다고 알린 뒤 시도를 끝낸다.
 
@@ -625,6 +644,23 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `sort=viewerCount`는 실시간 순위 전용이다. `LIVE`만 IVS 시청자 수 내림차순으로 오고 `status`·`sellerId`는 무시된다. `viewerCount`는 이때만 채워진다.
 - `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
+
+### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
+
+기준은 BE `develop` `f127a6f`의 `LiveHighlightController`다. 둘 다 소유권 검증이다.
+
+| 동작           | Method·Path                                                        | 요청 → 응답                                                  |
+| -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 판매자 목록    | GET `/api/v1/lives/{liveId}/highlights`                            | → `{markers: [...], clips: [...]}`(비공개·생성 중·실패 포함) |
+| 공개 여부 변경 | PATCH `/api/v1/lives/{liveId}/highlights/{highlightId}/visibility` | `{isPublic}` → 204                                           |
+
+- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`caption`이 없을 수 있다.
+- `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
+- FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
+- 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
+- 응답에 클립 생성일·썸네일이 없다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. 클립 `createdAt`·썸네일과 프로젝트 단위 클립 목록은 BE 요청 후보다.
+- [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
+- dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
 
 ## 6. 최신 답변으로 정리한 차이
 
