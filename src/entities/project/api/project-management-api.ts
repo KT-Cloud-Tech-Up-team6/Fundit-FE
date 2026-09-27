@@ -27,7 +27,8 @@ export type FundingStatus = {
   wishCount: number;
   rewardStats: {
     rewardId: number;
-    optionValueId: number | null;
+    /** 리워드 합계 행은 null이라 BE가 키를 뺀다(non_null). */
+    optionValueId?: number | null;
     purchasedQuantity: number;
     purchasedAmount: number;
   }[];

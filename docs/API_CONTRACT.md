@@ -5,7 +5,7 @@
 - 2026-09-21 BE develop `ae1e032`와 FE를 대조했다. 후속 `3d23bc7`은 LIVE 변경만 포함해 이 절의 계약은 동일하다. 실제 배포 응답 검증과 소스 대조를 구분한다.
 - preview의 `businessType`으로 사업자 유형을 복원한다. 리워드 목록의 `options`(groupId/groupName/values.valueId/value)를 복원하고 BE PR #108 계약에 따라 그룹 ID를 보존해 편집한다. 옵션 미변경은 생략, 전체 해제는 빈 배열로 전송한다. `simpleRefundDisabled`는 읽기 전용이다.
 - 공지 목록과 별개로 `GET /api/v1/notices/{noticeId}`의 `content`를 조회한다. BE PR #108의 PATCH로 소유 판매자가 제목·본문을 수정한다. 비공개 프로젝트의 GET 제한은 남아 있다.
-- 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId=null은 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다. 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
+- 펀딩 통계의 `rewardStats`는 rewardId/optionValueId/purchasedQuantity/purchasedAmount를 사용한다. optionValueId가 null(BE가 키를 뺀 경우 포함, non_null)이면 리워드 전체 합계, 값이 있는 행은 개별 옵션 통계다(#386). 전체·옵션 행 또는 서로 다른 옵션 그룹을 더해 매출/수량 합계를 만들지 않는다. 옵션명은 서버 리워드 옵션 ID로 연결한다.
 
 ## 알림함·수신설정과 팔로우 계약 (#257)
 
@@ -608,7 +608,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 - `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 큐시트 화면도 #326부터 이 단건 조회를 쓴다(5.7).
 - insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
-- 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer=null`이면 Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
+- 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer`가 null이거나 응답에서 빠지면(BE non_null, #386) Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
 - "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
 - LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 추가하지 못한 건만 선택에 남겨 다시 보낼 수 있다. #351부터 BE #156 기준으로 처리한다. 이미 올린 질문의 409 `LIVE_VERIFICATION_ALREADY_EXISTS`는 상세페이지에 이미 있으므로 추가된 것으로 친다. 404 `LIVE_QUESTION_SUMMARY_NOT_FOUND`는 "질문 요약이 아직 준비되지 않았다"고 따로 안내한다. 그 밖의 실패는 "추가하지 못했다"고 안내한다.
 - 이미 올린 질문은 체크 흐름을 열 때 받는 `live-questions`의 `answered`로 "추가됨" 표시하고 다시 고르지 못하게 한다. 이 목록은 프로젝트 단위(`liveId` 없음)이고 `questionSummaryId`가 `answered-questions`의 `questionId`와 같다(live-service 질문 요약 id). 받기 전이나 조회가 실패해도 흐름을 막지 않는다. 다시 올리면 409라 결과가 같기 때문이다.
