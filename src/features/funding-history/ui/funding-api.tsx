@@ -1,14 +1,8 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getOrders,
-  getOrder,
-  cancelOrder,
-  orderStatusLabels,
-} from "@/entities/order/api/order-api";
+import { useQuery } from "@tanstack/react-query";
+import { getOrders, getOrder, orderStatusLabels } from "@/entities/order/api/order-api";
 import { isConfirmed, localStore } from "@/features/payment-checkout/model/payment-attempt";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
@@ -106,63 +100,20 @@ function FundingList({ memberId }: { memberId: string }) {
     </BuyerAccountScreen>
   );
 }
-export function FundingDetailApi({
-  fundingId,
-  cancel = false,
-}: {
-  fundingId: string;
-  cancel?: boolean;
-}) {
+export function FundingDetailApi({ fundingId }: { fundingId: string }) {
   return (
     <OrderMemberAccess>
-      {(id) => (
-        <Detail key={`${id}:${fundingId}`} memberId={id} fundingId={fundingId} cancel={cancel} />
-      )}
+      {(id) => <Detail key={`${id}:${fundingId}`} memberId={id} fundingId={fundingId} />}
     </OrderMemberAccess>
   );
 }
-function Detail({
-  memberId,
-  fundingId,
-  cancel,
-}: {
-  memberId: string;
-  fundingId: string;
-  cancel: boolean;
-}) {
-  const client = useQueryClient(),
-    router = useRouter();
+function Detail({ memberId, fundingId }: { memberId: string; fundingId: string }) {
   const detail = useQuery({
     queryKey: ["order", memberId, fundingId],
     queryFn: ({ signal }) => getOrder(fundingId, signal),
   });
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const saving = useRef(false);
-  async function cancelFunding() {
-    if (saving.current) return;
-    saving.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      await cancelOrder(fundingId);
-      await client.invalidateQueries({ queryKey: ["order", memberId, fundingId] });
-      await client.invalidateQueries({ queryKey: ["orders", memberId] });
-      router.replace(`/my/fundings/${fundingId}`);
-    } catch {
-      setError("처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요.");
-      await detail.refetch();
-    } finally {
-      saving.current = false;
-      setBusy(false);
-    }
-  }
   return (
-    <BuyerAccountScreen
-      title={cancel ? "펀딩 취소" : "펀딩 상세 내역"}
-      backHref="/my/fundings"
-      fullPage={detail.isError}
-    >
+    <BuyerAccountScreen title="펀딩 상세 내역" backHref="/my/fundings" fullPage={detail.isError}>
       {detail.isError ? (
         <QueryErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       ) : (
@@ -205,64 +156,40 @@ function Detail({
                   {detail.data.shippingAddress.addressLine2}
                 </p>
               </section>
-              {error && <p role="alert">{error}</p>}
-              {cancel ? (
-                detail.data.availableActions.includes("CANCEL") ? (
-                  <>
-                    <p>펀딩 참여를 취소하시겠습니까?</p>
-                    <Button disabled={busy} onClick={() => void cancelFunding()}>
-                      참여 취소 확인
-                    </Button>
-                  </>
-                ) : (
-                  <p>이 주문은 취소할 수 없습니다.</p>
-                )
-              ) : (
-                <>
-                  {detail.data.status === "GOAL_ACHIEVED" && (
-                    <Link
-                      className="block underline"
-                      href={`/my/fundings/${fundingId}/fulfillment`}
-                    >
-                      제작·배송 현황
-                    </Link>
-                  )}
-                  {detail.data.availableActions.includes("CANCEL") && (
-                    <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
-                      참여 취소
-                    </Link>
-                  )}
-                  {/* BE가 상태·배송 여부로 정한 신청 가능 액션이다(Funding.availableActions). */}
-                  {detail.data.availableActions.includes("DEFECT_REFUND_REQUEST") && (
-                    <Link
-                      className="block underline"
-                      href={`/my/fundings/${fundingId}/refund/new?type=defect`}
-                    >
-                      반품·교환 신청
-                    </Link>
-                  )}
-                  {detail.data.availableActions.includes("SHIPPING_DELAY_REFUND_REQUEST") && (
-                    <Link
-                      className="block underline"
-                      href={`/my/fundings/${fundingId}/refund/new?type=delay`}
-                    >
-                      배송 지연 취소 신청
-                    </Link>
-                  )}
-                  {detail.data.status === "PENDING" &&
-                    (isConfirmed(localStore(), fundingId) ? (
-                      <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
-                    ) : (
-                      <Button href={`/payment/${fundingId}`}>결제하기</Button>
-                    ))}
-                  <Button
-                    disabled={busy || detail.isFetching}
-                    onClick={() => void detail.refetch()}
-                  >
-                    주문 상태 새로고침
-                  </Button>
-                </>
+              {detail.data.status === "GOAL_ACHIEVED" && (
+                <Link className="block underline" href={`/my/fundings/${fundingId}/fulfillment`}>
+                  제작·배송 현황
+                </Link>
               )}
+              {detail.data.availableActions.includes("CANCEL") && (
+                <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
+                  참여 취소
+                </Link>
+              )}
+              {/* BE가 상태·배송 여부로 정한 신청 가능 액션이다(Funding.availableActions). */}
+              {detail.data.availableActions.includes("DEFECT_REFUND_REQUEST") && (
+                <Link
+                  className="block underline"
+                  href={`/my/fundings/${fundingId}/refund/new?type=defect`}
+                >
+                  반품·교환 신청
+                </Link>
+              )}
+              {/* 발송 지연 취소(CL_1-1)는 참여 취소 화면이 같은 경로에서 연다(#358). */}
+              {detail.data.availableActions.includes("SHIPPING_DELAY_REFUND_REQUEST") && (
+                <Link className="block underline" href={`/my/fundings/${fundingId}/cancel`}>
+                  배송 지연 취소 신청
+                </Link>
+              )}
+              {detail.data.status === "PENDING" &&
+                (isConfirmed(localStore(), fundingId) ? (
+                  <p role="status">결제가 완료되어 주문 상태를 반영하고 있습니다.</p>
+                ) : (
+                  <Button href={`/payment/${fundingId}`}>결제하기</Button>
+                ))}
+              <Button disabled={detail.isFetching} onClick={() => void detail.refetch()}>
+                주문 상태 새로고침
+              </Button>
             </>
           )}
         </div>

@@ -30,7 +30,7 @@ LIVE 탭 이동 → LIVE 방송 입장 → 방송 시청(AI 코파일럿 답변/
        └ No  → 수령 확인 처리
 ```
 
-환불 두 경로는 기존 `refund/new?type=delay`·`?type=defect`와 대응합니다.
+환불 두 경로 중 지연으로 인한 환불은 `/my/fundings/[fundingId]/cancel`의 발송 지연 취소(`CL_1-1`), 하자 환불은 `/my/fundings/[fundingId]/refund/new`의 반품·교환과 대응합니다(#358).
 
 ## 구현 범위
 

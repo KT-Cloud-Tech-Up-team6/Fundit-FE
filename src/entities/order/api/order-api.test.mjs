@@ -87,3 +87,17 @@ test("주문 상세·취소는 v1, 결제 시도·승인은 v2와 PG 주문번�
   assert.deepEqual(JSON.parse(calls[2].init.body), { fundingId: "order-uuid" });
   assert.deepEqual(JSON.parse(calls[3].init.body), confirmation);
 });
+
+test("참여 취소는 사유가 있으면 본문으로 보내고 없으면 본문 없이 보낸다", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls.push(init);
+    return Response.json({ orderId: "order-uuid", status: "CANCELLED_BY_MEMBER" });
+  });
+  await cancelOrder("order-uuid", { cancelReason: "ETC", reasonDetail: "주소 변경" });
+  await cancelOrder("order-uuid");
+  assert.deepEqual(JSON.parse(calls[0].body), { cancelReason: "ETC", reasonDetail: "주소 변경" });
+  assert.equal(calls[0].headers.get("Content-Type"), "application/json");
+  assert.equal(calls[1].body, undefined);
+  assert.equal(calls[1].headers.get("Content-Type"), null);
+});

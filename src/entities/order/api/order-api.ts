@@ -137,10 +137,16 @@ export function getOrders(page: number, status: string, signal?: AbortSignal) {
     hasNext: boolean;
   }>(`/api/v1/orders?${params}`, { auth: true, signal });
 }
-export function cancelOrder(id: string) {
+/** BE `CancelReason`. `ETC`는 `reasonDetail`이 비어 있으면 400 `INVALID_INPUT`이다. */
+export type OrderCancelReason =
+  "SIMPLE_CHANGE_OF_MIND" | "PAYMENT_INFO_ERROR" | "OPTION_SELECTION_ERROR" | "ETC";
+export type OrderCancelBody = { cancelReason: OrderCancelReason; reasonDetail?: string };
+/** 본문은 선택이다. 없이 보내도 BE는 취소하고 사유만 저장하지 않는다(`OrderCancelRequest`). */
+export function cancelOrder(id: string, body?: OrderCancelBody) {
   return apiRequest<{ orderId: string; status: string }>(`/api/v1/orders/${id}/cancel`, {
     auth: true,
     method: "POST",
+    body,
   });
 }
 export function createPayment(fundingId: string) {
