@@ -101,10 +101,21 @@ test("order-service degrade 응답도 항목 자리를 유지한다", () => {
   assert.deepEqual(degraded.items, [{ product: "", option: "", price: null, quantity: null }]);
 });
 
-test("날짜는 서버 시각의 앞 10자리만 쓴다", () => {
+test("날짜는 서버 시각(UTC)을 한국 날짜로 옮긴다", () => {
   assert.equal(cancelled.requestedAt, "2026.09.01");
   assert.equal(cancelled.completedAt, "2026.09.13");
   assert.equal(delayed.completedAt, "");
+});
+
+test("한국 시간 새벽(UTC 전날 15시 이후) 신청·완료는 한국 날짜로 보인다", () => {
+  const [base] = refundSummariesDemo;
+  const entry = toRefundEntry({
+    ...base,
+    requestedAt: "2026-09-27T18:00:00Z",
+    completedAt: "2026-09-27T14:59:59Z",
+  });
+  assert.equal(entry.requestedAt, "2026.09.28");
+  assert.equal(entry.completedAt, "2026.09.27");
 });
 
 test("상품 옵션은 그룹과 값을 이어 옵션 행에 담는다", () => {
