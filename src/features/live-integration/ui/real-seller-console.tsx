@@ -142,15 +142,15 @@ function ConsoleBody({
     queryFn: ({ signal }) => getLiveDetail(liveId, signal),
     /* 없거나 남의 LIVE(404)는 다시 불러도 같다. 오류 화면을 두고 주기 갱신을 멈춘다. */
     refetchInterval: (query) =>
-      query.state.data?.status === "ENDED" ||
-      (!query.state.data && isUnavailableLive(query.state.error))
+      query.state.data?.status === "ENDED" || isUnavailableLive(query.state.error)
         ? false
         : POLL_MS,
     retry: false,
   });
   /* LIVE가 없거나 남의 LIVE면 BE가 404로 답한다. 큐시트 404를 "큐시트 없음"으로 보는 콘솔을
-     그리지 않고 오류로 안내한다(#403). 첫 조회가 성공한 뒤의 갱신 실패는 콘솔을 그대로 둔다. */
-  const unavailable = detail.isLoadingError && isUnavailableLive(detail.error);
+     그리지 않고 오류로 안내한다(#403). 콘솔을 보던 중 갱신이 404·403이 돼도(LIVE 삭제, 다른
+     계정 로그인) 같다. 그 밖의 갱신 실패는 일시적일 수 있어 콘솔을 그대로 둔다. */
+  const unavailable = detail.isError && isUnavailableLive(detail.error);
   /* 종료가 확인되면 더 모일 질문이 없다. 인사이트 호출은 BE가 AI를 부르게 하므로 멈춘다. */
   const questionPoll = detail.data?.status === "ENDED" || unavailable ? false : POLL_MS;
   const playback = useQuery({
@@ -189,7 +189,7 @@ function ConsoleBody({
   const orderStats = useQuery({
     queryKey: [...ownerKey, "order-stats"],
     queryFn: ({ signal }) => getLiveOrderStats(liveId, signal),
-    refetchInterval: detail.data?.status === "LIVE" ? ORDER_STATS_POLL_MS : false,
+    refetchInterval: detail.data?.status === "LIVE" && !unavailable ? ORDER_STATS_POLL_MS : false,
     retry: false,
   });
   const end = useMutation({
