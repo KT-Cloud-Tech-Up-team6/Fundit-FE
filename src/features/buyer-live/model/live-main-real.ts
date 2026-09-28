@@ -1,5 +1,5 @@
 /* LIVE 메인(#345)에 실제 LIVE를 섞는 순수 헬퍼. PM 방식(2026-09-24): 섹션의 일부 칸만 실제 LIVE로
-   채우고 나머지는 목업으로 둔다. 실제 카드는 BE에 없는 판매자·카테고리·달성률을 채우지 않는다. */
+   채우고 나머지는 목업으로 둔다. 실제 카드는 BE에 없는 카테고리·달성률을 채우지 않는다. */
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
 import type { FollowedSeller } from "@/entities/seller/api/follow-api";
 
@@ -81,6 +81,10 @@ export function realLiveHref(live: LiveSummaryResponse) {
 /** 계약에 제목이 없어 소개 문구를 쓴다. 비어 있으면 가짜 제목 대신 비어 있다고 적는다. */
 export const realLiveTitle = (live: LiveSummaryResponse) =>
   live.introText?.trim() || "소개 문구 없음";
+
+/** 카드의 판매자 줄. 닉네임이 없으면 가짜 이름 대신 줄을 그리지 않는다(`undefined`). */
+export const realLiveSeller = (live: LiveSummaryResponse) =>
+  live.sellerNickname?.trim() || undefined;
 
 /** 예정 카드 딤의 날짜(`09.18`)·시간(`오후 3:40`). 한국 시간 기준이고 값이 없으면 비운다. */
 export function scheduleLabel(value: string | null) {

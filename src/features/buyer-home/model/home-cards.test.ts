@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProjectCardResponse } from "@/entities/project/api/buyer-project-api";
-import { featuredCard, liveCard, type HomeLive } from "./home-cards";
+import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
+import { featuredCard, liveCard } from "./home-cards";
 
 const uuid = "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f01";
 
@@ -33,7 +34,7 @@ test("featured cards without a public UUID never link to the numeric project id"
   }
 });
 
-const live: HomeLive = {
+const live: LiveSummaryResponse = {
   liveId: "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f99",
   introText: "  환절기 스킨케어 라이브  ",
   status: "LIVE",

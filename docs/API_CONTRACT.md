@@ -43,22 +43,22 @@ Gateway는 `/api/v1/follows/**`를 member-service로 라우팅한다.
 | PUT `/api/v1/follows/{sellerId}`    | sellerId는 **UUID** → `{sellerId, following}`        |
 | DELETE `/api/v1/follows/{sellerId}` | → 204                                                |
 
-- 목록 항목은 `{sellerId, sellerName, sellerNickname, createdAt}`뿐이다.
+- 목록 항목은 `{sellerId, sellerName, sellerNickname, followerCount, wishCount, createdAt}`다. `followerCount`는 탈퇴 회원을 뺀 팔로워 수(내 팔로우 포함), `wishCount`(♥)는 그 판매자 프로젝트들에 달린 찜의 합이다(BE #168·PR #173, 2026-09-28). `profileImageUrl`은 업로드 경로가 없어 늘 null이라 응답에서 빠진다. ♥ 합산은 PR #173 이전 프로젝트 스냅샷을 BE가 다시 채워야 맞는다.
 - 2026-09-24 BE develop `d701b42`의 `FollowController`·`FollowService` 재확인: 팔로우·언팔로우 모두 idempotent하다. 자기 자신 팔로우는 400 `INVALID_INPUT`, 없는 회원 팔로우는 404다. 언팔로우는 대상이 없어도 204다. size는 1~100을 벗어나면 400이다. 대상이 판매자인지는 BE가 검증하지 않는다(회원 존재만 확인).
 - 판매자 한 명의 팔로우 여부를 묻는 API는 없다. FE는 `src/entities/seller/api/follow-api.ts`의 `getAllFollows`로 목록을 size 100으로 끝까지 읽어 판단하며, 쿼리 키 `followsQueryKey(memberId)`를 LIVE 시청 화면(#343)과 LIVE 메인 "팔로우한 창작자"가 함께 쓴다. LIVE 시청 화면의 판매자 식별자는 공개 프로젝트 상세의 `seller.sellerId`다(`displayName`은 null일 수 있다).
 - 찜 목록(`GET /api/v1/wishes`)과 합치지 않은 이유는 항목 모양이 다르고, 한 엔드포인트에 섞으면 페이지네이션이 하나로 묶여 탭 전환마다 커서가 꼬이기 때문이다. FE도 두 탭의 페이지 상태를 분리한다.
 
-**목록·해제는 연결했고(#384), 표시 필드 일부가 없다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. LIVE 목록 응답에는 `sellerId`가 없어 FE가 방송 중 여부를 판매자별로 나눌 수도 없다. #257에서는 이름 하나만 채울 수 있어 목록 연결을 보류했으나, 2026-09-28 목록·해제는 연결하고 없는 값은 비워 두기로 바꿨다([관심 목록](./BUYER_WISHLIST.md#팔로잉-탭-연결-384)).
+**목록·해제는 연결했고(#384), 표시 필드 일부가 없다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. LIVE 목록 응답에는 `sellerId`가 없어 FE가 방송 중 여부를 판매자별로 나눌 수도 없다. #257에서는 이름 하나만 채울 수 있어 목록 연결을 보류했으나, 2026-09-28 목록·해제는 연결하고 없는 값은 비워 두기로 바꿨다([관심 목록](./BUYER_WISHLIST.md#팔로잉-탭-연결-384)). 같은 날 BE PR #173으로 팔로워 수·♥가 생겨 #427에서 연결했고, 아바타 이미지와 LIVE 배지는 여전히 없다.
 
-BE에 요청할 필드는 아래와 같다. 목록 응답에 포함하는 방법과 판매자 프로필 조회를 확장하는 방법 모두 가능하다.
+BE에 요청한 필드와 반영 상태는 아래와 같다.
 
-| 필요한 값                    | 쓰임                                          |
-| ---------------------------- | --------------------------------------------- |
-| 판매자 프로필 이미지 URL     | 행 좌측 아바타 46px                           |
-| 팔로워 수                    | "팔로워 N"                                    |
-| 좋아요(찜) 수                | 하트 아이콘 옆 수치                           |
-| 진행 중 LIVE 여부            | 아바타 위 LIVE 배지                           |
-| 판매자 상세 경로에 쓸 식별자 | 행 선택 시 이동. 목적지 자체도 아직 미정이다. |
+| 필요한 값                    | 쓰임                | 상태(2026-09-28)                                           |
+| ---------------------------- | ------------------- | ---------------------------------------------------------- |
+| 판매자 프로필 이미지 URL     | 행 좌측 아바타 46px | 필드만 추가, 업로드 경로가 없어 늘 빠짐 → 기본 이미지      |
+| 팔로워 수                    | "팔로워 N"          | `followerCount` 반영(PR #173), #427 연결                   |
+| 좋아요(찜) 수                | 하트 아이콘 옆 수치 | `wishCount` 반영(PR #173), #427 연결                       |
+| 진행 중 LIVE 여부            | 아바타 위 LIVE 배지 | LIVE 목록에 `sellerId` 추가 예정(요청서 BE-17)             |
+| 판매자 상세 경로에 쓸 식별자 | 행 선택 시 이동     | 판매자 상세는 MVP 제외(요청서 PD-9 회신)라 요청하지 않는다 |
 
 - 목록 정렬은 팔로우한 최신순이다(`createdAt desc, sellerId desc`, BE `FollowJpaRepository`).
 
@@ -351,6 +351,7 @@ Set-Cookie: refreshToken=<value>; HttpOnly; Secure; SameSite=Strict; Path=/api/v
 | POST `/api/v1/auth/token/refresh`          | 본문 없음, Refresh 쿠키                                                          | accessToken. 새 쿠키는 이전 근거로 분리.                                                                                                                                         |
 | GET `/api/v1/auth/jwks`                    | 인증 불필요                                                                      | 자유 객체로 정의된 공개키 응답.                                                                                                                                                  |
 | PATCH `/api/v1/auth/password`              | currentPassword, newPassword, Access 인증                                        | message. 로그인 상태 비밀번호 변경.                                                                                                                                              |
+| GET `/api/v1/auth/me`                      | 인증, 본문 없음                                                                  | email(마스킹 없음). 이메일은 auth 소관이라 `members/me`와 따로 부른다(BE #174·PR #175, 마이페이지 #427).                                                                         |
 | GET `/api/v1/members/me`                   | 인증, 본문 없음                                                                  | memberId, name, nickname, phoneNumber, isSeller, isBuyer.                                                                                                                        |
 | GET `/api/v1/terms`                        | 인증 불필요                                                                      | code, title, content, required, version의 배열.                                                                                                                                  |
 | GET `/api/v1/addresses`                    | 인증                                                                             | id, recipientName, phoneNumber, zipcode, addressLine1, addressLine2, isDefault의 배열.                                                                                           |

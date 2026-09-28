@@ -1,11 +1,15 @@
 import { apiRequest } from "@/shared/api/client";
 
 /** `GET /api/v1/follows` 항목(BE `FollowListItemResponse`). 이름은 회원 실명, 닉네임은 회원 닉네임이다.
-    BE가 null 필드를 응답에서 빼므로 둘 다 없을 수 있다. */
+    BE가 null 필드를 응답에서 빼므로 둘 다 없을 수 있다. `profileImageUrl`은 업로드 경로가 없어 늘 빠진다. */
 export type FollowedSeller = {
   sellerId: string;
   sellerName?: string;
   sellerNickname?: string;
+  /** 그 판매자의 팔로워 수(탈퇴 회원 제외). 내 팔로우도 들어 있다. BE PR #173 이전 서버에는 없다. */
+  followerCount?: number;
+  /** ♥: 그 판매자 프로젝트들에 달린 찜의 합. BE PR #173 이전 서버에는 없다. */
+  wishCount?: number;
   createdAt: string;
 };
 

@@ -11,11 +11,16 @@ import {
 } from "@/entities/seller/api/follow-api";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
-import { displayedFollowings, displayedFollowingTotal, followingName } from "../model/following";
+import {
+  displayedFollowings,
+  displayedFollowingTotal,
+  followingRowSeller,
+} from "../model/following";
 
-/* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 목록 응답에 아바타·팔로워 수·♥·방송 중
-   여부가 없어 행은 이름과 [팔로잉]만 채운다(노션 FE 자체 판단 89). 판매자 상세 목적지가 없어 행은
-   이동하지 않고, 광고는 찜 탭 실제 화면처럼 두지 않는다(92). */
+/* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 행은 이름·팔로워 수·♥(#427, BE PR #173)와
+   [팔로잉]을 채운다. 프로필 이미지는 BE에 업로드 경로가 없어 기본 이미지이고, 방송 중 여부는 LIVE 목록에
+   `sellerId`가 오기 전까지 비운다(노션 FE 자체 판단 89). 판매자 상세 목적지가 없어 행은 이동하지 않고,
+   광고는 찜 탭 실제 화면처럼 두지 않는다(92). */
 export function FollowingListApi({
   memberId,
   unfollowed,
@@ -127,7 +132,7 @@ export function FollowingListApi({
                 return (
                   <SellerRow
                     key={seller.sellerId}
-                    seller={{ id: seller.sellerId, name: followingName(seller) }}
+                    seller={followingRowSeller(seller)}
                     following={!isUnfollowed}
                     followLabel={isUnfollowed ? "다시 팔로우" : undefined}
                     followUnavailable={busy}

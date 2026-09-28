@@ -8,6 +8,7 @@ import {
   pickNewOpen,
   pickUpcoming,
   realLiveHref,
+  realLiveSeller,
   realLiveTitle,
   scheduleLabel,
   withViewerCounts,
@@ -116,4 +117,11 @@ test("신규 오픈 LIVE는 함께 받은 실시간 순위에 있으면 그 시�
     0,
   );
   assert.deepEqual(withViewerCounts(newOpen, []), newOpen);
+});
+
+test("실제 LIVE 카드의 판매자 줄은 닉네임이 있을 때만 그린다", () => {
+  assert.equal(realLiveSeller(live()), undefined);
+  assert.equal(realLiveSeller(live({ sellerNickname: null })), undefined);
+  assert.equal(realLiveSeller(live({ sellerNickname: "  " })), undefined);
+  assert.equal(realLiveSeller(live({ sellerNickname: " 뷰티마켓 " })), "뷰티마켓");
 });
