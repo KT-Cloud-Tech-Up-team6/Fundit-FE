@@ -35,7 +35,8 @@ export function BuyerWishlist({
   initialEmpty?: boolean;
 }) {
   const [projects, setProjects] = useState(initialEmpty ? [] : wishlistProjects);
-  const [sellers, setSellers] = useState(initialEmpty ? [] : wishlistSellers);
+  const [sellers] = useState(initialEmpty ? [] : wishlistSellers);
+  const [unfollowedSellerIds, setUnfollowedSellerIds] = useState<ReadonlySet<string>>(new Set());
   const count = tab === "projects" ? projects.length : sellers.length;
   return (
     <BuyerAccountScreen title="관심 목록" className="w-full">
@@ -101,18 +102,26 @@ export function BuyerWishlist({
           </div>
         ) : (
           <div>
-            {sellers.map((seller, index) => (
-              <Fragment key={seller.id}>
-                <SellerRow
-                  seller={seller}
-                  following
-                  onFollow={() =>
-                    setSellers((items) => items.filter((item) => item.id !== seller.id))
-                  }
-                />
-                {index === 5 && <Advertisement />}
-              </Fragment>
-            ))}
+            {sellers.map((seller) => {
+              const isUnfollowed = unfollowedSellerIds.has(seller.id);
+              return (
+                <Fragment key={seller.id}>
+                  <SellerRow
+                    seller={seller}
+                    following={!isUnfollowed}
+                    followLabel={isUnfollowed ? "다시 팔로우" : undefined}
+                    onFollow={() =>
+                      setUnfollowedSellerIds((previous) => {
+                        const next = new Set(previous);
+                        if (isUnfollowed) next.delete(seller.id);
+                        else next.add(seller.id);
+                        return next;
+                      })
+                    }
+                  />
+                </Fragment>
+              );
+            })}
           </div>
         )}
       </section>
