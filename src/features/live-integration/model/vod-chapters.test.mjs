@@ -103,3 +103,16 @@ test("구간이 없거나 길이를 모르면 조회하지 않는다", () => {
 test("마지막 구간이 영상 끝과 같으면 빈 범위를 만들지 않는다", () => {
   assert.equal(chapterRange([marker(600, "끝")], 600, 600), null);
 });
+
+test("제목이 없는 챕터는 장면 유형으로 대체 문구를 적는다(#405)", () => {
+  const untitled = [
+    { ...marker(0, undefined), sceneLabel: "DEMO" },
+    { ...marker(60, "  "), sceneLabel: "PRICE_BENEFIT" },
+    { ...marker(120, null), sceneLabel: "UNKNOWN" },
+    marker(180, "구성품 소개"),
+  ];
+  assert.deepEqual(
+    toChapters(untitled, 600).map((chapter) => chapter.title),
+    ["시연 구간", "가격·혜택 구간", "기타 구간", "구성품 소개"],
+  );
+});
