@@ -44,6 +44,7 @@ import {
 } from "../api/live-api";
 import {
   answeredByName,
+  consoleCheckDialog,
   draftUnavailable,
   formatElapsed,
   formatUpdatedAgo,
@@ -72,7 +73,14 @@ const noMessages: { id: string; author: string; text: string }[] = [];
 const placeholderBox =
   "bg-layer-surface-disabled text-caption-s text-text-secondary flex flex-1 items-center justify-center rounded-xs p-4 text-center";
 
-export function RealSellerConsole({ liveId }: { liveId: string }) {
+/** `openCheck`면 종료된 방송에서 LIVE 체크 작성(FL_S_LV_VERIFY)을 바로 연다. LIVE 스튜디오의 종료 방송이 쓴다. */
+export function RealSellerConsole({
+  liveId,
+  openCheck = false,
+}: {
+  liveId: string;
+  openCheck?: boolean;
+}) {
   const { state } = useAuth();
   const ownerId = state.status === "authenticated" ? state.user?.memberId : undefined;
   if (state.status === "guest")
@@ -100,15 +108,25 @@ export function RealSellerConsole({ liveId }: { liveId: string }) {
         </p>
       </SellerShell>
     );
-  return <ConsoleBody key={ownerId} liveId={liveId} ownerId={ownerId} />;
+  return <ConsoleBody key={ownerId} liveId={liveId} ownerId={ownerId} openCheck={openCheck} />;
 }
 
-function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
+function ConsoleBody({
+  liveId,
+  ownerId,
+  openCheck,
+}: {
+  liveId: string;
+  ownerId: string;
+  openCheck: boolean;
+}) {
   const cache = useQueryClient();
   const ownerKey = ["live", liveId, "owner", ownerId];
   const consoleRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<ManagerView>({ kind: "summary" });
   const [dialog, setDialog] = useState<CheckDialog | null>(null);
+  /* `openCheck`로 연 LIVE 체크를 닫았는지. 닫은 뒤 다시 띄우지 않는다. */
+  const [checkClosed, setCheckClosed] = useState(false);
   const [notice, setNotice] = useState("");
   const [endError, setEndError] = useState<unknown>(null);
   const [publishedIds, setPublishedIds] = useState<string[]>([]);
@@ -178,12 +196,17 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
 
   const live = detail.data?.status === "LIVE";
   const projectId = detail.data?.projectId;
+  const checkDialog: CheckDialog | null = consoleCheckDialog(dialog, {
+    openCheck,
+    closed: checkClosed,
+    status: detail.data?.status,
+  });
   /* 이미 LIVE 체크에 올린 질문을 서버 기준으로 알려 준다. 체크 흐름을 열 때만 부르고, 받기 전이나
      실패해도 막지 않는다. 다시 올리면 409라 추가된 것으로 처리되기 때문이다. */
   const liveQuestions = useQuery({
     queryKey: [...ownerKey, "live-questions"],
     queryFn: ({ signal }) => getLiveQuestions(projectId ?? "", signal),
-    enabled: dialog !== null && !!projectId,
+    enabled: checkDialog !== null && !!projectId,
     retry: false,
   });
   const registeredIds = (liveQuestions.data?.content ?? [])
@@ -194,6 +217,7 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
 
   function closeDialog() {
     setDialog(null);
+    setCheckClosed(true);
     consoleRef.current?.focus();
   }
 
@@ -290,9 +314,9 @@ function ConsoleBody({ liveId, ownerId }: { liveId: string; ownerId: string }) {
             />
           </div>
         </div>
-        {dialog && (
+        {checkDialog && (
           <LiveCheckFlow
-            dialog={dialog}
+            dialog={checkDialog}
             onDialog={setDialog}
             questions={checkQuestions}
             listFallback={
