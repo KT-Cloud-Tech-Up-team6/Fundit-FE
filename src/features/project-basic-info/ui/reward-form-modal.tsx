@@ -49,7 +49,7 @@ export function RewardFormModal({
   if (!draft) return null;
   const discountUnitOptions = [
     { value: "won", label: "원" },
-    { value: "percent", label: "퍼센트" },
+    { value: "percent", label: "%" },
   ] as const;
 
   return (
@@ -179,43 +179,47 @@ export function RewardFormModal({
           >
             <span className="text-body-emphasis">리워드 할인 설정</span>
             <span className={bannerDescriptionClass}>
-              선착순 후원자에게 별도 할인 가격을 제공해요
+              선착순 후원자에게 별도 할인 가격 · 한정 수량으로 제공해요
             </span>
           </Checkbox>
           {draft.discount && (
-            /* 원본에 켠 상태가 없어 입력칸을 할인 배너에 붙이고 아래 옵션 배너와는 16px 띄운다(#394). */
-            <div className="mt-1 mb-4 flex gap-2 pl-6">
-              <Input
-                size="md"
-                shape="compact"
-                className="[&_input]:text-body-s"
-                aria-label="할인 값"
-                inputMode="numeric"
-                value={draft.discountValue}
-                onChange={(event) =>
-                  /^\d*$/.test(event.target.value) &&
-                  onUpdate({ discountValue: event.target.value })
-                }
-                placeholder="할인 값을 입력해주세요"
-              />
-              <Dropdown
-                size="xs"
-                className="w-24 self-center"
-                aria-label="할인 단위"
-                options={discountUnitOptions}
-                value={draft.discountUnit}
-                onValueChange={(value) =>
-                  onUpdate({
-                    discountUnit: value as RewardDraft["discountUnit"],
-                    discountValue: convertDiscount(
-                      draft.discountValue,
-                      draft.discountUnit,
-                      value as RewardDraft["discountUnit"],
-                      draft.price,
-                    ),
-                  })
-                }
-              />
+            /* Figma `2399:46589`: 체크한 할인 배너 아래 8px, 왼쪽 36px 들여쓰기의 40px
+                단일 필드다. 단위 선택은 같은 테두리 안쪽 오른쪽에 놓인다. */
+            <div className="mt-2 mb-4 pl-9">
+              <div className="relative">
+                <Input
+                  size="sm"
+                  shape="compact"
+                  className="h-10 [&_input]:pr-15"
+                  aria-label="할인 값"
+                  inputMode="numeric"
+                  value={draft.discountValue}
+                  onChange={(event) =>
+                    /^\d*$/.test(event.target.value) &&
+                    onUpdate({ discountValue: event.target.value })
+                  }
+                  placeholder="할인가격을 입력해주세요"
+                />
+                <Dropdown
+                  size="xs"
+                  /* Dropdown의 기본 relative보다 우선해 할인 입력칸 안에 고정한다. */
+                  className="!absolute top-1/2 right-2 w-12 -translate-y-1/2"
+                  aria-label="할인 단위"
+                  options={discountUnitOptions}
+                  value={draft.discountUnit}
+                  onValueChange={(value) =>
+                    onUpdate({
+                      discountUnit: value as RewardDraft["discountUnit"],
+                      discountValue: convertDiscount(
+                        draft.discountValue,
+                        draft.discountUnit,
+                        value as RewardDraft["discountUnit"],
+                        draft.price,
+                      ),
+                    })
+                  }
+                />
+              </div>
             </div>
           )}
           <Checkbox
@@ -227,7 +231,7 @@ export function RewardFormModal({
           >
             <span className="text-body-emphasis">옵션 설정</span>
             <span className={bannerDescriptionClass}>
-              색상·사이즈처럼 후원자가 고를 수 있는 옵션이 있다면 켜주세요
+              색상· 사이즈처럼 후원자가 고를 수 있는 옵션이 있다면 켜주세요
             </span>
           </Checkbox>
           {optionsReadOnly && (
@@ -237,7 +241,7 @@ export function RewardFormModal({
             </p>
           )}
           {!optionsReadOnly && draft.options && (
-            /* 할인 입력칸처럼 옵션 편집도 배너에 붙이지 않고 위를 띄운다(#394). */
+            /* Figma `2399:46357`: 옵션 영역은 체크 행 아래에서 40px 들여쓴다. */
             <div className="mt-2">
               <RewardOptionEditor
                 groups={draft.optionGroups ?? []}
