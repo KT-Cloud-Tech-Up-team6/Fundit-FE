@@ -49,12 +49,15 @@ export function FollowingListApi({
   useEffect(() => {
     const target = sentinel.current;
     if (!target || !hasNextPage || isFetchingNextPage || list.isFetchNextPageError) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.disconnect();
-        void fetchNextPage();
-      }
-    }, { rootMargin: "0px 0px 240px" });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "0px 0px 240px" },
+    );
     observer.observe(target);
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, list.isFetchNextPageError]);
