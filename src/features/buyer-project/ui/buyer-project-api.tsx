@@ -213,15 +213,24 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       <p>
         목표 미달 자동 환불. {refund.data?.commonPolicy.goalFailedAutoRefund ? "적용" : "미적용"}
       </p>
+      {/* 환불 정책 응답에는 리워드 id만 있다. 내부 id 대신 리워드 목록의 이름을 보인다(#405). */}
       {refund.data?.rewardPolicies?.map((item) => (
         <p key={item.rewardId}>
-          리워드 {item.rewardId}. 간편환불 {item.simpleRefundDisabled ? "불가" : "가능"}
+          {rewards.data?.find((reward) => reward.rewardId === item.rewardId)?.name ?? "리워드"}.
+          간편환불 {item.simpleRefundDisabled ? "불가" : "가능"}
         </p>
       ))}
     </div>
   ) : tab === "live-proof" ? (
     <>
-      <p className="mb-3">LIVE 검증 정보입니다. 영상 송출 연결은 준비 중입니다.</p>
+      {/* Figma LIVE 체크 탭(FL_B_PJ_LIVE 1541:50459)의 "LIVE Q&A N건" 제목이다. 원본에 없던 안내 문장은
+          뺐다(#405). 종료 LIVE·숏 클립의 "LIVE 다시 보기" 절은 #319가 맡는다. */}
+      <h2 className="text-title-s mb-3">
+        LIVE Q&amp;A{" "}
+        <small className="text-caption-m text-text-secondary">
+          {live.data?.content?.length ?? 0}건
+        </small>
+      </h2>
       {/* Figma LIVE Q&A 카드(1408:42965). BE가 날짜를 주지 않아 "N건 · 날짜"는 건수만 적는다.
           질문 요약을 받기 전에 등록된 항목은 문구가 없어 답변만 보인다. */}
       <div className="flex flex-col gap-6">
@@ -229,7 +238,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           <article key={item.liveVerificationId} className="flex flex-col gap-2">
             {item.questionText && (
               <div>
-                <h2 className="text-body-strong">{item.questionText}</h2>
+                <h3 className="text-body-strong">{item.questionText}</h3>
                 <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
               </div>
             )}
@@ -240,7 +249,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           </article>
         ))}
       </div>
-      {!live.data?.content?.length && <p>등록된 검증 정보가 없습니다.</p>}
+      {!live.data?.content?.length && <p>등록된 LIVE Q&amp;A가 없습니다.</p>}
     </>
   ) : tab === "news" ? (
     <>
