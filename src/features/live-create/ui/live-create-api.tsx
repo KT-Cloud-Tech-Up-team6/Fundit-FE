@@ -15,7 +15,7 @@ import {
   updateLiveSettings,
   type LiveCreateResponse,
 } from "@/entities/live/api/live-session-api";
-import { getMyLives, type LiveStatus } from "@/entities/live/api/seller-live-api";
+import { getAllMyLives, type LiveStatus } from "@/entities/live/api/seller-live-api";
 import { liveFailureReason } from "@/entities/live/model/live-error";
 import {
   isEmptyLiveSettingsBody,
@@ -45,9 +45,9 @@ import { StreamInfo } from "./stream-info";
 /* 이어 쓸 수 있는 LIVE. 시작·종료한 LIVE는 서버가 설정 저장·시작을 받지 않는다. */
 const resumableStatuses: readonly LiveStatus[] = ["DRAFT", "SCHEDULED", "ERROR"];
 
-/* 임시저장 LIVE는 이어서 작성할 후보라 많지 않다. 불러오기 목록은 페이지 없이 한 번에
-   보여 주고, 그보다 많으면 서버가 준 첫 페이지까지만 보인다. */
-const DRAFT_LIST_SIZE = 20;
+/* 불러오기 목록은 페이지 없이 한 번에 보여 준다. 스튜디오에서는 모든 프로젝트의 임시저장이
+   섞여 한 페이지를 넘을 수 있어 끝 페이지까지 받는다. 한 번에 받는 건수다. */
+const DRAFT_PAGE_SIZE = 50;
 
 const categoryOptions = mainCategories.map((name) => ({ value: name, label: name }));
 
@@ -206,7 +206,10 @@ export function LiveCreateApi({
   const drafts = useQuery({
     queryKey: ["seller-lives", owner, "drafts", fixedProjectId ?? "all"],
     queryFn: ({ signal }) =>
-      getMyLives({ statuses: ["DRAFT"], projectId: fixedProjectId, size: DRAFT_LIST_SIZE }, signal),
+      getAllMyLives(
+        { statuses: ["DRAFT"], projectId: fixedProjectId, size: DRAFT_PAGE_SIZE },
+        signal,
+      ),
     enabled: enabled && loadOpen,
   });
 
@@ -332,8 +335,12 @@ export function LiveCreateApi({
   const projectTitles = new Map(
     (projects.data?.content ?? []).map((item) => [item.projectId, item.title || "제목 없음"]),
   );
+  /* 진행 중 목록에 없는 프로젝트(준비 중·종료, 첫 100개 밖)는 이름을 모른다. 날짜만 남기면
+     어느 프로젝트의 LIVE인지 가릴 수 없어 모른다고 적는다. */
   const draftProjectTitle = (index: number) =>
-    picking ? projectTitles.get(drafts.data?.content[index]?.projectId ?? "") : undefined;
+    picking
+      ? (projectTitles.get(drafts.data?.content[index]?.projectId ?? "") ?? "프로젝트 정보 없음")
+      : undefined;
   const inCategory = projectsInCategory(projects.data?.content ?? [], category);
 
   const projectPicker = (
