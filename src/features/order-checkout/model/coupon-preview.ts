@@ -1,4 +1,5 @@
 import type { OrderPreview } from "../../../entities/order/api/order-api";
+import { formatWon } from "./checkout-demo";
 
 export function couponPreviewError(preview: OrderPreview, codes: string[]): string {
   if (!codes.length) return "";
@@ -20,4 +21,15 @@ export function couponPreviewError(preview: OrderPreview, codes: string[]): stri
   return codes.every((code) => preview.appliedCoupons?.some((coupon) => coupon.couponCode === code))
     ? ""
     : "쿠폰 적용 여부를 확인하지 못했습니다. 다시 시도해주세요.";
+}
+
+/** 미리보기와 주문 생성 사이에 쿠폰이 소진·만료되면 BE가 쿠폰 없이 주문을 만든다. 생성 응답에는
+    할인 상세가 없어(`OrderCreated`) 금액 비교로만 감지할 수 있다. */
+export function couponDroppedMessage(
+  hadCoupon: boolean,
+  previewFinalAmount: number,
+  orderFinalAmount: number,
+): string | null {
+  if (!hadCoupon || orderFinalAmount <= previewFinalAmount) return null;
+  return `쿠폰이 적용되지 않아 결제 금액이 ${formatWon(orderFinalAmount)}으로 달라졌습니다. 확인 후 결제해주세요.`;
 }

@@ -10,6 +10,7 @@ import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-acc
 import { isConfirmed, localStore, rememberAttempt, sessionStore } from "../model/payment-attempt";
 import {
   createAttemptOutcome,
+  isPaymentExpired,
   isUserCancel,
   paymentWindowErrorMessage,
 } from "../model/payment-result";
@@ -49,6 +50,8 @@ function Payment({ memberId, orderId }: { memberId: string; orderId: string }) {
         throw new NotPayableError(
           `결제할 수 없는 주문입니다. (${orderStatusLabels[order.status] ?? order.status})`,
         );
+      if (isPaymentExpired(order.paymentExpiresAt))
+        throw new NotPayableError("결제 기한이 지난 주문입니다. 참여 내역에서 확인해주세요.");
       const created = await createPayment(orderId);
       rememberAttempt(sessionStore(), created.pgOrderId, orderId, created.amount);
       return created;
