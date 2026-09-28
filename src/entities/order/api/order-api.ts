@@ -78,6 +78,8 @@ export type OrderDetail = {
   shippingAddress: OrderAddress;
   /** 결제 전이거나 결제 시각이 기록되기 전의 옛 주문이면 키가 없다. */
   paidAt?: string;
+  /** 결제 기한이 설정되지 않은 옛 주문이면 BE가 키 자체를 뺀다(paidAt과 동일). */
+  paymentExpiresAt?: string;
   availableActions: string[];
   refundRequests: OrderRefundRequest[];
   lineItems: OrderLineItem[];

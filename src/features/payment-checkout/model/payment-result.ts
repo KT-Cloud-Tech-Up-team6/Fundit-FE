@@ -96,10 +96,20 @@ export function confirmOutcome(error: unknown): PaymentOutcome {
 }
 
 export function createAttemptOutcome(error: unknown): string {
+  // 다른 탭·기기에서 먼저 결제를 끝낸 주문에 재진입하면 BE(PaymentCreateService)가 이 코드로 던진다.
+  if (error instanceof ApiError && error.code === "CONFLICT")
+    return "이미 결제가 완료된 주문입니다. 참여 내역에서 확인해주세요.";
   if (error instanceof ApiError && error.code === "FUNDING_NOT_PENDING")
     return "결제할 수 없는 주문입니다. 참여 내역에서 주문 상태를 확인해주세요.";
   if (error instanceof ApiError && error.status === 403) return "본인의 주문만 결제할 수 있습니다.";
   return "결제를 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
+/** 기한이 없는 주문(키 자체가 없는 옛 주문, entities/order/api/order-api.ts `paymentExpiresAt?`)은
+    만료로 볼 근거가 없으니 만료 아님으로 본다. */
+export function isPaymentExpired(paymentExpiresAt: string | undefined, now = Date.now()): boolean {
+  if (!paymentExpiresAt) return false;
+  return Date.parse(paymentExpiresAt) <= now;
 }
 
 export function isUserCancel(error: unknown): boolean {

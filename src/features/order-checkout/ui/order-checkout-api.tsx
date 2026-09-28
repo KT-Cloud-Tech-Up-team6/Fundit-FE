@@ -10,6 +10,7 @@ import {
   type CheckoutAddress,
   type OrderLine,
   type OrderAddress,
+  type OrderCreated,
 } from "@/entities/order/api/order-api";
 import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { MemberAccess } from "@/providers/member-access";
@@ -25,7 +26,7 @@ import { CheckoutLayout, PaymentSummarySection, ProjectOrderItems } from "./chec
 import { OrderAttemptError, OrderRejectedError, submitOrderOnce } from "../model/order-attempt";
 import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
-import { couponPreviewError } from "../model/coupon-preview";
+import { couponDroppedMessage, couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
 import { checkoutLineItems } from "../model/checkout-lines";
 import { previewSummaryRows } from "../model/payment-summary";
@@ -147,6 +148,8 @@ function Checkout({
     [error, setError] = useState(""),
     /* 서버가 거절을 확정했으면 주문이 없으니 참여 내역 링크를 두지 않는다(#387). */
     [rejected, setRejected] = useState(false);
+  /* 쿠폰이 빠진 채 주문이 이미 만들어진 상태(#404). 재클릭은 재주문하지 않고 그 주문으로 이동한다. */
+  const [createdOrder, setCreatedOrder] = useState<OrderCreated | null>(null);
   const saving = useRef(false);
   const [selectedCoupons, setSelectedCoupons] = useState<CouponSelection[]>([]);
   const selectedCouponCodes = couponCodes(selectedCoupons);
@@ -175,15 +178,36 @@ function Checkout({
      스크롤하고, 배송지가 없으면 데모처럼 배송지 경고를 띄운다. */
   async function pay() {
     if (saving.current) return;
+    // 쿠폰 이탈 안내를 이미 보여준 상태의 재클릭 — 주문은 이미 만들어져 있으니 다시 만들지 않는다.
+    if (createdOrder) {
+      router.replace(`/payment/${createdOrder.orderId}`);
+      return;
+    }
     if (!valid || couponError) return scrollToSection(ITEMS_ID);
     if (!requireAddress()) return;
-    if (!preview.isSuccess || preview.isFetching) return scrollToSection(SUMMARY_ID);
+    if (!preview.isSuccess || preview.isFetching || !amount) return scrollToSection(SUMMARY_ID);
+    if (amount.finalAmount <= 0) {
+      setError("결제 금액이 올바르지 않아 주문할 수 없습니다. 리워드와 쿠폰을 다시 확인해주세요.");
+      return scrollToSection(SUMMARY_ID);
+    }
     saving.current = true;
     setBusy(true);
     setError("");
     setRejected(false);
     try {
       const order = await submitOrderOnce(sessionStorage, memberId, body);
+      const dropped = couponDroppedMessage(
+        selectedCouponCodes.length > 0,
+        amount.finalAmount,
+        order.finalAmount,
+      );
+      if (dropped) {
+        setCreatedOrder(order);
+        setError(dropped);
+        saving.current = false;
+        setBusy(false);
+        return;
+      }
       router.replace(`/payment/${order.orderId}`);
     } catch (error) {
       setError(
@@ -250,7 +274,13 @@ function Checkout({
           </div>
         }
         ctaLabel={
-          busy ? "주문 생성 중" : amount ? `${formatWon(amount.finalAmount)} 결제` : "결제하기"
+          busy
+            ? "주문 생성 중"
+            : createdOrder
+              ? `${formatWon(createdOrder.finalAmount)} 결제 계속하기`
+              : amount
+                ? `${formatWon(amount.finalAmount)} 결제`
+                : "결제하기"
         }
         ctaDisabled={busy}
         onPay={() => void pay()}
@@ -352,6 +382,8 @@ function Checkout({
           onClose={() => setCouponOpen(false)}
           onApply={(selection) => {
             setSelectedCoupons(selection);
+            // 쿠폰을 다시 고르면 이전에 쿠폰 없이 만들어졌던 주문은 더 이상 유효한 선택을 반영하지 않는다.
+            setCreatedOrder(null);
             setCouponOpen(false);
           }}
         />

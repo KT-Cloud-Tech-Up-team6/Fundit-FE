@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { couponPreviewError } from "./coupon-preview.ts";
+import { couponDroppedMessage, couponPreviewError } from "./coupon-preview.ts";
 import { getCheckoutCoupons, previewOrder } from "../../../entities/order/api/order-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 
@@ -50,6 +50,14 @@ test("최소 금액·소유권·예산·알 수 없는 거절 사유를 안내�
       "",
     );
   }
+});
+
+test("쿠폰이 없었거나 금액이 그대로면 안내하지 않고, 주문 생성 중 빠졌으면 안내한다", () => {
+  assert.equal(couponDroppedMessage(false, 17000, 20000), null);
+  assert.equal(couponDroppedMessage(true, 17000, 17000), null);
+  assert.equal(couponDroppedMessage(true, 20000, 17000), null);
+  assert.match(couponDroppedMessage(true, 17000, 20000), /쿠폰이 적용되지 않아/);
+  assert.match(couponDroppedMessage(true, 17000, 20000), /20,000원/);
 });
 
 test("인증된 쿠폰함 페이지와 선택·해제 미리보기는 BE 계약으로 요청한다", async (t) => {
