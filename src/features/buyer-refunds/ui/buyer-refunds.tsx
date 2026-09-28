@@ -82,7 +82,7 @@ export function BuyerRefunds({
   return (
     <RefundsScreen>
       {/* 09-25 기록: 전체 배경색을 surface_default로 바꿨다(update_history 1143:23610). */}
-      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
+      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         <div className="bg-layer-surface-default flex w-full items-center justify-between gap-1 px-5 py-3">
           <p className="text-caption-m text-text-secondary">총 {count}개</p>
           <div className="flex items-center gap-1">

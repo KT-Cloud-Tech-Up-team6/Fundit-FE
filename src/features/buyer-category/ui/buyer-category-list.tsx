@@ -15,7 +15,7 @@ export function BuyerCategoryList({ slug }: { slug: string }) {
     <div className="bg-layer-surface-default min-h-dvh w-full">
       <BuyerDesktopHeader />
       <div
-        className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300 min-[1200px]:pb-16`}
+        className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-[calc(100dvh-70px)] min-[1200px]:max-w-300 min-[1200px]:pb-16`}
       >
         {/* 데스크톱 헤더에는 검색이 없으므로 /live와 같이 검색은 남기고 알림만 숨긴다. */}
         <header className="flex items-center gap-4 px-5 py-2 min-[1200px]:mx-auto min-[1200px]:w-full min-[1200px]:max-w-[614px] min-[1200px]:px-0 min-[1200px]:py-8">

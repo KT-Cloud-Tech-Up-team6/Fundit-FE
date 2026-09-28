@@ -66,6 +66,14 @@ export function getSellerProjects(
   return apiRequest<ProjectPage>(`/api/v1/projects?${query}`, { auth: true, signal });
 }
 
+/* LIVE를 열 수 있는 진행 중 프로젝트(#418). 목록 API에 카테고리 필터가 없어 한 번에 받아 화면에서
+   추린다. 100은 BE `ProjectController.MAX_PAGE_SIZE`이고, 그보다 많으면 첫 페이지까지만 보인다. */
+export const getOngoingProjects = (signal?: AbortSignal) =>
+  apiRequest<ProjectPage>("/api/v1/projects?status=ONGOING&page=0&size=100", {
+    auth: true,
+    signal,
+  });
+
 export function getProjectCounts(signal?: AbortSignal) {
   return apiRequest<{ ongoing: number; draft: number; completed: number }>(
     "/api/v1/projects/status-counts",

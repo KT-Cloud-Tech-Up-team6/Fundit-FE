@@ -585,6 +585,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 큐시트 조회    | GET `/api/v1/lives/{liveId}/cue-sheet`   | `{status, mode, totalDurationSec, segments, failureReason}`                                                                                  |
 | 큐시트 수정    | PATCH `/api/v1/lives/{liveId}/cue-sheet` | `{segments: [...]}` → 같은 조회 DTO                                                                                                          |
 
+- LIVE 스튜디오에서 만들 때(#418) 연결할 프로젝트는 `GET /api/v1/projects?status=ONGOING&page=0&size=100`으로 받는다. 목록 API에 카테고리 필터가 없어 `categoryMajor`로 화면에서 추리고, `size`는 최대 100(`ProjectController.MAX_PAGE_SIZE`)이라 그보다 많으면 첫 페이지까지만 보인다. BE `LiveCreateService`는 소유만 확인해 진행 중만 고르게 한 것은 FE 결정(2026-09-28)이다.
 - **부분 업데이트다.** `PATCH /settings`에서 보내지 않은 필드는 서버가 건드리지 않는다. 연결 프로젝트는 요청에 없다 — 요구사항정의서 6.2.4.1이 변경 불가로 정했고 바꾸려면 LIVE를 새로 만든다.
 - `introText`는 `@Size(max = 200)`이다. 화면 입력 제한도 같은 값을 쓴다.
 - `mode`는 `SCENARIO`·`SCRIPT`, `targetDurationSec`는 600초 이하다. 넘기면 400이고 이미 생성 중이면 409다.
