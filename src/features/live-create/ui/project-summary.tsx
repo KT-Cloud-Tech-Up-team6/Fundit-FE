@@ -23,6 +23,9 @@ export function ProjectSummary({
             width={82}
             height={82}
             className="size-[82px] shrink-0 rounded-xs object-cover"
+            /* 업로드 이미지는 S3 원격 주소다. next/image 원격 호스트 허용이 없어 최적화를 거치면
+               개발 서버는 오류, 운영은 400이 난다. 내 프로젝트 카드(seller-project-card)와 같게 둔다. */
+            unoptimized={/^https?:\/\//.test(project.image)}
           />
         ) : (
           <span className="bg-layer-bg text-caption-s text-text-secondary flex size-[82px] shrink-0 items-center justify-center rounded-xs">

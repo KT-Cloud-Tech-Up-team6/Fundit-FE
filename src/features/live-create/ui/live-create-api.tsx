@@ -143,18 +143,22 @@ export function LiveCreateApi({
     queryFn: ({ signal }) => getOngoingProjects(signal),
     enabled: enabled && picking,
   });
-  const listed = projects.data?.content.find((item) => item.projectId === projectId);
-  /* 주소로 받은 프로젝트, 또는 불러온 임시저장이 진행 중 목록에 없는 프로젝트일 때만 따로 읽는다. */
+  const listed = picking
+    ? projects.data?.content.find((item) => item.projectId === pickedId)
+    : undefined;
+  /* 주소로 받은 프로젝트만 따로 읽는다. 스튜디오는 진행 중 목록 안에서만 고른다. */
   const preview = useQuery({
-    queryKey: ["seller-project-preview", owner, projectId],
-    queryFn: ({ signal }) => getProjectPreview(projectId!, signal),
-    enabled: enabled && Boolean(projectId) && (!picking || (!projects.isPending && !listed)),
+    queryKey: ["seller-project-preview", owner, fixedProjectId],
+    queryFn: ({ signal }) => getProjectPreview(fixedProjectId!, signal),
+    enabled: enabled && !picking,
   });
   const project: LiveProjectSummary | null = listed
     ? fromProjectListItem(listed)
-    : projectId && preview.data
-      ? fromProjectPreview(projectId, preview.data)
+    : fixedProjectId && preview.data
+      ? fromProjectPreview(fixedProjectId, preview.data)
       : null;
+  /* 지금 liveId가 붙은 프로젝트. 같은 프로젝트를 다시 고르면 그 LIVE에 이어 쓴다. */
+  const liveProjectRef = useRef<string | null>(null);
 
   const save = useMutation({
     /* 불러오기 실패 안내가 남아 있으면 저장 결과 안내를 가린다. 저장을 시작하면 지운다. */
@@ -168,6 +172,7 @@ export function LiveCreateApi({
         /* 설정 저장이 실패해도 여기서 만든 LIVE는 이미 서버에 있다. onSuccess를 기다리면
            다음 저장이 createLive를 다시 불러 DRAFT가 쌓인다 — 생성 직후 바로 보존한다. */
         setLiveId(id);
+        liveProjectRef.current = projectId;
         cache.setQueryData<LiveCreateResponse>(["live-create", owner, projectId], {
           liveId: id,
           status: "DRAFT",
@@ -201,8 +206,9 @@ export function LiveCreateApi({
 
   /* 이어서 작성할 후보는 임시저장(DRAFT)뿐이다. 예약까지 마친 SCHEDULED는 생성이 끝난 LIVE라
      여기서 다시 열지 않는다(LIVE 스튜디오 준비중 탭이 맡는다). 주소로 받은 프로젝트면 그
-     프로젝트의 것만, 스튜디오면 프로젝트를 고르기 전이라 내 임시저장 전체를 보인다 —
-     원본 IA 19행 "불러오기 누르면 임시 저장 눌렀을 때 상태로 불러와짐"이라 프로젝트도 되살린다. */
+     프로젝트의 것만, 스튜디오면 프로젝트를 고르기 전이라 진행 중 프로젝트의 임시저장 전체를
+     보인다 — 원본 IA 19행 "불러오기 누르면 임시 저장 눌렀을 때 상태로 불러와짐"이라 프로젝트도
+     되살린다. 진행 중이 아닌 프로젝트는 LIVE를 만들 수 없어(2026-09-28 결정) 목록에서 뺀다. */
   const drafts = useQuery({
     queryKey: ["seller-lives", owner, "drafts", fixedProjectId ?? "all"],
     queryFn: ({ signal }) =>
@@ -223,8 +229,11 @@ export function LiveCreateApi({
     onSuccess: (detail) => {
       /* 주소로 받은 LIVE는 이 프로젝트의 시작 전 LIVE일 때만 이어 쓴다. 서버도 시작·종료한 LIVE의
          설정 저장·시작을 409로 막지만, 막힐 입력을 채워 두지 않는다. */
+      const outsidePicker =
+        picking && !projects.data?.content.some((item) => item.projectId === detail.projectId);
       if (
         (fixedProjectId && detail.projectId !== fixedProjectId) ||
+        outsidePicker ||
         !resumableStatuses.includes(detail.status)
       ) {
         /* [불러오기] 모달에서 고른 사이 시작된 경우도 있어, 안내가 보이게 모달을 닫는다. */
@@ -236,6 +245,7 @@ export function LiveCreateApi({
       if (picking) setPickedId(detail.projectId);
       /* 같은 liveId에 이어 쓴다. 새로 만들지 않으므로 임시저장이 늘지 않는다. */
       setLiveId(detail.liveId);
+      liveProjectRef.current = detail.projectId;
       setIntro(detail.introText ?? "");
       const loaded = toScheduledInputs(detail.scheduledStartAt);
       setSchedule(loaded.date ? loaded : null);
@@ -274,15 +284,18 @@ export function LiveCreateApi({
 
   /* 다른 프로젝트를 고르면 앞서 만든 LIVE와 끊는다. 연결 프로젝트는 바꿀 수 없어(요구사항
      6.2.4.1) 같은 liveId에 저장하면 원래 프로젝트의 LIVE가 바뀐다. 앞서 임시저장한 LIVE는
-     준비중 탭에 남는다. */
+     준비중 탭에 남는다. 취소 뒤 같은 프로젝트를 다시 고르면 끊지 않는다 — 임시저장이 하나 더
+     생긴다. 요청 중에는 고르는 조작이 모두 막혀 있어(busy) 늦게 온 응답이 고른 값을 덮지 않는다. */
   function pickProject(id: string | null) {
     setPickedId(id);
-    setLiveId(null);
-    setCueSaved(false);
     setNotice("");
     save.reset();
     start.reset();
     load.reset();
+    if (id === null || id === liveProjectRef.current) return;
+    setLiveId(null);
+    liveProjectRef.current = null;
+    setCueSaved(false);
   }
 
   function pickCategory(value: string) {
@@ -305,8 +318,9 @@ export function LiveCreateApi({
       />
     );
 
-  /* 불러오는 동안 저장하면 불러올 LIVE 대신 새 임시저장이 생긴다. */
-  const busy = save.isPending || load.isPending;
+  /* 불러오는 동안 저장하면 불러올 LIVE 대신 새 임시저장이 생긴다. 시작 중에 프로젝트를 바꾸면
+     다른 프로젝트를 고르다 콘솔로 넘어가거나 시작 실패 안내가 사라진다. */
+  const busy = save.isPending || load.isPending || start.isPending;
   const canProceed = Boolean(project) && intro.trim().length > 0 && !busy;
   /* BE `message`는 내부 문구라 상태별 FE 문구로 적는다(#403). 409는 이미 시작했거나 끝난 LIVE다. */
   const message = save.isError
@@ -329,18 +343,16 @@ export function LiveCreateApi({
       {message}
     </p>
   );
-  const draftItems = toSellerLiveList(drafts.data);
-  /* 스튜디오 불러오기는 여러 프로젝트의 임시저장이 섞이므로 프로젝트명을 함께 적는다.
-     목록 응답은 draftItems와 같은 순서다. */
+  /* 스튜디오 불러오기는 여러 프로젝트의 임시저장이 섞이므로 프로젝트명을 함께 적고, 진행 중
+     프로젝트의 것만 남긴다. 목록 응답은 toSellerLiveList 결과와 같은 순서다. */
   const projectTitles = new Map(
     (projects.data?.content ?? []).map((item) => [item.projectId, item.title || "제목 없음"]),
   );
-  /* 진행 중 목록에 없는 프로젝트(준비 중·종료, 첫 100개 밖)는 이름을 모른다. 날짜만 남기면
-     어느 프로젝트의 LIVE인지 가릴 수 없어 모른다고 적는다. */
-  const draftProjectTitle = (index: number) =>
-    picking
-      ? (projectTitles.get(drafts.data?.content[index]?.projectId ?? "") ?? "프로젝트 정보 없음")
-      : undefined;
+  const draftEntries = toSellerLiveList(drafts.data)
+    .map((item, index) => ({ item, projectId: drafts.data?.content[index]?.projectId ?? "" }))
+    .filter(({ projectId: id }) => !picking || projectTitles.has(id));
+  const draftsPending = drafts.isPending || (picking && projects.isPending);
+  const draftsFailed = drafts.isError || (picking && projects.isError);
   const inCategory = projectsInCategory(projects.data?.content ?? [], category);
 
   const projectPicker = (
@@ -375,19 +387,6 @@ export function LiveCreateApi({
             project={project}
           />
         </div>
-      ) : projectId ? (
-        preview.isError ? (
-          <div role="alert" className="text-body-s mt-2 shrink-0 p-4">
-            프로젝트 정보를 불러오지 못했습니다.{" "}
-            <button type="button" className="underline" onClick={() => void preview.refetch()}>
-              다시 시도
-            </button>
-          </div>
-        ) : (
-          <p role="status" className="text-body-s text-text-secondary mt-2 shrink-0 p-4">
-            프로젝트를 불러오고 있습니다.
-          </p>
-        )
       ) : category === "" ? null : (
         <ul
           aria-label="프로젝트 목록"
@@ -395,16 +394,19 @@ export function LiveCreateApi({
           ref={projectListRef}
           tabIndex={-1}
         >
+          {/* 목록 항목의 역할을 바꾸지 않도록 알림 역할은 항목 안쪽에 둔다. */}
           {projects.isPending ? (
-            <li role="status" className="text-body-s text-text-secondary p-4">
-              프로젝트를 불러오고 있습니다.
+            <li className="text-body-s text-text-secondary p-4">
+              <p role="status">프로젝트를 불러오고 있습니다.</p>
             </li>
           ) : projects.isError ? (
-            <li role="alert" className="text-body-s p-4">
-              진행 중인 프로젝트를 불러오지 못했습니다.{" "}
-              <button type="button" className="underline" onClick={() => void projects.refetch()}>
-                다시 시도
-              </button>
+            <li className="text-body-s p-4">
+              <p role="alert">
+                진행 중인 프로젝트를 불러오지 못했습니다.{" "}
+                <button type="button" className="underline" onClick={() => void projects.refetch()}>
+                  다시 시도
+                </button>
+              </p>
             </li>
           ) : inCategory.length === 0 ? (
             <li className="text-body-s text-text-secondary p-4">
@@ -417,6 +419,7 @@ export function LiveCreateApi({
                   action={
                     <button
                       className={`${secondaryButtonClasses} h-9 w-29 shrink-0`}
+                      disabled={busy}
                       onClick={() => pickProject(item.projectId)}
                       type="button"
                     >
@@ -554,6 +557,8 @@ export function LiveCreateApi({
                     variant="secondary"
                     size="sm"
                     className="text-body-s h-9 w-27"
+                    /* 시작 요청 중에 입력 단계로 돌아가면 결과가 다른 화면에서 도착한다. */
+                    disabled={start.isPending}
                     onClick={() => setStep("form")}
                   >
                     취소
@@ -613,20 +618,27 @@ export function LiveCreateApi({
             임시저장한 LIVE를 불러오지 못했습니다. {liveFailureReason(load.error)}
           </p>
         )}
-        {drafts.isPending ? (
+        {draftsPending ? (
           <p role="status" className="mt-6">
             임시저장한 LIVE를 불러오고 있습니다.
           </p>
-        ) : drafts.isError ? (
+        ) : draftsFailed ? (
           <div role="alert" className="mt-6">
             <p>임시저장 목록을 불러오지 못했습니다.</p>
-            <button type="button" className="mt-2 underline" onClick={() => void drafts.refetch()}>
+            <button
+              type="button"
+              className="mt-2 underline"
+              onClick={() => {
+                void drafts.refetch();
+                if (picking) void projects.refetch();
+              }}
+            >
               다시 시도
             </button>
           </div>
-        ) : draftItems.length ? (
+        ) : draftEntries.length ? (
           <ul className="mt-6 flex flex-col gap-2">
-            {draftItems.map((item, index) => (
+            {draftEntries.map(({ item, projectId: id }) => (
               <li key={item.id}>
                 <button
                   className="border-w-xs border-border-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex w-full flex-col items-start gap-1 rounded-xs px-4 py-3 text-left focus-visible:outline-2"
@@ -638,7 +650,7 @@ export function LiveCreateApi({
                     {item.introText || "소개 문구 없음"}
                   </span>
                   <span className="text-caption-s text-text-secondary">
-                    {[draftProjectTitle(index), `${item.createdAtLabel} 생성`]
+                    {[picking && projectTitles.get(id), `${item.createdAtLabel} 생성`]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
@@ -648,7 +660,9 @@ export function LiveCreateApi({
           </ul>
         ) : (
           <p className="text-body-s text-text-secondary mt-6 py-10 text-center">
-            {picking ? "임시저장한 LIVE가 없습니다." : "이 프로젝트에 임시저장한 LIVE가 없습니다."}
+            {picking
+              ? "진행 중인 프로젝트에 임시저장한 LIVE가 없습니다."
+              : "이 프로젝트에 임시저장한 LIVE가 없습니다."}
           </p>
         )}
       </Modal>
