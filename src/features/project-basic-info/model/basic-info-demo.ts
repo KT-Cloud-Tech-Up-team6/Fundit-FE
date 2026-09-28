@@ -1,5 +1,6 @@
 export const businessTypes = ["일반 사업자", "개인 사업자", "법인 사업자"] as const;
 export const amountSteps = [100_000, 500_000, 1_000_000, 5_000_000];
+export const REWARD_NAME_MAX_LENGTH = 100;
 
 export type RewardDraft = {
   name: string;
@@ -54,6 +55,8 @@ export function positiveInteger(value: string) {
 
 export function rewardError(reward: RewardDraft) {
   if (!reward.name.trim()) return "리워드 이름을 입력해주세요.";
+  if (reward.name.length > REWARD_NAME_MAX_LENGTH)
+    return "리워드 이름은 100자 이내로 입력해주세요.";
   if (!positiveInteger(reward.price)) return "리워드 가격을 양의 정수로 입력해주세요.";
   if (reward.limited && !positiveInteger(reward.quantity))
     return "제한 수량을 양의 정수로 입력해주세요.";

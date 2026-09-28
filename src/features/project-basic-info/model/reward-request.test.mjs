@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rewardOptionsError, rewardRequest, rewardToDraft } from "./reward-request.ts";
+import {
+  REWARD_OPTION_MAX_LENGTH,
+  rewardOptionsError,
+  rewardRequest,
+  rewardToDraft,
+} from "./reward-request.ts";
+import { REWARD_NAME_MAX_LENGTH, rewardError } from "./basic-info-demo.ts";
 import {
   createReward,
   deleteReward,
@@ -82,6 +88,29 @@ test("옵션 활성화 시 그룹·이름·값 누락을 차단한다", () => {
     assert.ok(rewardOptionsError({ ...draft, optionGroups: groups }));
   }
   assert.equal(rewardOptionsError({ ...draft, options: false, optionGroups: [] }), "");
+});
+
+test("리워드명·옵션 그룹명·옵션값은 BE 컬럼 한도를 넘기지 않는다", () => {
+  const draft = rewardToDraft(reward);
+  assert.equal(rewardError({ ...draft, name: "가".repeat(REWARD_NAME_MAX_LENGTH) }), "");
+  assert.equal(
+    rewardError({ ...draft, name: "가".repeat(REWARD_NAME_MAX_LENGTH + 1) }),
+    "리워드 이름은 100자 이내로 입력해주세요.",
+  );
+  assert.equal(
+    rewardOptionsError({
+      ...draft,
+      optionGroups: [{ groupName: "가".repeat(REWARD_OPTION_MAX_LENGTH + 1), values: ["값"] }],
+    }),
+    "옵션 그룹명은 50자 이내로 입력해주세요.",
+  );
+  assert.equal(
+    rewardOptionsError({
+      ...draft,
+      optionGroups: [{ groupName: "그룹", values: ["가".repeat(REWARD_OPTION_MAX_LENGTH + 1)] }],
+    }),
+    "옵션값은 50자 이내로 입력해주세요.",
+  );
 });
 test("등록은 프로젝트 UUID, 수정·삭제는 서버 리워드 ID를 사용하고 오류를 전파한다", async (t) => {
   authTokenStore.set("test");

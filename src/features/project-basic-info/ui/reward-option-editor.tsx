@@ -1,6 +1,7 @@
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import type { RewardDraft } from "../model/basic-info-demo";
+import { REWARD_OPTION_MAX_LENGTH } from "../model/reward-request";
 
 type Groups = NonNullable<RewardDraft["optionGroups"]>;
 
@@ -26,6 +27,7 @@ export function RewardOptionEditor({
             <span>그룹명</span>
             <Input
               aria-label={`옵션 그룹 ${index + 1} 이름`}
+              maxLength={REWARD_OPTION_MAX_LENGTH}
               value={group.groupName}
               onChange={(event) => update(index, { groupName: event.target.value })}
             />
@@ -35,6 +37,7 @@ export function RewardOptionEditor({
               <Input
                 className="min-w-0 flex-1"
                 aria-label={`옵션 그룹 ${index + 1} 값 ${valueIndex + 1}`}
+                maxLength={REWARD_OPTION_MAX_LENGTH}
                 value={value}
                 onChange={(event) =>
                   update(index, {

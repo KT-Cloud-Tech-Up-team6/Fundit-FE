@@ -6,7 +6,11 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Input } from "@/shared/components/ui/input";
 import { Modal } from "@/shared/components/ui/modal";
-import { convertDiscount, type RewardDraft } from "../model/basic-info-demo";
+import {
+  convertDiscount,
+  REWARD_NAME_MAX_LENGTH,
+  type RewardDraft,
+} from "../model/basic-info-demo";
 import { RewardOptionEditor } from "./reward-option-editor";
 
 type RewardFormModalProps = {
@@ -67,6 +71,7 @@ export function RewardFormModal({
             size="md"
             shape="compact"
             className="[&_input]:text-body-s"
+            maxLength={REWARD_NAME_MAX_LENGTH}
             value={draft.name}
             onChange={(event) => onUpdate({ name: event.target.value })}
             placeholder="리워드 명을 입력해주세요"

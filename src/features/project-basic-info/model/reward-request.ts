@@ -1,6 +1,8 @@
 import type { RewardRequest, RewardResponse } from "@/entities/project/api/reward-api";
 import type { DemoReward, RewardDraft } from "./basic-info-demo";
 
+export const REWARD_OPTION_MAX_LENGTH = 50;
+
 export function rewardToDraft(reward: RewardResponse): DemoReward {
   return {
     id: reward.rewardId,
@@ -32,12 +34,20 @@ export function rewardOptionsError(draft: RewardDraft) {
   if (!draft.optionGroups?.length) return "옵션 그룹을 하나 이상 추가해주세요.";
   if (draft.optionGroups.some((group) => !group.groupName.trim()))
     return "옵션 그룹명을 입력해주세요.";
+  if (draft.optionGroups.some((group) => group.groupName.length > REWARD_OPTION_MAX_LENGTH))
+    return "옵션 그룹명은 50자 이내로 입력해주세요.";
   if (
     draft.optionGroups.some(
       (group) => !group.values.length || group.values.some((value) => !value.trim()),
     )
   )
     return "각 옵션 그룹에 비어 있지 않은 값을 하나 이상 입력해주세요.";
+  if (
+    draft.optionGroups.some((group) =>
+      group.values.some((value) => value.length > REWARD_OPTION_MAX_LENGTH),
+    )
+  )
+    return "옵션값은 50자 이내로 입력해주세요.";
   return "";
 }
 
