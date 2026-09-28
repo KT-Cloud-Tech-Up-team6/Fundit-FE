@@ -34,7 +34,7 @@ export function rewardOptionsError(draft: RewardDraft) {
   if (!draft.optionGroups?.length) return "옵션 그룹을 하나 이상 추가해주세요.";
   if (draft.optionGroups.some((group) => !group.groupName.trim()))
     return "옵션 그룹명을 입력해주세요.";
-  if (draft.optionGroups.some((group) => group.groupName.length > REWARD_OPTION_MAX_LENGTH))
+  if (draft.optionGroups.some((group) => group.groupName.trim().length > REWARD_OPTION_MAX_LENGTH))
     return "옵션 그룹명은 50자 이내로 입력해주세요.";
   if (
     draft.optionGroups.some(
@@ -44,7 +44,7 @@ export function rewardOptionsError(draft: RewardDraft) {
     return "각 옵션 그룹에 비어 있지 않은 값을 하나 이상 입력해주세요.";
   if (
     draft.optionGroups.some((group) =>
-      group.values.some((value) => value.length > REWARD_OPTION_MAX_LENGTH),
+      group.values.some((value) => value.trim().length > REWARD_OPTION_MAX_LENGTH),
     )
   )
     return "옵션값은 50자 이내로 입력해주세요.";

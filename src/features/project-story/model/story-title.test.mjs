@@ -14,3 +14,7 @@ test("스토리 제목은 40자까지 허용하고 초과하면 막는다", () =
     "제목은 40자 이내로 입력해주세요.",
   );
 });
+
+test("저장 시 제거될 앞뒤 공백은 길이 검사에서 빼고 본다", () => {
+  assert.equal(storyTitleError(`  ${"가".repeat(STORY_TITLE_MAX_LENGTH)}  `), "");
+});

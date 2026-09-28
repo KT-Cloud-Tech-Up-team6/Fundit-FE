@@ -55,7 +55,7 @@ export function positiveInteger(value: string) {
 
 export function rewardError(reward: RewardDraft) {
   if (!reward.name.trim()) return "리워드 이름을 입력해주세요.";
-  if (reward.name.length > REWARD_NAME_MAX_LENGTH)
+  if (reward.name.trim().length > REWARD_NAME_MAX_LENGTH)
     return "리워드 이름은 100자 이내로 입력해주세요.";
   if (!positiveInteger(reward.price)) return "리워드 가격을 양의 정수로 입력해주세요.";
   if (reward.limited && !positiveInteger(reward.quantity))

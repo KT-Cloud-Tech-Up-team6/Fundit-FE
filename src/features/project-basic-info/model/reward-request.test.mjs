@@ -112,6 +112,23 @@ test("리워드명·옵션 그룹명·옵션값은 BE 컬럼 한도를 넘기지
     "옵션값은 50자 이내로 입력해주세요.",
   );
 });
+
+test("저장 시 제거될 앞뒤 공백은 길이 검사에서 빼고 본다", () => {
+  const draft = rewardToDraft(reward);
+  assert.equal(rewardError({ ...draft, name: `  ${"가".repeat(REWARD_NAME_MAX_LENGTH)}  ` }), "");
+  assert.equal(
+    rewardOptionsError({
+      ...draft,
+      optionGroups: [
+        {
+          groupName: `  ${"가".repeat(REWARD_OPTION_MAX_LENGTH)}  `,
+          values: [`  ${"가".repeat(REWARD_OPTION_MAX_LENGTH)}  `],
+        },
+      ],
+    }),
+    "",
+  );
+});
 test("등록은 프로젝트 UUID, 수정·삭제는 서버 리워드 ID를 사용하고 오류를 전파한다", async (t) => {
   authTokenStore.set("test");
   const calls = [];
