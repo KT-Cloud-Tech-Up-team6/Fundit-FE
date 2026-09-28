@@ -16,13 +16,15 @@ type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
   flat?: boolean;
 };
 
+type NavigationName = "home" | "live-navigation" | "categories" | "profile";
+
 function NavigationAsset({
   name,
   compact,
   flat,
   selected,
 }: {
-  name: "home" | "live-navigation" | "categories" | "profile";
+  name: NavigationName;
   compact?: boolean;
   flat?: boolean;
   selected?: boolean;
@@ -30,7 +32,6 @@ function NavigationAsset({
   const compactAssets = {
     home: "d2d1b",
     "live-navigation": "7e176",
-    categories: "b7b53",
     profile: selected ? "165c4" : "4d935",
   };
   const navigationAssets = {
@@ -83,12 +84,7 @@ function deriveActiveHref(pathname: string): BuyerBottomNavigationProps["activeH
   return undefined;
 }
 
-function itemClass(
-  name: "home" | "live-navigation" | "categories" | "profile",
-  compact: boolean,
-  flat: boolean,
-  active: boolean,
-) {
+function itemClass(name: NavigationName, compact: boolean, flat: boolean, active: boolean) {
   return [
     "relative flex flex-col items-center gap-2 text-[11px] font-medium leading-[1.3] focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
     name === "categories" ? "w-[39px]" : "w-[38px]",
