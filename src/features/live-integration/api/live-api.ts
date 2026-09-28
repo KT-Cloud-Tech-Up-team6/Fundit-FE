@@ -39,8 +39,15 @@ export const getPlayback = (liveId: string, signal?: AbortSignal) =>
   apiRequest<Playback>(`${livePath(liveId)}/playback`, { signal });
 export const getVod = (liveId: string, signal?: AbortSignal) =>
   apiRequest<Playback>(`${livePath(liveId)}/vod`, { signal });
+/* BE는 null인 `answerText`를 응답에서 뺀다(non_null, #390). 답변 본문이 없는 행은 구매자 Q&A·콘솔
+   집계·LIVE 체크 어디에도 보일 답이 없어 여기서 한 번 거른다. */
 export const getAnsweredQuestions = (liveId: string, signal?: AbortSignal) =>
-  apiRequest<AnsweredQuestion[]>(`${livePath(liveId)}/chat/answered-questions`, { signal });
+  apiRequest<(Omit<AnsweredQuestion, "answerText"> & { answerText?: string | null })[]>(
+    `${livePath(liveId)}/chat/answered-questions`,
+    { signal },
+  ).then((list) =>
+    list.filter((item): item is AnsweredQuestion => Boolean(item.answerText?.trim())),
+  );
 /* `PREPARING`은 AI 상품정보 색인 전이다. 목록이 비었을 때 "모인 질문 없음"과 다른 문구로
    안내해야 한다(요구사항 6.4.4.4). 이 호출이 BE에 AI 집계를 가져오게 하므로 주기적으로 부른다. */
 export type AiStatus = "PREPARING" | "READY";
@@ -83,7 +90,8 @@ export const getLiveLiked = (liveId: string, signal?: AbortSignal) =>
 export type Highlight = {
   highlightId: string;
   sceneLabel: string;
-  title: string;
+  /** AI 하이라이트 제목은 선택값이라 없으면 BE가 응답에서 뺀다(non_null). */
+  title?: string | null;
   startSec: number;
   endSec: number | null;
   clipUrl: string | null;
