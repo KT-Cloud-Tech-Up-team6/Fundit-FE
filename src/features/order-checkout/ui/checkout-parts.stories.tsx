@@ -9,61 +9,54 @@ import { ShippingAddressSection } from "./shipping-address-section";
 /* 실제(UUID) 주문서(OrderCheckoutApi)가 조회 응답으로 그리는 모습. 컨테이너는 인증·API 조회가
    필요해 여기서는 같은 화면 조각에 같은 변환(toRewards·checkoutLineItems·previewSummaryRows)을
    거친 응답 모양 값을 넣는다. 흐름 검증은 운영 빌드의 Playwright가 맡는다. */
-const rewards = toRewards(
-  [
-    {
-      rewardId: 11,
-      rewardDisplayCode: "R-11",
-      name: "얼리버드 컬러 세트",
-      description: "본체 · 브러시 2종",
-      price: 200_000,
-      isEarlyBird: true,
-      earlyBirdDiscountType: "RATE",
-      earlyBirdDiscountValue: 10,
-      earlyBirdDiscountedPrice: 180_000,
-      isLimited: true,
-      remainingStock: 3,
-      options: [
-        {
-          groupId: 1,
-          groupName: "색상",
-          values: [
-            { valueId: 101, value: "블랙" },
-            { valueId: 102, value: "화이트" },
-          ],
-        },
-        {
-          groupId: 2,
-          groupName: "사이즈",
-          values: [
-            { valueId: 201, value: "S" },
-            { valueId: 202, value: "L" },
-          ],
-        },
-      ],
-      soldOut: false,
-      shippingFee: 0,
-      estimatedDeliveryDays: 7,
-    },
-    {
-      rewardId: 12,
-      rewardDisplayCode: "R-12",
-      name: "정액 할인 기본 세트",
-      description: "본체 · 충전 어댑터",
-      price: 150_000,
-      isEarlyBird: true,
-      earlyBirdDiscountType: "AMOUNT",
-      earlyBirdDiscountValue: 20_000,
-      earlyBirdDiscountedPrice: 130_000,
-      isLimited: false,
-      options: [],
-      soldOut: false,
-      shippingFee: 3000,
-      estimatedDeliveryDays: 14,
-    },
-  ],
-  "2026-10-27T14:59:59Z",
-);
+const rewards = toRewards([
+  {
+    rewardId: 11,
+    rewardDisplayCode: "R-11",
+    name: "얼리버드 컬러 세트",
+    description: "본체 · 브러시 2종",
+    price: 200_000,
+    isEarlyBird: true,
+    earlyBirdDiscountType: "RATE",
+    earlyBirdDiscountValue: 10,
+    earlyBirdDiscountedPrice: 180_000,
+    isLimited: true,
+    remainingStock: 3,
+    options: [
+      {
+        groupId: 1,
+        groupName: "색상",
+        values: [
+          { valueId: 101, value: "블랙" },
+          { valueId: 102, value: "화이트" },
+        ],
+      },
+      {
+        groupId: 2,
+        groupName: "사이즈",
+        values: [
+          { valueId: 201, value: "S" },
+          { valueId: 202, value: "L" },
+        ],
+      },
+    ],
+    soldOut: false,
+  },
+  {
+    rewardId: 12,
+    rewardDisplayCode: "R-12",
+    name: "정액 할인 기본 세트",
+    description: "본체 · 충전 어댑터",
+    price: 150_000,
+    isEarlyBird: true,
+    earlyBirdDiscountType: "AMOUNT",
+    earlyBirdDiscountValue: 20_000,
+    earlyBirdDiscountedPrice: 130_000,
+    isLimited: false,
+    options: [],
+    soldOut: false,
+  },
+]);
 const items = checkoutLineItems(
   [
     { rewardId: 11, quantity: 1, optionValueIds: [101, 202] },
@@ -142,9 +135,9 @@ const play: Story["play"] = async ({ canvasElement, args }) => {
   await expect(
     products.getAllByRole("listitem").map((item) => item.firstElementChild?.textContent),
   ).toEqual([
-    "얼리버드 컬러 세트 · 블랙 / L · 1개예상 발송일 2026.11.03",
-    "얼리버드 컬러 세트 · 화이트 / S · 2개예상 발송일 2026.11.03",
-    "정액 할인 기본 세트 · 1개예상 발송일 2026.11.10",
+    "얼리버드 컬러 세트 · 블랙 / L · 1개",
+    "얼리버드 컬러 세트 · 화이트 / S · 2개",
+    "정액 할인 기본 세트 · 1개",
   ]);
   /* 줄 금액은 청구 기준(정가 × 수량)이라 얼리버드 할인·취소선이 없다(노션 FE 자체 판단 81). */
   await expect(products.queryAllByText("얼리버드 할인")).toHaveLength(0);

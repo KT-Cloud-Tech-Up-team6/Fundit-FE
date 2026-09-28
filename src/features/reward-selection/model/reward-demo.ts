@@ -24,11 +24,9 @@ export type Reward = {
   isLimited: boolean;
   /** 기타 혜택 칩 문구. 예: "소모품 1년치 포함". */
   perks: string[];
-  /** 메타 줄에 가운뎃점으로 잇는 조각. 예: ["무료배송", "색상 2종"] / ["무료배송", "예상 발송일 2026.09.21"]. */
+  /** 메타 줄에 가운뎃점으로 잇는 조각. 예: ["색상 2종"]. 배송비는 카드가 아니라 결제 금액
+      요약에서만 안내한다(2026-09-28 사용자 결정). */
   meta: string[];
-  shippingNote?: string;
-  /** 선택 카드의 발송 안내 줄. 예: "예상 발송일 2026.10.12". 없으면 줄을 그리지 않는다. */
-  expectedShipping?: string;
   soldOut?: boolean;
   /** 남은 재고. 없으면 수량 제한이 없다. 같은 리워드의 모든 줄 수량 합의 상한이다. */
   remainingStock?: number;
@@ -120,9 +118,6 @@ export function isCartSubmittable(cart: RewardCart): boolean {
   return lists.length > 0 && lists.every((lines) => lines.length > 0);
 }
 
-/** 목업 선택 카드의 발송 안내(Figma FL_B_PY_RWRD_7 1867:49809). */
-const DEMO_EXPECTED_SHIPPING = "예상 발송일 2026.10.12";
-
 export function demoRewards(): Reward[] {
   return [
     {
@@ -134,8 +129,7 @@ export function demoRewards(): Reward[] {
       isEarlyBird: true,
       isLimited: true,
       perks: [],
-      meta: ["무료배송", "예상 발송일 2026.09.21"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
+      meta: [],
       options: [{ groupName: "색상", values: [{ label: "블랙" }, { label: "화이트" }] }],
     },
     {
@@ -145,8 +139,7 @@ export function demoRewards(): Reward[] {
       isEarlyBird: false,
       isLimited: false,
       perks: [],
-      meta: ["무료배송", "색상 2종"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
+      meta: ["색상 2종"],
       options: [{ groupName: "색상", values: [{ label: "블랙" }, { label: "화이트" }] }],
     },
     {
@@ -157,7 +150,6 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: ["소모품 1년치 포함"],
       meta: ["사이드브러시 4", "먼지봉투 6", "물걸레패드 4"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -168,7 +160,6 @@ export function demoRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["복층", "2대 사용 가구 추천"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
   ];
@@ -186,8 +177,6 @@ export function designRewards(): Reward[] {
       isLimited: true,
       perks: [],
       meta: ["무선청소기 본체", "기본 브러쉬", "충전 어댑터"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
-      shippingNote: "무료배송· 예상 발송일 2026.10.12",
       options: [],
     },
     {
@@ -198,7 +187,6 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무선청소기 본체", "브러쉬 2종", "충전 어댑터"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -209,7 +197,6 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: ["추가 필터 포함"],
       meta: ["무선청소기 본체", "브러쉬 4종", "전용 거치대", "추가 필터 2개"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -220,7 +207,6 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: [],
       meta: ["무선청소기 본체", "브러쉬 3종", "충전 어댑터"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
     {
@@ -232,7 +218,6 @@ export function designRewards(): Reward[] {
       isLimited: false,
       perks: ["함께할수록 더 저렴하게"],
       meta: ["본체 2대", "기본 브러시 2개", "충전 어댑터 2개"],
-      expectedShipping: DEMO_EXPECTED_SHIPPING,
       options: [],
     },
   ];

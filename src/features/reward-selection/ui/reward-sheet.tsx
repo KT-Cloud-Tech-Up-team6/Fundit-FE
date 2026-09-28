@@ -172,13 +172,6 @@ export function RewardSheet({
                     <Icon name="close" className="size-3.5" />
                   </button>
                 </div>
-                {reward.expectedShipping && (
-                  <p
-                    className={`text-caption-s text-text-secondary ${inlineFormId ? "mb-4" : "mb-1"}`}
-                  >
-                    {reward.expectedShipping}
-                  </p>
-                )}
                 {/* 그룹마다 선택 상자를 두고, 모든 그룹을 고르면 그 조합을 줄로 담는다(노션 FE 자체 판단 61).
                   재고를 다 담았으면 새 조합을 더 담지 못한다. */}
                 {reward.options.length > 0 && (

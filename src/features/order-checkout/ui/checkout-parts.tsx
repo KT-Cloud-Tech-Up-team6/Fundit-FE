@@ -158,7 +158,7 @@ export function PriceInformation({
 }
 
 /** 실제 주문서의 주문 상품. 프로젝트 썸네일·제목은 한 번, 그 아래에 옵션 줄마다 리워드·수량·
-    예상 발송일·금액을 둔다(노션 FE 자체 판단 81). */
+    금액을 둔다(노션 FE 자체 판단 81). */
 export function ProjectOrderItems({
   title,
   image,
@@ -188,12 +188,7 @@ export function ProjectOrderItems({
         <ul aria-label="주문 리워드" className="flex flex-col gap-3">
           {items.map((item, index) => (
             <li key={index} className="flex flex-col gap-1.5">
-              <div className="text-body-s flex flex-col gap-1">
-                <span className="text-text-default">{item.label}</span>
-                {item.expectedShipping && (
-                  <span className="text-text-secondary">{item.expectedShipping}</span>
-                )}
-              </div>
+              <span className="text-body-s text-text-default">{item.label}</span>
               {item.price !== undefined && <PriceInformation className="py-2" price={item.price} />}
             </li>
           ))}

@@ -21,7 +21,7 @@ export function checkoutItems(
         price: reward.price,
         image: project.image,
         option: line.value ?? undefined,
-        meta: ["예상 발송일 2026.10.12"],
+        meta: [],
       }));
   });
 }
