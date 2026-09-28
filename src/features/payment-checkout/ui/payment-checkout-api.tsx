@@ -46,6 +46,8 @@ function Payment({ memberId, orderId }: { memberId: string; orderId: string }) {
           "이미 결제가 완료되었습니다. 주문 상태를 반영하는 중이니 참여 내역에서 확인해주세요.",
         );
       const order = await getOrder(orderId, signal);
+      if (order.paidAt)
+        throw new NotPayableError("이미 결제가 완료된 주문입니다. 참여 내역에서 확인해주세요.");
       if (order.status !== "PENDING")
         throw new NotPayableError(
           `결제할 수 없는 주문입니다. (${orderStatusLabels[order.status] ?? order.status})`,
