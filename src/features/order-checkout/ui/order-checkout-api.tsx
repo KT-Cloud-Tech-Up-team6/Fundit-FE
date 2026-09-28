@@ -6,16 +6,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   getCheckoutAddresses,
+  cancelOrder,
   previewOrder,
   type CheckoutAddress,
   type OrderLine,
   type OrderAddress,
   type OrderCreated,
+  type OrderRequest,
 } from "@/entities/order/api/order-api";
 import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { MemberAccess } from "@/providers/member-access";
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState } from "@/shared/components/ui/error-state";
+import { Modal } from "@/shared/components/ui/modal";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 import { publicRewardsQuery, toRewards } from "@/features/reward-selection/model/public-reward";
 import { ShippingAddressSheet } from "./shipping-address-sheet";
@@ -23,7 +26,12 @@ import { ShippingAddressSection } from "./shipping-address-section";
 import { SavedAddressSheet } from "./saved-address-sheet";
 import { CheckoutTopBar } from "./checkout-top-bar";
 import { CheckoutLayout, PaymentSummarySection, ProjectOrderItems } from "./checkout-parts";
-import { OrderAttemptError, OrderRejectedError, submitOrderOnce } from "../model/order-attempt";
+import {
+  clearOrderAttempt,
+  OrderAttemptError,
+  OrderRejectedError,
+  submitOrderOnce,
+} from "../model/order-attempt";
 import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponDroppedMessage, couponPreviewError } from "../model/coupon-preview";
@@ -35,6 +43,12 @@ import { emptyShippingAddress, formatWon, type ShippingAddress } from "../model/
 const SHIPPING_ID = "checkout-shipping-address";
 const ITEMS_ID = "checkout-order-items";
 const SUMMARY_ID = "checkout-payment-summary";
+
+type PendingOrderChange = {
+  body: OrderRequest;
+  couponCodes: string[];
+  apply: () => void;
+};
 
 /* 리워드는 프로젝트 상세의 리워드 선택에서만 고른다. 주문서는 상세가 넘긴 `items` 줄(옵션 조합마다 한 줄)을
    그대로 주문하고 고치지 않는다(#373, Figma FL_B_PY_ORD_1 1534:54000에 리워드 변경 없음). */
@@ -150,6 +164,7 @@ function Checkout({
     [rejected, setRejected] = useState(false);
   /* 쿠폰이 빠진 채 주문이 이미 만들어진 상태(#404). 재클릭은 재주문하지 않고 그 주문으로 이동한다. */
   const [createdOrder, setCreatedOrder] = useState<OrderCreated | null>(null);
+  const [pendingOrderChange, setPendingOrderChange] = useState<PendingOrderChange | null>(null);
   const saving = useRef(false);
   const [selectedCoupons, setSelectedCoupons] = useState<CouponSelection[]>([]);
   const selectedCouponCodes = couponCodes(selectedCoupons);
@@ -174,6 +189,93 @@ function Checkout({
     scrollToSection(SHIPPING_ID);
     return false;
   }
+  function reportOrderError(error: unknown, nextCouponCodes: string[]) {
+    setError(
+      error instanceof OrderAttemptError
+        ? error.message
+        : "주문을 완료하지 못했습니다. 참여 내역에서 생성 여부를 먼저 확인해주세요.",
+    );
+    if (error instanceof OrderRejectedError) {
+      setRejected(true);
+      if (error.code.startsWith("COUPON_") && nextCouponCodes.length > 0) void preview.refetch();
+      else void rewards.refetch();
+    }
+  }
+  async function createOrder(
+    body: OrderRequest,
+    nextCouponCodes: string[],
+    expectedAmount: number,
+  ) {
+    try {
+      const order = await submitOrderOnce(sessionStorage, memberId, body);
+      const dropped = couponDroppedMessage(
+        nextCouponCodes.length > 0,
+        expectedAmount,
+        order.finalAmount,
+      );
+      if (dropped) {
+        setCreatedOrder(order);
+        setError(dropped);
+        return;
+      }
+      router.replace(`/payment/${order.orderId}`);
+    } catch (error) {
+      reportOrderError(error, nextCouponCodes);
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  }
+  function requestOrderChange(change: PendingOrderChange) {
+    if (!createdOrder) {
+      change.apply();
+      return;
+    }
+    setPendingOrderChange(change);
+  }
+  async function confirmOrderChange() {
+    const change = pendingOrderChange;
+    const order = createdOrder;
+    if (!change || !order || saving.current) return;
+    saving.current = true;
+    setBusy(true);
+    setRejected(false);
+    try {
+      await cancelOrder(order.orderId);
+    } catch {
+      /* 취소가 실패하면 이전 주문과 그 주문 시도는 모두 유지한다. */
+      setError((previous) =>
+        [previous, "이전 주문을 취소하지 못했습니다. 잠시 후 다시 시도해주세요."]
+          .filter(Boolean)
+          .join(" "),
+      );
+      setPendingOrderChange(null);
+      saving.current = false;
+      setBusy(false);
+      return;
+    }
+    clearOrderAttempt(sessionStorage, memberId, projectId);
+    change.apply();
+    setCreatedOrder(null);
+    setPendingOrderChange(null);
+    setError("");
+    let nextAmount;
+    try {
+      nextAmount = await previewOrder(change.body);
+    } catch {
+      setError("새 주문의 결제 금액을 확인하지 못했습니다. 다시 시도해주세요.");
+      saving.current = false;
+      setBusy(false);
+      return;
+    }
+    if (nextAmount.finalAmount <= 0) {
+      setError("결제 금액이 올바르지 않아 주문할 수 없습니다. 리워드와 쿠폰을 다시 확인해주세요.");
+      saving.current = false;
+      setBusy(false);
+      return;
+    }
+    await createOrder(change.body, change.couponCodes, nextAmount.finalAmount);
+  }
   /* Figma 히스토리 1534:54171대로 결제 버튼은 늘 누를 수 있다. 막힌 이유가 있으면 그 영역으로
      스크롤하고, 배송지가 없으면 데모처럼 배송지 경고를 띄운다. */
   async function pay() {
@@ -194,36 +296,7 @@ function Checkout({
     setBusy(true);
     setError("");
     setRejected(false);
-    try {
-      const order = await submitOrderOnce(sessionStorage, memberId, body);
-      const dropped = couponDroppedMessage(
-        selectedCouponCodes.length > 0,
-        amount.finalAmount,
-        order.finalAmount,
-      );
-      if (dropped) {
-        setCreatedOrder(order);
-        setError(dropped);
-        saving.current = false;
-        setBusy(false);
-        return;
-      }
-      router.replace(`/payment/${order.orderId}`);
-    } catch (error) {
-      setError(
-        error instanceof OrderAttemptError
-          ? error.message
-          : "주문을 완료하지 못했습니다. 참여 내역에서 생성 여부를 먼저 확인해주세요.",
-      );
-      /* 서버가 거절한 이유(재고·쿠폰)가 주문 상품·쿠폰 안내에 보이도록 서버 값을 다시 읽는다(#387). */
-      if (error instanceof OrderRejectedError) {
-        setRejected(true);
-        if (error.code.startsWith("COUPON_")) void preview.refetch();
-        else void rewards.refetch();
-      }
-      saving.current = false;
-      setBusy(false);
-    }
+    await createOrder(body, selectedCouponCodes, amount.finalAmount);
   }
   return (
     <>
@@ -381,10 +454,19 @@ function Checkout({
           selected={selectedCoupons}
           onClose={() => setCouponOpen(false)}
           onApply={(selection) => {
-            setSelectedCoupons(selection);
-            // 쿠폰을 다시 고르면 이전에 쿠폰 없이 만들어졌던 주문은 더 이상 유효한 선택을 반영하지 않는다.
-            setCreatedOrder(null);
             setCouponOpen(false);
+            const nextCouponCodes = couponCodes(selection);
+            if (
+              nextCouponCodes.join(",") === selectedCouponCodes.join(",") &&
+              selection.map((item) => item.issuerType).join(",") ===
+                selectedCoupons.map((item) => item.issuerType).join(",")
+            )
+              return;
+            requestOrderChange({
+              body: { ...body, couponCodes: nextCouponCodes },
+              couponCodes: nextCouponCodes,
+              apply: () => setSelectedCoupons(selection),
+            });
           }}
         />
       )}
@@ -394,8 +476,14 @@ function Checkout({
           addresses={addresses.data}
           selectedId={current?.id ?? null}
           onSelect={(item) => {
-            setPicked({ id: item.id, address: toOrderAddress(item) });
             setAddressSheet(null);
+            if (current?.id === item.id) return;
+            const nextAddress = toOrderAddress(item);
+            requestOrderChange({
+              body: { ...body, shippingAddress: nextAddress },
+              couponCodes: selectedCouponCodes,
+              apply: () => setPicked({ id: item.id, address: nextAddress }),
+            });
           }}
           onAdd={() => setAddressSheet("form")}
           onClose={() => setAddressSheet(null)}
@@ -409,19 +497,53 @@ function Checkout({
         initial={current?.id === null ? toSheetAddress(current.address) : null}
         onClose={() => setAddressSheet(null)}
         onSave={(value) => {
-          setPicked({
-            id: null,
-            address: {
-              recipientName: value.recipientName,
-              phoneNumber: value.phone,
-              zipcode: value.zipCode,
-              addressLine1: value.baseAddress,
-              addressLine2: value.detailAddress,
-            },
-          });
+          const nextAddress = {
+            recipientName: value.recipientName,
+            phoneNumber: value.phone,
+            zipcode: value.zipCode,
+            addressLine1: value.baseAddress,
+            addressLine2: value.detailAddress,
+          };
           setAddressSheet(null);
+          requestOrderChange({
+            body: { ...body, shippingAddress: nextAddress },
+            couponCodes: selectedCouponCodes,
+            apply: () => setPicked({ id: null, address: nextAddress }),
+          });
         }}
       />
+      <Modal
+        open={pendingOrderChange !== null}
+        title="새로 주문할까요?"
+        onClose={() => setPendingOrderChange(null)}
+        className="w-120"
+      >
+        <div className="flex flex-col gap-6 pt-4">
+          <p className="text-body-m text-text-default text-center">
+            쿠폰 없이 만들어진 이전 주문을 취소하고 새로 주문할까요?
+          </p>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setPendingOrderChange(null)}
+              disabled={busy}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              appearance="cta"
+              className="flex-1"
+              onClick={() => void confirmOrderChange()}
+              disabled={busy}
+            >
+              {busy ? "주문 생성 중" : "확인"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

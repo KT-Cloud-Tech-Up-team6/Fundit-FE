@@ -57,6 +57,11 @@ export function submitOrderOnce(
   return attempt;
 }
 
+/** 주문을 취소해 이전 멱등성 시도를 더 이상 재사용하면 안 될 때만 호출한다. */
+export function clearOrderAttempt(storage: AttemptStorage, memberId: string, projectId: string) {
+  storage.removeItem(`fundit-order-attempt:${memberId}:${projectId}`);
+}
+
 async function submit(
   storage: AttemptStorage,
   storageKey: string,
