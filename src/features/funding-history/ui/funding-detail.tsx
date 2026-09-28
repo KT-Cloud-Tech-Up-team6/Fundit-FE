@@ -52,7 +52,7 @@ export function FundingDetail({
 }) {
   return (
     <FundingDetailScreen>
-      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
+      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         {/* 원본 첫 줄의 주문번호(FD…)는 BE에 없는 값이라 두지 않는다(노션 FE 자체 판단 39). */}
         <section className="flex flex-col gap-4 px-4 py-3">
           <div className="flex gap-3">
