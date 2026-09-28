@@ -2,6 +2,10 @@ import { LiveConsole } from "@/features/live-console/ui/live-console";
 import { RealSellerConsole } from "@/features/live-integration/ui/real-seller-console";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { notFound } from "next/navigation";
+import { sellerViewport } from "@/shared/config/seller-viewport";
+
+/* 콘솔은 판매자 레이아웃 밖(`(live-console)`)이라 같은 뷰포트를 여기서 건다(#409). */
+export const viewport = sellerViewport;
 
 export default async function LiveConsolePage({
   params,

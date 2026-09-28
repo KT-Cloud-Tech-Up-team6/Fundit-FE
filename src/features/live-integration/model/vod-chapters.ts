@@ -67,7 +67,8 @@ export function toChapters(markers: Highlight[], durationSec: number) {
   return byStart(markers).map((marker) => ({
     id: marker.highlightId,
     time: formatClock(marker.startSec),
-    title: marker.title,
+    /* AI 하이라이트 제목은 선택값이다. 없으면 장면 유형으로 "시연 구간"처럼 적는다(#405). */
+    title: marker.title?.trim() || `${sceneLabelName(marker.sceneLabel)} 구간`,
     label: sceneLabelName(marker.sceneLabel),
     progress: Math.min(100, (marker.startSec / durationSec) * 100),
   }));

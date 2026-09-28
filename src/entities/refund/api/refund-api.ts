@@ -42,15 +42,17 @@ export type RefundPage = {
   hasNext: boolean;
 };
 
-export type RefundType = "취소" | "교환" | "환불";
+export type RefundType = "취소" | "반품" | "교환" | "환불";
 
-/** RefundTriggerType을 원본(RFND_1~4)의 유형 문구로 옮긴다. 유형 필터도 이 묶음으로 서버에 보낸다. */
+/** RefundTriggerType을 유형 문구로 옮긴다. 유형 필터(전체/취소/반품/교환)도 이 묶음으로 서버에
+    보낸다. 목표 미달·시스템 자동 환불은 "환불"로 두되 어느 필터에도 넣지 않는다
+    (PD 회신 2026-09-28, PD-1). */
 export const refundTypeByTrigger: Record<string, RefundType> = {
   SIMPLE_CHANGE_OF_MIND: "취소",
   SHIPPING_DELAY: "취소",
+  RETURN_CHANGE_OF_MIND: "반품",
+  DEFECT: "반품",
   EXCHANGE: "교환",
-  DEFECT: "환불",
-  RETURN_CHANGE_OF_MIND: "환불",
   GOAL_FAILED_AUTO: "환불",
   SYSTEM_RECONCILIATION: "환불",
 };

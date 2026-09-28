@@ -551,6 +551,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
 
 - 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
+- 구매자 Q&A(`/chat/answered-questions`)의 `answerText`가 `null`이면 BE가 키를 응답에서 뺀다(non_null). 답변 본문이 없거나 빈 행은 보일 답이 없어 FE가 `getAnsweredQuestions`에서 거른다. 구매자 Q&A·콘솔 집계 Q&A·LIVE 체크 후보가 같은 목록을 쓴다(#405).
 - `aiStatus`는 `PREPARING`(AI 상품정보 색인 전)·`READY`다. 질문이 없을 때 두 상태를 다른 문구로 안내한다(요구사항 6.4.4.4). insights 호출이 BE에 AI 집계를 반영(upsert)하게 하므로 판매자 화면이 주기적으로 부른다.
 - 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
 - `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
@@ -563,6 +564,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
   - `sceneLabel`은 영문 enum이라 FE가 표시명으로 바꾼다: INTRO 도입, PRICE_BENEFIT 가격·혜택, DEMO 시연, SPEC 스펙·기능, COMPARISON 비교, AUDIENCE_REACTION 질문 응답, CLOSING 마무리(AI 요구서 기준). 모르는 값은 기타로 적는다. BE develop은 아직 5종이고 INTRO·CLOSING은 BE 브랜치에서 추가 중이다.
   - `clipUrl`은 AI 서버가 서빙하는 9:16 mp4이며 제목·자막이 영상에 번인돼 있다. FE는 `<video>`로 직접 재생하고 화면 자막을 겹쳐 그리지 않는다. 쇼츠 배지는 DEMO면 시연 영상, 그 외는 하이라이트다.
   - BE는 VOD 길이를 주지 않는다. 구간 진행률은 플레이어 메타데이터의 길이로 계산한다.
+  - AI 하이라이트 `title`은 선택값이라 없으면 BE가 키를 응답에서 뺀다(non_null). 제목이 없는 챕터는 장면 유형으로 "시연 구간"처럼 적는다(#405). 숏 클립은 "숏 클립"(구매자)·"제목 없음"(판매자 LIVE 클립 관리)으로 적는다.
 - 쇼츠 클릭 POST `/highlights/{highlightId}/click`(#333, BE develop `47bee6ed`): 비인증, 204. 전환 동선 추적용이며 조회 수(`/public`)와 따로 판매자 성과 통계(`/highlights/stats`)의 클릭 수로 쌓인다. BE는 하이라이트가 그 LIVE의 공개 항목인지 확인한다.
   - FE는 쇼츠 화면이 쇼츠를 띄울 때 그 하이라이트로 한 번 보낸다. 조회 수와 같은 이유로 `signal`을 넘기지 않고 `staleTime: Infinity` 쿼리로 두어, 뷰포트 전환·재렌더에 다시 보내지 않는다. 기록 실패는 재생을 막지 않고 화면에 드러내지 않는다.
 - 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{senderId, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다.
@@ -768,13 +770,14 @@ payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inc
 
 #### 표시 매핑
 
-원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터(전체/취소/교환/환불)에 대응시킨다. 유형 필터는 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다.
+원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터에 대응시킨다. 유형 필터는 전체/취소/반품/교환이고(PD 회신 2026-09-28, PD-1) 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다. 목표 미달·시스템 자동 환불은 카드에 "환불"로 두되 어느 필터에도 넣지 않아 전체에서만 보인다.
 
-| triggerType                                                                    | 유형 |
-| ------------------------------------------------------------------------------ | ---- |
-| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`                                      | 취소 |
-| `EXCHANGE`                                                                     | 교환 |
-| `DEFECT`, `RETURN_CHANGE_OF_MIND`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
+| triggerType                                 | 유형            |
+| ------------------------------------------- | --------------- |
+| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`   | 취소            |
+| `RETURN_CHANGE_OF_MIND`, `DEFECT`           | 반품            |
+| `EXCHANGE`                                  | 교환            |
+| `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불(필터 없음) |
 
 | status                                                | 표시                      | Badge   |
 | ----------------------------------------------------- | ------------------------- | ------- |
@@ -782,7 +785,7 @@ payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inc
 | `COMPLETED`                                           | `{유형} 완료`             | `info`  |
 | `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `info`  |
 
-실 환불 금액은 취소·환불 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
+실 환불 금액은 교환이 아닌 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
 
 접수 사유는 `reasonType`을 09-25 신청 화면 드롭다운 문구로 바꾸고 `reasonDetail`이 있으면 `·`로 잇는다. `reasonType`이 없으면 `reasonDetail` 원문, 둘 다 없으면 트리거 문구다(`SHIPPING_DELAY` 발송 지연, `GOAL_FAILED_AUTO` 목표 미달 자동 환불, `SIMPLE_CHANGE_OF_MIND` 참여 취소 등). 모르는 `reasonType`은 enum 이름 그대로 보인다.
 
@@ -934,14 +937,13 @@ BE 08 회신(BE PR #160·#162·#164, `develop` `f127a6f`)과 Figma 섹션 `1143:
 
 #### 사유 → 계약
 
-| 화면           | 사유                                                                               | 보내는 요청                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)                  |
-| 참여 취소      | 기타 창작자 귀책                                                                   | `ETC` + `reasonDetail` "창작자 귀책" 또는 "창작자 귀책 · {내용}"(입력 선택, 91자. 임시, [미확정](./OPEN_DECISIONS.md)) |
-| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 숨김, 임시)                                                                                   |
-| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                              |
-| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER`             |
-| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                             |
+| 화면           | 사유                                                                               | 보내는 요청                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)      |
+| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 없음, PM 회신 2026-09-28 PM-5)                                                    |
+| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                  |
+| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER` |
+| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                 |
 
 "상품이 잘못 배송됨"은 #291 이후 `DIFFERENT_FROM_DESCRIPTION`으로 보냈지만 `WRONG_DELIVERY`가 생겨 바꿨다.
 
@@ -999,7 +1001,7 @@ BE 08 회신(`develop` `f127a6f`)의 주문 응답 필드로 `/my/fundings` 목�
 | `SHIPPING_DELAYED`    | 발송 지연      | [참여 취소](`SHIPPING_DELAY_REFUND_REQUEST`가 있을 때, 취소 화면이 `CL_1-1`을 연다) [제작·배송 현황]                                                                                           |
 | `SHIPPING`            | 배송 중        | [제작·배송 현황]                                                                                                                                                                               |
 | `DELIVERED`           | 배송 완료      | [반품·교환 신청](`RETURN_REQUEST`·`EXCHANGE_REQUEST`·`DEFECT_REFUND_REQUEST` 중 하나가 있을 때) [제작·배송 현황]. 액션이 없으면(수령 후 7일 경과) 비활성 [반품·교환 가능 기간이 지났어요] 하나 |
-| `GOAL_FAILED`         | 펀딩 목표 미달 | [환불 내역] `/my/refunds?type=refund`                                                                                                                                                          |
+| `GOAL_FAILED`         | 펀딩 목표 미달 | [환불 내역] `/my/refunds`(필터 없이 전체, PD 회신 2026-09-28 PD-4)                                                                                                                             |
 | `CANCELLED`           | 참여 취소      | 신청 이력이 있으면 내역 버튼 하나, 없으면 없음                                                                                                                                                 |
 | `PAYMENT_EXPIRED`     | 결제 기한 만료 | 위와 같음                                                                                                                                                                                      |
 | `REFUNDED`            | 환불 완료      | 위와 같음                                                                                                                                                                                      |
@@ -1009,9 +1011,9 @@ BE 08 회신(`develop` `f127a6f`)의 주문 응답 필드로 `/my/fundings` 목�
 | 최근 신청 `triggerType`                    | 버튼           | 목적지                      |
 | ------------------------------------------ | -------------- | --------------------------- |
 | `SIMPLE_CHANGE_OF_MIND`·`SHIPPING_DELAY`   | 취소 내역      | `/my/refunds?type=cancel`   |
+| `RETURN_CHANGE_OF_MIND`·`DEFECT`           | 반품·교환 내역 | `/my/refunds?type=return`   |
 | `EXCHANGE`                                 | 반품·교환 내역 | `/my/refunds?type=exchange` |
-| `DEFECT`·`RETURN_CHANGE_OF_MIND`           | 반품·교환 내역 | `/my/refunds?type=refund`   |
-| `GOAL_FAILED_AUTO`·`SYSTEM_RECONCILIATION` | 환불 내역      | `/my/refunds?type=refund`   |
+| `GOAL_FAILED_AUTO`·`SYSTEM_RECONCILIATION` | 환불 내역      | `/my/refunds`(필터 없음)    |
 
 반품·교환 신청 링크는 `?type=` 없이 `/refund/new`로 간다. 신청 화면은 진입 때 조건을 다시 보지 않는다. URL로 직접 들어오면 지금처럼 제출할 때 BE 오류 문구로 안내한다(노션 FE 자체 판단 30).
 

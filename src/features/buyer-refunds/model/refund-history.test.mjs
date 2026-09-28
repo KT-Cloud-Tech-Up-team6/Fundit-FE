@@ -17,16 +17,16 @@ test("트리거와 상태를 원본의 유형·진행상태 문구로 옮긴다"
     [
       "취소 진행 중",
       "취소 완료",
-      "환불 완료",
+      "반품 완료",
       "교환 완료",
-      "환불 진행 중",
-      "환불 반려",
+      "반품 진행 중",
+      "반품 반려",
       "환불 진행 중",
     ],
   );
 });
 
-test("실 환불 금액은 환불이 끝난 취소·환불 건에만 고지한다", () => {
+test("실 환불 금액은 완료됐고 교환이 아닌 건에만 고지한다", () => {
   assert.equal(cancelled.cash, 199000);
   assert.equal(defect.cash, 23000);
   assert.equal(delayed.cash, null);
@@ -87,8 +87,8 @@ test("사유 유형이 없으면 상세 원문을, 둘 다 없으면 트리거 �
   assert.equal(toRefundEntry({ ...refundSummariesDemo[4], reasonType: undefined }).reason, "반품");
 });
 
-test("반품 트리거는 환불 유형이다", () => {
-  assert.equal(returned.type, "환불");
+test("반품 트리거는 반품 유형이다", () => {
+  assert.equal(returned.type, "반품");
 });
 
 test("반려 사유는 반려된 건에만 담긴다", () => {
@@ -123,16 +123,17 @@ test("상품 옵션은 그룹과 값을 이어 옵션 행에 담는다", () => {
   assert.equal(cancelled.items[0].option, "");
 });
 
-test("유형 드롭다운은 원본 순서이고 URL 값을 서버 유형으로 옮긴다", () => {
+test("유형 드롭다운은 전체/취소/반품/교환 순서이고 URL 값을 서버 유형으로 옮긴다", () => {
   assert.deepEqual(
     refundTypeOptions.map((option) => option.label),
-    ["전체", "취소", "교환", "환불"],
+    ["전체", "취소", "반품", "교환"],
   );
   assert.deepEqual(
     refundTypeOptions.map((option) => refundTypeOfFilter(option.value)),
-    [undefined, "취소", "교환", "환불"],
+    [undefined, "취소", "반품", "교환"],
   );
+  assert.equal(parseRefundFilterType("return"), "return");
   assert.equal(parseRefundFilterType("exchange"), "exchange");
   assert.equal(parseRefundFilterType(null), "all");
-  assert.equal(parseRefundFilterType("반품"), "all");
+  assert.equal(parseRefundFilterType("refund"), "all");
 });

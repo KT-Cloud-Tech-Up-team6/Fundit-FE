@@ -15,7 +15,7 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { previousPage } from "@/shared/lib/previous-page";
-import { BuyerProjectDetail } from "./buyer-project-detail";
+import { BuyerProjectDetail, DetailIcon, Information } from "./buyer-project-detail";
 import styles from "./buyer-project-detail.module.css";
 import { RewardSummary } from "./reward-summary";
 import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
@@ -158,9 +158,18 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     );
   const data = detail.data,
     summary = data.fundingStatus;
+  /* 환불정책 탭은 리워드 이름도 리워드 목록에서 찾는다. 목록을 받기 전이나 처음 받기에 실패하면 모든 행이
+     "리워드"로 보여 구별할 수 없으므로 두 조회를 함께 기다리고 함께 다시 시도한다(#405). 이름을 이미 받은 뒤의
+     재조회 실패(`isError`)로는 탭을 오류로 바꾸지 않는다. */
+  const refundTab = {
+    isPending: refund.isPending || rewards.isPending,
+    isError: refund.isError || rewards.isLoadingError,
+    error: refund.error ?? rewards.error,
+    refetch: () => Promise.all([refund.refetch(), rewards.refetch()]),
+  };
   const active =
     tab === "refund-policy"
-      ? refund
+      ? refundTab
       : tab === "live-proof"
         ? live
         : tab === "news"
@@ -213,15 +222,32 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       <p>
         목표 미달 자동 환불. {refund.data?.commonPolicy.goalFailedAutoRefund ? "적용" : "미적용"}
       </p>
+      {/* 환불 정책 응답에는 리워드 id만 있다. 내부 id 대신 리워드 목록의 이름을 보인다(#405). */}
       {refund.data?.rewardPolicies?.map((item) => (
         <p key={item.rewardId}>
-          리워드 {item.rewardId}. 간편환불 {item.simpleRefundDisabled ? "불가" : "가능"}
+          {rewards.data?.find((reward) => reward.rewardId === item.rewardId)?.name ?? "리워드"}.
+          간편환불 {item.simpleRefundDisabled ? "불가" : "가능"}
         </p>
       ))}
     </div>
   ) : tab === "live-proof" ? (
     <>
-      <p className="mb-3">LIVE 검증 정보입니다. 영상 송출 연결은 준비 중입니다.</p>
+      {/* Figma LIVE 체크 탭(FL_B_PJ_LIVE 1541:50459)의 "LIVE Q&A N건 ⓘ" 머리 행이다(질문 아이콘 1541:50564,
+          정보 아이콘·툴팁 1541:50567·1541:50704). 원본에 없던 안내 문장은 뺐다(#405). 종료 LIVE·숏 클립의
+          "LIVE 다시 보기" 절은 #319가 맡는다. */}
+      <div className="mb-3 flex items-center gap-1">
+        {/* Figma는 아이콘·제목 사이 8px(1541:50563), 제목·건수·안내 아이콘 사이 4px(1541:50562)다. */}
+        <h2 className="text-title-s flex items-center gap-1">
+          <span className="flex items-center gap-2">
+            <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
+            LIVE Q&amp;A
+          </span>{" "}
+          <small className="text-caption-s text-text-secondary font-medium">
+            {live.data?.content?.length ?? 0}건
+          </small>
+        </h2>
+        <Information label="LIVE Q&A 안내" />
+      </div>
       {/* Figma LIVE Q&A 카드(1408:42965). BE가 날짜를 주지 않아 "N건 · 날짜"는 건수만 적는다.
           질문 요약을 받기 전에 등록된 항목은 문구가 없어 답변만 보인다. */}
       <div className="flex flex-col gap-6">
@@ -229,7 +255,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           <article key={item.liveVerificationId} className="flex flex-col gap-2">
             {item.questionText && (
               <div>
-                <h2 className="text-body-strong">{item.questionText}</h2>
+                <h3 className="text-body-strong">{item.questionText}</h3>
                 <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
               </div>
             )}
@@ -240,7 +266,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           </article>
         ))}
       </div>
-      {!live.data?.content?.length && <p>등록된 검증 정보가 없습니다.</p>}
+      {!live.data?.content?.length && <p>등록된 LIVE Q&amp;A가 없습니다.</p>}
     </>
   ) : tab === "news" ? (
     <>
