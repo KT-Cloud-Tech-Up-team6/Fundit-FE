@@ -551,6 +551,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
 
 - 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
+- 구매자 Q&A(`/chat/answered-questions`)의 `answerText`가 `null`이면 BE가 키를 응답에서 뺀다(non_null). 답변 본문이 없거나 빈 행은 보일 답이 없어 FE가 `getAnsweredQuestions`에서 거른다. 구매자 Q&A·콘솔 집계 Q&A·LIVE 체크 후보가 같은 목록을 쓴다(#405).
 - `aiStatus`는 `PREPARING`(AI 상품정보 색인 전)·`READY`다. 질문이 없을 때 두 상태를 다른 문구로 안내한다(요구사항 6.4.4.4). insights 호출이 BE에 AI 집계를 반영(upsert)하게 하므로 판매자 화면이 주기적으로 부른다.
 - 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
 - `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
@@ -563,6 +564,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
   - `sceneLabel`은 영문 enum이라 FE가 표시명으로 바꾼다: INTRO 도입, PRICE_BENEFIT 가격·혜택, DEMO 시연, SPEC 스펙·기능, COMPARISON 비교, AUDIENCE_REACTION 질문 응답, CLOSING 마무리(AI 요구서 기준). 모르는 값은 기타로 적는다. BE develop은 아직 5종이고 INTRO·CLOSING은 BE 브랜치에서 추가 중이다.
   - `clipUrl`은 AI 서버가 서빙하는 9:16 mp4이며 제목·자막이 영상에 번인돼 있다. FE는 `<video>`로 직접 재생하고 화면 자막을 겹쳐 그리지 않는다. 쇼츠 배지는 DEMO면 시연 영상, 그 외는 하이라이트다.
   - BE는 VOD 길이를 주지 않는다. 구간 진행률은 플레이어 메타데이터의 길이로 계산한다.
+  - AI 하이라이트 `title`은 선택값이라 없으면 BE가 키를 응답에서 뺀다(non_null). 제목이 없는 챕터는 장면 유형으로 "시연 구간"처럼 적는다(#405). 숏 클립은 "숏 클립"(구매자)·"제목 없음"(판매자 LIVE 클립 관리)으로 적는다.
 - 쇼츠 클릭 POST `/highlights/{highlightId}/click`(#333, BE develop `47bee6ed`): 비인증, 204. 전환 동선 추적용이며 조회 수(`/public`)와 따로 판매자 성과 통계(`/highlights/stats`)의 클릭 수로 쌓인다. BE는 하이라이트가 그 LIVE의 공개 항목인지 확인한다.
   - FE는 쇼츠 화면이 쇼츠를 띄울 때 그 하이라이트로 한 번 보낸다. 조회 수와 같은 이유로 `signal`을 넘기지 않고 `staleTime: Infinity` 쿼리로 두어, 뷰포트 전환·재렌더에 다시 보내지 않는다. 기록 실패는 재생을 막지 않고 화면에 드러내지 않는다.
 - 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{senderId, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다.
