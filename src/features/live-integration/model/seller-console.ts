@@ -1,3 +1,4 @@
+import type { LiveStatus } from "@/entities/live/api/seller-live-api";
 import type { CueSheetSegment } from "@/entities/live/model/live-cue-sheet";
 import { ApiError } from "@/shared/api/api-error";
 import type { AiStatus, AnswerDraft, AnsweredQuestion } from "../api/live-api";
@@ -82,6 +83,19 @@ export function draftUnavailable(draft: AnswerDraft | undefined) {
 export function questionSummaryState(aiStatus: AiStatus | undefined, total: number) {
   if (total > 0) return "list" as const;
   return aiStatus === "PREPARING" ? ("preparing" as const) : ("empty" as const);
+}
+
+/**
+ * 콘솔에 띄울 LIVE 체크 모달. 콘솔에서 연 흐름(`dialog`)이 먼저다. 없으면 LIVE 스튜디오의 종료 방송
+ * (`openCheck`, IA 판매자 18행)이 LIVE 체크 목록을 연다. 종료 모달은 방송을 막 끝냈을 때만 뜨므로 건너뛰고,
+ * 종료가 확인된 방송에서만 열며, 한 번 닫으면(`closed`) 다시 띄우지 않는다(#399).
+ */
+export function consoleCheckDialog<D extends { kind: string }>(
+  dialog: D | null,
+  entry: { openCheck: boolean; closed: boolean; status: LiveStatus | undefined },
+): D | { kind: "check" } | null {
+  if (dialog) return dialog;
+  return entry.openCheck && !entry.closed && entry.status === "ENDED" ? { kind: "check" } : null;
 }
 
 /** 답변된 질문 → LIVE 체크 후보. 답변 본문이 없으면 올릴 내용이 없어 뺀다. */

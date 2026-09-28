@@ -89,11 +89,6 @@ export function OrderCompleteScreen({
                 </h2>
                 <p className="text-body-s text-text-secondary">{receipt.completeMessage}</p>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <p className="text-body-m text-text-default font-medium">
-                  예상 발송일 {receipt.expectedShippingDate}
-                </p>
-              </div>
             </div>
           </div>
 

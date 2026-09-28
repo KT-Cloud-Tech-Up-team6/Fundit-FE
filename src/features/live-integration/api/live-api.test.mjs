@@ -168,3 +168,26 @@ test("판매자 하이라이트 목록은 인증 GET, 공개 설정은 인증 PA
     authTokenStore.clear();
   }
 });
+
+test("답변된 질문 목록은 BE가 뺀 answerText(null)나 빈 답변 행을 거른다(#405)", async () => {
+  const originalFetch = globalThis.fetch;
+  const row = (questionId, answer) => ({
+    questionId,
+    summaryText: `질문 ${questionId}`,
+    questionCount: 2,
+    ...(answer === undefined ? {} : { answerText: answer }),
+    answeredBy: "SELLER",
+    answeredAt: null,
+  });
+  globalThis.fetch = async () =>
+    response([row("q1", "최대 180분입니다."), row("q2"), row("q3", "   "), row("q4", null)]);
+  try {
+    const list = await getAnsweredQuestions("live");
+    assert.deepEqual(
+      list.map((item) => [item.questionId, item.answerText]),
+      [["q1", "최대 180분입니다."]],
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
