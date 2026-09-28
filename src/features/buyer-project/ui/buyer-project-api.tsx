@@ -317,9 +317,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
      기존 요약(불러오는 중·오류 재시도·종료)을 둔다. 담은 줄은 기존 실제 주문서 계약(items 쿼리)으로
      넘기고, 로그인 확인은 주문서의 회원 게이트가 맡는다. */
   const rewardList =
-    data.status === "ONGOING" && rewards.data
-      ? toRewards(rewards.data, summary.fundingDeadline)
-      : undefined;
+    data.status === "ONGOING" && rewards.data ? toRewards(rewards.data) : undefined;
   const rewardFormId = `rewards-${projectId}`;
   function toCheckout(cart: RewardCart) {
     if (!rewardList) return;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { expectedShippingLabel, toOrderLines, toRewards } from "./public-reward.ts";
+import { toOrderLines, toRewards } from "./public-reward.ts";
 import { addOptionLine, pickedOption } from "./reward-demo.ts";
 
 /* BE RewardConsumerResponse 모양. null 필드는 키가 빠진다. */
@@ -35,8 +35,6 @@ const rateEarlyBird = {
     },
   ],
   soldOut: false,
-  shippingFee: 0,
-  estimatedDeliveryDays: 7,
 };
 const amountEarlyBird = {
   rewardId: 12,
@@ -51,7 +49,6 @@ const amountEarlyBird = {
   isLimited: false,
   options: [],
   soldOut: false,
-  shippingFee: 3000,
 };
 const soldOut = {
   rewardId: 13,
@@ -93,23 +90,13 @@ test("API 리워드는 삽입 순서가 유지되는 문자열 키와 주문용 
   });
 });
 
-test("메타 줄은 설명·배송비·발송 안내이고 없는 값은 빠진다", () => {
-  const deadline = "2026-10-27T14:59:59Z"; // 한국 시간 10월 27일 23:59:59
-  const [rate, amount, plain] = toRewards([rateEarlyBird, amountEarlyBird, soldOut], deadline);
-  assert.deepEqual(rate.meta, ["본체 · 브러시", "무료배송", "예상 발송일 2026.11.03"]);
-  assert.equal(rate.expectedShipping, "예상 발송일 2026.11.03");
-  assert.deepEqual(amount.meta, ["세트 구성", "배송비 3,000원"]);
-  assert.equal(amount.expectedShipping, undefined);
+test("메타 줄은 설명이고, 설명이 없으면 빠진다", () => {
+  const [rate, amount, plain] = toRewards([rateEarlyBird, amountEarlyBird, soldOut]);
+  assert.deepEqual(rate.meta, ["본체 · 브러시"]);
+  assert.deepEqual(amount.meta, ["세트 구성"]);
   assert.deepEqual(plain.meta, ["품절"]);
   assert.equal(plain.soldOut, true);
   assert.equal(plain.remainingStock, 0);
-});
-
-test("발송 안내는 마감 시각이 있으면 한국 날짜, 없으면 일수로 적는다", () => {
-  assert.equal(expectedShippingLabel(undefined, "2026-10-27T14:59:59Z"), undefined);
-  assert.equal(expectedShippingLabel(7, undefined), "7일 이내 발송 예정");
-  // UTC로는 10월 27일 15시지만 한국 시간으로 10월 28일 0시다.
-  assert.equal(expectedShippingLabel(0, "2026-10-27T15:00:00Z"), "예상 발송일 2026.10.28");
 });
 
 test("여러 옵션 그룹은 모두 고른 뒤에만 줄이 되고 값 id를 그룹 순서로 담는다", () => {

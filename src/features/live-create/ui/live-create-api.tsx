@@ -14,7 +14,7 @@ import {
   updateLiveSettings,
   type LiveCreateResponse,
 } from "@/entities/live/api/live-session-api";
-import { getMyLives } from "@/entities/live/api/seller-live-api";
+import { getMyLives, type LiveStatus } from "@/entities/live/api/seller-live-api";
 import {
   isEmptyLiveSettingsBody,
   LIVE_INTRO_MAX_LENGTH,
@@ -37,6 +37,9 @@ function errorMessage(error: unknown) {
   return error instanceof Error && error.message ? error.message : "잠시 후 다시 시도해 주세요.";
 }
 
+/* 이어 쓸 수 있는 LIVE. 시작·종료한 LIVE는 서버가 설정 저장·시작을 받지 않는다. */
+const resumableStatuses: readonly LiveStatus[] = ["DRAFT", "SCHEDULED", "ERROR"];
+
 /* 한 프로젝트의 임시저장 LIVE는 이어서 작성할 후보라 많지 않다. 불러오기 목록은
    페이지 없이 한 번에 보여 주고, 그보다 많으면 서버가 준 첫 페이지까지만 보인다. */
 const DRAFT_LIST_SIZE = 20;
@@ -51,8 +54,17 @@ const DRAFT_LIST_SIZE = 20;
  * <p>LIVE는 **다음·임시저장을 처음 누를 때** 만든다. 화면을 여는 것만으로 DRAFT가 쌓이면
  * 판매자가 만들지 않은 LIVE가 스튜디오 목록에 남는다. 만든 뒤에는 같은 liveId에 설정만
  * 덮어써 새로고침·재시도가 LIVE를 늘리지 않는다.
+ *
+ * <p>`resumeLiveId`가 있으면 그 LIVE를 불러와 이어 쓴다. LIVE 스튜디오의 시작 실패 카드가 다시
+ * 시작할 때 쓴다(#400).
  */
-export function LiveCreateApi({ projectId }: { projectId: string }) {
+export function LiveCreateApi({
+  projectId,
+  resumeLiveId,
+}: {
+  projectId: string;
+  resumeLiveId?: string;
+}) {
   const { state } = useAuth();
   const router = useRouter();
   const cache = useQueryClient();
@@ -107,6 +119,8 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
   });
 
   const save = useMutation({
+    /* 불러오기 실패 안내가 남아 있으면 저장 결과 안내를 가린다. 저장을 시작하면 지운다. */
+    onMutate: () => load.reset(),
     mutationFn: async (mode: "draft" | "next") => {
       let id = liveId;
       if (!id) {
@@ -156,6 +170,14 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
   const load = useMutation({
     mutationFn: (id: string) => getLiveDetail(id),
     onSuccess: (detail) => {
+      /* 주소로 받은 LIVE는 이 프로젝트의 시작 전 LIVE일 때만 이어 쓴다. 서버도 시작·종료한 LIVE의
+         설정 저장·시작을 409로 막지만, 막힐 입력을 채워 두지 않는다. */
+      if (detail.projectId !== projectId || !resumableStatuses.includes(detail.status)) {
+        /* [불러오기] 모달에서 고른 사이 시작된 경우도 있어, 안내가 보이게 모달을 닫는다. */
+        setLoadOpen(false);
+        setNotice("이어서 시작할 수 없는 LIVE입니다. LIVE 스튜디오에서 상태를 확인해 주세요.");
+        return;
+      }
       /* 같은 liveId에 이어 쓴다. 새로 만들지 않으므로 임시저장이 늘지 않는다. */
       setLiveId(detail.liveId);
       setIntro(detail.introText ?? "");
@@ -164,9 +186,22 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
       setScheduled(Boolean(loaded.date));
       setCueSaved(false);
       setLoadOpen(false);
-      setNotice("임시저장한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다.");
+      setNotice(
+        detail.status === "ERROR"
+          ? "시작에 실패한 LIVE를 불러왔습니다. 내용을 확인하고 다시 시작해 주세요."
+          : "임시저장한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다.",
+      );
     },
   });
+  const loadLive = load.mutate;
+
+  /* 주소로 받은 LIVE는 로그인이 확인되면 한 번만 불러온다. */
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (!resumeLiveId || !enabled || resumed.current) return;
+    resumed.current = true;
+    loadLive(resumeLiveId);
+  }, [resumeLiveId, enabled, loadLive]);
 
   const start = useMutation({
     mutationFn: (id: string) => startLive(id),
@@ -206,7 +241,8 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     goalAmount: preview.data.goalAmount,
     image: preview.data.coverImageUrl ?? "",
   };
-  const canProceed = intro.trim().length > 0 && !save.isPending;
+  /* 불러오는 동안 저장하면 불러올 LIVE 대신 새 임시저장이 생긴다. */
+  const canProceed = intro.trim().length > 0 && !save.isPending && !load.isPending;
   /* 409는 이미 시작했거나 끝난 LIVE다. 다시 눌러도 달라지지 않으므로 사유를 나눠 적는다. */
   const startFailure =
     start.error instanceof ApiError && start.error.status === 409
@@ -216,7 +252,11 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
     ? `저장하지 못했습니다. ${errorMessage(save.error)}`
     : start.isError
       ? startFailure
-      : notice;
+      : load.isPending && !loadOpen
+        ? "LIVE를 불러오고 있습니다."
+        : load.isError && !loadOpen
+          ? `LIVE를 불러오지 못했습니다. ${errorMessage(load.error)}`
+          : notice;
   const draftItems = toSellerLiveList(drafts.data);
 
   return (
@@ -242,9 +282,11 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                   주소에 박혀 있어 되돌릴 대상이 없으므로 자리를 비운다. */}
               <ProjectSummary project={project} />
             </div>
+            {/* 불러오는 동안 입력하면 늦게 온 조회 결과가 덮어쓰므로 입력을 막는다. */}
             <Textarea
               aria-label="소개 문구"
               className="mt-2 h-[190px] shrink-0"
+              disabled={load.isPending}
               maxLength={LIVE_INTRO_MAX_LENGTH}
               onChange={(event) => setIntro(event.target.value)}
               placeholder={`소개 문구를 입력해주세요 (최대 ${LIVE_INTRO_MAX_LENGTH}자)`}
@@ -254,6 +296,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
             <div className="mt-auto flex flex-col gap-1">
               <Checkbox
                 checked={scheduled}
+                disabled={load.isPending}
                 shape="circle"
                 onChange={(event) => setScheduled(event.target.checked)}
               >
@@ -264,7 +307,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                   aria-label="방송 예약 날짜"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
                   defaultValue={schedule?.date}
-                  disabled={!scheduled}
+                  disabled={!scheduled || load.isPending}
                   key={`date-${schedule?.date ?? ""}`}
                   type="date"
                   ref={(node) => {
@@ -276,7 +319,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
                   aria-label="방송 예약 시각"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
                   defaultValue={schedule?.time}
-                  disabled={!scheduled}
+                  disabled={!scheduled || load.isPending}
                   key={`time-${schedule?.time ?? ""}`}
                   type="time"
                   ref={(node) => {
@@ -302,7 +345,7 @@ export function LiveCreateApi({ projectId }: { projectId: string }) {
               <div className="flex items-center gap-3">
                 <button
                   className={`${secondaryButtonClasses} h-10 w-23`}
-                  disabled={save.isPending}
+                  disabled={save.isPending || load.isPending}
                   onClick={() => save.mutate("draft")}
                   type="button"
                 >
