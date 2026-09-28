@@ -3,11 +3,13 @@ import test from "node:test";
 import {
   applyCourier,
   canShip,
+  COURIER_MAX_LENGTH,
   countByFilter,
   demoShipments,
   filterByStatus,
   markShipped,
   searchShipments,
+  TRACKING_NUMBER_MAX_LENGTH,
   updateShipment,
 } from "./shipping-demo.ts";
 
@@ -44,6 +46,14 @@ test("발송 처리는 택배사와 운송장이 모두 있어야 가능하다",
   assert.equal(canShip(withCourier), false);
   assert.equal(canShip({ ...withCourier, trackingNo: "   " }), false);
   assert.equal(canShip({ ...withCourier, trackingNo: "123" }), true);
+  assert.equal(
+    canShip({ ...withCourier, courier: "가".repeat(COURIER_MAX_LENGTH + 1), trackingNo: "123" }),
+    false,
+  );
+  assert.equal(
+    canShip({ ...withCourier, trackingNo: "1".repeat(TRACKING_NUMBER_MAX_LENGTH + 1) }),
+    false,
+  );
   // 이미 발송된 건은 다시 처리하지 않는다.
   assert.equal(canShip({ ...withCourier, trackingNo: "123", status: "shipped" }), false);
 });

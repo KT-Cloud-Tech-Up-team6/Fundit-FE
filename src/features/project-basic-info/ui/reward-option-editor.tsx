@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/shared/components/ui/input";
 import type { RewardDraft } from "../model/basic-info-demo";
+import { REWARD_OPTION_MAX_LENGTH } from "../model/reward-request";
 
 type Groups = NonNullable<RewardDraft["optionGroups"]>;
 
@@ -99,6 +100,7 @@ export function RewardOptionEditor({
                 size="xs"
                 autoFocus
                 aria-label={`옵션 카테고리 ${index + 1} 이름`}
+                maxLength={REWARD_OPTION_MAX_LENGTH}
                 value={editingName}
                 onChange={(event) => setEditingName(event.target.value)}
                 onBlur={() => finishName(index)}
@@ -150,6 +152,7 @@ export function RewardOptionEditor({
                 autoFocus
                 className="w-40"
                 aria-label={`${group.groupName} 선택지`}
+                maxLength={REWARD_OPTION_MAX_LENGTH}
                 placeholder="선택지를 입력해주세요"
                 value={valueName}
                 onChange={(event) => setValueName(event.target.value)}
@@ -179,6 +182,7 @@ export function RewardOptionEditor({
           size="sm"
           autoFocus
           aria-label="옵션 카테고리 이름"
+          maxLength={REWARD_OPTION_MAX_LENGTH}
           placeholder="옵션 카테고리 명을 입력해주세요"
           value={groupName}
           onChange={(event) => setGroupName(event.target.value)}

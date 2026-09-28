@@ -123,6 +123,9 @@ const idle: CueSheetState = {
  * **`COMPLETED`인데 구간이 비어 있으면 `completed`로 보지 않는다.** 스텁 모드 AI가 빈
  * 결과를 줄 수 있고(#289 필수 계약 2), 그때 편집기를 열면 편집할 것이 없는 빈 화면이 된다.
  * 사유를 채워 실패로 다룬다 — 판매자에게는 "결과가 없다"가 사실이다.
+ *
+ * **BE `failureReason`은 싣지 않는다.** AI 호출 예외의 원문이라(BE `CueSheetService.failureReasonOf`)
+ * AI 주소 같은 내부 정보가 섞일 수 있다(#403). 실패 화면은 일반 안내를 보인다.
  */
 export function toCueSheetState(response: CueSheetResponse | null | undefined): CueSheetState {
   if (!response) return idle;
@@ -135,7 +138,7 @@ export function toCueSheetState(response: CueSheetResponse | null | undefined): 
     return { phase: "generating", segments: [], mode, minutes, failureReason: null };
   }
   if (status === "FAILED") {
-    return { phase: "failed", segments: [], mode, minutes, failureReason: response.failureReason };
+    return { phase: "failed", segments: [], mode, minutes, failureReason: null };
   }
   if (!segments.length) {
     return {
@@ -143,7 +146,7 @@ export function toCueSheetState(response: CueSheetResponse | null | undefined): 
       segments: [],
       mode,
       minutes,
-      failureReason: response.failureReason ?? "AI가 큐시트 구간을 비워 보냈습니다.",
+      failureReason: "AI가 큐시트 구간을 비워 보냈습니다.",
     };
   }
   return { phase: "completed", segments, mode, minutes, failureReason: null };
