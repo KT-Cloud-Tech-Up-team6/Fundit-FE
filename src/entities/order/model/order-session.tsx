@@ -37,7 +37,6 @@ export type OrderReceipt = {
   ordererName: string;
   ordererPhone: string;
   completeMessage: string;
-  expectedShippingDate: string;
 };
 
 type OrderSession = {
