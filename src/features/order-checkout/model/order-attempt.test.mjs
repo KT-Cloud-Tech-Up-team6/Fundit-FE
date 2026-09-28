@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { submitOrderOnce, OrderRejectedError } from "./order-attempt.ts";
+import { clearOrderAttempt, submitOrderOnce, OrderRejectedError } from "./order-attempt.ts";
 import {
   previewOrder,
   createPayment,
@@ -227,6 +227,22 @@ test("결제 대기 주문과 다른 내용은 이전 주문으로 이동하지 
   );
   assert.equal(posts, 1);
   assert.equal((await submitOrderOnce(store, "member", body)).orderId, "old-order");
+});
+test("취소가 확정되면 이전 주문 시도를 지워 변경된 주문을 새 키로 생성할 수 있다", async (t) => {
+  const store = storage(),
+    log = postLog();
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    if (init.method !== "POST") return Response.json({ status: "PENDING" });
+    log.record(init);
+    return Response.json({ orderId: `order-${log.sent.length}` });
+  });
+  await submitOrderOnce(store, "member", body);
+  clearOrderAttempt(store, "member", body.projectId);
+  const changed = { ...body, couponCodes: ["changed"] };
+  assert.equal((await submitOrderOnce(store, "member", changed)).orderId, "order-2");
+  assert.equal(log.sent.length, 2);
+  assert.notEqual(log.sent[0].key, log.sent[1].key);
+  assert.deepEqual(log.sent[1].body, changed);
 });
 for (const status of [
   "CANCELLED_BY_MEMBER",
