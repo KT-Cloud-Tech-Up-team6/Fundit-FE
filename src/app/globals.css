@@ -34,6 +34,9 @@ http://scripts.sil.org/OFL
    ============================================================ */
 
 :root {
+  /* 공용 모바일 하단 메뉴의 콘텐츠 영역 높이. 안전 영역은 호출부에서 더한다. */
+  --buyer-bottom-navigation-height: 62px;
+
   --blue-50: #f1f2fd;
   --blue-100: #e1e5fb;
   --blue-200: #a5b1f4;
