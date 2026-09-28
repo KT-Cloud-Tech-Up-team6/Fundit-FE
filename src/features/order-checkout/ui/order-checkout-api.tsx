@@ -268,6 +268,13 @@ function Checkout({
       setBusy(false);
       return;
     }
+    const nextCouponError = couponPreviewError(nextAmount, change.couponCodes);
+    if (nextCouponError) {
+      setError(`${nextCouponError} 쿠폰을 변경하거나 해제해주세요.`);
+      saving.current = false;
+      setBusy(false);
+      return;
+    }
     if (nextAmount.finalAmount <= 0) {
       setError("결제 금액이 올바르지 않아 주문할 수 없습니다. 리워드와 쿠폰을 다시 확인해주세요.");
       saving.current = false;
