@@ -85,13 +85,7 @@ export const CancelReasonOptions: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "취소 사유" }));
     const options = canvas.getAllByRole("option").map((option) => option.textContent);
-    await expect(options).toEqual([
-      "단순 변심",
-      "결제 정보 오류",
-      "옵션 선택 오류",
-      "기타 창작자 귀책",
-      "기타",
-    ]);
+    await expect(options).toEqual(["단순 변심", "결제 정보 오류", "옵션 선택 오류", "기타"]);
   },
 };
 
@@ -132,33 +126,6 @@ export const OtherRequiresDetail: Story = {
     await expect(submit).toBeDisabled();
     await userEvent.type(textbox, "배송지가 바뀌었어요");
     await expect(submit).toBeEnabled();
-  },
-};
-
-/** 임시 처리: "기타 창작자 귀책"은 BE `ETC`로 보내고 상세 앞에 "창작자 귀책"을 붙인다. 입력은
-    선택이고, 붙는 문구만큼 한도가 91자로 줄어 이미 쓴 내용도 그 길이로 자른다. */
-export const CreatorFaultAsEtc: Story = {
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
-    await choose(canvas, "취소 사유", "기타");
-    const textbox = canvas.getByRole("textbox", { name: "상세 내용" });
-    await userEvent.click(textbox);
-    await userEvent.paste("가".repeat(95));
-    await choose(canvas, "취소 사유", "기타 창작자 귀책");
-    await expect(textbox).toHaveValue("가".repeat(91));
-    await expect(textbox).toHaveAttribute("placeholder", "내용을 입력해주세요 (선택)");
-    await expect(canvas.getByText("91/91")).toBeVisible();
-
-    await userEvent.clear(textbox);
-    await userEvent.type(textbox, "리워드 구성이 바뀌었어요");
-    await userEvent.click(canvas.getByRole("button", { name: "취소 신청" }));
-    await userEvent.click(
-      within(canvas.getByRole("dialog")).getByRole("button", { name: "취소 신청" }),
-    );
-    await expect(args.onSubmit).toHaveBeenCalledWith({
-      kind: "cancel",
-      body: { cancelReason: "ETC", reasonDetail: "창작자 귀책 · 리워드 구성이 바뀌었어요" },
-    });
   },
 };
 
