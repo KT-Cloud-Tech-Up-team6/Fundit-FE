@@ -79,6 +79,7 @@ export function demoOrderDetail(fundingId: string): OrderDetail {
       addressLine2: "101호",
     },
     paidAt: summary.paidAt,
+    paymentExpiresAt: summary.createdAt,
     availableActions: summary.availableActions,
     refundRequests: summary.refundRequests,
     lineItems: summary.lineItems,

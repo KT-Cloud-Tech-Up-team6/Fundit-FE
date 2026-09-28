@@ -5,6 +5,7 @@ import {
   confirmOutcome,
   failureOutcome,
   createAttemptOutcome,
+  isPaymentExpired,
   isUserCancel,
   paymentWindowErrorMessage,
 } from "./payment-result.ts";
@@ -112,9 +113,20 @@ test("결제창 취소와 Toss 실패 메시지를 구분한다", () => {
 });
 
 test("결제 시도 생성 오류 문구", () => {
+  // PaymentCreateService가 완료된 결제를 찾으면 이 코드로 던진다(다른 탭·기기에서 먼저 결제 완료).
+  assert.match(createAttemptOutcome(apiError("CONFLICT", 409)), /이미 결제가 완료된/);
   assert.match(createAttemptOutcome(apiError("FUNDING_NOT_PENDING", 409)), /결제할 수 없는 주문/);
   assert.match(createAttemptOutcome(apiError("FORBIDDEN", 403)), /본인/);
   assert.match(createAttemptOutcome(apiError("DEPENDENCY_FAILURE", 503)), /준비하지 못했/);
+});
+
+test("결제 기한이 지났는지는 현재 시각과 비교해 판단한다", () => {
+  const now = Date.parse("2026-09-28T00:00:00.000Z");
+  assert.equal(isPaymentExpired("2026-09-27T23:59:59.999Z", now), true);
+  assert.equal(isPaymentExpired("2026-09-28T00:00:00.000Z", now), true);
+  assert.equal(isPaymentExpired("2026-09-28T00:00:00.001Z", now), false);
+  // BE가 키를 뺀 옛 주문(기한 미설정)은 만료로 단정할 근거가 없다.
+  assert.equal(isPaymentExpired(undefined, now), false);
 });
 
 test("결제 시도·승인 표시는 저장소 접근이 실패해도 예외 없이 동작한다", () => {
