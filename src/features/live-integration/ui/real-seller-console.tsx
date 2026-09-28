@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/shared/api/api-error";
 import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
@@ -120,6 +121,7 @@ function ConsoleBody({
   ownerId: string;
   openCheck: boolean;
 }) {
+  const router = useRouter();
   const cache = useQueryClient();
   const ownerKey = ["live", liveId, "owner", ownerId];
   const consoleRef = useRef<HTMLDivElement>(null);
@@ -218,6 +220,12 @@ function ConsoleBody({
   function closeDialog() {
     setDialog(null);
     setCheckClosed(true);
+    /* 새로고침해도 다시 뜨지 않게 주소에서 `check`만 뺀다. 종료 탭 목록의 링크는 그대로 `?check=open`이다. */
+    if (openCheck) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("check");
+      router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
+    }
     consoleRef.current?.focus();
   }
 
