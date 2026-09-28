@@ -119,6 +119,8 @@ export function LiveCreateApi({
   });
 
   const save = useMutation({
+    /* 불러오기 실패 안내가 남아 있으면 저장 결과 안내를 가린다. 저장을 시작하면 지운다. */
+    onMutate: () => load.reset(),
     mutationFn: async (mode: "draft" | "next") => {
       let id = liveId;
       if (!id) {
@@ -171,6 +173,8 @@ export function LiveCreateApi({
       /* 주소로 받은 LIVE는 이 프로젝트의 시작 전 LIVE일 때만 이어 쓴다. 서버도 시작·종료한 LIVE의
          설정 저장·시작을 409로 막지만, 막힐 입력을 채워 두지 않는다. */
       if (detail.projectId !== projectId || !resumableStatuses.includes(detail.status)) {
+        /* [불러오기] 모달에서 고른 사이 시작된 경우도 있어, 안내가 보이게 모달을 닫는다. */
+        setLoadOpen(false);
         setNotice("이어서 시작할 수 없는 LIVE입니다. LIVE 스튜디오에서 상태를 확인해 주세요.");
         return;
       }

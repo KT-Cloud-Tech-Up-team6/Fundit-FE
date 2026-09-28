@@ -80,7 +80,7 @@ export function SellerLiveList({
               variant="primaryLive"
             >
               {tab.label}
-              {/* 건수는 status-counts를 탭 매핑대로 더한 값이다(준비중 = draft + scheduled).
+              {/* 건수는 status-counts를 탭 매핑대로 더한 값이다(준비중 = draft + scheduled + error, #400).
                   아직 받지 못했으면 세지 않았음을 —로 표시한다. */}
               <span>{tabCount(tab.value, counts.data) ?? "—"}</span>
               <span className="sr-only">건</span>
