@@ -63,7 +63,7 @@ export const RewardLifecycle: Story = {
     await userEvent.type(modal.getByRole("textbox", { name: "옵션 카테고리 이름" }), "색상{Enter}");
     await userEvent.click(modal.getByRole("button", { name: /선택지 추가/ }));
     await userEvent.type(modal.getByRole("textbox", { name: "색상 선택지" }), "블랙{Enter}");
-    expect(modal.getByRole("button", { name: "블랙 선택지 삭제" })).toBeVisible();
+    expect(modal.getByRole("button", { name: "색상 블랙 선택지 삭제" })).toBeVisible();
     expect(register()).toBeEnabled();
     await userEvent.click(register());
     expect(canvas.getByRole("table")).toHaveTextContent("테스트 패키지");

@@ -44,6 +44,12 @@ export function RewardOptionEditor({
     setEditingGroup(null);
   }
 
+  function removeGroup(index: number) {
+    setEditingGroup(null);
+    setAddingValue(null);
+    onChange(groups.filter((_, i) => i !== index));
+  }
+
   function reorder(from: number, to: number) {
     if (from === to) return;
     setEditingGroup(null);
@@ -59,8 +65,6 @@ export function RewardOptionEditor({
       {groups.map((group, index) => (
         <fieldset
           key={index}
-          draggable
-          onDragStart={(event) => event.dataTransfer.setData("text/plain", String(index))}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -73,6 +77,8 @@ export function RewardOptionEditor({
           <div className="flex items-center gap-2 px-1">
             <button
               type="button"
+              draggable
+              onDragStart={(event) => event.dataTransfer.setData("text/plain", String(index))}
               aria-label={`옵션 카테고리 ${index + 1} 순서 변경. 위/아래 화살표로 이동`}
               className="text-text-secondary text-body-s focus-visible:outline-border-primary cursor-grab rounded-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-2"
               onKeyDown={(event) => {
@@ -114,6 +120,14 @@ export function RewardOptionEditor({
             >
               수정
             </button>
+            <button
+              type="button"
+              aria-label={`옵션 카테고리 ${group.groupName || index + 1} 삭제`}
+              className="text-caption-s text-text-secondary px-2 underline"
+              onClick={() => removeGroup(index)}
+            >
+              삭제
+            </button>
           </div>
           <div className="flex flex-wrap gap-2 px-4">
             {group.values.map((value, valueIndex) => (
@@ -121,7 +135,7 @@ export function RewardOptionEditor({
                 key={`${value}:${valueIndex}`}
                 type="button"
                 className="border-border-default bg-layer-bg text-caption-s flex h-8 items-center gap-2 rounded-full border px-2"
-                aria-label={`${value} 선택지 삭제`}
+                aria-label={`${group.groupName} ${value} 선택지 삭제`}
                 onClick={() =>
                   update(index, { values: group.values.filter((_, item) => item !== valueIndex) })
                 }
@@ -178,7 +192,10 @@ export function RewardOptionEditor({
         <button
           type="button"
           className="border-border-default text-caption-s text-text-secondary flex h-10 w-full items-center gap-1 rounded-xs border px-1 text-left"
-          onClick={() => setAddingGroup(true)}
+          onClick={() => {
+            setGroupName("");
+            setAddingGroup(true);
+          }}
         >
           <span aria-hidden className="text-body-m">
             ＋
