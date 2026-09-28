@@ -46,16 +46,15 @@ export type FundingAction = { label: string; href?: string };
 const returnActions = ["RETURN_REQUEST", "EXCHANGE_REQUEST", "DEFECT_REFUND_REQUEST"];
 
 /* 정리표의 "내역" 버튼은 목적지가 적혀 있지 않다. 가장 최근 신청의 유형으로 취소·반품·교환 내역의
-   유형 필터(`/my/refunds?type=`)를 골라 연다(노션 FE 자체 판단 35). */
+   유형 필터(`/my/refunds?type=`)를 골라 연다(노션 FE 자체 판단 35). 목표 미달·시스템 자동 환불은
+   어느 필터에도 없어 필터 없이 전체를 연다(PD 회신 2026-09-28, PD-4). */
 function historyAction(request: OrderRefundRequest | undefined): FundingAction | undefined {
   if (!request) return undefined;
   const type = refundTypeByTrigger[request.triggerType] ?? "환불";
   if (type === "취소") return { label: "취소 내역", href: "/my/refunds?type=cancel" };
+  if (type === "반품") return { label: "반품·교환 내역", href: "/my/refunds?type=return" };
   if (type === "교환") return { label: "반품·교환 내역", href: "/my/refunds?type=exchange" };
-  return request.triggerType === "GOAL_FAILED_AUTO" ||
-    request.triggerType === "SYSTEM_RECONCILIATION"
-    ? { label: "환불 내역", href: "/my/refunds?type=refund" }
-    : { label: "반품·교환 내역", href: "/my/refunds?type=refund" };
+  return { label: "환불 내역", href: "/my/refunds" };
 }
 
 /**
@@ -91,7 +90,7 @@ export function fundingActions(
         ? [{ label: "반품·교환 신청", href: `${base}/refund/new` }, fulfillment]
         : [{ label: "반품·교환 가능 기간이 지났어요" }];
     case "GOAL_FAILED":
-      return [{ label: "환불 내역", href: "/my/refunds?type=refund" }];
+      return [{ label: "환불 내역", href: "/my/refunds" }];
     default:
       return history ? [history] : [];
   }

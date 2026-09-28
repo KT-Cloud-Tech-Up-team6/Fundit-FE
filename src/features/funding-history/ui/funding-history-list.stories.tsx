@@ -144,7 +144,7 @@ export const StageButtons: Story = {
     await expect(goalFailed.getByText("펀딩 목표 미달")).toBeVisible();
     await expect(goalFailed.getByRole("link", { name: "환불 내역" })).toHaveAttribute(
       "href",
-      "/my/refunds?type=refund",
+      "/my/refunds",
     );
 
     /* 결제 대기는 BE가 진행 중 단계로 주고, 결제 전이라 결제일이 없다. */

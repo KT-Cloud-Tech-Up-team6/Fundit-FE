@@ -31,13 +31,10 @@ const page = (overrides: Partial<LivePage> = {}): LivePage => ({
   ...overrides,
 });
 
-test("준비중 탭은 DRAFT·SCHEDULED를 함께 조회하고 ERROR는 어느 탭에도 없다", () => {
+test("준비중 탭은 DRAFT·SCHEDULED와 시작 실패(ERROR)를 함께 조회한다(PM-9, #400)", () => {
   assert.deepEqual(tabStatuses.active, ["LIVE"]);
-  assert.deepEqual(tabStatuses.draft, ["DRAFT", "SCHEDULED"]);
+  assert.deepEqual(tabStatuses.draft, ["DRAFT", "SCHEDULED", "ERROR"]);
   assert.deepEqual(tabStatuses.closed, ["ENDED"]);
-  for (const tab of ["active", "draft", "closed"] as const) {
-    assert.equal(tabStatuses[tab].includes("ERROR"), false);
-  }
 });
 
 test("content가 빠진 응답에도 빈 목록을 돌려준다", () => {
@@ -74,35 +71,49 @@ test("상태 뱃지 라벨과 변형", () => {
       ["방송 예정", "info"],
       ["LIVE", "primaryLive"],
       ["방송 종료", "neutral"],
-      ["오류", "warning"],
+      ["시작 실패", "warning"],
     ],
   );
 });
 
 test("관리 버튼은 실제로 있는 화면으로만 간다", () => {
   const id = "0199c3a0-1b2c-7a3b-8c4d-5e6f7a8b9c0d";
-  assert.equal(liveManageHref("DRAFT", id), `/seller/live/${id}/cue-sheet`);
-  assert.equal(liveManageHref("SCHEDULED", id), `/seller/live/${id}/cue-sheet`);
-  assert.equal(liveManageHref("LIVE", id), `/seller/live/${id}/console`);
-  assert.equal(liveManageHref("ENDED", id), `/seller/live/${id}/review`);
-  assert.equal(liveManageHref("ERROR", id), `/seller/live/${id}/cue-sheet`);
+  const projectId = "0199c3a0-1b2c-7a3b-8c4d-5e6f7a8b9c0e";
+  assert.equal(liveManageHref("DRAFT", id, projectId), `/seller/live/${id}/cue-sheet`);
+  assert.equal(liveManageHref("SCHEDULED", id, projectId), `/seller/live/${id}/cue-sheet`);
+  assert.equal(liveManageHref("LIVE", id, projectId), `/seller/live/${id}/console`);
+  /* 종료 방송은 콘솔 위에 LIVE 체크 작성 모달을 연다(IA 판매자 18행, #399). */
+  assert.equal(liveManageHref("ENDED", id, projectId), `/seller/live/${id}/console?check=open`);
+  /* 시작 실패는 그 프로젝트의 LIVE 생성에 불러와 다시 시작한다(#400). */
+  assert.equal(
+    liveManageHref("ERROR", id, projectId),
+    `/seller/projects/${projectId}/live/new?liveId=${id}`,
+  );
+  assert.equal(
+    toSellerLive(live({ status: "ERROR" })).manageHref,
+    liveManageHref("ERROR", live().liveId, live().projectId),
+  );
 });
 
-test("경로에 들어가는 liveId는 이스케이프한다", () => {
-  assert.equal(liveManageHref("LIVE", "a/../admin"), "/seller/live/a%2F..%2Fadmin/console");
+test("경로에 들어가는 liveId·projectId는 이스케이프한다", () => {
+  assert.equal(liveManageHref("LIVE", "a/../admin", "p"), "/seller/live/a%2F..%2Fadmin/console");
+  assert.equal(
+    liveManageHref("ERROR", "a&b", "p/../q"),
+    "/seller/projects/p%2F..%2Fq/live/new?liveId=a%26b",
+  );
 });
 
 test("탭 건수는 status-counts를 탭 매핑대로 더한다", () => {
   const counts = { draft: 3, scheduled: 2, live: 1, ended: 4, error: 9 };
   assert.equal(tabCount("active", counts), 1);
-  /* 준비중은 두 상태의 합이다. */
-  assert.equal(tabCount("draft", counts), 5);
+  /* 준비중은 임시저장·예정·시작 실패의 합이다. */
+  assert.equal(tabCount("draft", counts), 14);
   assert.equal(tabCount("closed", counts), 4);
-  /* ERROR는 어느 탭에도 속하지 않아 9건이 어디에도 더해지지 않는다. */
+  /* 다섯 상태가 모두 한 탭씩에 들어가 빠지는 건수가 없다. */
   const total = (["active", "draft", "closed"] as const).reduce(
     (sum, tab) => sum + (tabCount(tab, counts) ?? 0),
     0,
   );
-  assert.equal(total, 10);
+  assert.equal(total, 19);
   assert.equal(tabCount("active", undefined), null);
 });

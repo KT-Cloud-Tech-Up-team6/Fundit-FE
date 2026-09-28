@@ -126,7 +126,7 @@ function Checkout({
 }) {
   const router = useRouter();
   const rewards = useQuery(publicRewardsQuery(projectId));
-  /* 상세와 같은 키로 프로젝트 조회 캐시를 나눠 쓴다. 썸네일·제목·펀딩 마감(예상 발송일)에 쓴다. */
+  /* 상세와 같은 키로 프로젝트 조회 캐시를 나눠 쓴다. 썸네일·제목에 쓴다. */
   const project = useQuery({
     queryKey: ["public-project", projectId],
     queryFn: ({ signal }) => getPublicProject(projectId, signal),
@@ -307,10 +307,7 @@ function Checkout({
             <ProjectOrderItems
               title={project.data.title}
               image={project.data.coverImageUrl}
-              items={checkoutLineItems(
-                lines,
-                toRewards(rewards.data, project.data.fundingStatus.fundingDeadline),
-              )}
+              items={checkoutLineItems(lines, toRewards(rewards.data))}
             />
           )}
           {/* 품절·재고 초과·없는 옵션처럼 주문할 수 없는 줄은 여기서 고칠 수 없어 상세로 돌려보낸다. */}

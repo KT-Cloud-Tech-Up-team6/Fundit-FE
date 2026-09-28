@@ -138,18 +138,18 @@ export const DesktopRewards: Story = {
     await userEvent.click(
       form.getByRole("button", { name: "가장 먼저 만나는 스타터 세트 수량 늘리기" }),
     );
-    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("398,000원");
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("401,000원");
     await userEvent.click(form.getByRole("button", { name: /^리워드 \(\d+개\)$/ }));
     await userEvent.click(
       within(form.getByRole("group", { name: "리워드 목록" })).getByRole("button", {
         name: /스탠다드 세트/,
       }),
     );
-    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("617,000원");
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("620,000원");
     expect(
       within(form.getByRole("group", { name: "선택한 리워드" })).getAllByRole("heading")[0],
     ).toHaveTextContent("스탠다드 세트");
     await userEvent.click(form.getByRole("button", { name: "스탠다드 세트 삭제" }));
-    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("398,000원");
+    expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("401,000원");
   },
 };

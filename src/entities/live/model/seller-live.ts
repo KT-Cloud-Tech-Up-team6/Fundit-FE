@@ -25,11 +25,11 @@ export type SellerLive = {
   manageHref: string;
 };
 
-/* 탭 ↔ 상태 매핑(#283). ERROR는 어느 탭에도 넣지 않는다 — 판매자에게 진행중으로도
-   완료로도 보이면 안 되는 상태고, 임의 분류는 화면이 사실과 다른 말을 하게 만든다. */
+/* 탭 ↔ 상태 매핑(#283). 시작에 실패한 ERROR는 다시 시작할 방송이라 준비중 탭에 "시작 실패"로
+   둔다(요청서 PM-9 회신, #400). 서버는 ERROR에서 설정 저장·시작을 모두 받는다. */
 export const tabStatuses: Record<SellerLiveTab, readonly LiveStatus[]> = {
   active: ["LIVE"],
-  draft: ["DRAFT", "SCHEDULED"],
+  draft: ["DRAFT", "SCHEDULED", "ERROR"],
   closed: ["ENDED"],
 };
 
@@ -38,7 +38,7 @@ const statusLabels: Record<LiveStatus, string> = {
   SCHEDULED: "방송 예정",
   LIVE: "LIVE",
   ENDED: "방송 종료",
-  ERROR: "오류",
+  ERROR: "시작 실패",
 };
 
 const statusVariants: Record<LiveStatus, SellerLiveBadgeVariant> = {
@@ -52,19 +52,20 @@ const statusVariants: Record<LiveStatus, SellerLiveBadgeVariant> = {
 /* 상태별로 판매자가 이어서 할 일이 달라 목적지가 갈린다. 실제로 존재하는 라우트에만 보낸다.
    - DRAFT·SCHEDULED → 큐시트. 방송 준비를 이어가는 화면이다(API 미연결이나 화면은 있다).
    - LIVE → 방송 콘솔. 송출 중 조작이 여기 있다.
-   - ENDED → 방송 후 콘텐츠.
-   ERROR는 목록에 실리지 않지만 상태가 5종이라 매핑을 비워 두지 않는다. 복구 지점이
-   따로 없어 준비 화면인 큐시트로 둔다. */
-const manageDestinations: Record<LiveStatus, (id: string) => string> = {
+   - ENDED → LIVE 체크 작성(`FL_S_LV_VERIFY`, IA 판매자 18행). 원본의 이 모달은 콘솔 위에 있어
+     콘솔을 열면서 모달을 띄운다(#399).
+   - ERROR → 그 프로젝트의 LIVE 생성(`FL_S_LV_CREATE`)에 이 LIVE를 불러와 다시 시작한다(#400).
+     LIVE 시작 버튼이 이 화면에만 있고, IA 판매자 18행도 예정 LIVE를 같은 화면에 불러오게 한다. */
+const manageDestinations: Record<LiveStatus, (id: string, projectId: string) => string> = {
   DRAFT: (id) => `/seller/live/${id}/cue-sheet`,
   SCHEDULED: (id) => `/seller/live/${id}/cue-sheet`,
   LIVE: (id) => `/seller/live/${id}/console`,
-  ENDED: (id) => `/seller/live/${id}/review`,
-  ERROR: (id) => `/seller/live/${id}/cue-sheet`,
+  ENDED: (id) => `/seller/live/${id}/console?check=open`,
+  ERROR: (id, projectId) => `/seller/projects/${projectId}/live/new?liveId=${id}`,
 };
 
-export function liveManageHref(status: LiveStatus, liveId: string) {
-  return manageDestinations[status](encodeURIComponent(liveId));
+export function liveManageHref(status: LiveStatus, liveId: string, projectId: string) {
+  return manageDestinations[status](encodeURIComponent(liveId), encodeURIComponent(projectId));
 }
 
 function formatDate(value: string | null, withTime: boolean) {
@@ -96,7 +97,7 @@ export function toSellerLive(item: LiveSummaryResponse): SellerLive {
     scheduledStartAtLabel: formatDate(item.scheduledStartAt, true),
     createdAtLabel: formatDate(item.createdAt, false),
     likeCount: item.likeCount ?? 0,
-    manageHref: liveManageHref(item.status, item.liveId),
+    manageHref: liveManageHref(item.status, item.liveId, item.projectId),
   };
 }
 
@@ -115,7 +116,7 @@ const countKeys: Record<LiveStatus, keyof LiveStatusCounts> = {
 
 /**
  * 탭에 붙일 건수. `GET /lives/status-counts`의 상태별 건수를 탭 매핑대로 더한다 —
- * 준비중은 `draft + scheduled`다. ERROR는 어느 탭에도 속하지 않아 어디에도 더하지 않는다.
+ * 준비중은 `draft + scheduled + error`다.
  */
 export function tabCount(tab: SellerLiveTab, counts: LiveStatusCounts | undefined): number | null {
   if (!counts) return null;
