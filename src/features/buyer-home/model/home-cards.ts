@@ -3,7 +3,11 @@
 import type { ProjectCardResponse } from "@/entities/project/api/buyer-project-api";
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
-import { realLiveHref, realLiveTitle } from "@/features/buyer-live/model/live-main-real";
+import {
+  realLiveHref,
+  realLiveSeller,
+  realLiveTitle,
+} from "@/features/buyer-live/model/live-main-real";
 
 /** 실제 API 섹션의 표시 상태. 조회 중·실패·빈 목록에도 섹션은 남기고 안내를 보인다. */
 export type SectionData<T> =
@@ -36,9 +40,6 @@ export function featuredCard(row: ProjectCardResponse): FeaturedCard {
   };
 }
 
-/* 판매자 닉네임은 BE #154에서 LIVE 목록에 추가된다. 아직 없는 응답에서는 판매자 줄을 숨긴다. */
-export type HomeLive = LiveSummaryResponse & { sellerNickname?: string | null };
-
 export type LiveCard = {
   id: string;
   href: string;
@@ -49,13 +50,13 @@ export type LiveCard = {
   seller?: string;
 };
 
-export function liveCard(live: HomeLive): LiveCard {
+export function liveCard(live: LiveSummaryResponse): LiveCard {
   return {
     id: live.liveId,
     href: realLiveHref(live),
     title: realLiveTitle(live),
     image: live.thumbnailUrl,
     viewers: live.viewerCount?.toLocaleString("ko-KR"),
-    seller: live.sellerNickname?.trim() || undefined,
+    seller: realLiveSeller(live),
   };
 }

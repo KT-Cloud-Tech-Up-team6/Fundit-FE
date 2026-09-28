@@ -5,7 +5,8 @@ export const liveStatuses = ["DRAFT", "SCHEDULED", "LIVE", "ENDED", "ERROR"] as 
 export type LiveStatus = (typeof liveStatuses)[number];
 
 /* LiveSummaryResponse에는 title·category가 없다. 카드 문구는 introText다.
-   없는 필드를 여기에 추가하지 않는다 — 추가하면 화면이 undefined를 그린다. */
+   없는 필드를 여기에 추가하지 않는다 — 추가하면 화면이 undefined를 그린다. 판매자용 `/mine` 목록과
+   소비자 목록이 같은 형식이라, 소비자 목록에만 오는 값은 선택 필드로 둔다. */
 export type LiveSummaryResponse = {
   liveId: string;
   introText: string | null;
@@ -17,6 +18,8 @@ export type LiveSummaryResponse = {
   createdAt: string;
   /** 소비자 목록의 `sort=viewerCount`(실시간 순위)에서만 온다. IVS 실시간 시청자 수다. */
   viewerCount?: number;
+  /** 판매자 닉네임(BE PR #165). 소비자 목록만 채우고, 닉네임이 없거나 member 조회가 실패하면 빠진다. */
+  sellerNickname?: string | null;
 };
 
 export type LivePage = {
