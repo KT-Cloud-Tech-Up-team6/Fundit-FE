@@ -278,9 +278,11 @@ export function LiveCreateApi({
                   주소에 박혀 있어 되돌릴 대상이 없으므로 자리를 비운다. */}
               <ProjectSummary project={project} />
             </div>
+            {/* 불러오는 동안 입력하면 늦게 온 조회 결과가 덮어쓰므로 입력을 막는다. */}
             <Textarea
               aria-label="소개 문구"
               className="mt-2 h-[190px] shrink-0"
+              disabled={load.isPending}
               maxLength={LIVE_INTRO_MAX_LENGTH}
               onChange={(event) => setIntro(event.target.value)}
               placeholder={`소개 문구를 입력해주세요 (최대 ${LIVE_INTRO_MAX_LENGTH}자)`}
@@ -290,6 +292,7 @@ export function LiveCreateApi({
             <div className="mt-auto flex flex-col gap-1">
               <Checkbox
                 checked={scheduled}
+                disabled={load.isPending}
                 shape="circle"
                 onChange={(event) => setScheduled(event.target.checked)}
               >
@@ -300,7 +303,7 @@ export function LiveCreateApi({
                   aria-label="방송 예약 날짜"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
                   defaultValue={schedule?.date}
-                  disabled={!scheduled}
+                  disabled={!scheduled || load.isPending}
                   key={`date-${schedule?.date ?? ""}`}
                   type="date"
                   ref={(node) => {
@@ -312,7 +315,7 @@ export function LiveCreateApi({
                   aria-label="방송 예약 시각"
                   className="border-w-xs border-border-default text-body-s text-text-default focus:border-border-primary disabled:text-text-disabled h-[46px] min-w-0 flex-1 rounded-xs px-4 outline-none"
                   defaultValue={schedule?.time}
-                  disabled={!scheduled}
+                  disabled={!scheduled || load.isPending}
                   key={`time-${schedule?.time ?? ""}`}
                   type="time"
                   ref={(node) => {
