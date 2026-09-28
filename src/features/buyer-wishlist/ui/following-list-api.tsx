@@ -1,10 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  FOLLOW_LIST_PAGE_SIZE,
   followSeller,
   followsQueryKey,
   getFollows,
@@ -12,28 +10,62 @@ import {
   type FollowedSeller,
 } from "@/entities/seller/api/follow-api";
 import { SellerRow } from "@/entities/seller/ui/seller-row";
-import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
-import { previousPage } from "@/shared/lib/previous-page";
-import { followingName } from "../model/following";
+import { displayedFollowings, displayedFollowingTotal, followingName } from "../model/following";
 
-/* 관심 목록 팔로잉 탭(#384, Figma FL_B_LK_LIST_2 1249:24108). 목록 응답에 아바타·팔로워 수·♥·방송 중
+/* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 목록 응답에 아바타·팔로워 수·♥·방송 중
    여부가 없어 행은 이름과 [팔로잉]만 채운다(노션 FE 자체 판단 89). 판매자 상세 목적지가 없어 행은
    이동하지 않고, 광고는 찜 탭 실제 화면처럼 두지 않는다(92). */
-export function FollowingListApi({ memberId, page }: { memberId: string; page: number }) {
-  const router = useRouter(),
-    client = useQueryClient();
+export function FollowingListApi({
+  memberId,
+  unfollowed,
+  onUnfollowedChange,
+}: {
+  memberId: string;
+  unfollowed: ReadonlyMap<string, FollowedSeller>;
+  onUnfollowedChange: (
+    change: (previous: ReadonlyMap<string, FollowedSeller>) => Map<string, FollowedSeller>,
+  ) => void;
+}) {
+  const client = useQueryClient();
   const key = ["member-follows", memberId];
-  const list = useQuery({
-    queryKey: [...key, page],
-    queryFn: ({ signal }) => getFollows(page, signal),
+  const list = useInfiniteQuery({
+    queryKey: key,
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => getFollows(pageParam, signal),
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
   });
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [removed, setRemoved] = useState<FollowedSeller | null>(null);
-  const saving = useRef(false);
-  /* 해제는 확인 없이 보내고 찜 탭처럼 되돌릴 수 있게 둔다(90). 팔로우·해제는 idempotent라 실패해도
-     서버에 반영됐을 수 있어 늘 다시 읽고, LIVE 화면이 쓰는 팔로우 목록도 함께 맞춘다. */
+    [error, setError] = useState("");
+  const saving = useRef(false),
+    sentinel = useRef<HTMLDivElement>(null);
+  const { fetchNextPage, hasNextPage, isFetching } = list;
+  const fetched = list.data?.pages.flatMap((page) => page.content) ?? [];
+  const follows = displayedFollowings(fetched, unfollowed);
+  const total = displayedFollowingTotal(
+    list.data?.pages[0]?.totalElements ?? 0,
+    fetched,
+    unfollowed,
+  );
+
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || !hasNextPage || isFetching || list.isFetchNextPageError || list.isRefetchError)
+      return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "0px 0px 240px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetching, list.isFetchNextPageError, list.isRefetchError]);
+
+  /* 해제한 행은 화면 상태로 남기고, LIVE 화면이 쓰는 공용 목록만 갱신한다. */
   async function change(seller: FollowedSeller, following: boolean) {
     if (saving.current) return;
     saving.current = true;
@@ -42,7 +74,18 @@ export function FollowingListApi({ memberId, page }: { memberId: string; page: n
     try {
       if (following) await followSeller(seller.sellerId);
       else await unfollowSeller(seller.sellerId);
-      setRemoved(following ? null : seller);
+      onUnfollowedChange((previous) => {
+        const next = new Map(previous);
+        if (following) next.delete(seller.sellerId);
+        else next.set(seller.sellerId, seller);
+        return next;
+      });
+      /* 해제 뒤 서버 페이지 경계가 앞당겨지므로, 이 목록도 다시 읽어 다음 페이지의 항목이
+         건너뛰지 않게 한다. 해제한 행은 unfollowed 상태로 따로 남는다. */
+      await Promise.all([
+        client.invalidateQueries({ queryKey: key }),
+        client.invalidateQueries({ queryKey: followsQueryKey(memberId) }),
+      ]);
     } catch {
       setError(
         following
@@ -50,10 +93,6 @@ export function FollowingListApi({ memberId, page }: { memberId: string; page: n
           : "팔로우 해제에 실패했습니다. 다시 시도해주세요.",
       );
     } finally {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: key }),
-        client.invalidateQueries({ queryKey: followsQueryKey(memberId) }),
-      ]);
       saving.current = false;
       setBusy(false);
     }
@@ -61,22 +100,9 @@ export function FollowingListApi({ memberId, page }: { memberId: string; page: n
   return (
     <>
       {error && <p role="alert">{error}</p>}
-      {removed && (
-        <div role="status">
-          {followingName(removed)} 팔로우를 해제했습니다.{" "}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void change(removed, true)}
-            className="underline"
-          >
-            다시 팔로우
-          </button>
-        </div>
-      )}
-      {list.isPending ? (
+      {list.isPending && !list.data ? (
         <p role="status">팔로우한 판매자를 불러오고 있습니다.</p>
-      ) : list.isError ? (
+      ) : list.isError && !list.data ? (
         <QueryErrorState
           variant="section"
           error={list.error}
@@ -85,48 +111,46 @@ export function FollowingListApi({ memberId, page }: { memberId: string; page: n
         />
       ) : (
         <>
-          <p className="text-text-disabled text-body-s">총 {list.data.totalElements}개</p>
-          {list.data.content.length ? (
+          <p className="text-text-disabled text-body-s">총 {total}개</p>
+          {list.isRefetchError && (
+            <QueryErrorState
+              variant="section"
+              error={list.error}
+              description="팔로우한 판매자 목록을 다시 불러오지 못했습니다."
+              onRetry={() => void list.refetch()}
+            />
+          )}
+          {follows.length ? (
             <div>
-              {list.data.content.map((seller) => (
-                <SellerRow
-                  key={seller.sellerId}
-                  seller={{ id: seller.sellerId, name: followingName(seller) }}
-                  following
-                  followUnavailable={busy}
-                  onFollow={() => void change(seller, false)}
-                />
-              ))}
+              {follows.map((seller) => {
+                const isUnfollowed = unfollowed.has(seller.sellerId);
+                return (
+                  <SellerRow
+                    key={seller.sellerId}
+                    seller={{ id: seller.sellerId, name: followingName(seller) }}
+                    following={!isUnfollowed}
+                    followLabel={isUnfollowed ? "다시 팔로우" : undefined}
+                    followUnavailable={busy}
+                    onFollow={() => void change(seller, isUnfollowed)}
+                  />
+                );
+              })}
             </div>
           ) : (
-            /* 마지막 페이지의 판매자를 모두 해제했거나 주소의 page가 범위를 벗어나면 전체 수는 남는다.
-               [이전 페이지]가 마지막 페이지로 보낸다(#374와 같이 자동으로 옮기지 않는다). */
-            <p className="py-24 text-center">
-              {list.data.totalElements
-                ? "이 페이지에 표시할 판매자가 없습니다."
-                : "팔로우한 판매자가 없습니다."}
-            </p>
+            <p className="py-24 text-center">팔로우한 판매자가 없습니다.</p>
           )}
-          <div className="flex justify-between">
-            <Button
-              disabled={page === 0}
-              onClick={() => {
-                const previous = previousPage(page + 1, {
-                  totalElements: list.data.totalElements,
-                  pageSize: FOLLOW_LIST_PAGE_SIZE,
-                });
-                router.push(`/my/wishlist?tab=sellers&page=${previous}`);
-              }}
-            >
-              이전 페이지
-            </Button>
-            <Button
-              disabled={!list.data.hasNext}
-              onClick={() => router.push(`/my/wishlist?tab=sellers&page=${page + 2}`)}
-            >
-              다음 페이지
-            </Button>
-          </div>
+          {list.hasNextPage && !list.isRefetchError && (
+            <div ref={sentinel} aria-hidden className="h-6" />
+          )}
+          {list.isFetchingNextPage && <p role="status">팔로우한 판매자를 더 불러오고 있습니다.</p>}
+          {list.isFetchNextPageError && (
+            <QueryErrorState
+              variant="section"
+              error={list.error}
+              description="팔로우한 판매자를 더 불러오지 못했습니다."
+              onRetry={() => void list.fetchNextPage()}
+            />
+          )}
         </>
       )}
     </>
