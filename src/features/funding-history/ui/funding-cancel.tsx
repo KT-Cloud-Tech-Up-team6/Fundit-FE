@@ -17,7 +17,6 @@ import {
   acceptsDetailInput,
   addCancelPhotos,
   cancelDetailMaxLength,
-  cancelDetailMaxLengthFor,
   cancelReasons,
   cancelRequestBody,
   canSubmitCancel,
@@ -110,8 +109,6 @@ export function FundingCancel({
   const needsEvidence = requiresEvidence(target);
   const showsDetailInput = acceptsDetailInput(variant);
   const detailRequired = variant === "cancel" && isCancelDetailRequired(cancelReason);
-  const detailMaxLength =
-    variant === "cancel" ? cancelDetailMaxLengthFor(cancelReason) : cancelDetailMaxLength;
   const ready =
     variant === "shipping-delay" ||
     (variant === "cancel"
@@ -275,12 +272,7 @@ export function FundingCancel({
                       placeholder="취소 사유를 선택해주세요"
                       options={cancelReasonOptions}
                       value={cancelReason}
-                      onValueChange={(value) => {
-                        const next = value as CancelReason;
-                        setCancelReason(next);
-                        /* 한도가 줄어드는 사유로 바꾸면 이미 쓴 내용을 새 한도에 맞춘다. */
-                        setDetailText((text) => text.slice(0, cancelDetailMaxLengthFor(next)));
-                      }}
+                      onValueChange={(value) => setCancelReason(value as CancelReason)}
                     />
                   )}
                   {showsDetailInput && (
@@ -288,7 +280,7 @@ export function FundingCancel({
                       aria-label="상세 내용"
                       className="h-[222px]"
                       placeholder={`내용을 입력해주세요 (${detailRequired ? "필수" : "선택"})`}
-                      maxLength={detailMaxLength}
+                      maxLength={cancelDetailMaxLength}
                       value={detailText}
                       onChange={(event) => setDetailText(event.target.value)}
                     />

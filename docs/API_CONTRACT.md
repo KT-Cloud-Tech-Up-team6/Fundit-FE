@@ -934,14 +934,13 @@ BE 08 회신(BE PR #160·#162·#164, `develop` `f127a6f`)과 Figma 섹션 `1143:
 
 #### 사유 → 계약
 
-| 화면           | 사유                                                                               | 보내는 요청                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)                  |
-| 참여 취소      | 기타 창작자 귀책                                                                   | `ETC` + `reasonDetail` "창작자 귀책" 또는 "창작자 귀책 · {내용}"(입력 선택, 91자. 임시, [미확정](./OPEN_DECISIONS.md)) |
-| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 숨김, 임시)                                                                                   |
-| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                              |
-| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER`             |
-| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                             |
+| 화면           | 사유                                                                               | 보내는 요청                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 참여 취소      | 단순 변심 / 결제 정보 오류 / 옵션 선택 오류 / 기타                                 | `cancelReason` `SIMPLE_CHANGE_OF_MIND`·`PAYMENT_INFO_ERROR`·`OPTION_SELECTION_ERROR`·`ETC`(상세 필수)      |
+| 발송 지연 취소 | 고정 "발송 예정일 지연 취소"                                                       | `/shipping-delay`(입력란 없음, PM 회신 2026-09-28 PM-5)                                                    |
+| 반품           | 단순 변심 / 옵션 선택 오류                                                         | `/return` `CHANGE_OF_MIND`·`WRONG_OPTION`                                                                  |
+| 반품           | 불량·하자 / 상품 파손 / 상품이 잘못 배송됨 / 구성품 누락 / 상품 설명과 다름 / 기타 | `/defect` `DEFECTIVE`·`DAMAGED`·`WRONG_DELIVERY`·`MISSING_COMPONENTS`·`DIFFERENT_FROM_DESCRIPTION`·`OTHER` |
+| 교환           | 위 8종                                                                             | `/exchange` `exchangeReason` 같은 이름 8종                                                                 |
 
 "상품이 잘못 배송됨"은 #291 이후 `DIFFERENT_FROM_DESCRIPTION`으로 보냈지만 `WRONG_DELIVERY`가 생겨 바꿨다.
 
