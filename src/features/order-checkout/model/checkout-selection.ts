@@ -1,4 +1,5 @@
 import type { OrderSelection } from "@/entities/order/model/order-session";
+import { SHIPPING_FEE } from "@/features/reward-selection/model/reward-demo";
 import type { OrderItem, PaymentSummary } from "./checkout-demo";
 
 export type CheckoutReward = { id: string; name: string; price: number; originalPrice?: number };
@@ -34,7 +35,8 @@ export function checkoutSummary(items: OrderItem[]): PaymentSummary {
         sum + (item.originalPrice - (item.price ?? item.originalPrice)) * item.quantity,
       0,
     ),
-    shippingFee: 0,
+    /* 리워드 선택 시트와 같은 기준: 담은 게 있을 때만, 리워드 개수와 무관하게 1건당 한 번. */
+    shippingFee: items.length > 0 ? SHIPPING_FEE : 0,
     couponDiscount: 0,
     pointDiscount: 0,
   };

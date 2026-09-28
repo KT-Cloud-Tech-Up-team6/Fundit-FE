@@ -114,20 +114,20 @@ export const MultipleRewards: Story = {
     );
     await choose("한 번에 갖추는 올인원 패키지");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "667,000원",
+      "670,000원",
     );
     await expect(canvas.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent(
       "한 번에 갖추는 올인원 패키지",
     );
     await choose("가장 먼저 만나는 스타터 세트");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "667,000원",
+      "670,000원",
     );
     await userEvent.click(
       canvas.getByRole("button", { name: "한 번에 갖추는 올인원 패키지 삭제" }),
     );
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "398,000원",
+      "401,000원",
     );
   },
 };
@@ -145,11 +145,11 @@ export const MultipleOptionLines: Story = {
     await userEvent.selectOptions(select, "화이트");
     await userEvent.selectOptions(select, "블랙");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "1,797,000원",
+      "1,800,000원",
     );
     await userEvent.click(canvas.getByRole("button", { name: "화이트 삭제" }));
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "1,198,000원",
+      "1,201,000원",
     );
   },
 };
@@ -189,7 +189,7 @@ export const ApiRewards: Story = {
     await expect(dialog.getByRole("button", { name: "화이트 / S 수량 늘리기" })).toBeDisabled();
     await expect(color).toBeDisabled();
     await expect(dialog.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "540,000원",
+      "543,000원",
     );
 
     await userEvent.click(trigger);
@@ -202,7 +202,7 @@ export const ApiRewards: Story = {
       "정액 할인 기본 세트",
     );
     await expect(dialog.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "670,000원",
+      "673,000원",
     );
     await userEvent.click(dialog.getByRole("button", { name: "펀딩하기" }));
     await expect(args.onSubmit).toHaveBeenCalledWith({
@@ -251,7 +251,7 @@ export const ApiRewardsInline: Story = {
       within(form.getByRole("group", { name: "선택한 리워드" })).getAllByRole("heading")[0],
     ).toHaveTextContent("얼리버드 컬러 세트");
     await expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "310,000원",
+      "313,000원",
     );
     await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
     await expect(args.onSubmit).toHaveBeenCalledWith({

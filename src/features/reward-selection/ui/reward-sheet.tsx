@@ -17,6 +17,7 @@ import {
   lineKey,
   pickedOption,
   remainingFor,
+  SHIPPING_FEE,
 } from "../model/reward-demo";
 import type { Reward, RewardCart } from "../model/reward-demo";
 import { RewardCard } from "./reward-card";
@@ -86,11 +87,12 @@ export function RewardSheet({
     const reward = rewards.find((item) => item.id === id);
     return reward ? [{ reward, lines }] : [];
   });
-  const total = calcCartTotal(rewards, cart);
+  const rewardTotal = calcCartTotal(rewards, cart);
   const quantity = selected.reduce(
     (sum, { lines }) => sum + lines.reduce((count, line) => count + line.quantity, 0),
     0,
   );
+  const total = quantity > 0 ? rewardTotal + SHIPPING_FEE : rewardTotal;
 
   function submit() {
     if (!isCartSubmittable(cart)) {
@@ -117,7 +119,14 @@ export function RewardSheet({
       className={selected.length ? "flex items-center justify-between" : "sr-only"}
     >
       <span className="text-body-s text-text-secondary">총 {quantity}개</span>
-      <span className="text-title-m">{formatWon(total)}</span>
+      <span className="flex flex-col items-end">
+        {quantity > 0 && (
+          <span className="text-caption-s text-text-secondary">
+            + 배송비 {formatWon(SHIPPING_FEE)}
+          </span>
+        )}
+        <span className="text-title-m">{formatWon(total)}</span>
+      </span>
     </div>
   );
   const content = (

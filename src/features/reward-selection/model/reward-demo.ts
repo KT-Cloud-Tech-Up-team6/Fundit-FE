@@ -103,6 +103,10 @@ export function remainingFor(
   return reward.remainingStock - lines.reduce((sum, line) => sum + line.quantity, 0);
 }
 
+/** 배송비는 리워드별이 아니라 주문 1건당 3,000원 고정이다(2026-09-28 사용자 결정).
+    리워드 선택 시트와 주문서(실제·목업 둘 다)가 같은 값을 써야 두 화면의 최종 금액이 어긋나지 않는다. */
+export const SHIPPING_FEE = 3_000;
+
 /** 담은 모든 줄의 (리워드가 × 수량) 합. */
 export function calcCartTotal(rewards: Reward[], cart: RewardCart): number {
   return rewards.reduce((sum, reward) => {
