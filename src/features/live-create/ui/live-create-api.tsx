@@ -157,7 +157,7 @@ export function LiveCreateApi({
     : fixedProjectId && preview.data
       ? fromProjectPreview(fixedProjectId, preview.data)
       : null;
-  /* 지금 liveId가 붙은 프로젝트. 같은 프로젝트를 다시 고르면 그 LIVE에 이어 쓴다. */
+  /* 지금 소개 문구·liveId가 속한 프로젝트. 같은 프로젝트를 다시 고르면 둘 다 이어 쓴다. */
   const liveProjectRef = useRef<string | null>(null);
 
   const save = useMutation({
@@ -172,7 +172,6 @@ export function LiveCreateApi({
         /* 설정 저장이 실패해도 여기서 만든 LIVE는 이미 서버에 있다. onSuccess를 기다리면
            다음 저장이 createLive를 다시 불러 DRAFT가 쌓인다 — 생성 직후 바로 보존한다. */
         setLiveId(id);
-        liveProjectRef.current = projectId;
         cache.setQueryData<LiveCreateResponse>(["live-create", owner, projectId], {
           liveId: id,
           status: "DRAFT",
@@ -282,10 +281,12 @@ export function LiveCreateApi({
     },
   });
 
-  /* 다른 프로젝트를 고르면 앞서 만든 LIVE와 끊는다. 연결 프로젝트는 바꿀 수 없어(요구사항
-     6.2.4.1) 같은 liveId에 저장하면 원래 프로젝트의 LIVE가 바뀐다. 앞서 임시저장한 LIVE는
-     준비중 탭에 남는다. 취소 뒤 같은 프로젝트를 다시 고르면 끊지 않는다 — 임시저장이 하나 더
-     생긴다. 요청 중에는 고르는 조작이 모두 막혀 있어(busy) 늦게 온 응답이 고른 값을 덮지 않는다. */
+  /* 다른 프로젝트를 고르면 앞서 만든 LIVE와 끊고 소개 문구도 비운다. 연결 프로젝트는 바꿀 수
+     없어(요구사항 6.2.4.1) 같은 liveId에 저장하면 원래 프로젝트의 LIVE가 바뀐다. 앞서 임시저장한
+     LIVE는 준비중 탭에 남는다. 취소·카테고리 변경 뒤 같은 프로젝트를 다시 고르면 둘 다 그대로
+     이어 쓴다 — 끊으면 임시저장이 하나 더 생기고, 문구만 비우면 빈 문구로 저장할 때 서버에는
+     예전 문구가 남는다(부분 업데이트). 요청 중에는 고르는 조작이 모두 막혀 있어(busy) 늦게 온
+     응답이 고른 값을 덮지 않는다. */
   function pickProject(id: string | null) {
     setPickedId(id);
     setNotice("");
@@ -293,14 +294,14 @@ export function LiveCreateApi({
     start.reset();
     load.reset();
     if (id === null || id === liveProjectRef.current) return;
+    liveProjectRef.current = id;
+    setIntro("");
     setLiveId(null);
-    liveProjectRef.current = null;
     setCueSaved(false);
   }
 
   function pickCategory(value: string) {
     setCategory(value);
-    setIntro("");
     pickProject(null);
   }
 
