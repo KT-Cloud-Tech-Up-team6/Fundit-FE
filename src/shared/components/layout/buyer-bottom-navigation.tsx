@@ -18,6 +18,60 @@ type BuyerBottomNavigationProps = ComponentPropsWithoutRef<"nav"> & {
 
 type NavigationName = "home" | "live-navigation" | "categories" | "profile";
 
+type NavigationAssetVariants = {
+  default: string;
+  active?: string;
+  flatActive?: string;
+  compactDefault?: string;
+};
+
+const navigationAssets: Record<NavigationName, NavigationAssetVariants> = {
+  home: {
+    default: "url(/icons/buyer-live/home.svg)",
+    flatActive: "url(/icons/buyer-live/home-fill.svg)",
+    compactDefault: "url(/icons/buyer-account/d2d1b.svg)",
+  },
+  "live-navigation": {
+    default: "url(/icons/buyer-live/live-navigation.svg)",
+    flatActive: "url(/images/buyer-live/c4001.svg)",
+    compactDefault: "url(/icons/buyer-account/7e176.svg)",
+  },
+  // Figma navigation (`548:3726`): the shared category icon changes fill only when active.
+  categories: {
+    default: "url(/icons/buyer-desktop/category.svg)",
+    active: "url(/icons/buyer-account/a80a9.svg)",
+  },
+  profile: {
+    default: "url(/icons/profile.svg)",
+    active: "url(/icons/buyer-account/165c4.svg)",
+    compactDefault: "url(/icons/buyer-account/4d935.svg)",
+  },
+};
+
+function getNavigationAsset(
+  name: NavigationName,
+  compact: boolean,
+  flat: boolean,
+  selected: boolean,
+) {
+  const assets = navigationAssets[name];
+  if (compact) {
+    return selected
+      ? (assets.active ?? assets.compactDefault ?? assets.default)
+      : (assets.compactDefault ?? assets.default);
+  }
+  if (selected)
+    return flat
+      ? (assets.flatActive ?? assets.active ?? assets.default)
+      : (assets.active ?? assets.default);
+  return assets.default;
+}
+
+function iconColorClass(name: NavigationName, selected: boolean) {
+  if (!selected) return "bg-current";
+  return name === "live-navigation" ? "bg-layer-surface-primary-live" : "bg-text-default";
+}
+
 function NavigationAsset({
   name,
   compact,
@@ -29,44 +83,12 @@ function NavigationAsset({
   flat?: boolean;
   selected?: boolean;
 }) {
-  const compactAssets = {
-    home: "d2d1b",
-    "live-navigation": "7e176",
-    profile: selected ? "165c4" : "4d935",
-  };
-  const navigationAssets = {
-    home: compact
-      ? `url(/icons/buyer-account/${compactAssets.home}.svg)`
-      : flat && selected
-        ? "url(/icons/buyer-live/home-fill.svg)"
-        : "url(/icons/buyer-live/home.svg)",
-    "live-navigation": compact
-      ? `url(/icons/buyer-account/${compactAssets["live-navigation"]}.svg)`
-      : flat && selected
-        ? "url(/images/buyer-live/c4001.svg)"
-        : "url(/icons/buyer-live/live-navigation.svg)",
-    // Figma navigation (`548:3726`): the shared category icon changes fill only when active.
-    categories: selected
-      ? "url(/icons/buyer-account/a80a9.svg)"
-      : "url(/icons/buyer-desktop/category.svg)",
-    profile: selected
-      ? "url(/icons/buyer-account/165c4.svg)"
-      : compact
-        ? `url(/icons/buyer-account/${compactAssets.profile}.svg)`
-        : "url(/icons/profile.svg)",
-  };
   return (
     <span
       aria-hidden
-      className={`inline-block size-5 shrink-0 ${
-        name === "live-navigation" && selected
-          ? "bg-layer-surface-primary-live"
-          : selected
-            ? "bg-text-default"
-            : "bg-current"
-      }`}
+      className={`inline-block size-5 shrink-0 ${iconColorClass(name, Boolean(selected))}`}
       style={{
-        maskImage: navigationAssets[name],
+        maskImage: getNavigationAsset(name, Boolean(compact), Boolean(flat), Boolean(selected)),
         maskSize: "contain",
         maskPosition: "center",
         maskRepeat: "no-repeat",
