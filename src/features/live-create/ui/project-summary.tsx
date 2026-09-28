@@ -1,27 +1,11 @@
 import Image from "next/image";
 import { Icon } from "@/shared/components/ui/icon";
-
-/**
- * LIVE 생성 화면의 프로젝트 요약 카드(FL_S_LV_CREATE_5·8).
- *
- * 숫자·기간이 `null`을 허용하는 이유: 실제 API로 연결하면 프로젝트 하나를 id로 읽는
- * `GET /api/v1/projects/{id}/preview`에 펀딩 기간·참여자 수·현재 모금액이 없다. 0으로 채우면
- * 카드가 사실과 다른 말을 하므로 자리는 두고 값이 없다고 적는다.
- */
-export type LiveProjectSummary = {
-  id: string;
-  title: string;
-  category: string;
-  period: string;
-  participantCount: number | null;
-  currentAmount: number | null;
-  goalAmount: number | null;
-  image: string;
-};
+import type { LiveProjectSummary } from "../model/live-project";
 
 const won = (value: number | null, missing: string) =>
   value === null ? missing : `${value.toLocaleString("ko-KR")}원`;
 
+/** LIVE 생성 화면의 프로젝트 요약 카드(FL_S_LV_CREATE_5·8). 값이 없는 칸은 없다고 적는다. */
 export function ProjectSummary({
   action,
   project,
