@@ -64,9 +64,12 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     verificationToken,
   } = useAuthFlow();
   /* 모바일 리다이렉트 콜백이 verificationToken을 이미 채워놓고 이 화면으로 돌아왔다면
-     본인정보 입력을 다시 시키지 않고 완료 화면으로 바로 보낸다. */
+     본인정보 입력을 다시 시키지 않고 완료 화면으로 바로 보낸다. 만료 안내(`?expired=1`)로
+     왔더라도 그 뒤 다시 인증했다면 같다 — 가입 정보 화면에서 뒤로 오면 이 주소가 남아 있다. */
   const [view, setView] = useState<SignupVerifyView>(() =>
-    initialView === "information" && verificationToken ? "done" : initialView,
+    verificationToken && (initialView === "information" || initialView === "verification-failed")
+      ? "done"
+      : initialView,
   );
   const [draft, setDraft] = useState<IdentityDraft>(
     identityDraft ?? { birthDate: "", name: "", phoneNumber: "" },

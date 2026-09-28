@@ -73,16 +73,21 @@ test("생성 중·성공·실패·미요청을 구분한다", () => {
   assert.equal(toCueSheetState(null).phase, "idle");
 });
 
-test("실패 사유를 그대로 전달한다", () => {
+test("BE 실패 사유 원문은 화면 상태로 넘기지 않는다", () => {
   const state = toCueSheetState(
-    response({ status: "FAILED", segments: null, failureReason: "AI가 응답하지 않았습니다." }),
+    response({
+      status: "FAILED",
+      segments: null,
+      failureReason: 'I/O error on POST request for "http://ai.internal:8000/cue-sheet"',
+    }),
   );
-  assert.equal(state.failureReason, "AI가 응답하지 않았습니다.");
+  assert.equal(state.phase, "failed");
+  assert.equal(state.failureReason, null);
   assert.deepEqual(state.segments, []);
 });
 
 test("COMPLETED인데 구간이 비어 있으면 성공으로 그리지 않는다", () => {
-  const state = toCueSheetState(response({ segments: "[]" }));
+  const state = toCueSheetState(response({ segments: "[]", failureReason: "내부 사유" }));
   assert.equal(state.phase, "failed");
   assert.equal(state.failureReason, "AI가 큐시트 구간을 비워 보냈습니다.");
 });

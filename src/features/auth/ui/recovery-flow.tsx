@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -18,6 +19,7 @@ import {
   saveEmailRecoverySession,
 } from "@/features/auth/model/email-recovery-session";
 import { isApiError } from "@/shared/api/api-error";
+import { TextButton } from "@/shared/components/ui/text-button";
 
 import { AuthButton, AuthInput } from "./auth-form-controls";
 import { AuthIdentityVerification, isRetryIdentityStatus } from "./auth-identity-verification";
@@ -33,6 +35,7 @@ export type RecoveryView =
   | "identity-failed"
   | "identity-verifying"
   | "identity-verification-failed"
+  | "identity-unavailable"
   | "full-email"
   | "not-found"
   | "password-form"
@@ -45,6 +48,8 @@ const identityStatusByView: Partial<Record<RecoveryView, IdentityStatus>> = {
   "identity-failed": "failed",
   "identity-verifying": "verifying",
   "identity-verification-failed": "verification-failed",
+  /* 본인인증은 끝났는데 서버 조회가 일시 장애로 실패했다. 다시 시도 안내는 failed와 같다. */
+  "identity-unavailable": "failed",
 };
 
 /* 제목·상태 문구·버튼 라벨은 AuthIdentityVerification이 소유한다. 여기서는 계정 복구
@@ -58,6 +63,15 @@ const identityDescriptionByStatus: Record<IdentityStatus, string> = {
   "verification-failed":
     "인증 결과가 만료되었거나 유효하지 않습니다.\n본인인증을 다시 진행해 주세요.",
 };
+
+/* 본인인증 결과 확인·전체 이메일 조회 실패. 404는 인증한 이름·번호로 가입한 계정이 없다는 뜻이고
+   (BE `EmailFindService.reveal`), 5xx·네트워크 오류는 일시 장애라 만료 대신 다시 시도를 안내한다(#403). */
+function revealFailureView(cause: unknown): RecoveryView {
+  if (isApiError(cause) && cause.status === 404) return "not-found";
+  if ((isApiError(cause) && cause.status >= 500) || cause instanceof TypeError)
+    return "identity-unavailable";
+  return "identity-verification-failed";
+}
 
 type RecoveryFlowProps = {
   callback?: { identityVerificationId: string; code: string | null };
@@ -129,8 +143,12 @@ export function RecoveryFlow({
         setView("full-email");
         window.history.replaceState(null, "", "/auth/recovery/email");
       },
-      () => {
-        if (active && !callbackCancelled.current) setView("identity-verification-failed");
+      (cause: unknown) => {
+        if (!active || callbackCancelled.current) return;
+        const next = revealFailureView(cause);
+        setView(next);
+        /* 결과 화면은 새로고침해도 같은 결과가 아니다. 토큰이 이미 소비돼 만료로 보이므로 주소를 되돌린다. */
+        if (next === "not-found") window.history.replaceState(null, "", "/auth/recovery/email");
       },
     );
     return () => {
@@ -302,22 +320,28 @@ export function RecoveryFlow({
   }
 
   if (view === "not-found") {
+    /* FL_C_ME_IDFIND_5(`1035:5719`) empty_state: 제목·안내 사이 8px, 그래픽(112px)은 안내 96px 아래,
+       "로그인 화면으로" 텍스트 버튼은 하단 주 버튼 16px 위다(#403). */
     return (
       <RecoveryHeader headerTitle={headerTitle} onBack={goBack}>
         <AuthTitle>회원정보를 찾을 수 없습니다</AuthTitle>
-        <RecoveryDescription>
-          {"입력한 정보로\n가입된 계정을 찾을 수 없습니다."}
-        </RecoveryDescription>
-        <div aria-hidden="true" className="bg-layer-surface-disabled mx-auto mt-18 size-[150px]" />
-        <button
-          className="text-body-s text-text-secondary mx-auto mt-3 block underline underline-offset-2"
-          onClick={showLogin}
-          type="button"
-        >
-          로그인 화면으로
-        </button>
+        <p className="text-body-m text-text-default mt-2 font-medium break-keep">
+          입력한 정보로 가입된 계정을 찾을 수 없습니다
+        </p>
+        <Image
+          alt=""
+          className="mx-auto mt-24 size-28"
+          height={112}
+          src="/images/shared/island.svg"
+          width={112}
+        />
         <AuthBottomAction>
-          <AuthButton onClick={() => router.push("/auth/signup")} size="lg">
+          <div className="flex justify-center">
+            <TextButton className="h-10 px-2 py-1" onClick={showLogin} showIcon={false}>
+              로그인 화면으로
+            </TextButton>
+          </div>
+          <AuthButton className="mt-4" onClick={() => router.push("/auth/signup")} size="lg">
             회원가입하기
           </AuthButton>
         </AuthBottomAction>
@@ -484,9 +508,9 @@ export function RecoveryFlow({
         setEmail(revealed.email);
         setView("full-email");
       }
-    } catch {
+    } catch (cause) {
       if (!request.signal.aborted)
-        setView(verifying ? "identity-verification-failed" : "identity-failed");
+        setView(verifying ? revealFailureView(cause) : "identity-failed");
     } finally {
       if (!request.signal.aborted) {
         clearEmailRecoverySession();
@@ -502,6 +526,11 @@ export function RecoveryFlow({
         description={identityDescriptionByStatus[identityStatus]}
         onAction={handleIdentityAction}
         status={identityStatus}
+        statusText={
+          view === "identity-unavailable"
+            ? "일시적인 오류로 결과를 확인하지 못했습니다."
+            : undefined
+        }
       />
     </RecoveryHeader>
   );

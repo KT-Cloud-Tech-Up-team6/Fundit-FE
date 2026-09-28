@@ -48,6 +48,11 @@ export const IdentityVerificationCheckFailed: Story = {
   args: { demoMode: true, initialView: "identity-verification-failed" },
 };
 
+/* 본인인증 뒤 서버 조회가 5xx로 실패한 경우(#403). */
+export const IdentityVerificationUnavailable: Story = {
+  args: { demoMode: true, initialView: "identity-unavailable" },
+};
+
 export const FullEmail: Story = {
   args: { initialView: "full-email" },
 };

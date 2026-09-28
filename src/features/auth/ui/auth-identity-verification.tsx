@@ -68,6 +68,8 @@ type AuthIdentityVerificationProps = {
   description: string;
   onAction: () => void;
   status: IdentityStatus;
+  /** 같은 상태라도 실패 지점이 다르면 상태 문구만 바꾼다. 없으면 상태별 기본 문구다. */
+  statusText?: string;
 };
 
 export function AuthIdentityVerification({
@@ -75,6 +77,7 @@ export function AuthIdentityVerification({
   description,
   onAction,
   status,
+  statusText,
 }: AuthIdentityVerificationProps) {
   const copy = copyByStatus[status];
   const isPending = isPendingIdentityStatus(status);
@@ -110,7 +113,7 @@ export function AuthIdentityVerification({
         ) : null}
         <AuthTitle>{copy.title}</AuthTitle>
         <p className="text-body-m text-text-secondary mt-3 whitespace-pre-line">{description}</p>
-        <p className="text-caption-s text-text-secondary mt-8">{copy.status}</p>
+        <p className="text-caption-s text-text-secondary mt-8">{statusText ?? copy.status}</p>
       </div>
       <AuthBottomAction>
         <AuthButton disabled={actionDisabled || isPending} onClick={onAction}>
