@@ -5,7 +5,6 @@ import { RefundEvidenceValidationError } from "../../../entities/refund/api/refu
 import {
   acceptsDetailInput,
   addCancelPhotos,
-  cancelDetailMaxLengthFor,
   cancelErrorMessage,
   cancelReasons,
   cancelRequestBody,
@@ -35,10 +34,7 @@ const estimate = {
 };
 
 test("드롭다운 옵션은 Figma 09-25 순서를 따른다", () => {
-  assert.deepEqual(
-    [...cancelReasons],
-    ["단순 변심", "결제 정보 오류", "옵션 선택 오류", "기타 창작자 귀책", "기타"],
-  );
+  assert.deepEqual([...cancelReasons], ["단순 변심", "결제 정보 오류", "옵션 선택 오류", "기타"]);
   assert.deepEqual([...returnTypes], ["교환", "반품"]);
   assert.equal(refundReasons.length, 8);
 });
@@ -58,27 +54,7 @@ test("취소 사유는 BE cancelReason으로 보내고 입력은 앞뒤 공백�
   });
 });
 
-test("임시 처리: 기타 창작자 귀책은 ETC에 '창작자 귀책'을 붙여 보내고 입력은 선택이다", () => {
-  assert.deepEqual(cancelRequestBody("기타 창작자 귀책", "   "), {
-    cancelReason: "ETC",
-    reasonDetail: "창작자 귀책",
-  });
-  assert.deepEqual(cancelRequestBody("기타 창작자 귀책", " 옵션이 바뀌었어요 "), {
-    cancelReason: "ETC",
-    reasonDetail: "창작자 귀책 · 옵션이 바뀌었어요",
-  });
-  assert.equal(canSubmitCancel("기타 창작자 귀책", ""), true);
-});
-
-test("상세 한도는 BE 100자이고, 기타 창작자 귀책은 앞 문구를 붙여도 100자를 넘지 않는다", () => {
-  assert.equal(cancelDetailMaxLengthFor("단순 변심"), 100);
-  assert.equal(cancelDetailMaxLengthFor("기타"), 100);
-  const room = cancelDetailMaxLengthFor("기타 창작자 귀책");
-  assert.equal(room, 91);
-  assert.equal(cancelRequestBody("기타 창작자 귀책", "가".repeat(room)).reasonDetail.length, 100);
-});
-
-test("임시 처리: 발송 지연 취소만 입력란이 없다", () => {
+test("발송 지연 취소만 입력란이 없다", () => {
   assert.equal(acceptsDetailInput("shipping-delay"), false);
   assert.equal(acceptsDetailInput("cancel"), true);
   assert.equal(acceptsDetailInput("return"), true);

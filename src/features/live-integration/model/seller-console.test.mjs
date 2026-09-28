@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   answeredByName,
+  consoleCheckDialog,
   draftUnavailable,
   formatElapsed,
   formatOrderStats,
@@ -142,4 +143,20 @@ test("초안 응답에 draftAnswer가 없거나 null이면 초안 없음으로, 
   assert.equal(draftUnavailable({ referenceChunks: [], sent: false }), true);
   assert.equal(draftUnavailable({ draftAnswer: null, referenceChunks: [], sent: false }), true);
   assert.equal(draftUnavailable({ draftAnswer: "초안", referenceChunks: [], sent: false }), false);
+});
+
+test("LIVE 스튜디오의 종료 방송은 종료가 확인된 방송에서 LIVE 체크 목록을 한 번 연다(#399)", () => {
+  const entry = { openCheck: true, closed: false, status: "ENDED" };
+  assert.deepEqual(consoleCheckDialog(null, entry), { kind: "check" });
+  /* 상세·원문 보기로 옮기면 그 흐름을 따른다. */
+  const detail = { kind: "detail", questionId: "q1" };
+  assert.equal(consoleCheckDialog(detail, entry), detail);
+  /* 닫은 뒤, 종료 확인 전, 방송 중, 스튜디오를 거치지 않은 진입에서는 열지 않는다. */
+  assert.equal(consoleCheckDialog(null, { ...entry, closed: true }), null);
+  assert.equal(consoleCheckDialog(null, { ...entry, status: undefined }), null);
+  assert.equal(consoleCheckDialog(null, { ...entry, status: "LIVE" }), null);
+  assert.equal(consoleCheckDialog(null, { ...entry, openCheck: false }), null);
+  /* 콘솔에서 방송을 끝내면 종료 모달이 그대로 뜬다. */
+  const ended = { kind: "ended" };
+  assert.equal(consoleCheckDialog(ended, { ...entry, openCheck: false }), ended);
 });

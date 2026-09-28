@@ -52,14 +52,15 @@ const statusVariants: Record<LiveStatus, SellerLiveBadgeVariant> = {
 /* 상태별로 판매자가 이어서 할 일이 달라 목적지가 갈린다. 실제로 존재하는 라우트에만 보낸다.
    - DRAFT·SCHEDULED → 큐시트. 방송 준비를 이어가는 화면이다(API 미연결이나 화면은 있다).
    - LIVE → 방송 콘솔. 송출 중 조작이 여기 있다.
-   - ENDED → 방송 후 콘텐츠.
+   - ENDED → LIVE 체크 작성(`FL_S_LV_VERIFY`, IA 판매자 18행). 원본의 이 모달은 콘솔 위에 있어
+     콘솔을 열면서 모달을 띄운다(#399).
    ERROR는 목록에 실리지 않지만 상태가 5종이라 매핑을 비워 두지 않는다. 복구 지점이
    따로 없어 준비 화면인 큐시트로 둔다. */
 const manageDestinations: Record<LiveStatus, (id: string) => string> = {
   DRAFT: (id) => `/seller/live/${id}/cue-sheet`,
   SCHEDULED: (id) => `/seller/live/${id}/cue-sheet`,
   LIVE: (id) => `/seller/live/${id}/console`,
-  ENDED: (id) => `/seller/live/${id}/review`,
+  ENDED: (id) => `/seller/live/${id}/console?check=open`,
   ERROR: (id) => `/seller/live/${id}/cue-sheet`,
 };
 

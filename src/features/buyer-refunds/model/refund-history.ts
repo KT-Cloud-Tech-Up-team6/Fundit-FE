@@ -10,12 +10,13 @@ import {
    서버·클라이언트 렌더 결과가 같다(#388: 앞 10자리를 쓰면 한국 시간 새벽 건이 하루 전으로 보였다). */
 import { formatKoreanDate } from "@/features/funding-history/model/funding-history";
 
-/** 원본 RFND_3(2323:52976)의 유형 드롭다운(2323:53086) 그대로다. value는 URL `?type=` 값이다. */
+/** 유형 드롭다운. Figma(`2323:53086`)는 "취소/교환/환불"이지만 PD 회신(2026-09-28, PD-1)으로
+    "취소/반품/교환"으로 바꾼다. value는 URL `?type=` 값이다. */
 export const refundTypeOptions = [
   { value: "all", label: "전체" },
   { value: "cancel", label: "취소" },
+  { value: "return", label: "반품" },
   { value: "exchange", label: "교환" },
-  { value: "refund", label: "환불" },
 ] as const satisfies readonly { value: string; label: "전체" | RefundType }[];
 
 export type RefundFilterType = (typeof refundTypeOptions)[number]["value"];
