@@ -70,7 +70,7 @@ test("교환 완료 건에는 실 환불 금액 영역이 없다", () => {
 test("진행 중 배지는 주황(error), 완료·반려 배지는 회색(info) state다", () => {
   assert.match(render([delayed]), /bg-status-error text-text-error[^"]*"[^>]*>취소 진행 중</);
   assert.match(render([cancelled]), /bg-status-info text-text-info[^"]*"[^>]*>취소 완료</);
-  assert.match(render([rejected]), /bg-status-info text-text-info[^"]*"[^>]*>환불 반려</);
+  assert.match(render([rejected]), /bg-status-info text-text-info[^"]*"[^>]*>반품 반려</);
 });
 
 test("반려 사유 행은 반려된 건에만 나온다", () => {

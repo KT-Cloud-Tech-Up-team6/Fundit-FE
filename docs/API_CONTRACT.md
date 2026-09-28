@@ -768,13 +768,14 @@ payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inc
 
 #### 표시 매핑
 
-원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터(전체/취소/교환/환불)에 대응시킨다. 유형 필터는 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다.
+원본 `FL_B_MY_RFND_1`~`4`의 유형 문구와 유형 필터에 대응시킨다. 유형 필터는 전체/취소/반품/교환이고(PD 회신 2026-09-28, PD-1) 아래 묶음의 트리거를 `triggerType`으로 반복해 보낸다. 목표 미달·시스템 자동 환불은 카드에 "환불"로 두되 어느 필터에도 넣지 않아 전체에서만 보인다.
 
-| triggerType                                                                    | 유형 |
-| ------------------------------------------------------------------------------ | ---- |
-| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`                                      | 취소 |
-| `EXCHANGE`                                                                     | 교환 |
-| `DEFECT`, `RETURN_CHANGE_OF_MIND`, `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불 |
+| triggerType                                 | 유형            |
+| ------------------------------------------- | --------------- |
+| `SIMPLE_CHANGE_OF_MIND`, `SHIPPING_DELAY`   | 취소            |
+| `RETURN_CHANGE_OF_MIND`, `DEFECT`           | 반품            |
+| `EXCHANGE`                                  | 교환            |
+| `GOAL_FAILED_AUTO`, `SYSTEM_RECONCILIATION` | 환불(필터 없음) |
 
 | status                                                | 표시                      | Badge   |
 | ----------------------------------------------------- | ------------------------- | ------- |
@@ -782,7 +783,7 @@ payment-service는 null인 필드를 **JSON에서 뺀다**(`default-property-inc
 | `COMPLETED`                                           | `{유형} 완료`             | `info`  |
 | `REJECTED`                                            | `{유형} 반려` + 반려 사유 | `info`  |
 
-실 환불 금액은 취소·환불 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
+실 환불 금액은 교환이 아닌 유형의 `COMPLETED`에서만 `amount`로 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
 
 접수 사유는 `reasonType`을 09-25 신청 화면 드롭다운 문구로 바꾸고 `reasonDetail`이 있으면 `·`로 잇는다. `reasonType`이 없으면 `reasonDetail` 원문, 둘 다 없으면 트리거 문구다(`SHIPPING_DELAY` 발송 지연, `GOAL_FAILED_AUTO` 목표 미달 자동 환불, `SIMPLE_CHANGE_OF_MIND` 참여 취소 등). 모르는 `reasonType`은 enum 이름 그대로 보인다.
 
@@ -998,7 +999,7 @@ BE 08 회신(`develop` `f127a6f`)의 주문 응답 필드로 `/my/fundings` 목�
 | `SHIPPING_DELAYED`    | 발송 지연      | [참여 취소](`SHIPPING_DELAY_REFUND_REQUEST`가 있을 때, 취소 화면이 `CL_1-1`을 연다) [제작·배송 현황]                                                                                           |
 | `SHIPPING`            | 배송 중        | [제작·배송 현황]                                                                                                                                                                               |
 | `DELIVERED`           | 배송 완료      | [반품·교환 신청](`RETURN_REQUEST`·`EXCHANGE_REQUEST`·`DEFECT_REFUND_REQUEST` 중 하나가 있을 때) [제작·배송 현황]. 액션이 없으면(수령 후 7일 경과) 비활성 [반품·교환 가능 기간이 지났어요] 하나 |
-| `GOAL_FAILED`         | 펀딩 목표 미달 | [환불 내역] `/my/refunds?type=refund`                                                                                                                                                          |
+| `GOAL_FAILED`         | 펀딩 목표 미달 | [환불 내역] `/my/refunds`(필터 없이 전체, PD 회신 2026-09-28 PD-4)                                                                                                                             |
 | `CANCELLED`           | 참여 취소      | 신청 이력이 있으면 내역 버튼 하나, 없으면 없음                                                                                                                                                 |
 | `PAYMENT_EXPIRED`     | 결제 기한 만료 | 위와 같음                                                                                                                                                                                      |
 | `REFUNDED`            | 환불 완료      | 위와 같음                                                                                                                                                                                      |
@@ -1008,9 +1009,9 @@ BE 08 회신(`develop` `f127a6f`)의 주문 응답 필드로 `/my/fundings` 목�
 | 최근 신청 `triggerType`                    | 버튼           | 목적지                      |
 | ------------------------------------------ | -------------- | --------------------------- |
 | `SIMPLE_CHANGE_OF_MIND`·`SHIPPING_DELAY`   | 취소 내역      | `/my/refunds?type=cancel`   |
+| `RETURN_CHANGE_OF_MIND`·`DEFECT`           | 반품·교환 내역 | `/my/refunds?type=return`   |
 | `EXCHANGE`                                 | 반품·교환 내역 | `/my/refunds?type=exchange` |
-| `DEFECT`·`RETURN_CHANGE_OF_MIND`           | 반품·교환 내역 | `/my/refunds?type=refund`   |
-| `GOAL_FAILED_AUTO`·`SYSTEM_RECONCILIATION` | 환불 내역      | `/my/refunds?type=refund`   |
+| `GOAL_FAILED_AUTO`·`SYSTEM_RECONCILIATION` | 환불 내역      | `/my/refunds`(필터 없음)    |
 
 반품·교환 신청 링크는 `?type=` 없이 `/refund/new`로 간다. 신청 화면은 진입 때 조건을 다시 보지 않는다. URL로 직접 들어오면 지금처럼 제출할 때 BE 오류 문구로 안내한다(노션 FE 자체 판단 30).
 
