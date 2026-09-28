@@ -13,6 +13,8 @@ export const couriers = [
 ] as const;
 
 export type Courier = (typeof couriers)[number];
+export const COURIER_MAX_LENGTH = 50;
+export const TRACKING_NUMBER_MAX_LENGTH = 100;
 
 /** Figma 상태 명세: 배송 전 → `발송 처리`(활성), 배송 후 → `발송 완료`(비활성). */
 export type ShipmentStatus = "pending" | "shipped";
@@ -71,10 +73,14 @@ export function countByFilter(shipments: Shipment[]): Record<ShippingFilter, num
   };
 }
 
-/** 발송 처리 가능 조건 — 아직 발송 전이고 택배사·운송장이 모두 채워져 있어야 한다. */
+/** 발송 처리 가능 조건 — 아직 발송 전이고 BE 컬럼 한도 안의 택배사·운송장이 모두 있어야 한다. */
 export function canShip(shipment: Shipment): boolean {
   return (
-    shipment.status === "pending" && shipment.courier !== "" && shipment.trackingNo.trim() !== ""
+    shipment.status === "pending" &&
+    shipment.courier.trim() !== "" &&
+    shipment.courier.length <= COURIER_MAX_LENGTH &&
+    shipment.trackingNo.trim() !== "" &&
+    shipment.trackingNo.length <= TRACKING_NUMBER_MAX_LENGTH
   );
 }
 

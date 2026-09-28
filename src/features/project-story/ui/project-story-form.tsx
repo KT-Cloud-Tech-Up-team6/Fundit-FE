@@ -10,6 +10,7 @@ import { agreeProjectPrivacy, submitProject } from "@/entities/project/api/selle
 import { ProjectConsentModal } from "@/features/project-basic-info/ui/project-consent-modal";
 import { isApiError } from "@/shared/api/api-error";
 import { fromIntroContent, toIntroContent } from "../model/story-content";
+import { STORY_TITLE_MAX_LENGTH, storyTitleError } from "../model/story-title";
 import { missingPublishRequirements, type PublishRequirement } from "../model/project-publish";
 import { ProjectPageHeader } from "@/entities/project/ui/project-sidebar";
 import { Button } from "@/shared/components/ui/button";
@@ -69,10 +70,11 @@ export function ProjectStoryForm({
     }
   }
   async function saveStory(currentEditor: Editor) {
-    if (title.length > 40) throw new Error("제목은 40자 이내로 입력해주세요.");
+    const titleError = storyTitleError(title);
+    if (titleError) throw new Error(titleError);
     const introContent = toIntroContent(currentEditor.getJSON());
     await saveProjectStory(projectId, {
-      title,
+      title: title.trim(),
       ...(thumbnailUrl ? { coverImageUrl: thumbnailUrl } : {}),
       introContent,
     });
@@ -167,7 +169,7 @@ export function ProjectStoryForm({
               shape="compact"
               placeholder="프로젝트 제목을 입력해주세요"
               value={title}
-              maxLength={initial ? 40 : undefined}
+              maxLength={STORY_TITLE_MAX_LENGTH}
               onChange={(event) => setTitle(event.target.value)}
             />
           </FormField>
