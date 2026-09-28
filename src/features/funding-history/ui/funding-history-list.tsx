@@ -101,7 +101,7 @@ export function FundingHistoryList({
   return (
     <FundingListScreen>
       {/* 09-25 기록: 전체 배경색을 surface_default로 바꿨다(update_history 1143:23610). */}
-      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
+      <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
         <p className="text-body-s px-5 py-2">총 {count}개</p>
         {loading && (
           <p role="status" className="text-caption-m text-text-secondary px-5 pb-3">

@@ -610,7 +610,7 @@ export function BuyerLiveMain({
 
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`}
+      className={`${styles.screen} bg-layer-surface-default text-text-default mx-auto min-h-screen w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:pb-0`}
     >
       <BuyerDesktopHeader />
       <div className="min-[1200px]:mx-auto min-[1200px]:flex min-[1200px]:h-[138px] min-[1200px]:max-w-300 min-[1200px]:items-center min-[1200px]:justify-center min-[1200px]:gap-10">
