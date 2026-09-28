@@ -74,7 +74,12 @@ export function FollowingListApi({
         else next.set(seller.sellerId, seller);
         return next;
       });
-      await client.invalidateQueries({ queryKey: followsQueryKey(memberId) });
+      /* 해제 뒤 서버 페이지 경계가 앞당겨지므로, 이 목록도 다시 읽어 다음 페이지의 항목이
+         건너뛰지 않게 한다. 해제한 행은 unfollowed 상태로 따로 남는다. */
+      await Promise.all([
+        client.invalidateQueries({ queryKey: key }),
+        client.invalidateQueries({ queryKey: followsQueryKey(memberId) }),
+      ]);
     } catch {
       setError(
         following
