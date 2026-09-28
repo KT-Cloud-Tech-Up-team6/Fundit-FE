@@ -57,10 +57,10 @@ const failedGeneration = {
   scenes: [],
   type: "script",
   minutes: 10,
-  failureReason: "AI 서버가 응답하지 않았습니다. (timeout)",
+  failureReason: "입력한 내용을 확인해 주세요.",
 } satisfies CueSheetGenerationView;
 
-/* FL_S_LVS_AIC_FAIL — 서버가 FAILED와 사유를 내려준 경우. `generation`을 주면 API 모드로
+/* FL_S_LVS_AIC_FAIL — 생성 요청이 거절돼 FE 안내를 실은 경우. `generation`을 주면 API 모드로
    동작해 단계 전환을 서버 상태가 끈다(`live-cue-sheet-flow.tsx` 주석 참고). */
 export const GenerationFailed: Story = {
   args: {
@@ -72,11 +72,11 @@ export const GenerationFailed: Story = {
     generation: failedGeneration,
   },
   parameters: {
-    docs: { description: { story: "서버가 준 `failureReason`을 그대로 싣는 실패 화면." } },
+    docs: { description: { story: "생성 요청 실패를 FE 안내 문구로 싣는 실패 화면." } },
   },
 };
 
-/* 사유 없이 FAILED만 온 경우 — 기본 문구로 대체되는지 확인한다. */
+/* 서버가 FAILED를 준 경우. BE 사유 원문은 싣지 않으므로 기본 문구로 대체된다(#403). */
 export const GenerationFailedWithoutReason: Story = {
   args: {
     ...TypeSelected.args,

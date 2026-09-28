@@ -30,6 +30,7 @@ export type CueSheetGenerationView = {
   scenes: CueScene[];
   type: CueSheetType | null;
   minutes: number | null;
+  /** FE가 정한 안내 문구. BE `failureReason` 원문은 싣지 않는다(#403). 없으면 기본 문구를 보인다. */
   failureReason: string | null;
 };
 

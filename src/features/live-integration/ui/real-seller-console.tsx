@@ -7,6 +7,7 @@ import { ApiError } from "@/shared/api/api-error";
 import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
+import { isUnavailableLive } from "@/entities/live/model/live-error";
 import { getLiveOrderStats } from "@/entities/order/api/seller-order-api";
 import {
   createLiveVerification,
@@ -32,6 +33,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { SellerShell } from "@/shared/components/layout/seller-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
+import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import {
   getAnsweredQuestions,
   getInsights,
@@ -138,11 +140,19 @@ function ConsoleBody({
   const detail = useQuery({
     queryKey: [...ownerKey, "detail"],
     queryFn: ({ signal }) => getLiveDetail(liveId, signal),
-    refetchInterval: (query) => (query.state.data?.status === "ENDED" ? false : POLL_MS),
+    /* 없거나 남의 LIVE(404)는 다시 불러도 같다. 오류 화면을 두고 주기 갱신을 멈춘다. */
+    refetchInterval: (query) =>
+      query.state.data?.status === "ENDED" ||
+      (!query.state.data && isUnavailableLive(query.state.error))
+        ? false
+        : POLL_MS,
     retry: false,
   });
+  /* LIVE가 없거나 남의 LIVE면 BE가 404로 답한다. 큐시트 404를 "큐시트 없음"으로 보는 콘솔을
+     그리지 않고 오류로 안내한다(#403). 첫 조회가 성공한 뒤의 갱신 실패는 콘솔을 그대로 둔다. */
+  const unavailable = detail.isLoadingError && isUnavailableLive(detail.error);
   /* 종료가 확인되면 더 모일 질문이 없다. 인사이트 호출은 BE가 AI를 부르게 하므로 멈춘다. */
-  const questionPoll = detail.data?.status === "ENDED" ? false : POLL_MS;
+  const questionPoll = detail.data?.status === "ENDED" || unavailable ? false : POLL_MS;
   const playback = useQuery({
     queryKey: ["live", liveId, "playback"],
     queryFn: ({ signal }) => getPlayback(liveId, signal),
@@ -234,6 +244,18 @@ function ConsoleBody({
     void unanswered.refetch();
     void answered.refetch();
   }
+
+  if (unavailable)
+    return (
+      <SellerShell>
+        <QueryErrorState
+          variant="page"
+          error={detail.error}
+          onRetry={() => void detail.refetch()}
+          notFoundHref="/seller/live"
+        />
+      </SellerShell>
+    );
 
   return (
     <SellerShell

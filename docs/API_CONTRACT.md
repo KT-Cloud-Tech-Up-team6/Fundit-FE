@@ -264,6 +264,8 @@ DB 포트 5432~5439는 FE 호출 대상이 아니다. `localhost`는 호출하�
 }
 ```
 
+`message`는 BE 내부 문구다(2026-09-07 답변). FE는 화면에 그대로 쓰지 않고 HTTP 상태·`code`로 문구를 정한다(#403). live-service는 공통 코드만 던져 LIVE·큐시트 요청은 상태별 문구(`entities/live/model/live-error.ts`)로 안내한다.
+
 일반화된 detail 규격은 아직 없다. FE는 알 수 없는 값을 특정 배열·객체로 단정하지 않고 구조를 검사한 뒤 사용한다. 모든 400이 필드 오류 배열을 반환하는 것은 아니다. `fieldErrors`, `timestamp`, `traceId`는 전달된 표준 필드가 아니다.
 
 이번 두 YAML은 ErrorResponse 설명에 검증 오류 배열·그 외 대부분 null을 적었지만 detail 스키마는 `type: object`만 선언한다. 배열·null 설명과 스키마가 불일치하므로 생성 타입으로 확정하지 않는다. 위 계정 잠금 detail과 null 키 생략 규칙은 2026-09-08 답변을 보존한 내용이다. YAML의 공통 코드 목록만으로 API별 발생 가능한 오류를 모두 확정하지 않으며, 실제 오류 예시와 스키마 보완이 필요하다.
@@ -447,6 +449,8 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 - 로그인 실패는 401 INVALID_CREDENTIALS, 잠금은 423 ACCOUNT_LOCKED와 detail.lockedUntil이다. FE가 실패 횟수로 잠금을 추정하지 않는다.
 - `mustChangePassword`는 true도 처리하며 새 비밀번호 정책은 회원가입과 공유한다.
+- 전체 이메일 조회(`reveal`)의 404는 본인인증한 이름·번호로 가입한 계정이 없다는 뜻이라 "회원정보를 찾을 수 없습니다" 화면으로, 5xx·네트워크 오류는 본인인증 실패(다시 시도) 화면으로 보낸다. 그 외(401 `TOKEN_INVALID` 등)만 만료 안내다(#403).
+- 가입 정보 입력 중 가입 요청이 401 `TOKEN_INVALID`면 본인인증 화면(`/auth/signup/verify?expired=1`)에서 만료를 알리고 다시 인증하게 한다(#403).
 - 재설정 메일 기본·개발 링크는 `/reset-password?token=%s`다. 운영 URL 템플릿·실제 메일 발송·PortOne 채널/복구 콜백은 BE/인프라 확인 대상으로 남긴다.
 - FE 검증은 HTTP 대역과 독립 브라우저 기준이며 운영 외부 인증·메일 수신 성공을 의미하지 않는다.
 
@@ -584,10 +588,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - **부분 업데이트다.** `PATCH /settings`에서 보내지 않은 필드는 서버가 건드리지 않는다. 연결 프로젝트는 요청에 없다 — 요구사항정의서 6.2.4.1이 변경 불가로 정했고 바꾸려면 LIVE를 새로 만든다.
 - `introText`는 `@Size(max = 200)`이다. 화면 입력 제한도 같은 값을 쓴다.
 - `mode`는 `SCENARIO`·`SCRIPT`, `targetDurationSec`는 600초 이하다. 넘기면 400이고 이미 생성 중이면 409다.
-- **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이다.
+- **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이지만 AI 호출 예외 원문이라(AI 주소 등 내부 정보가 섞일 수 있다) 화면에 보이지 않는다(#403).
 - `segments`는 **JSON 문자열**이다. BE가 AI 계약을 타입으로 박지 않고 그대로 저장·반환하므로 구조 확인은 FE 몫이다. 현재 구간은 `{id, title, duration, outline, script}`이며 `duration`은 초다.
-- 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다.
-- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 `failureReason`과 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
+- 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다. 다만 없는 LIVE·남의 LIVE도 같은 404라, 큐시트 화면·콘솔은 LIVE 단건 조회(`GET /api/v1/lives/{liveId}`)가 404·403이면 "큐시트 없음" 대신 오류 화면을 보인다(#403).
+- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 일반 안내("잠시 후 다시 시도해 주세요.", 생성 요청 자체가 거절되면 상태별 안내)와 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
 - #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾았다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)에 이어 큐시트 화면도 #326에서 단건 조회로 바꿔 우회를 걷었다.
 - 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AIC`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다.

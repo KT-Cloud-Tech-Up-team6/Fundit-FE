@@ -15,6 +15,7 @@ import {
   type LiveCreateResponse,
 } from "@/entities/live/api/live-session-api";
 import { getMyLives, type LiveStatus } from "@/entities/live/api/seller-live-api";
+import { liveFailureReason } from "@/entities/live/model/live-error";
 import {
   isEmptyLiveSettingsBody,
   LIVE_INTRO_MAX_LENGTH,
@@ -25,17 +26,12 @@ import {
 import { toSellerLiveList } from "@/entities/live/model/seller-live";
 import { getProjectPreview } from "@/entities/project/api/seller-project-api";
 import { LiveCueSheetApi } from "@/features/live-cue-sheet/ui/live-cue-sheet-api";
-import { ApiError } from "@/shared/api/api-error";
 import { Button, secondaryButtonClasses } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Modal } from "@/shared/components/ui/modal";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ProjectSummary, type LiveProjectSummary } from "./project-summary";
 import { StreamInfo } from "./stream-info";
-
-function errorMessage(error: unknown) {
-  return error instanceof Error && error.message ? error.message : "잠시 후 다시 시도해 주세요.";
-}
 
 /* 이어 쓸 수 있는 LIVE. 시작·종료한 LIVE는 서버가 설정 저장·시작을 받지 않는다. */
 const resumableStatuses: readonly LiveStatus[] = ["DRAFT", "SCHEDULED", "ERROR"];
@@ -243,20 +239,27 @@ export function LiveCreateApi({
   };
   /* 불러오는 동안 저장하면 불러올 LIVE 대신 새 임시저장이 생긴다. */
   const canProceed = intro.trim().length > 0 && !save.isPending && !load.isPending;
-  /* 409는 이미 시작했거나 끝난 LIVE다. 다시 눌러도 달라지지 않으므로 사유를 나눠 적는다. */
-  const startFailure =
-    start.error instanceof ApiError && start.error.status === 409
-      ? "이미 시작했거나 종료된 LIVE입니다. LIVE 스튜디오에서 상태를 확인해 주세요."
-      : `LIVE를 시작하지 못했습니다. ${errorMessage(start.error)}`;
+  /* BE `message`는 내부 문구라 상태별 FE 문구로 적는다(#403). 409는 이미 시작했거나 끝난 LIVE다. */
   const message = save.isError
-    ? `저장하지 못했습니다. ${errorMessage(save.error)}`
+    ? `저장하지 못했습니다. ${liveFailureReason(save.error)}`
     : start.isError
-      ? startFailure
+      ? `LIVE를 시작하지 못했습니다. ${liveFailureReason(start.error)}`
       : load.isPending && !loadOpen
         ? "LIVE를 불러오고 있습니다."
         : load.isError && !loadOpen
-          ? `LIVE를 불러오지 못했습니다. ${errorMessage(load.error)}`
+          ? `LIVE를 불러오지 못했습니다. ${liveFailureReason(load.error)}`
           : notice;
+  const failed = save.isError || start.isError || (load.isError && !loadOpen);
+  /* 생성 모달은 showModal이라 뒤 페이지가 가려지고 inert가 된다. 안내는 모달 안 버튼 줄 아래에 둔다(#403).
+     비어 있어도 그려 둬야 라이브 영역이 새 안내를 읽는다. 비었을 때는 높이·여백이 없다. */
+  const messageLine = (
+    <p
+      role="status"
+      className={`text-caption-s shrink-0 not-empty:mt-3 ${failed ? "text-text-warning" : "text-text-secondary"}`}
+    >
+      {message}
+    </p>
+  );
   const draftItems = toSellerLiveList(drafts.data);
 
   return (
@@ -265,9 +268,6 @@ export function LiveCreateApi({
       <Link href="/seller/live" className="text-body-s mt-2 inline-block underline">
         LIVE 스튜디오로 돌아가기
       </Link>
-      <p role="status" className="text-body-s mt-2">
-        {message}
-      </p>
 
       <Modal
         className="h-168"
@@ -361,6 +361,7 @@ export function LiveCreateApi({
                 </Button>
               </div>
             </div>
+            {messageLine}
           </div>
         ) : (
           <div className="flex h-full flex-col">
@@ -423,6 +424,7 @@ export function LiveCreateApi({
                 LIVE 시작
               </Button>
             </div>
+            {messageLine}
             {liveId && <StreamInfo owner={owner} liveId={liveId} />}
           </div>
         )}
@@ -434,7 +436,7 @@ export function LiveCreateApi({
         {/* 불러오는 동안 생성 모달은 닫혀 있어, 실패 안내는 고르는 이 자리에 둔다. */}
         {load.isError && (
           <p role="alert" className="text-body-s text-text-error mt-6">
-            임시저장한 LIVE를 불러오지 못했습니다. {errorMessage(load.error)}
+            임시저장한 LIVE를 불러오지 못했습니다. {liveFailureReason(load.error)}
           </p>
         )}
         {drafts.isPending ? (

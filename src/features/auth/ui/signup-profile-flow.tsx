@@ -143,8 +143,12 @@ export function SignupProfileFlow({
       }
       setView("password");
     } catch (error) {
+      /* BE `message`는 내부 문구라 쓰지 않는다(#403). 400은 서버 이메일 형식 검사에 걸린 경우다. */
       form.setError("emailLocal", {
-        message: isApiError(error) ? error.message : "이메일을 확인하지 못했습니다.",
+        message:
+          isApiError(error) && error.status === 400
+            ? "이메일 형식을 확인해 주세요."
+            : "이메일을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
       });
     }
   }
@@ -207,9 +211,10 @@ export function SignupProfileFlow({
         setView("email");
         return;
       }
+      /* 본인인증 결과가 만료됐다. 본인인증 화면에서 만료를 알리고 다시 인증하게 한다(#403). */
       if (isApiError(error) && error.code === "TOKEN_INVALID") {
         setVerificationToken(null);
-        router.replace("/auth/signup/verify");
+        router.replace("/auth/signup/verify?expired=1");
         return;
       }
       /* 이름+전화번호 중복은 본인인증 토큰을 소비한 뒤 검사하므로 같은 토큰으로 다시 보낼 수 없다.
