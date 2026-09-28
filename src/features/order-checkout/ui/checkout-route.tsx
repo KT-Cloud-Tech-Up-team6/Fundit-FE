@@ -48,7 +48,6 @@ export function CheckoutRoute({
           ordererName: form.address.recipientName,
           ordererPhone: form.address.phone,
           completeMessage: "리워드 참여가 확정됐습니다",
-          expectedShippingDate: "2026.10.12",
         });
         router.replace("/payment/result");
       }}

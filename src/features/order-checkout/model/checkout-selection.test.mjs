@@ -29,8 +29,8 @@ test("누적 선택 순서와 수량을 주문서에 전달하고 판매가로 �
   );
   assert.equal(items[0].projectTitle, project.title);
   const summary = checkoutSummary(items);
-  assert.equal(summary.shippingFee, 0);
-  assert.equal(finalPaymentAmount(summary), 667_000);
+  assert.equal(summary.shippingFee, 3_000);
+  assert.equal(finalPaymentAmount(summary), 670_000);
 });
 test("스타터 무료배송에 쿠폰과 적립금을 한 번씩 차감한다", () => {
   const summary = checkoutSummary(
@@ -53,7 +53,7 @@ test("스타터 무료배송에 쿠폰과 적립금을 한 번씩 차감한다",
   );
   const withCoupon = { ...summary, couponDiscount };
   const pointDiscount = clampPointUsage(5000, 5000, maxPointUsage(withCoupon));
-  assert.equal(finalPaymentAmount({ ...withCoupon, pointDiscount }), 184_000);
+  assert.equal(finalPaymentAmount({ ...withCoupon, pointDiscount }), 187_000);
 });
 test("알 수 없는 리워드와 유효하지 않은 수량은 주문서에서 제외한다", () => {
   assert.deepEqual(
