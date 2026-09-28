@@ -39,16 +39,19 @@ export function FollowingListApi({
     [error, setError] = useState("");
   const saving = useRef(false),
     sentinel = useRef<HTMLDivElement>(null);
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = list;
-  const follows = displayedFollowings(
-    list.data?.pages.flatMap((page) => page.content) ?? [],
+  const { fetchNextPage, hasNextPage, isFetching } = list;
+  const fetched = list.data?.pages.flatMap((page) => page.content) ?? [];
+  const follows = displayedFollowings(fetched, unfollowed);
+  const total = displayedFollowingTotal(
+    list.data?.pages[0]?.totalElements ?? 0,
+    fetched,
     unfollowed,
   );
-  const total = displayedFollowingTotal(list.data?.pages[0]?.totalElements ?? 0, follows.length);
 
   useEffect(() => {
     const target = sentinel.current;
-    if (!target || !hasNextPage || isFetchingNextPage || list.isFetchNextPageError) return;
+    if (!target || !hasNextPage || isFetching || list.isFetchNextPageError || list.isRefetchError)
+      return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -60,7 +63,7 @@ export function FollowingListApi({
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, list.isFetchNextPageError]);
+  }, [fetchNextPage, hasNextPage, isFetching, list.isFetchNextPageError, list.isRefetchError]);
 
   /* 해제한 행은 화면 상태로 남기고, LIVE 화면이 쓰는 공용 목록만 갱신한다. */
   async function change(seller: FollowedSeller, following: boolean) {
@@ -109,6 +112,14 @@ export function FollowingListApi({
       ) : (
         <>
           <p className="text-text-disabled text-body-s">총 {total}개</p>
+          {list.isRefetchError && (
+            <QueryErrorState
+              variant="section"
+              error={list.error}
+              description="팔로우한 판매자 목록을 다시 불러오지 못했습니다."
+              onRetry={() => void list.refetch()}
+            />
+          )}
           {follows.length ? (
             <div>
               {follows.map((seller) => {
@@ -128,7 +139,9 @@ export function FollowingListApi({
           ) : (
             <p className="py-24 text-center">팔로우한 판매자가 없습니다.</p>
           )}
-          {list.hasNextPage && <div ref={sentinel} aria-hidden className="h-6" />}
+          {list.hasNextPage && !list.isRefetchError && (
+            <div ref={sentinel} aria-hidden className="h-6" />
+          )}
           {list.isFetchingNextPage && <p role="status">팔로우한 판매자를 더 불러오고 있습니다.</p>}
           {list.isFetchNextPageError && (
             <QueryErrorState

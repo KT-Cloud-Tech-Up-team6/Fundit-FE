@@ -48,6 +48,10 @@ test("an unfollowed row stays at its fetched position and is kept after a refetc
 });
 
 test("the displayed total includes rows retained until refresh", () => {
-  assert.equal(displayedFollowingTotal(0, 1), 1);
-  assert.equal(displayedFollowingTotal(20, 19), 20);
+  const seller = (sellerId) => ({ sellerId, sellerName: sellerId, createdAt: "2026-09-28" });
+  const removed = seller("a");
+  const unfollowed = new Map([[removed.sellerId, removed]]);
+
+  assert.equal(displayedFollowingTotal(39, [seller("b")], unfollowed), 40);
+  assert.equal(displayedFollowingTotal(40, [removed, seller("b")], unfollowed), 40);
 });

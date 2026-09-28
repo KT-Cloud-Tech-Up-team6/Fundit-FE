@@ -76,10 +76,12 @@ export const InfiniteFollowAndRestore: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "판매자 1 팔로우 해제" }));
-    await expect(canvas.getByRole("button", { name: "판매자 1 다시 팔로우" })).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "판매자 21 팔로우 해제" })).toBeVisible();
-    await userEvent.click(canvas.getByRole("button", { name: "판매자 1 다시 팔로우" }));
-    await expect(canvas.getByRole("button", { name: "판매자 1 팔로우 해제" })).toBeVisible();
+    await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" }));
+    await expect(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" })).toBeVisible();
+    await expect(
+      await canvas.findByRole("button", { name: "판매자 21 팔로우 해제" }),
+    ).toBeVisible();
+    await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" }));
+    await expect(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" })).toBeVisible();
   },
 };

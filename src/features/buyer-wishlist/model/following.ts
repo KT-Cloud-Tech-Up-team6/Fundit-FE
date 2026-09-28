@@ -27,7 +27,15 @@ export function displayedFollowings(
   return uniqueFollowings([...fetched, ...unfollowed.values()]);
 }
 
-/** 화면에 남겨 둔 해제 행까지 포함한 표시용 총계다. */
-export function displayedFollowingTotal(serverTotal: number, displayedCount: number): number {
-  return Math.max(serverTotal, displayedCount);
+/** 서버 목록에서 빠진 해제 행까지 포함한 표시용 총계다. */
+export function displayedFollowingTotal(
+  serverTotal: number,
+  fetched: readonly FollowedSeller[],
+  unfollowed: ReadonlyMap<string, FollowedSeller>,
+): number {
+  const fetchedIds = new Set(fetched.map(({ sellerId }) => sellerId));
+  const retainedCount = [...unfollowed.keys()].filter(
+    (sellerId) => !fetchedIds.has(sellerId),
+  ).length;
+  return serverTotal + retainedCount;
 }
