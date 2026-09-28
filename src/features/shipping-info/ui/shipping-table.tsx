@@ -3,7 +3,13 @@
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Select } from "@/shared/components/ui/select";
-import { canShip, couriers, shipmentActionLabel } from "../model/shipping-demo";
+import {
+  canShip,
+  COURIER_MAX_LENGTH,
+  couriers,
+  shipmentActionLabel,
+  TRACKING_NUMBER_MAX_LENGTH,
+} from "../model/shipping-demo";
 import type { Shipment } from "../model/shipping-demo";
 
 type ShippingTableProps = {
@@ -87,6 +93,8 @@ export function ShippingTable({
         <tbody>
           {shipments.map((shipment) => {
             const shipped = readOnly || shipment.status !== "pending";
+            const courierTooLong = shipment.courier.length > COURIER_MAX_LENGTH;
+            const trackingTooLong = shipment.trackingNo.length > TRACKING_NUMBER_MAX_LENGTH;
 
             return (
               <tr
@@ -118,8 +126,14 @@ export function ShippingTable({
                   <Select
                     aria-label={`주문 ${shipment.orderNo} 택배사`}
                     disabled={shipped}
+                    error={courierTooLong}
                     onChange={(event) => onChange(shipment.id, { courier: event.target.value })}
                     size="xs"
+                    title={
+                      courierTooLong
+                        ? `택배사는 ${COURIER_MAX_LENGTH}자 이내여야 발송할 수 있습니다.`
+                        : undefined
+                    }
                     value={shipment.courier}
                   >
                     <option value="">배송사를 선택하세요</option>
@@ -135,15 +149,21 @@ export function ShippingTable({
                   </Select>
                 </td>
                 <td className={cellClasses}>
-                  {/* ponytail: 운송장 번호 형식 규칙이 미정이라 자유 입력으로 둔다(Issue #43 협의 사항).
-                      택배사별 자릿수가 정해지면 여기서 검증하고 Input의 error를 켠다. */}
+                  {/* ponytail: 운송장 번호 형식 규칙이 미정이라 자유 입력으로 둔다(Issue #43 협의 사항). */}
                   <Input
                     aria-label={`주문 ${shipment.orderNo} 운송장 번호`}
                     disabled={shipped}
+                    error={trackingTooLong}
                     inputMode="numeric"
+                    maxLength={TRACKING_NUMBER_MAX_LENGTH}
                     onChange={(event) => onChange(shipment.id, { trackingNo: event.target.value })}
                     placeholder="운송장 번호를 입력하세요"
                     size="xs"
+                    title={
+                      trackingTooLong
+                        ? `운송장 번호는 ${TRACKING_NUMBER_MAX_LENGTH}자 이내여야 발송할 수 있습니다.`
+                        : undefined
+                    }
                     value={shipment.trackingNo}
                   />
                 </td>
@@ -152,6 +172,11 @@ export function ShippingTable({
                     className="bg-layer-surface-disabled text-label-m text-text-default enabled:hover:bg-layer-surface-disabled-hover focus-visible:outline-border-primary disabled:text-text-disabled flex h-8 w-full items-center justify-center rounded-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
                     disabled={readOnly || !canShip(shipment)}
                     onClick={() => onShip(shipment.id)}
+                    title={
+                      !shipped && (courierTooLong || trackingTooLong)
+                        ? "택배사·운송장 번호를 글자 수 제한 안에서 다시 입력해주세요."
+                        : undefined
+                    }
                     type="button"
                   >
                     {shipmentActionLabel[shipment.status]}
