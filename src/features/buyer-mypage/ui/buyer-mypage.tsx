@@ -38,7 +38,8 @@ const menuGroups = [
 export function BuyerMyPage({
   member,
 }: {
-  member?: { name: string; nickname: string; isSeller: boolean };
+  /** `email`은 따로 불러와 불러오는 중·실패면 비어 있다. */
+  member?: { name: string; nickname: string; isSeller: boolean; email?: string };
 }) {
   return (
     <BuyerAccountScreen
@@ -66,8 +67,10 @@ export function BuyerMyPage({
                 </span>
                 <Icon name="next" className="size-4 shrink-0" />
               </p>
-              <p className="text-caption-s text-text-disabled mt-1 truncate font-medium">
-                {member ? member.name : "12*****@gmail.com"}
+              {/* PM-8: 마스킹하지 않은 이메일. 이메일이 없으면(불러오는 중·실패) 실명으로 바꾸지 않고
+                  줄 높이만 남겨 이메일이 와도 아래 내용이 밀리지 않게 한다(노션 FE 자체 판단 108). */}
+              <p className="text-caption-s text-text-disabled mt-1 min-h-[1lh] truncate font-medium">
+                {member ? member.email : "12*****@gmail.com"}
               </p>
             </div>
           </PendingDestination>

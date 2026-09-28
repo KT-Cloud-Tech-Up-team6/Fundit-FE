@@ -20,6 +20,7 @@ import {
   fillRealSlots,
   noRealLives,
   realLiveHref,
+  realLiveSeller,
   realLiveTitle,
   scheduleLabel,
   type RealLives,
@@ -77,7 +78,15 @@ function LiveAsset({
   );
 }
 
-function Seller({ data, ranking = false }: { data: LiveDemo; ranking?: boolean }) {
+/** 카드의 판매자 줄. 실제 LIVE는 닉네임만 있어 아바타 자리에 기본 이미지를 둔다. */
+type SellerLine = Pick<LiveDemo, "seller" | "avatar">;
+
+const realSellerLine = (live: LiveSummaryResponse): SellerLine | undefined => {
+  const seller = realLiveSeller(live);
+  return seller ? { seller } : undefined;
+};
+
+function Seller({ data, ranking = false }: { data: SellerLine; ranking?: boolean }) {
   return (
     <div
       className={
@@ -88,7 +97,9 @@ function Seller({ data, ranking = false }: { data: LiveDemo; ranking?: boolean }
     >
       {ranking && (
         <Avatar size={28}>
-          <Image src={data.avatar!} alt="" fill sizes="28px" className="object-cover" />
+          {data.avatar ? (
+            <Image src={data.avatar} alt="" fill sizes="28px" className="object-cover" />
+          ) : undefined}
         </Avatar>
       )}
       <span>{data.seller}</span>
@@ -165,8 +176,8 @@ type CardView = {
   badge: "viewers" | "scheduled" | "live";
   /** `viewers` 뱃지의 수. 없으면 목업 예시 값이다. */
   viewers?: string;
-  /** 실제 LIVE는 판매자·추천 사유가 BE에 없어 비운다. */
-  seller?: LiveDemo;
+  /** 실제 LIVE는 추천 사유가 BE에 없어 비우고, 판매자는 닉네임이 있을 때만 채운다. */
+  seller?: SellerLine;
   reasons?: string[];
 };
 
@@ -269,6 +280,7 @@ function RealLiveCard({ live, compact = false }: { live: LiveSummaryResponse; co
               ? "live"
               : "viewers",
         viewers: live.viewerCount?.toLocaleString("ko-KR"),
+        seller: realSellerLine(live),
       }}
     />
   );
@@ -323,7 +335,7 @@ function ScheduleMedia({
   );
 }
 
-/** 실시간 순위 한 행의 표시 값. 실제 LIVE는 카테고리·달성률·판매자가 BE에 없어 비운다. */
+/** 실시간 순위 한 행의 표시 값. 실제 LIVE는 카테고리·달성률이 BE에 없어 비운다. */
 type RankingView = {
   href: string;
   title: string;
@@ -332,7 +344,7 @@ type RankingView = {
   viewers?: string;
   category?: string;
   achievement?: ReactNode;
-  seller?: LiveDemo;
+  seller?: SellerLine;
 };
 
 function RankingCard({ rank, card }: { rank: number; card: RankingView }) {
@@ -396,6 +408,7 @@ const realRanking = (live: LiveSummaryResponse): RankingView => ({
   title: realLiveTitle(live),
   image: live.thumbnailUrl,
   viewers: live.viewerCount?.toLocaleString("ko-KR"),
+  seller: realSellerLine(live),
 });
 
 /** 예정 카드 한 장의 표시 값. `id`는 알림 버튼 상태의 키다. */
@@ -404,9 +417,9 @@ type ScheduledView = {
   href: string;
   title: string;
   schedule: ScheduleView;
-  /** 실제 LIVE는 카테고리·판매자·알림 신청 수가 BE에 없어 비운다. */
+  /** 실제 LIVE는 카테고리·알림 신청 수가 BE에 없어 비운다. */
   category?: string;
-  seller?: LiveDemo;
+  seller?: SellerLine;
   /** 목업만 알림 신청 수(Figma 예시 값)를 보인다. */
   showNotificationCount: boolean;
 };
@@ -429,6 +442,7 @@ const realScheduled = (live: LiveSummaryResponse): ScheduledView => ({
   href: realLiveHref(live),
   title: realLiveTitle(live),
   schedule: realSchedule(live),
+  seller: realSellerLine(live),
   showNotificationCount: false,
 });
 
@@ -564,9 +578,9 @@ export function BuyerLiveMain({
           </div>
         </Link>
         {!compact && card.seller && <Seller data={card.seller} />}
-        {/* 실제 LIVE는 판매자 줄이 없어 버튼을 카드 아래에 붙여 옆 카드와 줄을 맞춘다.
-            목업 카드는 contents라 배치가 그대로다. */}
-        <div className={card.seller ? "contents" : "mt-auto"}>
+        {/* 실제 LIVE는 소개 문구 줄 수와 판매자 줄 유무가 카드마다 달라 버튼을 카드 아래에 붙여
+            옆 카드와 줄을 맞춘다. 목업 카드(알림 신청 수를 보이는 카드)는 contents라 배치가 그대로다. */}
+        <div className={card.showNotificationCount ? "contents" : "mt-auto"}>
           {notificationButton(card.id, card.title)}
         </div>
       </article>

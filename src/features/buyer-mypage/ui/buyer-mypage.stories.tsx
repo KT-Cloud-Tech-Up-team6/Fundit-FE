@@ -45,3 +45,15 @@ export const Default: Story = {
 export const Desktop: Story = {
   globals: { viewport: { value: "desktop" } },
 };
+
+/* 로그인 회원: 이름 아래 줄은 실명이 아니라 마스킹하지 않은 이메일이다(PM-8). */
+export const Member: Story = {
+  args: {
+    member: { name: "홍길동", nickname: "길동", isSeller: false, email: "gildong@example.com" },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("gildong@example.com")).toBeVisible();
+    await expect(canvas.queryByText("홍길동")).not.toBeInTheDocument();
+  },
+};

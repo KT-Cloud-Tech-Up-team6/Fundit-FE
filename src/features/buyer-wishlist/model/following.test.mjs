@@ -4,6 +4,7 @@ import {
   displayedFollowings,
   displayedFollowingTotal,
   followingName,
+  followingRowSeller,
   uniqueFollowings,
 } from "./following.ts";
 
@@ -54,4 +55,23 @@ test("the displayed total includes rows retained until refresh", () => {
 
   assert.equal(displayedFollowingTotal(39, [seller("b")], unfollowed), 40);
   assert.equal(displayedFollowingTotal(40, [removed, seller("b")], unfollowed), 40);
+});
+
+test("the following row passes the server counts without my own follow", () => {
+  const row = followingRowSeller({
+    sellerId: "a",
+    sellerNickname: "길동 공방",
+    followerCount: 12,
+    wishCount: 3,
+    createdAt: "2026-09-28",
+  });
+  // SellerRow adds 1 back while following, so a followed row shows 12 and an unfollowed one 11.
+  assert.deepEqual(row, { id: "a", name: "길동 공방", followers: 11, likes: 3 });
+  assert.equal(followingRowSeller({ sellerId: "b", followerCount: 0, createdAt: "" }).followers, 0);
+});
+
+test("the following row leaves the counts out when an older server omits them", () => {
+  const row = followingRowSeller({ sellerId: "a", sellerName: "홍길동", createdAt: "2026-09-28" });
+  assert.equal(row.followers, undefined);
+  assert.equal(row.likes, undefined);
 });

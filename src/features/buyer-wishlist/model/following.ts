@@ -6,6 +6,20 @@ export function followingName(follow: Pick<FollowedSeller, "sellerName" | "selle
   return follow.sellerNickname?.trim() || follow.sellerName?.trim() || "판매자";
 }
 
+/**
+ * 팔로잉 행에 넘길 판매자. `SellerRow`는 팔로잉 중이면 팔로워에 1을 더해 그리는데(목업과 같은 규칙),
+ * 서버 수에는 내 팔로우가 이미 들어 있어 1을 빼서 넘긴다. 그래서 해제 직후 남는 행은 1 줄어든 수가 보인다.
+ */
+export function followingRowSeller(follow: FollowedSeller) {
+  return {
+    id: follow.sellerId,
+    name: followingName(follow),
+    followers:
+      follow.followerCount === undefined ? undefined : Math.max(0, follow.followerCount - 1),
+    likes: follow.wishCount,
+  };
+}
+
 /** 목록을 이어 읽는 동안 같은 판매자가 겹쳐 와도 첫 행만 표시한다. */
 export function uniqueFollowings(follows: readonly FollowedSeller[]): FollowedSeller[] {
   const ids = new Set<string>();

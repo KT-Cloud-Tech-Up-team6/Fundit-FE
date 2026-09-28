@@ -7,6 +7,8 @@ import { FollowingListApi } from "./following-list-api";
 const sellers = Array.from({ length: 21 }, (_, index) => ({
   sellerId: `seller-${index + 1}`,
   sellerNickname: `판매자 ${index + 1}`,
+  followerCount: 10 + index,
+  wishCount: index * 2,
   createdAt: "2026-09-28T00:00:00Z",
 }));
 
@@ -76,12 +78,19 @@ export const InfiniteFollowAndRestore: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const row = () => canvas.getByRole("article", { name: "판매자 1" });
+    await expect(await canvas.findByRole("article", { name: "판매자 1" })).toHaveTextContent(
+      "팔로워 10",
+    );
     await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" }));
     await expect(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" })).toBeVisible();
+    // 해제 직후 남는 행은 본인 팔로우를 뺀 수를 보인다.
+    await expect(row()).toHaveTextContent("팔로워 9");
     await expect(
       await canvas.findByRole("button", { name: "판매자 21 팔로우 해제" }),
     ).toBeVisible();
     await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" }));
     await expect(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" })).toBeVisible();
+    await expect(row()).toHaveTextContent("팔로워 10");
   },
 };

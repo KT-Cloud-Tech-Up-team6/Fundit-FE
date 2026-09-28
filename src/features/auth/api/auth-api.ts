@@ -170,3 +170,11 @@ export function getMe(options?: RequestOptions) {
     auth: true,
   });
 }
+
+/** 마이페이지 이름 아래 줄의 이메일(PM-8, 마스킹 없음). 이메일은 auth 소관이라 `members/me`와 따로 부른다(BE #174). */
+export function getMyEmail(options?: RequestOptions) {
+  return apiRequest<{ email: string }>("/api/v1/auth/me", {
+    ...signalOptions(options),
+    auth: true,
+  });
+}
