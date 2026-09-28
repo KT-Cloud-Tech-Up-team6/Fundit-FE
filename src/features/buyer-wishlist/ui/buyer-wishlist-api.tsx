@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWishes, setWish, WISH_PAGE_SIZE, type Wish } from "@/entities/member/api/member-api";
+import type { FollowedSeller } from "@/entities/seller/api/follow-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
@@ -37,7 +38,8 @@ function Wishlist({ memberId }: { memberId: string }) {
   });
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [removed, setRemoved] = useState<Wish | null>(null);
+    [removed, setRemoved] = useState<Wish | null>(null),
+    [unfollowed, setUnfollowed] = useState<ReadonlyMap<string, FollowedSeller>>(new Map());
   const saving = useRef(false);
   async function change(item: Wish, wished: boolean) {
     if (saving.current) return;
@@ -87,7 +89,11 @@ function Wishlist({ memberId }: { memberId: string }) {
         className="space-y-3 px-5 pt-3 pb-5"
       >
         {sellers ? (
-          <FollowingListApi memberId={memberId} page={page} />
+          <FollowingListApi
+            memberId={memberId}
+            unfollowed={unfollowed}
+            onUnfollowedChange={(change) => setUnfollowed(change)}
+          />
         ) : (
           <>
             {error && <p role="alert">{error}</p>}
@@ -116,7 +122,11 @@ function Wishlist({ memberId }: { memberId: string }) {
               <>
                 <p className="text-text-disabled text-body-s">총 {list.data.totalElements}개</p>
                 {!list.data.content.length && (
-                  <p className="py-24 text-center">찜한 프로젝트가 없습니다.</p>
+                  <p className="py-24 text-center">
+                    {list.data.totalElements
+                      ? "이 페이지에 표시할 찜한 프로젝트가 없습니다."
+                      : "찜한 프로젝트가 없습니다."}
+                  </p>
                 )}
                 {list.data.content.map((item) => {
                   const detailId = projectDetailId(item.projectPublicId);
