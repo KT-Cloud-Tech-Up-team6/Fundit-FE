@@ -352,7 +352,8 @@ export function LiveCreateApi({
     .map((item, index) => ({ item, projectId: drafts.data?.content[index]?.projectId ?? "" }))
     .filter(({ projectId: id }) => !picking || projectTitles.has(id));
   const draftsPending = drafts.isPending || (picking && projects.isPending);
-  const draftsFailed = drafts.isError || (picking && projects.isError);
+  /* 이미 받은 목록이 있으면 다시 받기만 실패해도 목록을 그대로 둔다. */
+  const draftsFailed = drafts.isLoadingError || (picking && projects.isLoadingError);
   const inCategory = projectsInCategory(projects.data?.content ?? [], category);
 
   const projectPicker = (
@@ -399,7 +400,7 @@ export function LiveCreateApi({
             <li className="text-body-s text-text-secondary p-4">
               <p role="status">프로젝트를 불러오고 있습니다.</p>
             </li>
-          ) : projects.isError ? (
+          ) : projects.isLoadingError ? (
             <li className="text-body-s p-4">
               <p role="alert">
                 진행 중인 프로젝트를 불러오지 못했습니다.{" "}
