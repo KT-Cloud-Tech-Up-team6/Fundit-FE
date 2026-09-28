@@ -329,7 +329,7 @@ export function BuyerHome({
 }) {
   return (
     <div
-      className={`${styles.screen} bg-layer-surface-default min-[1200px]:bg-layer-bg text-text-default min-h-dvh w-full pb-[calc(54px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`}
+      className={`${styles.screen} bg-layer-surface-default min-[1200px]:bg-layer-bg text-text-default min-h-dvh w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:pb-0`}
     >
       <BuyerDesktopHeader />
       <header className="flex items-center gap-4 px-5 py-2 min-[1200px]:hidden">
