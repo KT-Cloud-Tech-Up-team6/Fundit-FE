@@ -19,7 +19,7 @@ const tabs = [
   ["refund-policy", "환불 정책"],
 ] as const;
 
-function DetailIcon({
+export function DetailIcon({
   name,
   className = "size-4",
 }: {
@@ -43,7 +43,7 @@ function DetailIcon({
   );
 }
 
-function Information({ label, disabled = false }: { label: string; disabled?: boolean }) {
+export function Information({ label, disabled = false }: { label: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const tooltip = useRef<HTMLDivElement>(null);
   const id = useId();
