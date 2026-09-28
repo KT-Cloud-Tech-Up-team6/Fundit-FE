@@ -124,6 +124,7 @@ export function ShippingTable({
                 <td className={`${cellClasses} truncate`}>{shipment.address}</td>
                 <td className={cellClasses}>
                   <Select
+                    aria-describedby={courierTooLong ? `${shipment.id}-courier-error` : undefined}
                     aria-label={`주문 ${shipment.orderNo} 택배사`}
                     disabled={shipped}
                     error={courierTooLong}
@@ -147,10 +148,16 @@ export function ShippingTable({
                       </option>
                     ))}
                   </Select>
+                  {courierTooLong && (
+                    <p className="sr-only" id={`${shipment.id}-courier-error`} role="alert">
+                      택배사는 {COURIER_MAX_LENGTH}자 이내여야 발송할 수 있습니다.
+                    </p>
+                  )}
                 </td>
                 <td className={cellClasses}>
                   {/* ponytail: 운송장 번호 형식 규칙이 미정이라 자유 입력으로 둔다(Issue #43 협의 사항). */}
                   <Input
+                    aria-describedby={trackingTooLong ? `${shipment.id}-tracking-error` : undefined}
                     aria-label={`주문 ${shipment.orderNo} 운송장 번호`}
                     disabled={shipped}
                     error={trackingTooLong}
@@ -166,6 +173,11 @@ export function ShippingTable({
                     }
                     value={shipment.trackingNo}
                   />
+                  {trackingTooLong && (
+                    <p className="sr-only" id={`${shipment.id}-tracking-error`} role="alert">
+                      운송장 번호는 {TRACKING_NUMBER_MAX_LENGTH}자 이내여야 발송할 수 있습니다.
+                    </p>
+                  )}
                 </td>
                 <td className={cellClasses}>
                   <button
