@@ -91,7 +91,7 @@ export const ChooseType: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "유형 필터" }));
     const options = canvas.getAllByRole("option").map((option) => option.textContent);
-    await expect(options).toEqual(["전체", "취소", "교환", "환불"]);
+    await expect(options).toEqual(["전체", "취소", "반품", "교환"]);
     await userEvent.click(canvas.getByRole("option", { name: "교환" }));
     await expect(args.onTypeChange).toHaveBeenCalledWith("exchange");
     await expect(canvas.getByRole("button", { name: "유형 필터" })).toHaveTextContent("교환");

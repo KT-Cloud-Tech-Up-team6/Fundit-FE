@@ -8,74 +8,66 @@ import { toRewards } from "../model/public-reward";
 
 /* 실제 프로젝트의 리워드 조회 응답(BE RewardConsumerResponse, null 필드는 키가 빠진다)을
    화면 모델로 옮긴 값. 정률·정액 얼리 버드, 품절, 옵션 그룹 2개·재고 3개를 담는다. */
-const apiRewards = toRewards(
-  [
-    {
-      rewardId: 11,
-      rewardDisplayCode: "R-11",
-      name: "얼리버드 컬러 세트",
-      description: "본체 · 브러시 2종",
-      price: 200_000,
-      isEarlyBird: true,
-      earlyBirdDiscountType: "RATE",
-      earlyBirdDiscountValue: 10,
-      earlyBirdDiscountedPrice: 180_000,
-      isLimited: true,
-      remainingStock: 3,
-      options: [
-        {
-          groupId: 1,
-          groupName: "색상",
-          values: [
-            { valueId: 101, value: "블랙" },
-            { valueId: 102, value: "화이트" },
-          ],
-        },
-        {
-          groupId: 2,
-          groupName: "사이즈",
-          values: [
-            { valueId: 201, value: "S" },
-            { valueId: 202, value: "L" },
-          ],
-        },
-      ],
-      soldOut: false,
-      shippingFee: 0,
-      estimatedDeliveryDays: 7,
-    },
-    {
-      rewardId: 12,
-      rewardDisplayCode: "R-12",
-      name: "정액 할인 기본 세트",
-      description: "본체 · 충전 어댑터",
-      price: 150_000,
-      isEarlyBird: true,
-      earlyBirdDiscountType: "AMOUNT",
-      earlyBirdDiscountValue: 20_000,
-      earlyBirdDiscountedPrice: 130_000,
-      isLimited: false,
-      options: [],
-      soldOut: false,
-      shippingFee: 3000,
-      estimatedDeliveryDays: 14,
-    },
-    {
-      rewardId: 13,
-      rewardDisplayCode: "R-13",
-      name: "품절된 한정 세트",
-      description: "본체 2대",
-      price: 300_000,
-      isEarlyBird: false,
-      isLimited: true,
-      remainingStock: 0,
-      options: [],
-      soldOut: true,
-      shippingFee: 0,
-    },
-  ],
-  "2026-10-27T14:59:59Z",
-);
+const apiRewards = toRewards([
+  {
+    rewardId: 11,
+    rewardDisplayCode: "R-11",
+    name: "얼리버드 컬러 세트",
+    description: "본체 · 브러시 2종",
+    price: 200_000,
+    isEarlyBird: true,
+    earlyBirdDiscountType: "RATE",
+    earlyBirdDiscountValue: 10,
+    earlyBirdDiscountedPrice: 180_000,
+    isLimited: true,
+    remainingStock: 3,
+    options: [
+      {
+        groupId: 1,
+        groupName: "색상",
+        values: [
+          { valueId: 101, value: "블랙" },
+          { valueId: 102, value: "화이트" },
+        ],
+      },
+      {
+        groupId: 2,
+        groupName: "사이즈",
+        values: [
+          { valueId: 201, value: "S" },
+          { valueId: 202, value: "L" },
+        ],
+      },
+    ],
+    soldOut: false,
+  },
+  {
+    rewardId: 12,
+    rewardDisplayCode: "R-12",
+    name: "정액 할인 기본 세트",
+    description: "본체 · 충전 어댑터",
+    price: 150_000,
+    isEarlyBird: true,
+    earlyBirdDiscountType: "AMOUNT",
+    earlyBirdDiscountValue: 20_000,
+    earlyBirdDiscountedPrice: 130_000,
+    isLimited: false,
+    options: [],
+    soldOut: false,
+  },
+  {
+    rewardId: 13,
+    rewardDisplayCode: "R-13",
+    name: "품절된 한정 세트",
+    description: "본체 2대",
+    price: 300_000,
+    isEarlyBird: false,
+    isLimited: true,
+    remainingStock: 0,
+    options: [],
+    soldOut: true,
+  },
+]);
 
 const meta = {
   title: "Features/Reward Selection",
@@ -122,20 +114,20 @@ export const MultipleRewards: Story = {
     );
     await choose("한 번에 갖추는 올인원 패키지");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "667,000원",
+      "670,000원",
     );
     await expect(canvas.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent(
       "한 번에 갖추는 올인원 패키지",
     );
     await choose("가장 먼저 만나는 스타터 세트");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "667,000원",
+      "670,000원",
     );
     await userEvent.click(
       canvas.getByRole("button", { name: "한 번에 갖추는 올인원 패키지 삭제" }),
     );
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "398,000원",
+      "401,000원",
     );
   },
 };
@@ -153,11 +145,11 @@ export const MultipleOptionLines: Story = {
     await userEvent.selectOptions(select, "화이트");
     await userEvent.selectOptions(select, "블랙");
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "1,797,000원",
+      "1,800,000원",
     );
     await userEvent.click(canvas.getByRole("button", { name: "화이트 삭제" }));
     await expect(canvas.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "1,198,000원",
+      "1,201,000원",
     );
   },
 };
@@ -174,11 +166,11 @@ export const ApiRewards: Story = {
     const rate = list.getByRole("button", { name: /얼리버드 컬러 세트/ });
     await expect(rate).toHaveTextContent("얼리 버드 10%");
     await expect(rate).toHaveTextContent("200,000원180,000원");
-    await expect(rate).toHaveTextContent("본체 · 브러시 2종 · 무료배송 · 예상 발송일 2026.11.03");
+    await expect(rate).toHaveTextContent("본체 · 브러시 2종");
     const amount = list.getByRole("button", { name: /정액 할인 기본 세트/ });
     await expect(within(amount).getByText("얼리 버드")).toBeInTheDocument();
     await expect(amount).toHaveTextContent("150,000원130,000원");
-    await expect(amount).toHaveTextContent("배송비 3,000원 · 예상 발송일 2026.11.10");
+    await expect(amount).toHaveTextContent("본체 · 충전 어댑터");
     const soldOut = list.getByRole("button", { name: /품절된 한정 세트/ });
     await expect(soldOut).toBeDisabled();
     await expect(soldOut).toHaveTextContent("품절");
@@ -197,7 +189,7 @@ export const ApiRewards: Story = {
     await expect(dialog.getByRole("button", { name: "화이트 / S 수량 늘리기" })).toBeDisabled();
     await expect(color).toBeDisabled();
     await expect(dialog.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "540,000원",
+      "543,000원",
     );
 
     await userEvent.click(trigger);
@@ -210,7 +202,7 @@ export const ApiRewards: Story = {
       "정액 할인 기본 세트",
     );
     await expect(dialog.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "670,000원",
+      "673,000원",
     );
     await userEvent.click(dialog.getByRole("button", { name: "펀딩하기" }));
     await expect(args.onSubmit).toHaveBeenCalledWith({
@@ -259,7 +251,7 @@ export const ApiRewardsInline: Story = {
       within(form.getByRole("group", { name: "선택한 리워드" })).getAllByRole("heading")[0],
     ).toHaveTextContent("얼리버드 컬러 세트");
     await expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent(
-      "310,000원",
+      "313,000원",
     );
     await userEvent.click(canvas.getByRole("button", { name: "펀딩하기" }));
     await expect(args.onSubmit).toHaveBeenCalledWith({

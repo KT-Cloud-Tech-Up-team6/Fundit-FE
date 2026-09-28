@@ -23,7 +23,6 @@ export const Default: Story = {
     const canvas = within(canvasElement);
 
     await expect(canvas.getByRole("heading", { name: "펀딩 참여가 완료되었어요" })).toBeVisible();
-    await expect(canvas.getByText("예상 발송일 2026.11.02")).toBeVisible();
 
     // 영수증 행
     await expect(canvas.getByText("주문번호").nextElementSibling).toHaveTextContent(

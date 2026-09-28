@@ -15,12 +15,16 @@ export function SellerRow({
   following,
   onFollow,
   followUnavailable = false,
+  followLabel,
 }: {
   seller: Pick<SellerSummary, "id" | "name"> & Partial<SellerSummary>;
   following: boolean;
   onFollow: () => void;
   followUnavailable?: boolean;
+  /** 해제 직후처럼 일반 팔로우와 다른 CTA가 필요한 경우의 문구. */
+  followLabel?: string;
 }) {
+  const buttonLabel = following ? "팔로잉" : (followLabel ?? "팔로우");
   return (
     <article className="flex items-center justify-between gap-3 py-3" aria-label={seller.name}>
       <div className="flex min-w-0 items-center gap-2">
@@ -70,12 +74,12 @@ export function SellerRow({
         variant={following ? "secondary" : "primary"}
         size="md"
         className="h-9 shrink-0 px-3 text-[12px]!"
-        aria-label={`${seller.name} ${following ? "팔로우 해제" : "팔로우"}`}
+        aria-label={`${seller.name} ${following ? "팔로우 해제" : buttonLabel}`}
         aria-pressed={followUnavailable ? undefined : following}
         disabled={followUnavailable}
         onClick={onFollow}
       >
-        {following ? "팔로잉" : "팔로우"}
+        {buttonLabel}
       </Button>
     </article>
   );

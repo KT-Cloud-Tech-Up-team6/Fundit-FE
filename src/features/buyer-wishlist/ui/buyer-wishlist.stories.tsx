@@ -50,8 +50,8 @@ export const RemoveItems: Story = {
     await expect(canvas.getByRole("status")).toHaveTextContent("총 7개");
     for (const button of canvas.getAllByRole("button", { name: /팔로우/ }))
       await userEvent.click(button);
-    await expect(canvas.getByRole("status")).toHaveTextContent("총 0개");
-    await expect(canvas.getByText("팔로우한 판매자가 없습니다.")).toBeVisible();
+    await expect(canvas.getByRole("status")).toHaveTextContent("총 7개");
+    await expect(canvas.getAllByRole("button", { name: /다시 팔로우$/ })).toHaveLength(7);
     canvas.getByRole("tab", { name: "팔로잉" }).focus();
     await userEvent.keyboard("{ArrowLeft}");
     await expect(canvas.getByRole("tab", { name: "찜 프로젝트" })).toHaveAttribute(

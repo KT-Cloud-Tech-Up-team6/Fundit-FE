@@ -23,48 +23,28 @@ export type FundingCancelVariant = "cancel" | "shipping-delay" | "return";
 
 // 참여 취소 --------------------------------------------------------------
 
-/** CL_2(2323:53242) 드롭다운 순서 그대로. */
-export const cancelReasons = [
-  "단순 변심",
-  "결제 정보 오류",
-  "옵션 선택 오류",
-  "기타 창작자 귀책",
-  "기타",
-] as const;
+/** CL_2(2323:53242) 드롭다운 순서 그대로. "기타 창작자 귀책"은 Figma에만 있고 IA·BE에 없어
+    PM 회신(2026-09-28, PM-4)으로 선택지에서 뺐다. */
+export const cancelReasons = ["단순 변심", "결제 정보 오류", "옵션 선택 오류", "기타"] as const;
 
 export type CancelReason = (typeof cancelReasons)[number];
 
 /** BE `OrderCancelRequest.reasonDetail` `@Size(max = 100)`. 반품/교환 입력도 같은 길이로 받는다. */
 export const cancelDetailMaxLength = 100;
 
-/* 임시 처리(#358): "기타 창작자 귀책"은 Figma CL_2에만 있고 IA J48과 BE `CancelReason`에는 없다.
-   BE의 `ETC`로 보내고 상세 앞에 "창작자 귀책"을 붙여 구분을 남긴다(2026-09-27 사용자 결정).
-   본문 없이 취소하면 결제 서비스가 사유를 "구매자 단순변심 참여 취소"로 기록하기 때문이다.
-   BE에 전용 값이 생기면 그 값으로 바꾸고 앞 문구를 뗀다. */
 const cancelReasonCodes: Record<CancelReason, OrderCancelReason> = {
   "단순 변심": "SIMPLE_CHANGE_OF_MIND",
   "결제 정보 오류": "PAYMENT_INFO_ERROR",
   "옵션 선택 오류": "OPTION_SELECTION_ERROR",
-  "기타 창작자 귀책": "ETC",
   기타: "ETC",
 };
-const creatorFaultDetail = "창작자 귀책";
-const creatorFaultDetailPrefix = `${creatorFaultDetail} · `;
-
-/** 사유별 상세 입력 한도. "기타 창작자 귀책"은 앞에 붙는 문구만큼 BE 한도(100자)에서 줄어든다. */
-export function cancelDetailMaxLengthFor(reason: CancelReason | ""): number {
-  return reason === "기타 창작자 귀책"
-    ? cancelDetailMaxLength - creatorFaultDetailPrefix.length
-    : cancelDetailMaxLength;
-}
 
 /** CL_1-1(2323:53685)의 고정 사유. 드롭다운 없이 이 문구만 보인다. */
 export const shippingDelayCancelReason = "발송 예정일 지연 취소";
 
-/** 상세 입력란을 보여 줄지. 보낼 필드가 없는 경우에는 입력을 받지 않는다. */
+/** 상세 입력란을 보여 줄지. 발송 지연 취소(CL_1-1)는 IA와 BE `/shipping-delay`(`fundingId`만
+    받는다)에 입력란이 없다(PM 회신 2026-09-28, PM-5). */
 export function acceptsDetailInput(variant: FundingCancelVariant): boolean {
-  /* 임시 처리(#358): 발송 지연 취소(CL_1-1)의 입력란은 IA와 BE `/shipping-delay`(`fundingId`만
-     받는다)에 없다. BE에 필드가 생기거나 제품에서 입력란을 빼기로 하면 정리한다. */
   return variant !== "shipping-delay";
 }
 
@@ -77,16 +57,10 @@ export function canSubmitCancel(reason: CancelReason | "", detail: string): bool
   return reason !== "" && (!isCancelDetailRequired(reason) || detail.trim().length > 0);
 }
 
-/** 참여 취소 요청 본문. "기타 창작자 귀책"은 `ETC`에 앞 문구를 붙인 상세로 보낸다(위 임시 처리). */
+/** 참여 취소 요청 본문. */
 export function cancelRequestBody(reason: CancelReason, detail: string): OrderCancelBody {
   const cancelReason = cancelReasonCodes[reason];
   const reasonDetail = detail.trim();
-  if (reason === "기타 창작자 귀책") {
-    return {
-      cancelReason,
-      reasonDetail: reasonDetail ? creatorFaultDetailPrefix + reasonDetail : creatorFaultDetail,
-    };
-  }
   return reasonDetail ? { cancelReason, reasonDetail } : { cancelReason };
 }
 

@@ -14,7 +14,7 @@ export type OrderItem = {
   projectTitle: string;
   rewardName: string;
   quantity: number;
-  /** 메타 줄 조각. 가운뎃점으로 잇는다. 예: ["무료배송", "예상 발송일 2026.10.12"]. */
+  /** 메타 줄 조각. 가운뎃점으로 잇는다. 예: ["무료배송"]. */
   meta: string[];
   /** 정가. 상품 카드의 쿠폰 적용가는 이 값 − 적용 쿠폰 할인으로 계산한다. */
   originalPrice: number;
@@ -138,7 +138,7 @@ export function demoOrderItem(): OrderItem {
     projectTitle: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
     rewardName: "가장 먼저 만나는 스타터 세트",
     quantity: 1,
-    meta: ["무료배송", "예상 발송일 2026.10.12"],
+    meta: ["무료배송"],
     originalPrice: 219_900,
     price: 199_000,
     image: "/images/checkout/product.png",
@@ -225,7 +225,6 @@ export function demoOrderReceipt(): OrderReceipt {
     ordererName: "홍길동",
     ordererPhone: "010-1111-2222",
     completeMessage: "리워드 참여가 확정됐습니다",
-    expectedShippingDate: "2026.11.02",
   };
 }
 
