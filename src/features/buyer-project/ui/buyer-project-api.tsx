@@ -158,11 +158,12 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     );
   const data = detail.data,
     summary = data.fundingStatus;
-  /* 환불정책 탭은 리워드 이름도 리워드 목록에서 찾는다. 목록을 받기 전이나 실패하면 모든 행이 "리워드"로
-     보여 구별할 수 없으므로 두 조회를 함께 기다리고 함께 다시 시도한다(#405). */
+  /* 환불정책 탭은 리워드 이름도 리워드 목록에서 찾는다. 목록을 받기 전이나 처음 받기에 실패하면 모든 행이
+     "리워드"로 보여 구별할 수 없으므로 두 조회를 함께 기다리고 함께 다시 시도한다(#405). 이름을 이미 받은 뒤의
+     재조회 실패(`isError`)로는 탭을 오류로 바꾸지 않는다. */
   const refundTab = {
     isPending: refund.isPending || rewards.isPending,
-    isError: refund.isError || rewards.isError,
+    isError: refund.isError || rewards.isLoadingError,
     error: refund.error ?? rewards.error,
     refetch: () => Promise.all([refund.refetch(), rewards.refetch()]),
   };
@@ -235,9 +236,12 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
           정보 아이콘·툴팁 1541:50567·1541:50704). 원본에 없던 안내 문장은 뺐다(#405). 종료 LIVE·숏 클립의
           "LIVE 다시 보기" 절은 #319가 맡는다. */}
       <div className="mb-3 flex items-center gap-1">
+        {/* Figma는 아이콘·제목 사이 8px(1541:50563), 제목·건수·안내 아이콘 사이 4px(1541:50562)다. */}
         <h2 className="text-title-s flex items-center gap-1">
-          <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
-          LIVE Q&amp;A{" "}
+          <span className="flex items-center gap-2">
+            <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
+            LIVE Q&amp;A
+          </span>{" "}
           <small className="text-caption-s text-text-secondary font-medium">
             {live.data?.content?.length ?? 0}건
           </small>
