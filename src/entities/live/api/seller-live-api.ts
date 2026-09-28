@@ -65,6 +65,24 @@ export function getMyLives(
   return apiRequest<LivePage>(`/api/v1/lives/mine?${query}`, { auth: true, signal });
 }
 
+/** 페이지 없이 고르는 목록(임시저장 불러오기)용. `hasNext`가 끝날 때까지 받아 한 목록으로 합친다. */
+export async function getAllMyLives(query: Omit<MyLivesQuery, "page">, signal?: AbortSignal) {
+  const content: LiveSummaryResponse[] = [];
+  const seen = new Set<string>();
+  for (let page = 1; ; page += 1) {
+    const result = await getMyLives({ ...query, page }, signal);
+    /* 최신순이라 받는 사이 새 LIVE가 생기면 앞 페이지 항목이 다음 페이지로 밀려 두 번 온다. */
+    for (const item of result.content) {
+      if (seen.has(item.liveId)) continue;
+      seen.add(item.liveId);
+      content.push(item);
+    }
+    /* 빈 페이지·마지막 페이지에서도 멈춘다. hasNext가 잘못 오면 끝없이 부르게 된다. */
+    if (!result.hasNext || result.content.length === 0 || page >= result.totalPages)
+      return { ...result, content };
+  }
+}
+
 export function getLiveStatusCounts(signal?: AbortSignal) {
   return apiRequest<LiveStatusCounts>("/api/v1/lives/status-counts", { auth: true, signal });
 }
