@@ -84,7 +84,8 @@ test("관리 버튼은 실제로 있는 화면으로만 간다", () => {
   assert.equal(liveManageHref("DRAFT", id), `/seller/live/${id}/cue-sheet`);
   assert.equal(liveManageHref("SCHEDULED", id), `/seller/live/${id}/cue-sheet`);
   assert.equal(liveManageHref("LIVE", id), `/seller/live/${id}/console`);
-  assert.equal(liveManageHref("ENDED", id), `/seller/live/${id}/review`);
+  /* 종료 방송은 콘솔 위에 LIVE 체크 작성 모달을 연다(IA 판매자 18행, #399). */
+  assert.equal(liveManageHref("ENDED", id), `/seller/live/${id}/console?check=open`);
   assert.equal(liveManageHref("ERROR", id), `/seller/live/${id}/cue-sheet`);
 });
 
