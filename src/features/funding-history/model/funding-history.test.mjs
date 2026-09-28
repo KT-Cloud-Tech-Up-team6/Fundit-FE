@@ -58,7 +58,7 @@ test("신청한 뒤에는 신청 버튼 대신 가장 최근 신청 유형의 �
         order("DELIVERED", returnActions, [request("DEFECT"), request("EXCHANGE", "REJECTED")]),
       ),
     ),
-    ["반품·교환 내역 /my/refunds?type=refund", "제작·배송 현황 /my/fundings/o1/fulfillment"],
+    ["반품·교환 내역 /my/refunds?type=return", "제작·배송 현황 /my/fundings/o1/fulfillment"],
   );
 });
 
@@ -73,7 +73,7 @@ test("배송 완료는 기간 안이면 반품·교환 신청, 지나면 비활�
   /* 기간이 지나도 이미 낸 신청이 있으면 내역을 먼저 보여 준다. */
   assert.deepEqual(
     buttons(fundingActions(order("DELIVERED", [], [request("RETURN_CHANGE_OF_MIND")]))),
-    ["반품·교환 내역 /my/refunds?type=refund", "제작·배송 현황 /my/fundings/o1/fulfillment"],
+    ["반품·교환 내역 /my/refunds?type=return", "제작·배송 현황 /my/fundings/o1/fulfillment"],
   );
 });
 
@@ -83,9 +83,7 @@ test("성공·배송 중은 제작·배송 현황, 목표 미달은 환불 내�
       "제작·배송 현황 /my/fundings/o1/fulfillment",
     ]);
   }
-  assert.deepEqual(buttons(fundingActions(order("GOAL_FAILED"))), [
-    "환불 내역 /my/refunds?type=refund",
-  ]);
+  assert.deepEqual(buttons(fundingActions(order("GOAL_FAILED"))), ["환불 내역 /my/refunds"]);
 });
 
 test("정리표에 없는 단계는 신청 이력이 있을 때만 내역 버튼 하나를 둔다", () => {
@@ -101,7 +99,7 @@ test("정리표에 없는 단계는 신청 이력이 있을 때만 내역 버튼
   );
   assert.deepEqual(
     buttons(fundingActions(order("REFUNDED", [], [request("DEFECT", "COMPLETED")]))),
-    ["반품·교환 내역 /my/refunds?type=refund"],
+    ["반품·교환 내역 /my/refunds?type=return"],
   );
 });
 
