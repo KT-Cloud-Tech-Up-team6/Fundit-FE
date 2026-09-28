@@ -19,6 +19,7 @@ import {
   toCueSheetType,
   toTargetDurationSec,
 } from "@/entities/live/model/live-cue-sheet";
+import { isUnavailableLive, liveFailureReason } from "@/entities/live/model/live-error";
 import { getProjectPreview } from "@/entities/project/api/seller-project-api";
 import { ApiError } from "@/shared/api/api-error";
 import type { CueScene, CueSheetProject, CueSheetType } from "../model/cue-sheet-demo";
@@ -27,10 +28,6 @@ import { LiveCueSheetFlow } from "./live-cue-sheet-flow";
 /** 큐시트를 한 번도 요청하지 않은 LIVE는 404다. 오류 화면이 아니라 "아직 없음"이다. */
 function isMissing(error: unknown) {
   return error instanceof ApiError && error.status === 404;
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error && error.message ? error.message : "잠시 후 다시 시도해 주세요.";
 }
 
 /**
@@ -67,7 +64,8 @@ export function LiveCueSheetApi({
   });
 
   /* 소유자 단건 조회로 프로젝트를 읽는다. 못 읽어도 큐시트 자체는 동작해야 하므로
-     실패를 화면 전체 오류로 올리지 않고, 실패한 조회를 반복해 두드리지도 않는다. */
+     실패를 화면 전체 오류로 올리지 않고, 실패한 조회를 반복해 두드리지도 않는다.
+     다만 404·403은 LIVE가 없거나 남의 것이라는 뜻이라 큐시트 404와 가르는 데 쓴다. */
   const summary = useQuery({
     queryKey: ["live-summary", owner, liveId],
     queryFn: ({ signal }) => getLiveDetail(liveId, signal),
@@ -100,7 +98,7 @@ export function LiveCueSheetApi({
         void cueSheet.refetch();
         return;
       }
-      setGenerateFailure(errorMessage(error));
+      setGenerateFailure(liveFailureReason(error));
     },
   });
 
@@ -126,11 +124,27 @@ export function LiveCueSheetApi({
         notFoundHref="/seller/projects"
       />
     );
+  /* 큐시트 404는 LIVE가 없거나 남의 LIVE여도 난다(BE `CueSheetService.loadOwned`). 단건 조회로
+     LIVE가 있는지 확인한 뒤에야 "아직 없음"으로 보고 생성 화면을 연다(#403). */
+  if (cueSheet.isError && summary.isPending)
+    return <p role="status">LIVE 정보를 확인하고 있습니다.</p>;
+  if (cueSheet.isError && isUnavailableLive(summary.error))
+    return (
+      <QueryErrorState
+        variant="page"
+        error={summary.error}
+        onRetry={() => void summary.refetch()}
+        notFoundHref="/seller/live"
+      />
+    );
 
   const fromServer = toCueSheetState(cueSheet.isError ? null : cueSheet.data);
-  /* 서버가 GENERATING·COMPLETED를 주면 그쪽이 사실이다. 그 외일 때만 요청 실패를 얹는다. */
-  const server =
-    generateFailure && fromServer.phase !== "generating" && fromServer.phase !== "completed"
+  /* 서버가 GENERATING·COMPLETED를 주면 그쪽이 사실이다. 그 외일 때만 요청 실패를 얹는다.
+     요청 중에는 생성 중으로 둔다. 화면은 생성 중에서 바뀔 때만 실패로 넘어가는데, 서버 상태만
+     보면 404(idle)·이전 FAILED에서 곧장 failed가 돼 생성 중 화면에 멈춘다(#403). */
+  const server = generate.isPending
+    ? { ...fromServer, phase: "generating" as const, failureReason: null }
+    : generateFailure && fromServer.phase !== "generating" && fromServer.phase !== "completed"
       ? { ...fromServer, phase: "failed" as const, failureReason: generateFailure }
       : fromServer;
   const project: CueSheetProject = {
@@ -148,11 +162,11 @@ export function LiveCueSheetApi({
   const notice = save.isPending
     ? ""
     : save.isError
-      ? `큐시트를 저장하지 못했습니다. ${errorMessage(save.error)}`
+      ? `큐시트를 저장하지 못했습니다. ${liveFailureReason(save.error, "큐시트를 다시 만들고 있습니다. 생성이 끝난 뒤 저장해 주세요.")}`
       : save.isSuccess
         ? "큐시트를 저장했습니다."
         : generate.isError
-          ? `큐시트 생성을 요청하지 못했습니다. ${errorMessage(generate.error)}`
+          ? `큐시트 생성을 요청하지 못했습니다. ${liveFailureReason(generate.error, "이미 큐시트를 만들고 있습니다.")}`
           : "";
 
   return (
