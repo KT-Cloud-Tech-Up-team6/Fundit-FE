@@ -30,17 +30,24 @@ export function demoSummaryRows(summary: PaymentSummary): SummaryRows {
   };
 }
 
-/** 실제 주문서(노션 FE 자체 판단 80). BE 할인은 쿠폰만이라 할인 합계와 쿠폰 사용이 같다.
-    얼리버드 할인은 BE가 계산하지 않고(PM·BE 확인 중), 적립금은 구현 제외라 줄을 두지 않는다. */
-export function previewSummaryRows(preview: OrderPreview): SummaryRows {
+/** 실제 주문서(노션 FE 자체 판단 80). BE #181부터 `rewardAmount`는 얼리 버드 할인가 합계라(요청서
+    BE-22), Figma처럼 ㄴ펀딩 금액은 주문 줄의 정가 합계(`listAmount`)로 두고 그 차액을 ㄴ얼리버드 할인에
+    적는다. `discountAmount`는 쿠폰 할인이다. 최종 결제 금액은 다시 계산하지 않고 BE `finalAmount`를
+    따르며, 적립금은 구현 제외라 줄을 두지 않는다. */
+export function previewSummaryRows(preview: OrderPreview, listAmount: number): SummaryRows {
+  /* 리워드 조회와 미리보기는 따로 받아 그 사이 정가가 바뀔 수 있다. 할인이 음수가 되지 않게 해
+     펀딩 금액 + 배송비 − 할인 합계가 늘 BE 금액과 맞게 한다. */
+  const earlyBirdDiscount = Math.max(0, listAmount - preview.rewardAmount);
+  const fundingAmount = preview.rewardAmount + earlyBirdDiscount;
   return {
     order: [
-      { label: "총 주문 금액", amount: preview.rewardAmount + preview.shippingFee },
-      { label: "ㄴ펀딩 금액", amount: preview.rewardAmount },
+      { label: "총 주문 금액", amount: fundingAmount + preview.shippingFee },
+      { label: "ㄴ펀딩 금액", amount: fundingAmount },
       { label: "ㄴ배송비", amount: preview.shippingFee },
     ],
     discount: [
-      { label: "총 할인 금액", amount: preview.discountAmount },
+      { label: "총 할인 금액", amount: earlyBirdDiscount + preview.discountAmount },
+      { label: "ㄴ얼리버드 할인", amount: earlyBirdDiscount },
       { label: "ㄴ쿠폰 사용", amount: preview.discountAmount },
     ],
     finalAmount: preview.finalAmount,

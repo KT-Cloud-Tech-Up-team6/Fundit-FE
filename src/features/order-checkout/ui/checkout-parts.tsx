@@ -158,7 +158,7 @@ export function PriceInformation({
 }
 
 /** 실제 주문서의 주문 상품. 프로젝트 썸네일·제목은 한 번, 그 아래에 옵션 줄마다 리워드·수량·
-    금액을 둔다(노션 FE 자체 판단 81). */
+    금액(얼리 버드면 정가 취소선과 할인가)을 둔다(노션 FE 자체 판단 81). */
 export function ProjectOrderItems({
   title,
   image,
@@ -189,7 +189,13 @@ export function ProjectOrderItems({
           {items.map((item, index) => (
             <li key={index} className="flex flex-col gap-1.5">
               <span className="text-body-s text-text-default">{item.label}</span>
-              {item.price !== undefined && <PriceInformation className="py-2" price={item.price} />}
+              {item.price !== undefined && (
+                <PriceInformation
+                  className="py-2"
+                  price={item.price}
+                  originalPrice={item.originalPrice}
+                />
+              )}
             </li>
           ))}
         </ul>

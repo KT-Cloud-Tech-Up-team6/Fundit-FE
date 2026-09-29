@@ -66,13 +66,11 @@ const confirmMessages: Record<string, PaymentOutcome> = {
     message: "결제 금액이 주문 금액과 달라 승인하지 못했습니다. 다시 결제해주세요.",
     next: "retry",
   },
-  /* BE는 세션 만료를 뺀 Toss 4xx를 모두 이 코드로 합친다. 카드 거절뿐 아니라 이미 처리된 결제도 섞여
-     있어 "결제되지 않았다"고 단정하지 않는다. 같은 pgOrderId 재사용은 Toss가 거르므로 재시도는 안전하다. */
+  /* 토스 확정 거절(4xx)이다(BE #181, 요청서 BE-3). 결제는 FAILED로 끝나 청구되지 않고, 같은 주문으로
+     결제를 다시 만들면 새 결제가 된다. 결과 불명(5xx·타임아웃·이미 처리된 결제)은 503으로 따로 온다. */
   PG_CONFIRM_FAILED: {
-    message:
-      "결제 승인에 실패했습니다. 카드 한도·잔액 등을 확인하고 다시 시도해주세요. 같은 문제가 반복되면 참여 내역에서 결제 여부를 확인해주세요.",
-    // BE가 카드 거절과 이미 처리된 결제를 같은 코드로 합치므로 새 결제 전에 같은 paymentKey를 재확인한다.
-    next: "recheck",
+    message: "결제가 승인되지 않았습니다. 카드 한도·잔액 등을 확인한 뒤 다시 결제해주세요.",
+    next: "retry",
   },
   PAYMENT_EXPIRED: {
     message: "결제 인증 유효 시간이 지났습니다. 다시 결제해주세요.",
@@ -84,9 +82,27 @@ const confirmMessages: Record<string, PaymentOutcome> = {
   },
 };
 
+/* BE #181은 확정 거절에 늘 `detail.tossErrorCode`를 싣는다. 그 전 BE는 detail 없이 타임아웃·이미 처리된
+   결제까지 이 코드로 합쳤으므로(승인됐을 수 있음), detail이 없으면 재결제 대신 같은 결제를 재확인한다.
+   거절 사유별 문구는 원본이 없어 코드를 문구에 쓰지 않는다. */
+function isConfirmedRejection(error: ApiError) {
+  const detail = error.detail;
+  return (
+    typeof detail === "object" &&
+    detail !== null &&
+    "tossErrorCode" in detail &&
+    typeof detail.tossErrorCode === "string"
+  );
+}
+
 export function confirmOutcome(error: unknown): PaymentOutcome {
   // 네트워크·5xx·응답 파싱 실패는 승인 여부를 알 수 없으므로 재결제를 권하지 않는다.
-  if (error instanceof ApiError && error.status < 500 && Object.hasOwn(confirmMessages, error.code))
+  if (
+    error instanceof ApiError &&
+    error.status < 500 &&
+    Object.hasOwn(confirmMessages, error.code) &&
+    (error.code !== "PG_CONFIRM_FAILED" || isConfirmedRejection(error))
+  )
     return confirmMessages[error.code];
   return {
     message:

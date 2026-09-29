@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkoutLineItems } from "./checkout-lines.ts";
+import { checkoutLineItems, listPriceTotal } from "./checkout-lines.ts";
 import { toRewards } from "../../reward-selection/model/public-reward.ts";
 
 /* BE RewardConsumerResponse 모양. null 필드는 키가 빠진다. */
@@ -50,7 +50,7 @@ const rewards = toRewards([
   },
 ]);
 
-test("옵션 줄마다 리워드명·옵션·수량, 청구 기준(정가) 단가×수량을 만든다", () => {
+test("옵션 줄마다 리워드명·옵션·수량, 청구 단가(얼리 버드 할인가)×수량과 정가 취소선 금액을 만든다", () => {
   const items = checkoutLineItems(
     [
       { rewardId: 11, quantity: 1, optionValueIds: [101, 202] },
@@ -62,17 +62,21 @@ test("옵션 줄마다 리워드명·옵션·수량, 청구 기준(정가) 단�
   assert.deepEqual(items, [
     {
       label: "얼리버드 컬러 세트 · 블랙 / L · 1개",
-      price: 200_000,
+      price: 180_000,
+      originalPrice: 200_000,
     },
     {
       label: "얼리버드 컬러 세트 · 화이트 / S · 2개",
-      price: 400_000,
+      price: 360_000,
+      originalPrice: 400_000,
     },
     {
       label: "기본 세트 · 3개",
       price: 450_000,
     },
   ]);
+  // 결제 금액의 ㄴ펀딩 금액은 정가 합계다(얼리 버드가 아니면 청구 단가).
+  assert.equal(listPriceTotal(items), 1_050_000);
 });
 
 test("조회 결과에 없는 리워드 줄은 이름·금액 없이 수량만 알린다", () => {

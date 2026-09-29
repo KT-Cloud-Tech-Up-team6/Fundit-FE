@@ -36,7 +36,7 @@ import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponDroppedMessage, couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
-import { checkoutLineItems } from "../model/checkout-lines";
+import { checkoutLineItems, listPriceTotal } from "../model/checkout-lines";
 import { previewSummaryRows } from "../model/payment-summary";
 import { emptyShippingAddress, formatWon, type ShippingAddress } from "../model/checkout-demo";
 
@@ -183,6 +183,7 @@ function Checkout({
   });
   const couponError = preview.data ? couponPreviewError(preview.data, selectedCouponCodes) : "";
   const amount = valid && address && preview.data ? preview.data : null;
+  const items = rewards.data ? checkoutLineItems(lines, toRewards(rewards.data)) : [];
   function requireAddress() {
     if (address) return true;
     setAddressWarning(true);
@@ -295,6 +296,9 @@ function Checkout({
     if (!valid || couponError) return scrollToSection(ITEMS_ID);
     if (!requireAddress()) return;
     if (!preview.isSuccess || preview.isFetching || !amount) return scrollToSection(SUMMARY_ID);
+    /* BE #181 이전 BE는 쿠폰 할인이 주문 금액 이상이면 0원 이하 주문을 만든다. BE #181부터는 그런 쿠폰을
+       빼므로(EXCEEDS_ORDER_AMOUNT) 생기지 않는다. `confirmOrderChange`의 같은 검사와 함께 BE #181 배포
+       확인 뒤 지운다. */
     if (amount.finalAmount <= 0) {
       setError("결제 금액이 올바르지 않아 주문할 수 없습니다. 리워드와 쿠폰을 다시 확인해주세요.");
       return scrollToSection(SUMMARY_ID);
@@ -309,7 +313,9 @@ function Checkout({
     <>
       <CheckoutLayout
         summary={
-          <PaymentSummarySection rows={amount ? previewSummaryRows(amount) : undefined}>
+          <PaymentSummarySection
+            rows={amount ? previewSummaryRows(amount, listPriceTotal(items)) : undefined}
+          >
             {!valid ? (
               <p className="text-body-s text-text-secondary">
                 주문 상품을 확인한 뒤 결제 금액을 보여 드립니다.
@@ -417,7 +423,7 @@ function Checkout({
             <ProjectOrderItems
               title={project.data.title}
               image={project.data.coverImageUrl}
-              items={checkoutLineItems(lines, toRewards(rewards.data))}
+              items={items}
             />
           )}
           {/* 품절·재고 초과·없는 옵션처럼 주문할 수 없는 줄은 여기서 고칠 수 없어 상세로 돌려보낸다. */}

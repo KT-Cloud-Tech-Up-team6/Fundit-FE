@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { toRewards } from "@/features/reward-selection/model/public-reward";
-import { checkoutLineItems } from "../model/checkout-lines";
+import { checkoutLineItems, listPriceTotal } from "../model/checkout-lines";
 import { previewSummaryRows } from "../model/payment-summary";
 import { CheckoutLayout, PaymentSummarySection, ProjectOrderItems } from "./checkout-parts";
 import { ShippingAddressSection } from "./shipping-address-section";
@@ -65,13 +65,16 @@ const items = checkoutLineItems(
   ],
   rewards,
 );
-/* BE 미리보기는 얼리 버드를 빼고 정가로 계산한다(노션 FE 자체 판단 80). */
-const rows = previewSummaryRows({
-  rewardAmount: 750_000,
-  shippingFee: 3_000,
-  discountAmount: 10_000,
-  finalAmount: 743_000,
-});
+/* BE #181 미리보기는 얼리 버드 할인가로 계산한다(180,000 + 360,000 + 130,000). 정가 합계는 750,000원이다. */
+const rows = previewSummaryRows(
+  {
+    rewardAmount: 670_000,
+    shippingFee: 3_000,
+    discountAmount: 10_000,
+    finalAmount: 663_000,
+  },
+  listPriceTotal(items),
+);
 
 function RealCheckout({ onPay }: { onPay: () => void }) {
   return (
@@ -82,7 +85,7 @@ function RealCheckout({ onPay }: { onPay: () => void }) {
           결제 수단은 다음 화면에서 선택합니다.
         </p>
       }
-      ctaLabel="743,000원 결제"
+      ctaLabel="663,000원 결제"
       onPay={onPay}
     >
       <ShippingAddressSection
@@ -139,10 +142,11 @@ const play: Story["play"] = async ({ canvasElement, args }) => {
     "얼리버드 컬러 세트 · 화이트 / S · 2개",
     "정액 할인 기본 세트 · 1개",
   ]);
-  /* 줄 금액은 청구 기준(정가 × 수량)이라 얼리버드 할인·취소선이 없다(노션 FE 자체 판단 81). */
-  await expect(products.queryAllByText("얼리버드 할인")).toHaveLength(0);
-  await expect(products.getAllByText("상품 금액")).toHaveLength(3);
-  await expect(products.getByText("400,000원")).toBeVisible();
+  /* 줄 금액은 청구 단가(얼리 버드 할인가) × 수량이고 정가는 취소선이다(Figma price_information). */
+  await expect(products.getAllByText("얼리버드 할인")).toHaveLength(3);
+  await expect(products.queryAllByText("상품 금액")).toHaveLength(0);
+  await expect(products.getByText("400,000원")).toHaveClass("line-through");
+  await expect(products.getByText("360,000원")).toBeVisible();
 
   /* 결제 금액은 모바일·데스크톱 두 벌이 DOM에 있어 보이는 쪽으로 좁힌다. */
   const summary = within(canvas.getByRole("region", { name: "결제 금액" }));
@@ -151,15 +155,22 @@ const play: Story["play"] = async ({ canvasElement, args }) => {
     "ㄴ펀딩 금액",
     "ㄴ배송비",
     "총 할인 금액",
+    "ㄴ얼리버드 할인",
     "ㄴ쿠폰 사용",
   ]);
+  /* 펀딩 금액은 정가 합계, 얼리버드 할인은 BE 금액과의 차액이다. */
+  await expect(summary.getByText("ㄴ펀딩 금액").nextElementSibling).toHaveTextContent("750,000원");
+  await expect(summary.getByText("ㄴ얼리버드 할인").nextElementSibling).toHaveTextContent(
+    "-80,000원",
+  );
+  await expect(summary.getByText("총 할인 금액").nextElementSibling).toHaveTextContent("-90,000원");
   await expect(summary.getByText("최종 결제 금액").nextElementSibling).toHaveTextContent(
-    "743,000원",
+    "663,000원",
   );
   await expect(canvas.queryByText("적립금 사용")).toBeNull();
   await expect(canvas.queryByRole("heading", { name: "결제 수단" })).toBeNull();
 
-  await userEvent.click(canvas.getByRole("button", { name: "743,000원 결제" }));
+  await userEvent.click(canvas.getByRole("button", { name: "663,000원 결제" }));
   await expect(args.onPay).toHaveBeenCalledTimes(1);
 };
 
