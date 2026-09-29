@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/shared/components/ui/badge";
 import { projectDemo, replayDemos, clipDemos, questionDemos } from "../model/project-demo";
 import { Tooltip } from "@/shared/components/ui/tooltip";
+import type { VideoCard } from "../model/live-replay";
 import styles from "./buyer-project-detail.module.css";
 
 const tabs = [
@@ -90,52 +91,107 @@ export function Information({ label, disabled = false }: { label: string; disabl
   );
 }
 
-function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
+/* 숏 클립 썸네일은 AI가 채우기 전까지 비어 있어(BE) LIVE 클립 관리처럼 클립 영상의 첫 프레임을 쓴다.
+   둘 다 없으면 빈 면이다. */
+function VideoPoster({ image, video }: Pick<VideoCard, "image" | "video">) {
+  if (image)
+    return (
+      <Image
+        src={image}
+        alt=""
+        fill
+        sizes="163px"
+        className="object-cover"
+        unoptimized={/^https?:\/\//.test(image)}
+      />
+    );
+  if (video)
+    return (
+      <video
+        aria-hidden
+        className="absolute inset-0 size-full object-cover"
+        muted
+        playsInline
+        preload="metadata"
+        src={video}
+      />
+    );
+  return null;
+}
+
+/**
+ * 종료된 라이브·숏 클립 가로 목록(`1541:50498`). `state`를 주면 목록 대신 그 안내(불러오는 중·오류·빈 목록)를
+ * 보인다. 건수는 목록 길이가 아니라 전체 건수라 따로 받고, 모르면(불러오는 중·오류) 적지 않는다.
+ */
+export function VideoList({
+  title,
+  count,
+  videos,
+  state,
+}: {
+  title: string;
+  count?: number;
+  videos: readonly VideoCard[];
+  state?: ReactNode;
+}) {
   const carouselDrag = useHorizontalDrag();
-  const title = clips ? "숏 클립" : "종료된 라이브";
-  const videos = clips ? clipDemos : replayDemos;
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
-        {title} <small>{videos.length}건</small>
+        {title} {count !== undefined && <small>{count}건</small>}
       </h3>
-      <div
-        {...carouselDrag}
-        className={styles.carousel}
-        tabIndex={0}
-        role="region"
-        aria-label={`${title} 목록`}
-      >
-        {videos.map((video, index) => (
-          <article key={index}>
-            <Link
-              href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
-              aria-label={`${title} ${index + 1} · ${clips ? "[제품명] AI 생성 제목" : video.title} 재생`}
-            >
-              <span className={styles.videoPoster}>
-                <Image
-                  src={clips ? projectDemo.image : projectDemo.poster}
-                  alt=""
-                  fill
-                  sizes="163px"
-                  className="object-cover"
-                />
-                {clips && (
-                  <Badge variant="live" className="relative">
-                    {index === 0 || index === 2 ? "시연 영상" : "하이라이트"}
-                  </Badge>
+      {state ?? (
+        <div
+          {...carouselDrag}
+          className={styles.carousel}
+          tabIndex={0}
+          role="region"
+          aria-label={`${title} 목록`}
+        >
+          {videos.map((video, index) => (
+            <article key={video.id}>
+              <Link href={video.href} aria-label={`${title} ${index + 1} · ${video.title} 재생`}>
+                <span className={styles.videoPoster}>
+                  <VideoPoster image={video.image} video={video.video} />
+                  {video.badge && (
+                    <Badge variant="live" className="relative">
+                      {video.badge}
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-body-s mt-1 line-clamp-2 font-medium">{video.title}</span>
+                {video.date && (
+                  <span className="text-caption-s text-text-secondary block">{video.date}</span>
                 )}
-              </span>
-              <span className="text-body-s mt-1 line-clamp-2 font-medium">
-                {clips ? "[제품명] AI 생성 제목" : video.title}
-              </span>
-              <span className="text-caption-s text-text-secondary block">
-                {clips ? "09.07" : video.date}
-              </span>
-            </Link>
-          </article>
-        ))}
-      </div>
+              </Link>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** "LIVE 다시 보기" 절(`1541:50492`). 건수는 종료된 라이브와 숏 클립을 합친 수이고, 모르면 적지 않는다. */
+export function LiveReplaySection({
+  count,
+  className = "",
+  children,
+}: {
+  count?: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-label="LIVE 다시 보기"
+      className={`${styles.replay} flex min-w-0 flex-col gap-3 ${className}`}
+    >
+      <h2>
+        <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
+        LIVE 다시 보기 {count !== undefined && <small>{count}건</small>}
+      </h2>
+      {children}
     </section>
   );
 }
@@ -419,14 +475,31 @@ export function BuyerProjectDetail({
           </section>
         ) : (
           <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
-            <section aria-label="LIVE 다시 보기" className="flex min-w-0 flex-col gap-3">
-              <h2>
-                <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
-                LIVE 다시 보기 <small>{replayDemos.length + clipDemos.length}건</small>
-              </h2>
-              <VideoList liveId={liveId} />
-              <VideoList clips liveId={liveId} />
-            </section>
+            <LiveReplaySection count={replayDemos.length + clipDemos.length}>
+              <VideoList
+                title="종료된 라이브"
+                count={replayDemos.length}
+                videos={replayDemos.map((video, index) => ({
+                  id: `replay-${index}`,
+                  href: `/live/${encodeURIComponent(liveId)}?mode=replay`,
+                  title: video.title,
+                  date: video.date,
+                  image: projectDemo.poster,
+                }))}
+              />
+              <VideoList
+                title="숏 클립"
+                count={clipDemos.length}
+                videos={clipDemos.map((video, index) => ({
+                  id: `clip-${index}`,
+                  href: `/live/${encodeURIComponent(liveId)}?mode=replay&view=clip`,
+                  title: video.title,
+                  date: video.date,
+                  image: projectDemo.image,
+                  badge: index === 0 || index === 2 ? "시연 영상" : "하이라이트",
+                }))}
+              />
+            </LiveReplaySection>
             <section className="flex flex-col gap-6" aria-label="LIVE Q&A">
               <div className="-mb-3 flex items-center gap-1">
                 <h2>

@@ -13,6 +13,7 @@ test("소비자 LIVE 목록은 비인증으로 상태·정렬·판매자 필터�
   await getPublicLives({ status: "LIVE", sort: "viewerCount" });
   await getPublicLives({ status: "SCHEDULED", sellerIds: ["a", "b"] });
   await getPublicLives({ status: "LIVE", sellerIds: [] });
+  await getPublicLives({ status: "ENDED", projectId: "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f01" });
 
   assert.equal(calls[0].url, "/api/v1/lives");
   const ranking = new URL(calls[1].url, "https://example.com");
@@ -24,5 +25,9 @@ test("소비자 LIVE 목록은 비인증으로 상태·정렬·판매자 필터�
   assert.equal(following.searchParams.get("sellerId"), "a,b");
   // 빈 판매자 목록은 필터를 붙이지 않는다.
   assert.equal(new URL(calls[3].url, "https://example.com").searchParams.has("sellerId"), false);
+  // 프로젝트 LIVE 체크 탭의 종료된 라이브(#319).
+  const project = new URL(calls[4].url, "https://example.com");
+  assert.equal(project.searchParams.get("status"), "ENDED");
+  assert.equal(project.searchParams.get("projectId"), "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f01");
   for (const { init } of calls) assert.equal(new Headers(init.headers).has("Authorization"), false);
 });
