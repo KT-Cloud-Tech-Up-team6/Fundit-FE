@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getCheckoutCoupons,
   previewOrder,
@@ -35,13 +35,24 @@ export function CouponApiSheet({
   onApply: (selection: CouponSelection[]) => void;
   onClose: () => void;
 }) {
-  const page = 0;
   const [choices, setChoices] = useState(selected);
   const [duplicateIssuerWarning, setDuplicateIssuerWarning] = useState(false);
-  const coupons = useQuery({
-    queryKey: ["checkout-coupons", memberId, page],
-    queryFn: ({ signal }) => getCheckoutCoupons(page, signal),
+  const coupons = useInfiniteQuery({
+    queryKey: ["checkout-coupons", memberId],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => getCheckoutCoupons(pageParam, signal),
+    getNextPageParam: (lastPage, pages) => (lastPage.hasNext ? pages.length : undefined),
   });
+  const couponList = coupons.data?.pages.flatMap((page) => page.content) ?? [];
+  useEffect(() => {
+    if (!coupons.hasNextPage || coupons.isFetchingNextPage || coupons.isFetchNextPageError) return;
+    void coupons.fetchNextPage();
+  }, [
+    coupons.fetchNextPage,
+    coupons.hasNextPage,
+    coupons.isFetchingNextPage,
+    coupons.isFetchNextPageError,
+  ]);
   const candidate = {
     ...body,
     couponCodes: couponCodes(choices),
@@ -88,14 +99,14 @@ export function CouponApiSheet({
         />
         {coupons.isPending ? (
           <p role="status">쿠폰을 불러오고 있습니다.</p>
-        ) : coupons.isError ? (
+        ) : coupons.isError && !couponList.length ? (
           <ErrorState
             variant="section"
             description="쿠폰 조회를 실패하였습니다"
             action={{ onClick: () => void coupons.refetch() }}
           />
         ) : (
-          coupons.data.content.map((coupon) => (
+          couponList.map((coupon) => (
             <CouponRadio
               key={coupon.couponCode}
               label={coupon.couponName ?? coupon.couponCode}
@@ -124,7 +135,14 @@ export function CouponApiSheet({
           {warning}
         </p>
       )}
-      {coupons.isSuccess && !coupons.data.content.length && <p>사용가능한 쿠폰이 없습니다</p>}
+      {coupons.isFetchNextPageError && (
+        <ErrorState
+          variant="section"
+          description="쿠폰을 더 불러오지 못했습니다"
+          action={{ onClick: () => void coupons.fetchNextPage() }}
+        />
+      )}
+      {coupons.isSuccess && !couponList.length && <p>사용가능한 쿠폰이 없습니다</p>}
     </BottomSheet>
   );
 }
