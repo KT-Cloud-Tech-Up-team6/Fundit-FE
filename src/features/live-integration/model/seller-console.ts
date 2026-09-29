@@ -66,6 +66,19 @@ export function formatUpdatedAgo(updatedAt: number, now: number) {
   return `${Math.floor(minutes / 60)}시간 전`;
 }
 
+/**
+ * "스트림 상태 확인" 결과 문구(IA 판매자 25행). 원본에 표시 자리가 없어 콘솔 안내 줄에 싣는다
+ * (#441, 2026-09-29 사용자 결정). 모르는 `health`는 송출 중이라는 사실만 알린다.
+ */
+export function streamStatusMessage(status: { state: string; health?: string | null }) {
+  if (status.state !== "LIVE")
+    return "송출이 들어오지 않고 있습니다. 송출 프로그램(OBS)을 확인해 주세요.";
+  if (status.health === "HEALTHY") return "송출이 정상적으로 들어오고 있습니다.";
+  if (status.health === "STARVING")
+    return "송출은 들어오지만 전송 속도가 부족합니다. 인터넷 연결과 송출 설정을 확인해 주세요.";
+  return "송출이 들어오고 있습니다.";
+}
+
 export function answeredByName(value: string) {
   return value === "AI" ? "AI 자동답변" : value === "SELLER" ? "판매자" : "답변자 미확인";
 }

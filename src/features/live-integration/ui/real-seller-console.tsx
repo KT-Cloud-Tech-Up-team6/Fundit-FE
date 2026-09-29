@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tan
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/shared/api/api-error";
-import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
+import { endLive, getLiveDetail, getStreamStatus } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
 import { isUnavailableLive } from "@/entities/live/model/live-error";
@@ -55,6 +55,7 @@ import {
   orderStatsLabel,
   publishLiveChecks,
   questionSummaryState,
+  streamStatusMessage,
   toCheckQuestions,
   toConsoleCues,
 } from "../model/seller-console";
@@ -205,6 +206,14 @@ function ConsoleBody({
       ending.current = false;
     },
   });
+  /* "스트림 상태 확인"은 누를 때만 한 번 묻고 결과를 안내 줄에 싣는다(주기 조회·배지 없음, #441).
+     안내를 먼저 비워야 같은 결과가 다시 와도 스크린 리더가 새로 읽는다. */
+  const streamStatus = useMutation({
+    mutationFn: () => getStreamStatus(liveId),
+    onMutate: () => setNotice(""),
+    onSuccess: (status) => setNotice(streamStatusMessage(status)),
+    onError: () => setNotice("송출 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+  });
 
   const live = detail.data?.status === "LIVE";
   const projectId = detail.data?.projectId;
@@ -315,7 +324,9 @@ function ConsoleBody({
             elapsedAt={detail.dataUpdatedAt}
             orders={orderStatsLabel(orderStats, ORDER_STATS_STALE_MS)}
             live={live}
-            onCheckStream={() => setNotice("스트림 상태 확인은 준비 중입니다.")}
+            onCheckStream={() => {
+              if (!streamStatus.isPending) streamStatus.mutate();
+            }}
           />
           <div className="flex min-w-0 flex-col gap-4">
             {cueSheet.isError ? (
@@ -561,6 +572,7 @@ function QuestionPanel({
             }
             disabled={!live}
             onNotice={onNotice}
+            onDone={back}
           />
         </div>
       ) : view.kind === "aggregated" ? (
@@ -691,6 +703,7 @@ function AnswerView({
   registered,
   disabled,
   onNotice,
+  onDone,
 }: {
   liveId: string;
   ownerKey: string[];
@@ -699,6 +712,8 @@ function AnswerView({
   registered?: string;
   disabled: boolean;
   onNotice: (message: string) => void;
+  /** 답변 완료 처리가 끝나면 질문 요약 목록으로 돌아간다. */
+  onDone: () => void;
 }) {
   const cache = useQueryClient();
   const [edited, setEdited] = useState<string | null>(null);
@@ -738,6 +753,20 @@ function AnswerView({
       sending.current = false;
     },
   });
+  /* 방송 중 말로 답한 질문 표시(IA 판매자 26행, BE-14). BE가 "방송 중 답변 완료"만 기록하고 채팅에는
+     올리지 않는다. 목록을 다시 받은 뒤 돌아가야 옮겨진 질문이 "답변 완료"에 바로 보인다(#441). */
+  const markDone = useMutation({
+    mutationFn: () => requestAnswer(liveId, question.questionId, { action: "MARK_DONE" }),
+    onSuccess: async () => {
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: [...ownerKey, "unanswered"] }),
+        cache.invalidateQueries({ queryKey: [...ownerKey, "insights"] }),
+        cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] }),
+      ]);
+      onDone();
+    },
+  });
+  const busy = send.isPending || markDone.isPending;
   /* 답변 완료 질문은 서버에 등록된 답변이 기준이다. 초안 캐시는 등록 전 AI 원본이라, 판매자가
      재생성을 누르기 전에는 등록한 답변을 먼저 보인다. */
   const showDraft = !question.complete || regenerated;
@@ -813,13 +842,17 @@ function AnswerView({
           답변 등록을 확인하지 못했습니다. 입력 내용은 유지됩니다.
         </p>
       )}
+      {markDone.isError && (
+        <MutationError error={markDone.error} disabled={busy} retry={() => markDone.mutate()} />
+      )}
       <div className="mt-auto flex gap-3 pt-3">
+        {/* 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 눌러도 바뀌는 것이 없다. */}
         <Button
           variant="secondary"
           size="sm"
           className="text-body-s h-10 flex-1"
-          disabled={disabled}
-          onClick={() => onNotice("답변 완료 처리는 준비 중입니다.")}
+          disabled={disabled || question.complete || busy}
+          onClick={() => markDone.mutate()}
         >
           답변 완료 처리
         </Button>
@@ -828,7 +861,7 @@ function AnswerView({
             variant="primaryLive"
             size="sm"
             className="text-body-s h-10 flex-1"
-            disabled={disabled || send.isPending || generating || !value.trim()}
+            disabled={disabled || busy || generating || !value.trim()}
             onClick={() => submit(value)}
           >
             채팅 보내기

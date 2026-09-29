@@ -69,7 +69,7 @@ export const getOriginals = (liveId: string, questionId: string, signal?: AbortS
 export const requestAnswer = (
   liveId: string,
   questionId: string,
-  body: { action: "GENERATE" | "SEND"; finalAnswer?: string },
+  body: { action: "GENERATE" | "SEND" | "MARK_DONE"; finalAnswer?: string },
   signal?: AbortSignal,
 ) =>
   apiRequest<AnswerDraft>(

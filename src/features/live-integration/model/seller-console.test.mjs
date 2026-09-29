@@ -11,6 +11,7 @@ import {
   orderStatsLabel,
   publishLiveChecks,
   questionSummaryState,
+  streamStatusMessage,
   toCheckQuestions,
   toConsoleCues,
 } from "./seller-console.ts";
@@ -159,4 +160,24 @@ test("LIVE 스튜디오의 종료 방송은 종료가 확인된 방송에서 LIV
   /* 콘솔에서 방송을 끝내면 종료 모달이 그대로 뜬다. */
   const ended = { kind: "ended" };
   assert.equal(consoleCheckDialog(ended, { ...entry, openCheck: false }), ended);
+});
+
+test("스트림 상태는 송출 여부와 송출 품질로 문구를 나눈다(#441)", () => {
+  assert.equal(
+    streamStatusMessage({ state: "LIVE", health: "HEALTHY" }),
+    "송출이 정상적으로 들어오고 있습니다.",
+  );
+  assert.equal(
+    streamStatusMessage({ state: "LIVE", health: "STARVING" }),
+    "송출은 들어오지만 전송 속도가 부족합니다. 인터넷 연결과 송출 설정을 확인해 주세요.",
+  );
+  assert.equal(
+    streamStatusMessage({ state: "LIVE", health: "UNKNOWN" }),
+    "송출이 들어오고 있습니다.",
+  );
+  assert.equal(streamStatusMessage({ state: "LIVE" }), "송출이 들어오고 있습니다.");
+  assert.equal(
+    streamStatusMessage({ state: "OFFLINE" }),
+    "송출이 들어오지 않고 있습니다. 송출 프로그램(OBS)을 확인해 주세요.",
+  );
 });
