@@ -22,8 +22,10 @@ export function getRecentKeywords(signal?: AbortSignal) {
   });
 }
 
+// keyword 없이 부르면 BE가 최근 검색어를 전부 지우므로 파라미터를 항상 붙인다.
 export function deleteRecentKeyword(keyword: string) {
-  return apiRequest<void>(`/api/v1/search/recent-keywords/${encodeURIComponent(keyword)}`, {
+  const params = new URLSearchParams({ keyword });
+  return apiRequest<void>(`/api/v1/search/recent-keywords?${params}`, {
     auth: true,
     method: "DELETE",
   });
