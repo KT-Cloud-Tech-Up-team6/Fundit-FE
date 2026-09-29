@@ -28,9 +28,9 @@ export function SellerRow({
   return (
     <article className="flex items-center justify-between gap-3 py-3" aria-label={seller.name}>
       <div className="flex min-w-0 items-center gap-2">
+        {/* 프로필 사진은 장식(alt 없음)이고, 방송 중이면 LIVE 배지 글자를 스크린 리더도 읽는다. */}
         <div
           className={`bg-border-default relative size-[46px] shrink-0 rounded-full ${seller.live ? "ring-border-primary-live ring-2" : ""}`}
-          aria-hidden
         >
           {seller.avatar && (
             <Image
