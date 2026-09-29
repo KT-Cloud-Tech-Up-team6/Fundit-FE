@@ -14,7 +14,8 @@ export type RefundSummary = {
   fundingId: string;
   triggerType: string;
   status: string;
-  /** 실행된 PG 취소액의 합, 취소 전이면 결제 원금이다. 교환은 환불이 없어 항상 결제 원금이다. */
+  /** 실행된 PG 취소액의 합, 취소 전이면 결제 원금이다. 교환은 환불이 없어 BE #181부터 0이다
+      (그 전 기록은 결제 원금). */
   amount: number;
   /** `RETURN_CHANGE_OF_MIND`에만 온다. 화면(RFND)에 자리가 없어 표시하지 않는다. */
   returnShippingFee?: number;
@@ -75,7 +76,8 @@ export function getMyRefunds(
 
 /** 사유 유형이 없는 건(발송 지연·목표 미달 등)에 쓸 트리거 문구. */
 export const refundTriggerLabels: Record<string, string> = {
-  /* 모금 중 참여 취소 전용 트리거다. 취소 사유는 네 가지라 사유 유형 없이는 "단순 변심"으로 단정하지 않는다. */
+  /* 모금 중 참여 취소 전용 트리거다. 취소 사유는 네 가지라 사유 유형이 없는 건(BE #181 전 기록)을
+     "단순 변심"으로 단정하지 않는다. */
   SIMPLE_CHANGE_OF_MIND: "참여 취소",
   SHIPPING_DELAY: "발송 지연",
   EXCHANGE: "교환",

@@ -53,7 +53,8 @@ export function FundingDetail({
   return (
     <FundingDetailScreen>
       <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
-        {/* 원본 첫 줄의 주문번호(FD…)는 BE에 없는 값이라 두지 않는다(노션 FE 자체 판단 39). */}
+        {/* 원본 첫 줄의 주문번호(FD…)와 창작자는 상세 응답에 없어 두지 않는다(노션 FE 자체 판단 39).
+            같은 판단에 있던 참여일은 BE #181의 createdAt으로 채웠다(#431). */}
         <section className="flex flex-col gap-4 px-4 py-3">
           <div className="flex gap-3">
             <FundingThumbnail src={detail.imageSrc} className="size-16 shrink-0" />
@@ -73,6 +74,12 @@ export function FundingDetail({
         <section className="border-border-default flex flex-col gap-4 border-t px-5 py-4">
           <h2 className="text-body-strong">펀딩 정보</h2>
           <dl className="flex flex-col gap-2">
+            {/* 참여일(2323:53162)은 BE #181의 createdAt이다. 그 전 응답이면 행을 숨긴다. */}
+            {detail.participatedAt && (
+              <InfoRow label="참여일">
+                <span className="text-body-s">{detail.participatedAt}</span>
+              </InfoRow>
+            )}
             {detail.paidAt && (
               <InfoRow label="결제일">
                 <span className="text-body-s">{detail.paidAt}</span>

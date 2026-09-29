@@ -1,10 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ORDER_FETCH_ALL_MAX_REQUESTS, ORDER_FETCH_ALL_SIZE } from "@/entities/order/api/order-api";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
 import { formatWon, type FundingCard } from "../model/funding-history";
+import type {
+  FundingCategory,
+  FundingHistoryFilter,
+  FundingPeriodRange,
+} from "../model/funding-history-filter";
 import { FundingActionButtons, FundingThumbnail } from "./funding-card-parts";
+import { FundingHistoryFilters } from "./funding-history-filters";
 
 /** 목록·로딩·오류가 같은 껍데기를 쓰도록 제목·breadcrumb·하단 메뉴를 한곳에 둔다. */
 export function FundingListScreen({
@@ -78,20 +85,38 @@ function FundingCardItem({ card }: { card: FundingCard }) {
   );
 }
 
-/** 참여/배송 내역(FL_B_MY_FUND_1). 서버 목록이 검색·기간·분류를 받지 않아 필터는 두지 않는다
-    (노션 FE 자체 판단 31). 페이지 이동은 children으로 받는다. */
+/** 참여/배송 내역(FL_B_MY_FUND_1). 검색·기간은 서버가 거르므로(BE #181) 여기서는 값과 변경만
+    주고받는다. 분류 중 진행 단계 넷은 화면이 거른 결과를 받는다(#431). 페이지 이동은 children으로 받는다. */
 export function FundingHistoryList({
   cards,
   total,
+  filter,
+  today,
+  onSearch,
+  onPeriodChange,
+  onCategoryChange,
+  pending = false,
   loading = false,
+  truncated = false,
   children,
 }: {
-  /** 서버가 최신순으로 준 현재 페이지. */
+  /** 조건을 적용해 최신 참여순으로 받은 현재 페이지. */
   cards: FundingCard[];
-  /** 서버 전체 건수(totalElements). */
+  /** 조건을 적용한 전체 건수(서버 totalElements, 진행 단계 분류면 화면이 거른 건수). */
   total: number;
-  /** 페이지를 바꾼 뒤 새 목록을 기다리는 동안 이전 목록을 보여 주고 있다. */
+  /** 적용 중인 검색어·기간·분류. */
+  filter: FundingHistoryFilter;
+  /** 한국 날짜 `yyyy-MM-dd`. */
+  today: string;
+  onSearch: (q: string) => void;
+  onPeriodChange: (range: FundingPeriodRange) => void;
+  onCategoryChange: (category: FundingCategory) => void;
+  /** 첫 목록을 기다리고 있다. 조건 줄은 그대로 두고 건수·목록 자리에 안내를 둔다. */
+  pending?: boolean;
+  /** 조건·페이지를 바꾼 뒤 새 목록을 기다리는 동안 이전 목록을 보여 주고 있다. */
   loading?: boolean;
+  /** 진행 단계 분류에서 받을 수 있는 최대 건수에 닿아 그 안에서만 걸렀다. */
+  truncated?: boolean;
   /** 페이지 이동처럼 목록 아래에 덧붙일 요소. */
   children?: ReactNode;
 }) {
@@ -102,20 +127,47 @@ export function FundingHistoryList({
     <FundingListScreen>
       {/* 09-25 기록: 전체 배경색을 surface_default로 바꿨다(update_history 1143:23610). */}
       <div className="bg-layer-surface-default min-h-[calc(100dvh-52px)] w-full pb-[calc(var(--buyer-bottom-navigation-height)+env(safe-area-inset-bottom))] min-[1200px]:min-h-0 min-[1200px]:pb-16">
-        <p className="text-body-s px-5 py-2">총 {count}개</p>
-        {loading && (
-          <p role="status" className="text-caption-m text-text-secondary px-5 pb-3">
-            목록을 불러오고 있습니다.
+        <FundingHistoryFilters
+          count={pending ? undefined : count}
+          filter={filter}
+          today={today}
+          onSearch={onSearch}
+          onPeriodChange={onPeriodChange}
+          onCategoryChange={onCategoryChange}
+        />
+        {pending ? (
+          <p className="text-body-s px-5 py-24 text-center" role="status">
+            참여 내역을 불러오고 있습니다.
           </p>
+        ) : (
+          <>
+            {/* 이전 목록이 새 조건의 결과로 읽히지 않도록 조건 줄 바로 아래에 알린다. */}
+            {loading && (
+              <p role="status" className="text-caption-m text-text-secondary px-5 pb-3">
+                목록을 불러오고 있습니다.
+              </p>
+            )}
+            {/* 원본 없음. 건수가 모자랄 수 있음을 숨기지 않는다(노션 FE 자체 판단, #431). */}
+            {truncated && (
+              <p className="text-caption-m text-text-secondary px-5 pb-3">
+                참여 내역이 많아 최근{" "}
+                {(ORDER_FETCH_ALL_SIZE * ORDER_FETCH_ALL_MAX_REQUESTS).toLocaleString("ko-KR")}건
+                안에서만 찾았습니다.
+              </p>
+            )}
+            <div aria-busy={loading}>
+              {cards.length === 0 ? (
+                /* 기간 조건이 항상 걸려 있어 조건에 맞는 내역이 없다고 안내한다(#431). */
+                <p className="text-body-s px-5 py-24 text-center">
+                  조건에 맞는 참여 내역이 없습니다.
+                </p>
+              ) : (
+                cards.map((card) => <FundingCardItem key={card.id} card={card} />)
+              )}
+            </div>
+            {children}
+          </>
         )}
-        <div aria-busy={loading}>
-          {cards.length === 0 ? (
-            <p className="text-body-s px-5 py-24 text-center">참여 내역이 없습니다.</p>
-          ) : (
-            cards.map((card) => <FundingCardItem key={card.id} card={card} />)
-          )}
-        </div>
-        {children}
       </div>
     </FundingListScreen>
   );

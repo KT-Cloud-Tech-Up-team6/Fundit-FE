@@ -83,5 +83,6 @@ export function demoOrderDetail(fundingId: string): OrderDetail {
     availableActions: summary.availableActions,
     refundRequests: summary.refundRequests,
     lineItems: summary.lineItems,
+    createdAt: summary.createdAt,
   };
 }

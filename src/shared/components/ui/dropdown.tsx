@@ -11,6 +11,8 @@ type DropdownProps = Omit<
   options: readonly DropdownOption[];
   value: string;
   onValueChange: (value: string) => void;
+  /** 트리거에 선택한 항목 문구 대신 보일 값. 직접 고른 기간처럼 항목 문구가 값을 다 담지 못할 때 쓴다. */
+  valueLabel?: string;
   placeholder?: string;
   size?: "xs" | "sm" | "lg";
   name?: string;
@@ -28,6 +30,7 @@ export function Dropdown({
   options,
   value,
   onValueChange,
+  valueLabel,
   placeholder = "선택해 주세요",
   size = "lg",
   disabled,
@@ -168,12 +171,12 @@ export function Dropdown({
           className={[
             "min-w-0 flex-1 truncate",
             size === "xs" && "px-2 text-right",
-            selected < 0 && "text-text-disabled",
+            selected < 0 && !valueLabel && "text-text-disabled",
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          {options[selected]?.label ?? placeholder}
+          {valueLabel || (options[selected]?.label ?? placeholder)}
         </span>
         <span
           className={
