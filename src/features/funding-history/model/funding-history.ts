@@ -13,24 +13,29 @@ export function formatWon(value: number): string {
   return `${value.toLocaleString("ko-KR")}원`;
 }
 
-/** 서버 Instant(UTC ISO)를 한국 날짜 `yyyy.mm.dd`로 옮긴다. 값이 없으면 빈 문자열이다. */
-export function formatKoreanDate(value: string | undefined): string {
-  if (!value) return "";
+/** 시각을 한국 날짜 `yyyy-MM-dd`로 옮긴다. 목록 기간 조건(`from`·`to`)과 같은 형식이다. */
+export function koreanDateKey(date: Date): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  })
-    .format(new Date(value))
-    .replaceAll("-", ".");
+  }).format(date);
+}
+
+/** 서버 Instant(UTC ISO)를 한국 날짜 `yyyy.mm.dd`로 옮긴다. 값이 없으면 빈 문자열이다. */
+export function formatKoreanDate(value: string | undefined): string {
+  if (!value) return "";
+  return koreanDateKey(new Date(value)).replaceAll("-", ".");
 }
 
 /* 정리표(2323:53727)에 있는 여섯 단계는 정리표 문구를, 없는 세 단계는 기존 주문 상태 문구를 쓴다.
-   목록 FUND_1의 "펀딩 완료"는 정리표·분류 필터·IA(취소선)를 따라 "펀딩 성공"으로 쓴다(노션 FE 자체 판단 33·34). */
+   FUNDING_SUCCEEDED(성립 후 제작·발송 준비, 발송 예정일 이내)는 PM 답변(2026-09-29, "펀딩 성공과 발송 지연
+   사이를 제작 중")으로 "제작 중"이다. PD 회신(PD-2)의 "펀딩 성공"과 노션 FE 자체 판단 33·34를 대신한다.
+   "펀딩 성공"은 목표 달성 주문 전체를 묶는 분류 필터 이름으로만 남는다(#431). */
 export const fundingStageLabels: Record<string, string> = {
   FUNDING_IN_PROGRESS: "펀딩 진행 중",
-  FUNDING_SUCCEEDED: "펀딩 성공",
+  FUNDING_SUCCEEDED: "제작 중",
   SHIPPING_DELAYED: "발송 지연",
   SHIPPING: "배송 중",
   DELIVERED: "배송 완료",
@@ -136,13 +141,16 @@ export function toFundingCard(order: OrderSummary): FundingCard {
 /** 펀딩 정보(card_fdinfo_item 2323:53155)의 리워드·옵션 한 벌. */
 export type FundingDetailItem = { reward: string; option: string };
 
-/** 상세(FL_B_MY_FUND_MNG). 주문번호·창작자·참여일은 상세 응답에 없어 두지 않는다(노션 FE 자체 판단 39). */
+/** 상세(FL_B_MY_FUND_MNG). 주문번호·창작자는 상세 응답에 없어 두지 않는다(노션 FE 자체 판단 39).
+    참여일은 BE #181의 `createdAt`으로 채운다(#431). */
 export type FundingDetailView = {
   id: string;
   projectTitle: string;
   imageSrc: string;
   reward: string;
   quantity: number;
+  /** `yyyy.mm.dd`. BE #181 전 응답이라 비어 있으면 참여일 행을 숨긴다. */
+  participatedAt: string;
   /** `yyyy.mm.dd`. 비어 있으면 결제일 행을 숨긴다. */
   paidAt: string;
   items: FundingDetailItem[];
@@ -157,6 +165,7 @@ export function toFundingDetailView(order: OrderDetail): FundingDetailView {
     imageSrc: order.thumbnailUrl ?? "",
     reward: rewardSummaryOf(order.lineItems),
     quantity: order.lineItems.reduce((sum, item) => sum + item.quantity, 0),
+    participatedAt: formatKoreanDate(order.createdAt),
     paidAt: formatKoreanDate(order.paidAt),
     /* 원본은 옵션이 없는 리워드를 "단일옵션"으로 그린다. 여러 옵션은 내역 화면처럼 ` · `로 잇는다. */
     items: order.lineItems.map((item) => ({

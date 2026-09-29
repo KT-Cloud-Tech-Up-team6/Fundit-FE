@@ -145,7 +145,7 @@ src/shared/components/
 - `Footer`의 버튼은 기존 `Button appearance="cta"`를 재사용합니다. InputButton은 버튼 슬롯을 입력 높이에 맞춰 늘립니다.
 - Chat 색상은 Figma와 일치시키기로 확정했습니다. AI 말풍선은 `#959595`/흰색, 사용자 말풍선은 흰색/검정과 `#959595` 테두리를 사용하며 테마에 따라 바꾸지 않습니다. 상태 문구와 액션 예제도 Figma의 검정·흰색을 유지합니다. 해당 색상은 Chat에 한정된 명시적 예외이며 전역 semantic 토큰은 수정하지 않습니다. 좁은 화면에서는 고정 160px/188px 여백 대신 콘텐츠 폭에 맞춥니다.
 - Foundations의 18px Title 및 14px Body 행간 142%는 해당 Molecules의 `leading-[1.42]`로 반영했습니다. 전역 타이포·색상 및 Atoms는 수정하지 않습니다. Atoms #93의 Button·Checkbox·Radio를 조합하며, Footer 보조 액션은 Button secondary, ListItem 라디오 슬롯은 공용 Radio를 사용합니다. Chat의 기본 아바타는 Figma 전용 SVG를 유지합니다.
-- 통합 검색과 펀딩 내역 화면은 `SearchField size="lg"`로 기존 52px 높이를 유지합니다. Dropdown은 disabled 전환 시 열린 상태를 닫으며 재활성화만으로 열리지 않습니다. Chat은 커스텀 avatar 여부와 관계없이 숨김 텍스트로 AI·사용자 발신자를 제공합니다.
+- 통합 검색은 `SearchField size="lg"`로 기존 52px 높이를 유지합니다. 펀딩 내역 검색창은 Figma `search_field size=m`(46px)이라 `size="md"`입니다(#431). Dropdown의 `valueLabel`은 직접 고른 기간처럼 항목 문구가 값을 다 담지 못할 때 트리거 문구만 바꿉니다. Dropdown은 disabled 전환 시 열린 상태를 닫으며 재활성화만으로 열리지 않습니다. Chat은 커스텀 avatar 여부와 관계없이 숨김 텍스트로 AI·사용자 발신자를 제공합니다.
 - 아이콘은 해당 Molecules의 Figma SVG를 `public/icons/molecules`에 저장했습니다. `EmptyState`의 graphic placeholder와 Chat의 avatar는 교체 슬롯이며 서비스용 일러스트를 새로 만들지 않습니다.
 - 입력 focus outline은 키보드 접근성을 위해 제공합니다. Figma Footer의 고정 60px 안에 46px 버튼과 상하 8px 여백이 함께 지정되어 있어, 코드에서는 내용이 잘리지 않도록 최소 높이로 처리합니다.
 - Storybook 접근성 검사에서 기존 `text-secondary`/`text-disabled`의 회색 보조 텍스트와 `text-warning`의 오류 텍스트가 light 배경에서 대비 부족으로 보고됩니다. Dropdown placeholder, 원래 가격 및 입력 오류가 해당하며, Foundations 담당자와 토큰 조정 여부를 확인해야 합니다. 검사 설정에서 제외하지 않습니다.

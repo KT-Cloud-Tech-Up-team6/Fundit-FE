@@ -1,13 +1,22 @@
 "use client";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getOrders, getOrder, ORDER_PAGE_SIZE } from "@/entities/order/api/order-api";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAllOrders, getOrders, getOrder, ORDER_PAGE_SIZE } from "@/entities/order/api/order-api";
 import { isConfirmed, localStore } from "@/features/payment-checkout/model/payment-attempt";
 import { OrderMemberAccess } from "@/features/order-checkout/ui/order-member-access";
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { previousPage } from "@/shared/lib/previous-page";
-import { toFundingCard, toFundingDetailView } from "../model/funding-history";
+import { koreanDateKey, toFundingCard, toFundingDetailView } from "../model/funding-history";
+import {
+  categoryStage,
+  categoryStatuses,
+  fundingHistoryHref,
+  pageByStage,
+  parseFundingHistoryQuery,
+  type FundingHistoryQuery,
+} from "../model/funding-history-filter";
 import { FundingDetail, FundingDetailScreen } from "./funding-detail";
 import { FundingHistoryList, FundingListScreen } from "./funding-history-list";
 
@@ -15,51 +24,73 @@ export function FundingListApi() {
   return <OrderMemberAccess>{(id) => <FundingList key={id} memberId={id} />}</OrderMemberAccess>;
 }
 
-function listHref(page: number) {
-  return page > 1 ? `/my/fundings?page=${page}` : "/my/fundings";
-}
-
 function FundingList({ memberId }: { memberId: string }) {
   const params = useSearchParams(),
     router = useRouter();
-  const raw = Number(params.get("page") ?? 1),
-    page = Number.isSafeInteger(raw) && raw > 0 ? raw - 1 : 0;
-  /* 페이지를 바꾸는 동안 이전 목록을 유지해 화면이 로딩 문구로 깜빡이지 않게 한다. */
+  /* 최근 N개월의 끝인 오늘(한국 날짜)은 화면을 연 날로 고정한다. */
+  const [today] = useState(() => koreanDateKey(new Date()));
+  const client = useQueryClient();
+  const query = parseFundingHistoryQuery(params, today);
+  const { q, from, to, category, page } = query;
+  /* 조건·페이지를 바꾸는 동안 이전 목록을 유지해 화면이 로딩 문구로 깜빡이지 않게 한다. */
   const list = useQuery({
-    queryKey: ["orders", memberId, page],
-    queryFn: ({ signal }) => getOrders(page, signal),
+    queryKey: ["orders", memberId, page, q, from, to, category],
+    queryFn: async ({ signal }) => {
+      const filter = { q, from, to, status: categoryStatuses(category) };
+      const stage = categoryStage(category);
+      if (!stage) return { ...(await getOrders(page - 1, filter, signal)), truncated: false };
+      /* 서버는 진행 단계로 거르지 못해 목표 달성 주문을 모두 받아 화면에서 거르고 20건씩 나눈다.
+         받은 목록은 조건별로 잠시 캐시해 페이지·단계를 바꿀 때마다 다시 받지 않는다. */
+      const all = await client.fetchQuery({
+        queryKey: ["orders", memberId, "all", q, from, to, filter.status],
+        queryFn: ({ signal: allSignal }) => getAllOrders(filter, allSignal),
+        staleTime: 60_000,
+      });
+      return {
+        ...pageByStage(all.content, stage, page, ORDER_PAGE_SIZE),
+        truncated: all.truncated,
+      };
+    },
     placeholderData: keepPreviousData,
   });
 
-  if (list.isPending || list.isError) {
+  /* 조건은 URL에 두어 새로고침·뒤로가기로 되돌아온다. 같은 조건을 다시 고르면 기록을 쌓지 않는다. */
+  function go(next: FundingHistoryQuery) {
+    const href = fundingHistoryHref(next);
+    if (href !== fundingHistoryHref(query)) router.push(href);
+  }
+
+  if (list.isError) {
     return (
-      <FundingListScreen fullPage={list.isError}>
-        {list.isPending ? (
-          <p className="text-body-s px-5 py-24 text-center" role="status">
-            참여 내역을 불러오고 있습니다.
-          </p>
-        ) : (
-          <QueryErrorState error={list.error} onRetry={() => void list.refetch()} />
-        )}
+      <FundingListScreen fullPage>
+        <QueryErrorState error={list.error} onRetry={() => void list.refetch()} />
       </FundingListScreen>
     );
   }
 
-  const previous = previousPage(page + 1, {
-    totalElements: list.data.totalElements,
-    pageSize: ORDER_PAGE_SIZE,
-  });
+  const data = list.data;
+  const previous = data
+    ? previousPage(page, { totalElements: data.totalElements, pageSize: ORDER_PAGE_SIZE })
+    : 1;
   return (
     <FundingHistoryList
-      cards={list.data.content.map(toFundingCard)}
-      total={list.data.totalElements}
+      cards={data?.content.map(toFundingCard) ?? []}
+      total={data?.totalElements ?? 0}
+      filter={query}
+      today={today}
+      /* 검색어·기간·분류를 바꾸면 첫 페이지부터 본다. */
+      onSearch={(next) => go({ ...query, q: next, page: 1 })}
+      onPeriodChange={(range) => go({ ...query, ...range, page: 1 })}
+      onCategoryChange={(next) => go({ ...query, category: next, page: 1 })}
+      pending={list.isPending}
       loading={list.isPlaceholderData}
+      truncated={data?.truncated}
     >
-      {(page > 0 || list.data.hasNext) && (
+      {data && (page > 1 || data.hasNext) && (
         <div className="flex items-center justify-between gap-3 px-5 py-4">
           <Button
-            disabled={page === 0 || list.isPlaceholderData}
-            onClick={() => router.push(listHref(previous))}
+            disabled={page === 1 || list.isPlaceholderData}
+            onClick={() => go({ ...query, page: previous })}
           >
             이전 페이지
           </Button>
@@ -71,8 +102,8 @@ function FundingList({ memberId }: { memberId: string }) {
             </span>
           )}
           <Button
-            disabled={!list.data.hasNext || list.isPlaceholderData}
-            onClick={() => router.push(listHref(page + 2))}
+            disabled={!data.hasNext || list.isPlaceholderData}
+            onClick={() => go({ ...query, page: page + 1 })}
           >
             다음 페이지
           </Button>

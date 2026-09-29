@@ -8,7 +8,7 @@ import {
   toFundingCard,
   toFundingDetailView,
 } from "./funding-history.ts";
-import { demoOrderSummaries } from "./funding-orders-demo.ts";
+import { demoOrderDetail, demoOrderSummaries } from "./funding-orders-demo.ts";
 
 const returnActions = ["RETURN_REQUEST", "EXCHANGE_REQUEST", "DEFECT_REFUND_REQUEST"];
 
@@ -122,7 +122,8 @@ test("목록 카드는 단계 문구·한국 결제일·BE 리워드 요약을 �
     availableActions: [],
     refundRequests: [],
   });
-  assert.equal(card.stage, "펀딩 성공");
+  /* 성립 후 제작·발송 준비 단계는 PM 답변(2026-09-29)대로 "제작 중"이다. */
+  assert.equal(card.stage, "제작 중");
   /* UTC 23:30은 한국 시간으로 다음 날이다. */
   assert.equal(card.paidAt, "2026.09.15");
   assert.equal(card.reward, "크림 외 1건");
@@ -186,6 +187,8 @@ test("상세는 리워드마다 옵션·수량 행을 두고 요약은 첫 리�
   });
   assert.equal(view.reward, "크림 외 1건");
   assert.equal(view.quantity, 3);
+  /* BE #181 전 응답은 createdAt이 없어 참여일 행을 숨긴다. */
+  assert.equal(view.participatedAt, "");
   assert.equal(view.paidAt, "");
   assert.equal(view.projectTitle, "");
   assert.deepEqual(view.items, [
@@ -204,11 +207,21 @@ test("목업 목록은 Figma FUND_1의 네 카드와 같은 단계·버튼이다
       .map((card) => [card.stage, card.actions.map((action) => action.label)]),
     [
       ["펀딩 진행 중", ["참여 취소", "제작·배송 현황"]],
-      ["펀딩 성공", ["제작·배송 현황"]],
+      ["제작 중", ["제작·배송 현황"]],
       ["배송 중", ["제작·배송 현황"]],
       ["배송 완료", ["반품·교환 신청", "제작·배송 현황"]],
     ],
   );
+});
+
+test("상세 참여일은 createdAt의 한국 날짜다", () => {
+  const view = toFundingDetailView({
+    ...demoOrderDetail("in_progress"),
+    createdAt: "2026-09-14T16:30:00Z",
+    paidAt: "2026-09-14T16:40:00Z",
+  });
+  assert.equal(view.participatedAt, "2026.09.15");
+  assert.equal(view.paidAt, "2026.09.15");
 });
 
 test("날짜·금액 표기와 목업 상품 id 규칙", () => {

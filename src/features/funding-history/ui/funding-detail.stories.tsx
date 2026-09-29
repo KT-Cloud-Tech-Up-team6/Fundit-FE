@@ -28,14 +28,21 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** FL_B_MY_FUND_MNG. 주문번호·창작자·참여일은 상세 응답에 없어 두지 않는다. */
+function infoRow(canvasElement: HTMLElement, label: string) {
+  return within(canvasElement).getByText(label, { selector: "dt" }).nextElementSibling;
+}
+
+/** FL_B_MY_FUND_MNG. 주문번호·창작자는 상세 응답에 없어 두지 않는다. 참여일은 BE #181의 createdAt이다. */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "펀딩 상세 내역" })).toBeVisible();
     await expect(canvas.queryByText(/^FD/)).toBeNull();
-    await expect(canvas.queryByText("참여일")).toBeNull();
-    await expect(canvas.getByText("2026.09.15")).toBeVisible();
+    /* 펀딩 정보의 첫 줄은 참여일, 다음이 결제일이다(2323:53162). */
+    const labels = [...canvasElement.querySelectorAll("dt")].map((dt) => dt.textContent);
+    await expect(labels.slice(0, 2)).toEqual(["참여일", "결제일"]);
+    await expect(infoRow(canvasElement, "참여일")).toHaveTextContent("2026.09.15");
+    await expect(infoRow(canvasElement, "결제일")).toHaveTextContent("2026.09.15");
     await expect(canvas.getByText("단일옵션 · 1개")).toBeVisible();
     await expect(canvas.getByRole("link", { name: "참여 취소" })).toHaveAttribute(
       "href",
@@ -94,4 +101,20 @@ export const MultipleRewards: Story = {
   },
 };
 
-export const Desktop: Story = { globals: { viewport: { value: "desktop" } } };
+/** BE #181 전 응답처럼 createdAt이 없으면 참여일 행을 숨긴다. */
+export const WithoutParticipationDate: Story = {
+  args: {
+    detail: toFundingDetailView({ ...demoOrderDetail("in_progress"), createdAt: undefined }),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByText("참여일")).toBeNull();
+    await expect(infoRow(canvasElement, "결제일")).toHaveTextContent("2026.09.15");
+  },
+};
+
+export const Desktop: Story = {
+  globals: { viewport: { value: "desktop" } },
+  play: async ({ canvasElement }) => {
+    await expect(infoRow(canvasElement, "참여일")).toHaveTextContent("2026.09.15");
+  },
+};

@@ -58,7 +58,9 @@ export type RefundEntry = {
 const emptyItem: RefundEntryItem = { product: "", option: "", price: null, quantity: null };
 
 /** 사유 유형 문구에 구매자가 쓴 상세를 잇는다. 유형이 없는 건은 상세 원문을, 둘 다 없으면
-    트리거 문구를 쓴다(발송 지연·목표 미달, 사유가 저장되지 않는 참여 취소). */
+    트리거 문구를 쓴다(발송 지연·목표 미달, BE #181 전에 사유 없이 저장된 참여 취소).
+    BE #181 뒤의 참여 취소는 v2가 나눠 준 `reasonType`(SIMPLE_CHANGE_OF_MIND·PAYMENT_INFO_ERROR·
+    OPTION_SELECTION_ERROR·ETC)과 상세로 오므로 첫 분기에서 사유 문구가 된다. */
 export function refundReasonText(summary: RefundSummary): string {
   const detail = summary.reasonDetail?.trim() ?? "";
   if (summary.reasonType) {
@@ -88,8 +90,8 @@ export function toRefundEntry(summary: RefundSummary): RefundEntry {
     reason: refundReasonText(summary),
     rejectedReason: summary.rejectedReason ?? "",
     items: items.length ? items : [emptyItem],
-    /* 환불이 끝난 건만 금액을 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없어
-       amount가 결제 원금이라 실 환불 금액으로 보이면 안 된다. */
+    /* 환불이 끝난 건만 금액을 고지한다. 진행 중·반려는 확정 금액이 아니고, 교환은 환불이 없다.
+       교환 amount는 BE #181부터 0이고 그 전 기록은 결제 원금이라, 어느 쪽도 실 환불 금액으로 보이지 않는다. */
     cash: stage === "완료" && type !== "교환" ? summary.amount : null,
     /* 적립금 환불 금액 계약이 없어 항상 비어 있고, 기존 규칙대로 행을 숨긴다. */
     points: null,

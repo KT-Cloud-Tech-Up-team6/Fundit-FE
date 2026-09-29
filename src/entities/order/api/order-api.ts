@@ -83,6 +83,8 @@ export type OrderDetail = {
   availableActions: string[];
   refundRequests: OrderRefundRequest[];
   lineItems: OrderLineItem[];
+  /** 참여일(주문 생성 시각). BE #181 전 응답에는 키가 없다. */
+  createdAt?: string;
 };
 /** 목록 응답(BE `OrderSummaryResponse`). BE는 null 필드를 JSON에서 빼므로 값이 없을 수 있는
     필드는 선택 키다. 판매자명·썸네일은 project-service 조회가 실패하면 빠진다. */
@@ -144,17 +146,49 @@ export function getOrder(id: string, signal?: AbortSignal) {
   return apiRequest<OrderDetail>(`/api/v1/orders/${id}`, { auth: true, signal });
 }
 export const ORDER_PAGE_SIZE = 20;
-/** 서버 목록에는 기본 정렬이 없어 최신 참여순을 명시한다(Spring `sort`, 엔티티 `createdAt`). */
-export function getOrders(page: number, signal?: AbortSignal) {
+/** 목록 조건(BE #181). `q`는 프로젝트명 부분 일치, `from`·`to`는 한국 날짜 `yyyy-MM-dd`의
+    참여일이며 양 끝을 포함한다. `from`이 `to`보다 늦으면 400이다. `status`(주문 상태)는 여러 번
+    보내면 합집합이다. 비운 조건은 보내지 않는다. */
+export type OrderListFilter = {
+  q?: string;
+  from?: string;
+  to?: string;
+  status?: readonly string[];
+};
+export type OrderPage = { content: OrderSummary[]; totalElements: number; hasNext: boolean };
+/** BE #181부터 목록은 최신 참여순 고정이다. 그 전 서버에는 기본 정렬이 없어 `sort`를 계속 보낸다. */
+export function getOrders(
+  page: number,
+  filter: OrderListFilter = {},
+  signal?: AbortSignal,
+  size = ORDER_PAGE_SIZE,
+) {
   const params = new URLSearchParams({
     page: String(page),
-    size: String(ORDER_PAGE_SIZE),
+    size: String(size),
     sort: "createdAt,desc",
   });
-  return apiRequest<{ content: OrderSummary[]; totalElements: number; hasNext: boolean }>(
-    `/api/v1/orders?${params}`,
-    { auth: true, signal },
-  );
+  for (const key of ["q", "from", "to"] as const) {
+    const value = filter[key];
+    if (value) params.set(key, value);
+  }
+  for (const status of filter.status ?? []) params.append("status", status);
+  return apiRequest<OrderPage>(`/api/v1/orders?${params}`, { auth: true, signal });
+}
+
+/** 한 번에 받는 건수와 최대 요청 수. 서버에 크기 상한이 따로 없어 100건씩 20번(2,000건)까지 받는다. */
+export const ORDER_FETCH_ALL_SIZE = 100;
+export const ORDER_FETCH_ALL_MAX_REQUESTS = 20;
+/** 조건에 맞는 주문을 최신 참여순으로 끝까지 받는다. 최대 요청 수에 닿으면 받은 데까지 주고
+    `truncated`로 알린다. 서버가 거르지 못하는 조건(진행 단계)을 화면이 거를 때 쓴다. */
+export async function getAllOrders(filter: OrderListFilter, signal?: AbortSignal) {
+  const content: OrderSummary[] = [];
+  for (let page = 0; page < ORDER_FETCH_ALL_MAX_REQUESTS; page += 1) {
+    const result = await getOrders(page, filter, signal, ORDER_FETCH_ALL_SIZE);
+    content.push(...result.content);
+    if (!result.hasNext) return { content, truncated: false };
+  }
+  return { content, truncated: true };
 }
 /** BE `CancelReason`. `ETC`는 `reasonDetail`이 비어 있으면 400 `INVALID_INPUT`이다. */
 export type OrderCancelReason =
