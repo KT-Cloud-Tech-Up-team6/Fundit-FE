@@ -117,7 +117,8 @@
   max-width: none;
   left: -12.22% !important;
 }
-.liveContent h2 {
+.liveContent h2,
+.replay h2 {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -125,13 +126,15 @@
   font-weight: 600;
   line-height: 26px;
 }
-.liveContent small {
+.liveContent small,
+.replay small {
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
 }
-.liveContent h2 small {
+.liveContent h2 small,
+.replay h2 small {
   margin-left: -4px;
 }
 .videoSection h3 {

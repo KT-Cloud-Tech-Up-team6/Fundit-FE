@@ -110,6 +110,26 @@ export const getPublicHighlights = (liveId: string, signal?: AbortSignal) =>
     { signal },
   );
 
+/** 프로젝트의 공개 숏 클립 한 건(BE PR #185). 여러 방송의 클립이 섞여 항목마다 `liveId`가 온다. */
+export type ProjectClip = {
+  liveId: string;
+  highlightId: string;
+  sceneLabel: string;
+  title?: string | null;
+  clipUrl?: string | null;
+  /** AI 콜백이 채우기 전까지 비어 있다. */
+  thumbnailUrl?: string | null;
+  createdAt: string;
+};
+
+/* 구매자 LIVE 체크 탭의 숏 클립. 비인증이고 공개·생성 완료된 클립만 생성 최신순으로 온다. `/public`과 달리
+   조회 수를 올리지 않아 프로젝트 화면을 열 때마다 불러도 된다. 첫 페이지(기본 20건)만 받는다. */
+export const getPublicProjectClips = (projectId: string, signal?: AbortSignal) =>
+  apiRequest<{ content: ProjectClip[]; totalElements: number }>(
+    `/api/v1/lives/highlights?${new URLSearchParams({ projectId })}`,
+    { signal },
+  );
+
 /* 판매자 검토용 목록. 비공개·생성 중·실패 항목까지 온다. `/public`과 달리 조회 수로 잡히지 않는다. */
 export const getHighlights = (liveId: string, signal?: AbortSignal) =>
   apiRequest<{ markers: Highlight[]; clips: Highlight[] }>(`${livePath(liveId)}/highlights`, {
