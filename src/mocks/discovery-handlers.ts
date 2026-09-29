@@ -144,8 +144,8 @@ export const discoveryHandlers = [
 
   http.get("*/api/v1/search/recent-keywords", () => HttpResponse.json({ content: recentKeywords })),
 
-  http.delete("*/api/v1/search/recent-keywords/:keyword", ({ params }) => {
-    const keyword = decodeURIComponent(String(params.keyword));
+  http.delete("*/api/v1/search/recent-keywords", ({ request }) => {
+    const keyword = new URL(request.url).searchParams.get("keyword");
     const at = recentKeywords.findIndex((item) => item.keyword === keyword);
     if (at >= 0) recentKeywords.splice(at, 1);
     return new HttpResponse(null, { status: 204 });
