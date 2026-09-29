@@ -2,6 +2,8 @@ import { delay, http, HttpResponse } from "msw";
 
 import type { SignupRequest, SignupTerm } from "@/features/auth/api/auth-types";
 
+import { E2E_LOGIN } from "./fixtures";
+
 const terms: SignupTerm[] = [
   {
     code: "SERVICE_USE",
@@ -159,6 +161,23 @@ export const authHandlers = [
     const accessToken = `access-${crypto.randomUUID()}`;
     return HttpResponse.json(
       { accountId: `account-${crypto.randomUUID()}`, memberId: currentUser.memberId, accessToken },
+      {
+        headers: {
+          "Set-Cookie":
+            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
+        },
+      },
+    );
+  }),
+
+  /* E2E 전용: 실제 BE의 로그인 계약을 따로 재현하지 않고, 픽스처 계정 하나만 성공시킨다. */
+  http.post("*/api/v1/auth/login", async ({ request }) => {
+    const body = (await request.json()) as { email?: string; password?: string };
+    if (body.email !== E2E_LOGIN.email || body.password !== E2E_LOGIN.password) {
+      return error(401, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다.");
+    }
+    return HttpResponse.json(
+      { accessToken: `access-${crypto.randomUUID()}`, mustChangePassword: false },
       {
         headers: {
           "Set-Cookie":

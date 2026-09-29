@@ -1,0 +1,15 @@
+/* E2E(Playwright) 스펙과 MSW 핸들러가 공유하는 목업 픽스처 값. */
+export const E2E_LOGIN = { email: "e2e@fundit.test", password: "Passw0rd!1" };
+
+export const FIXTURE_PROJECT_ID = "11111111-1111-4111-8111-111111111111";
+export const FIXTURE_REWARD_ID = 9001;
+export const FIXTURE_ORDER_ID = "22222222-2222-4222-8222-222222222222";
+export const FIXTURE_DELIVERED_ORDER_ID = "33333333-3333-4333-8333-333333333333";
+export const FIXTURE_SELLER_PROJECT_ID = "44444444-4444-4444-8444-444444444444";
+export const FIXTURE_SELLER_ORDER_IDS = [
+  "55555555-5555-4555-8555-555555555555",
+  "66666666-6666-4666-8666-666666666666",
+] as const;
+/* 한정 리워드: 상세에는 남은 것처럼 보이지만 주문하는 순간 재고가 없다(UCS 예외 소비자 18·19). */
+export const FIXTURE_LIMITED_REWARD_ID = 9003;
+export const FIXTURE_SOLD_OUT_REWARD_ID = 9004;
