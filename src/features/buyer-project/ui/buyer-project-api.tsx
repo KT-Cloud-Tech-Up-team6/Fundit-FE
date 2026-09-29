@@ -140,7 +140,8 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   });
   const toggleWish = useMutation({
     mutationFn: (wished: boolean) => setProjectWish(projectId, wished),
-    onSuccess: (_, wished) => {
+    onSuccess: async (_, wished) => {
+      await client.cancelQueries({ queryKey: wishKey });
       client.setQueryData(wishKey, { projectPublicId: projectId, wished });
       /* 관심 목록은 다음 진입에 새로 받는다. */
       void client.invalidateQueries({ queryKey: ["member-wishes"] });
