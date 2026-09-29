@@ -11,7 +11,13 @@ const meta = {
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
+    viewport: {
+      options: {
+        figma390: { name: "Figma 390 × 844", styles: { width: "390px", height: "844px" } },
+      },
+    },
   },
+  globals: { viewport: { value: "figma390" } },
   args: {
     open: true,
     onClose: fn(),

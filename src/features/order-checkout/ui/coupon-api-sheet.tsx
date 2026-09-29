@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getCheckoutCoupons,
   previewOrder,
@@ -12,9 +12,10 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorState } from "@/shared/components/ui/error-state";
 import { CouponRadio } from "./coupon-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
-import { couponConditions } from "../model/coupon-conditions";
+import { couponCardConditions } from "../model/coupon-conditions";
 import {
   couponCodes,
+  hasConflictingCouponIssuer,
   removeCoupon,
   selectCoupon,
   type CouponSelection,
@@ -34,12 +35,31 @@ export function CouponApiSheet({
   onApply: (selection: CouponSelection[]) => void;
   onClose: () => void;
 }) {
-  const [page, setPage] = useState(0);
   const [choices, setChoices] = useState(selected);
-  const coupons = useQuery({
-    queryKey: ["checkout-coupons", memberId, page],
-    queryFn: ({ signal }) => getCheckoutCoupons(page, signal),
+  const [duplicateIssuerWarning, setDuplicateIssuerWarning] = useState(false);
+  const coupons = useInfiniteQuery({
+    queryKey: ["checkout-coupons", memberId],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => getCheckoutCoupons(pageParam, signal),
+    getNextPageParam: (lastPage, pages) => (lastPage.hasNext ? pages.length : undefined),
   });
+  const couponList = coupons.data?.pages.flatMap((page) => page.content) ?? [];
+  useEffect(() => {
+    if (
+      !coupons.hasNextPage ||
+      coupons.isFetching ||
+      coupons.isFetchingNextPage ||
+      coupons.isFetchNextPageError
+    )
+      return;
+    void coupons.fetchNextPage();
+  }, [
+    coupons.fetchNextPage,
+    coupons.hasNextPage,
+    coupons.isFetching,
+    coupons.isFetchingNextPage,
+    coupons.isFetchNextPageError,
+  ]);
   const candidate = {
     ...body,
     couponCodes: couponCodes(choices),
@@ -52,6 +72,7 @@ export function CouponApiSheet({
   const error = preview.data ? couponPreviewError(preview.data, candidate.couponCodes) : "";
   const canApply =
     !candidate.couponCodes.length || (preview.isSuccess && !preview.isFetching && !error);
+  const warning = duplicateIssuerWarning ? "지금 사용하신 쿠폰은 중복 사용이 불가능합니다" : error;
   return (
     <BottomSheet
       open
@@ -72,82 +93,63 @@ export function CouponApiSheet({
         </Button>
       }
     >
-      <p className="text-body-s text-text-secondary">
-        플랫폼·메이커 쿠폰은 각각 1개까지 선택할 수 있습니다.
-      </p>
       <fieldset className="flex flex-col gap-3">
         <legend className="sr-only">쿠폰 선택</legend>
         <CouponRadio
           label="사용하지 않음"
           inputType="checkbox"
           checked={choices.length === 0}
-          onSelect={() => setChoices([])}
+          onSelect={() => {
+            setChoices([]);
+            setDuplicateIssuerWarning(false);
+          }}
         />
         {coupons.isPending ? (
           <p role="status">쿠폰을 불러오고 있습니다.</p>
-        ) : coupons.isError ? (
+        ) : coupons.isError && !couponList.length ? (
           <ErrorState
             variant="section"
             description="쿠폰 조회를 실패하였습니다"
             action={{ onClick: () => void coupons.refetch() }}
           />
         ) : (
-          coupons.data.content.map((coupon) => (
+          couponList.map((coupon) => (
             <CouponRadio
               key={coupon.couponCode}
               label={coupon.couponName ?? coupon.couponCode}
-              badge={
-                coupon.issuerType === "PLATFORM"
-                  ? "플랫폼"
-                  : coupon.issuerType === "MAKER"
-                    ? "메이커"
-                    : "발급자 확인 필요"
-              }
               inputType="checkbox"
               checked={choices.some((item) => item.couponCode === coupon.couponCode)}
-              onSelect={() =>
+              onSelect={() => {
+                if (hasConflictingCouponIssuer(choices, coupon)) {
+                  setDuplicateIssuerWarning(true);
+                  return;
+                }
                 setChoices((previous) =>
                   previous.some((item) => item.couponCode === coupon.couponCode)
                     ? removeCoupon(previous, coupon.couponCode)
                     : selectCoupon(previous, coupon),
-                )
-              }
+                );
+                setDuplicateIssuerWarning(false);
+              }}
               disabled={coupon.status !== "AVAILABLE" || coupon.issuerType === null}
-              {...couponConditions(coupon, body.projectId)}
+              {...couponCardConditions(coupon, body.projectId)}
             />
           ))
         )}
       </fieldset>
-      {coupons.isSuccess && !coupons.data.content.length && <p>사용가능한 쿠폰이 없습니다</p>}
-      <div className="mt-3 flex justify-between">
-        <Button variant="secondary" disabled={page === 0} onClick={() => setPage(page - 1)}>
-          이전 쿠폰
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={!coupons.isSuccess || !coupons.data.hasNext}
-          onClick={() => setPage(page + 1)}
-        >
-          다음 쿠폰
-        </Button>
-      </div>
-      {candidate.couponCodes.length > 0 && (
-        <div className="mt-3" aria-live="polite">
-          {preview.isPending || preview.isFetching ? (
-            <p>쿠폰 적용 금액을 확인하고 있습니다.</p>
-          ) : preview.isError ? (
-            <ErrorState
-              variant="section"
-              description="쿠폰 확인을 실패하였습니다"
-              action={{ onClick: () => void preview.refetch() }}
-            />
-          ) : error ? (
-            <p role="alert">{error}</p>
-          ) : (
-            <p>쿠폰 적용 후 {preview.data.finalAmount.toLocaleString("ko-KR")}원</p>
-          )}
-        </div>
+      {warning && (
+        <p role="alert" className="text-body-s text-text-warning mt-3 text-center leading-[1.4]">
+          {warning}
+        </p>
       )}
+      {coupons.isFetchNextPageError && (
+        <ErrorState
+          variant="section"
+          description="쿠폰을 더 불러오지 못했습니다"
+          action={{ onClick: () => void coupons.fetchNextPage() }}
+        />
+      )}
+      {coupons.isSuccess && !couponList.length && <p>사용가능한 쿠폰이 없습니다</p>}
     </BottomSheet>
   );
 }

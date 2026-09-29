@@ -16,7 +16,7 @@ export function couponPreviewError(preview: OrderPreview, codes: string[]): stri
       BUDGET_EXCEEDED: "쿠폰 할인 예산이 소진되었습니다.",
       NOT_APPLICABLE: "이 프로젝트에 사용할 수 없는 쿠폰입니다.",
       // 결제 금액을 0원 이하로 만드는 쿠폰(BE-8, 결제 금액 1원 이상). 문구는 BE OrderDomainApiSpec이 정했다.
-      EXCEEDS_ORDER_AMOUNT: "최소 결제금액보다 낮아 이 쿠폰을 사용할 수 없습니다.",
+      EXCEEDS_ORDER_AMOUNT: "최소 결제금액 보다 낮아 이 쿠폰을 사용할 수 없습니다",
     };
     return messages[unavailable.reason] ?? "이 주문에 사용할 수 없는 쿠폰입니다.";
   }
