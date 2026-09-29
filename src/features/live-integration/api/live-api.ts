@@ -66,10 +66,13 @@ export const getOriginals = (liveId: string, questionId: string, signal?: AbortS
     `${livePath(liveId)}/chat/questions/${encodeURIComponent(questionId)}`,
     { auth: true, signal },
   );
+/** `MARK_DONE`이 답변 자리에 남기는 고정 문구(BE `AiAnswerService.MARK_DONE_ANSWER`). 답이 아니라 처리 표시다. */
+export const MARK_DONE_ANSWER = "방송 중 답변 완료";
+
 export const requestAnswer = (
   liveId: string,
   questionId: string,
-  body: { action: "GENERATE" | "SEND"; finalAnswer?: string },
+  body: { action: "GENERATE" | "SEND" | "MARK_DONE"; finalAnswer?: string },
   signal?: AbortSignal,
 ) =>
   apiRequest<AnswerDraft>(

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tan
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/shared/api/api-error";
-import { endLive, getLiveDetail } from "@/entities/live/api/live-session-api";
+import { endLive, getLiveDetail, getStreamStatus } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
 import { isUnavailableLive } from "@/entities/live/model/live-error";
@@ -40,6 +40,7 @@ import {
   getOriginals,
   getPlayback,
   getUnanswered,
+  MARK_DONE_ANSWER,
   requestAnswer,
   type AnswerDraft,
   type AnsweredQuestion,
@@ -55,6 +56,7 @@ import {
   orderStatsLabel,
   publishLiveChecks,
   questionSummaryState,
+  streamStatusMessage,
   toCheckQuestions,
   toConsoleCues,
 } from "../model/seller-console";
@@ -205,6 +207,14 @@ function ConsoleBody({
       ending.current = false;
     },
   });
+  /* "스트림 상태 확인"은 누를 때만 한 번 묻고 결과를 안내 줄에 싣는다(주기 조회·배지 없음, #441).
+     안내를 먼저 비워야 같은 결과가 다시 와도 스크린 리더가 새로 읽는다. */
+  const streamStatus = useMutation({
+    mutationFn: () => getStreamStatus(liveId),
+    onMutate: () => setNotice(""),
+    onSuccess: (status) => setNotice(streamStatusMessage(status)),
+    onError: () => setNotice("송출 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+  });
 
   const live = detail.data?.status === "LIVE";
   const projectId = detail.data?.projectId;
@@ -315,7 +325,9 @@ function ConsoleBody({
             elapsedAt={detail.dataUpdatedAt}
             orders={orderStatsLabel(orderStats, ORDER_STATS_STALE_MS)}
             live={live}
-            onCheckStream={() => setNotice("스트림 상태 확인은 준비 중입니다.")}
+            onCheckStream={() => {
+              if (!streamStatus.isPending) streamStatus.mutate();
+            }}
           />
           <div className="flex min-w-0 flex-col gap-4">
             {cueSheet.isError ? (
@@ -521,6 +533,13 @@ function QuestionPanel({
   const unavailable = (questionId: string) =>
     draftUnavailable(cache.getQueryData<AnswerDraft>(draftKey(questionId)));
   const aggregated = answered.data ?? [];
+  /* 답변 완료 처리 표시는 보낼 답이 아니다. 입력란에 채우면 채팅 보내기 한 번으로 AI에 답변으로
+     등록돼 비슷한 질문에 재사용되므로 비워 둔다(#441). `undefined`가 아니라 빈 문자열이어야 처리 전에
+     받아 둔 초안 캐시로도 채워지지 않는다 — 초안은 판매자가 재생성할 때만 보인다. */
+  const registeredAnswer = (questionId: string) => {
+    const answer = aggregated.find((item) => item.questionId === questionId)?.answerText;
+    return answer === MARK_DONE_ANSWER ? "" : answer;
+  };
   const back = () => onView({ kind: "summary" });
 
   return (
@@ -556,11 +575,10 @@ function QuestionPanel({
             ownerKey={ownerKey}
             draftKey={draftKey(question.questionId)}
             question={question}
-            registered={
-              aggregated.find((item) => item.questionId === question.questionId)?.answerText
-            }
+            registered={registeredAnswer(question.questionId)}
             disabled={!live}
             onNotice={onNotice}
+            onDone={back}
           />
         </div>
       ) : view.kind === "aggregated" ? (
@@ -691,6 +709,7 @@ function AnswerView({
   registered,
   disabled,
   onNotice,
+  onDone,
 }: {
   liveId: string;
   ownerKey: string[];
@@ -699,6 +718,8 @@ function AnswerView({
   registered?: string;
   disabled: boolean;
   onNotice: (message: string) => void;
+  /** 답변 완료 처리가 끝나면 질문 요약 목록으로 돌아간다. */
+  onDone: () => void;
 }) {
   const cache = useQueryClient();
   const [edited, setEdited] = useState<string | null>(null);
@@ -738,6 +759,21 @@ function AnswerView({
       sending.current = false;
     },
   });
+  /* 방송 중 말로 답한 질문 표시(IA 판매자 26행, BE-14). BE가 "방송 중 답변 완료"만 기록하고 채팅에는
+     올리지 않는다. 목록을 다시 받은 뒤 돌아가야 옮겨진 질문이 "답변 완료"에 바로 보인다(#441). */
+  const markDone = useMutation({
+    mutationFn: () => requestAnswer(liveId, question.questionId, { action: "MARK_DONE" }),
+    onSuccess: () =>
+      Promise.all([
+        cache.invalidateQueries({ queryKey: [...ownerKey, "unanswered"] }),
+        cache.invalidateQueries({ queryKey: [...ownerKey, "insights"] }),
+        cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] }),
+      ]),
+  });
+  /* 복귀는 호출별 콜백에 둔다. 판매자가 기다리지 않고 다른 화면으로 옮겨 가 이 화면이 사라졌으면
+     불리지 않아, 끝난 요청이 지금 보는 화면과 입력을 덮지 않는다. */
+  const markAsDone = () => markDone.mutate(undefined, { onSuccess: onDone });
+  const busy = send.isPending || markDone.isPending;
   /* 답변 완료 질문은 서버에 등록된 답변이 기준이다. 초안 캐시는 등록 전 AI 원본이라, 판매자가
      재생성을 누르기 전에는 등록한 답변을 먼저 보인다. */
   const showDraft = !question.complete || regenerated;
@@ -813,13 +849,18 @@ function AnswerView({
           답변 등록을 확인하지 못했습니다. 입력 내용은 유지됩니다.
         </p>
       )}
+      {/* 실패 뒤 채팅 보내기로 답해 이미 답변 완료가 됐으면 이 오류는 더 해당하지 않는다. */}
+      {markDone.isError && !question.complete && (
+        <MutationError error={markDone.error} disabled={busy} retry={markAsDone} />
+      )}
       <div className="mt-auto flex gap-3 pt-3">
+        {/* 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 눌러도 바뀌는 것이 없다. */}
         <Button
           variant="secondary"
           size="sm"
           className="text-body-s h-10 flex-1"
-          disabled={disabled}
-          onClick={() => onNotice("답변 완료 처리는 준비 중입니다.")}
+          disabled={disabled || question.complete || busy}
+          onClick={markAsDone}
         >
           답변 완료 처리
         </Button>
@@ -828,7 +869,7 @@ function AnswerView({
             variant="primaryLive"
             size="sm"
             className="text-body-s h-10 flex-1"
-            disabled={disabled || send.isPending || generating || !value.trim()}
+            disabled={disabled || busy || generating || !value.trim()}
             onClick={() => submit(value)}
           >
             채팅 보내기
