@@ -79,8 +79,9 @@ export function streamStatusMessage(status: { state: string; health?: string | n
   return "송출이 들어오고 있습니다.";
 }
 
+/** 콘솔 집계된 Q&A의 답변자. AI는 Figma 1299:34077의 "AI 라이브 매니저"다. */
 export function answeredByName(value: string) {
-  return value === "AI" ? "AI 자동답변" : value === "SELLER" ? "판매자" : "답변자 미확인";
+  return value === "AI" ? "AI 라이브 매니저" : value === "SELLER" ? "판매자" : "답변자 미확인";
 }
 
 /** 받은 초안 응답에 초안이 없는지. BE는 null인 `draftAnswer`를 빼고 보내고(non_null),

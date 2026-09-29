@@ -87,8 +87,8 @@ test("갱신 시각은 방금 전·분·시간 단위로 적는다", () => {
   assert.equal(formatUpdatedAgo(now - 125 * 60_000, now), "2시간 전");
 });
 
-test("답변 주체는 AI 자동답변·판매자로 적는다", () => {
-  assert.equal(answeredByName("AI"), "AI 자동답변");
+test("답변 주체는 AI 라이브 매니저·판매자로 적는다", () => {
+  assert.equal(answeredByName("AI"), "AI 라이브 매니저");
   assert.equal(answeredByName("SELLER"), "판매자");
   assert.equal(answeredByName("NONE"), "답변자 미확인");
 });

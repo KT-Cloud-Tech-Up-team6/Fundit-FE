@@ -2,13 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "@/shared/api/api-error";
 import { endLive, getLiveDetail, getStreamStatus } from "@/entities/live/api/live-session-api";
 import { getCueSheet } from "@/entities/live/api/live-cue-sheet-api";
 import { toCueSheetState } from "@/entities/live/model/live-cue-sheet";
 import { isUnavailableLive } from "@/entities/live/model/live-error";
 import { getLiveOrderStats } from "@/entities/order/api/seller-order-api";
+import { liveChatFailedNotice } from "@/features/buyer-live-room/model/live-chat";
 import {
   createLiveVerification,
   getLiveQuestions,
@@ -60,6 +61,8 @@ import {
   toCheckQuestions,
   toConsoleCues,
 } from "../model/seller-console";
+import { MAX_CHAT_LENGTH, toChatRows } from "../model/ivs-chat";
+import { useLiveChat } from "../model/use-live-chat";
 import { LivePlayer } from "./live-player";
 import { MutationError, QueryError } from "./query-error";
 
@@ -71,9 +74,6 @@ const POLL_MS = 30_000;
 const ORDER_STATS_POLL_MS = 5_000;
 /* 갱신이 이만큼(3번) 이어서 실패하면 마지막 값 대신 `-`로 바꾼다. */
 const ORDER_STATS_STALE_MS = 15_000;
-
-/* 실제 채팅이 연결되지 않아 늘 빈 목록이다. 렌더마다 새 배열을 넘기면 채팅 패널의 스크롤 처리가 매번 돈다. */
-const noMessages: { id: string; author: string; text: string }[] = [];
 
 const placeholderBox =
   "bg-layer-surface-disabled text-caption-s text-text-secondary flex flex-1 items-center justify-center rounded-xs p-4 text-center";
@@ -234,6 +234,15 @@ function ConsoleBody({
   const registeredIds = (liveQuestions.data?.content ?? [])
     .filter((item) => item.answered)
     .map((item) => item.questionSummaryId);
+  /* 방송 중에만 IVS 채팅에 붙는다(#470). 로그인한 판매자가 이 방송의 소유자라 내 메시지도 "판매자"다.
+     렌더마다 새 배열을 넘기면(경과 시간이 초마다 다시 그린다) 채팅 패널의 스크롤 처리가 매번 돈다. */
+  const liveChat = useLiveChat({ liveId, memberId: ownerId, enabled: live });
+  const chatEntries = liveChat.entries;
+  const chatMessages = useMemo(
+    () =>
+      toChatRows(chatEntries, { memberId: ownerId, sellerId: ownerId, answered: answered.data }),
+    [chatEntries, ownerId, answered.data],
+  );
   const checkQuestions = toCheckQuestions(answered.data ?? []);
   const cues = toConsoleCues(toCueSheetState(cueSheet.data).segments);
 
@@ -346,12 +355,20 @@ function ConsoleBody({
                 }
               />
             )}
+            {/* 채팅 수는 이 화면에서 받은 채팅 수다(Figma 1299:32829의 0부터). 답변은 "채팅 보내기"로 BE가
+                게시하므로 여기서는 판매자가 직접 쓴 메시지만 보낸다. */}
             <SellerChatPanel
-              messages={noMessages}
-              countLabel="-"
-              onSend={() => {
-                setNotice("실시간 채팅은 준비 중입니다.");
-                return false;
+              messages={chatMessages}
+              countLabel={String(liveChat.received)}
+              disabled={!live}
+              maxLength={MAX_CHAT_LENGTH}
+              onSend={async (text) => {
+                setNotice("");
+                const result = await liveChat.send(text.trim());
+                if (result === "rejected")
+                  setNotice("부적절한 단어가 포함되어 있어 메시지를 전송할 수 없습니다.");
+                else if (result === "failed") setNotice(liveChatFailedNotice);
+                return result === "sent";
               }}
             />
           </div>
@@ -750,7 +767,8 @@ function AnswerView({
         setNotSent(true);
         return;
       }
-      onNotice("답변이 등록되었습니다. 채팅 게시는 준비 중입니다.");
+      /* 채팅 게시는 BE가 `seller-answer` 이벤트로 한다. 여기서 또 보내면 채팅에 두 번 보인다. */
+      onNotice("답변이 등록되었습니다.");
       void cache.invalidateQueries({ queryKey: [...ownerKey, "unanswered"] });
       void cache.invalidateQueries({ queryKey: [...ownerKey, "insights"] });
       void cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] });
