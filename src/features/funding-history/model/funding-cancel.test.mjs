@@ -239,7 +239,24 @@ test("신청 거절 코드는 안내 문구로 바꾸고 모르는 오류는 기
   );
   assert.match(cancelErrorMessage(apiError(410, "RESOURCE_EXPIRED")), /만료된 주문/);
   assert.match(cancelErrorMessage(apiError(422, "NOT_YET_DELAYED")), /발송 예정일이 지나지 않아/);
-  assert.match(cancelErrorMessage(new Error("network")), /주문 상태를 다시 확인/);
+  assert.match(cancelErrorMessage(new Error("network")), /접수됐는지 확인하지 못했습니다/);
+});
+
+test("취소의 503 DEPENDENCY_FAILURE는 접수됐을 수 있어 다시 시도 대신 내역을 보게 한다", () => {
+  const unavailable = new ApiError({
+    status: 503,
+    code: "DEPENDENCY_FAILURE",
+    message: "서버 문구",
+  });
+  assert.equal(
+    cancelErrorMessage(unavailable),
+    "취소가 접수됐는지 확인하지 못했습니다. 취소·반품·교환 내역이나 주문 상태를 확인해주세요.",
+  );
+  /* 반품·교환 신청은 토스를 부르지 않아 같은 코드가 접수 전 실패다. */
+  assert.equal(
+    refundRequestErrorMessage(unavailable),
+    "주문 정보를 확인하지 못해 신청하지 못했습니다. 잠시 후 다시 시도해주세요.",
+  );
 });
 
 test("상품 카드는 첫 리워드와 옵션, 나머지 건수를 한 줄로 보여 준다", () => {
