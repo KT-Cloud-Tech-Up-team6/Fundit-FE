@@ -19,7 +19,9 @@ function cancelledRefunds(): RefundSummary[] {
     .map((order, index) => ({
       refundId: index + 1,
       fundingId: order.orderId,
-      triggerType: order.cancelReason ?? "SIMPLE_CHANGE_OF_MIND",
+      // 유형(트리거)은 사유와 별개다. 참여 취소 사유(단순 변심·옵션 선택 오류 등)는 reasonType으로 보낸다.
+      triggerType: "SIMPLE_CHANGE_OF_MIND",
+      reasonType: order.cancelReason,
       status: "REQUESTED",
       amount: order.finalAmount,
       requestedAt: order.createdAt,
