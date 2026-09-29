@@ -30,7 +30,23 @@ export type CueSheetResponse = {
 /** BE `CueSheetService.MAX_DURATION_SEC`. 넘기면 400이다. */
 export const CUE_SHEET_MAX_DURATION_SEC = 600;
 
-export type CueSheetGenerateBody = {
+/**
+ * 판매자가 생성 전 채팅으로 답한 다섯 가지(BE `CueSheetGenerateRequest`, 요청서 AI-1·BE-25).
+ * 전부 선택이고 BE는 저장하지 않고 AI로 넘기기만 한다. 순서는 채팅 질문 순서와 같다.
+ */
+export const cueSheetBriefFields = [
+  "productDescription",
+  "motivation",
+  "expectedRisks",
+  "demoDescription",
+  "deliverySchedule",
+] as const;
+export type CueSheetBrief = Partial<Record<(typeof cueSheetBriefFields)[number], string>>;
+
+/** BE `@Size(max = 1000)`. 넘기면 400이다. */
+export const CUE_SHEET_BRIEF_MAX_LENGTH = 1000;
+
+export type CueSheetGenerateBody = CueSheetBrief & {
   mode: CueSheetMode;
   targetDurationSec: number;
   demoAvailable?: boolean;

@@ -82,6 +82,25 @@ export function getStreamInfo(liveId: string, signal?: AbortSignal) {
 }
 
 /**
+ * 송출 상태(BE #185, 요청서 BE-16). `state`(LIVE·OFFLINE)·`health`(HEALTHY·STARVING·UNKNOWN)는
+ * IVS 값 그대로다. 방송 중이 아니면 BE가 IVS를 부르지 않고 `OFFLINE`을 준다. null인 `health`·
+ * `startedAt`은 응답에서 빠진다(non_null). IVS 조회 실패는 503이다 — OFFLINE과 다르다.
+ */
+export type StreamStatusResponse = {
+  state: string;
+  health?: string | null;
+  viewerCount: number;
+  startedAt?: string | null;
+};
+
+export function getStreamStatus(liveId: string, signal?: AbortSignal) {
+  return apiRequest<StreamStatusResponse>(
+    `/api/v1/lives/${encodeURIComponent(liveId)}/stream-status`,
+    { auth: true, signal },
+  );
+}
+
+/**
  * 송출 시작. DRAFT·SCHEDULED·ERROR에서만 LIVE로 바뀌고 이미 LIVE거나 ENDED면 409다.
  * BE가 채팅방을 만들고 AI 상품정보 준비를 시작하며, 채팅방 생성이 실패하면 세션이 ERROR가 된다.
  */

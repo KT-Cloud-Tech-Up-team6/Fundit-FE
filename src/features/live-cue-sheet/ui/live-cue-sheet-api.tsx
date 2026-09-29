@@ -13,6 +13,7 @@ import {
 } from "@/entities/live/api/live-cue-sheet-api";
 import { getLiveDetail } from "@/entities/live/api/live-session-api";
 import {
+  toCueSheetBrief,
   toCueSheetMode,
   toCueSheetSegmentBody,
   toCueSheetState,
@@ -80,10 +81,11 @@ export function LiveCueSheetApi({
   });
 
   const generate = useMutation({
-    mutationFn: (request: { type: CueSheetType; minutes: number }) =>
+    mutationFn: (request: { type: CueSheetType; minutes: number; answers: string[] }) =>
       requestCueSheet(liveId, {
         mode: toCueSheetMode(request.type),
         targetDurationSec: toTargetDurationSec(request.minutes),
+        ...toCueSheetBrief(request.answers),
       }),
     onMutate: () => setGenerateFailure(null),
     onSuccess: (response: CueSheetResponse) => {
