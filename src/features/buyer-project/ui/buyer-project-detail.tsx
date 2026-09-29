@@ -378,7 +378,7 @@ export function BuyerProjectDetail({
     <div
       className={
         styles.screen +
-        " bg-layer-surface-default text-text-default mx-auto w-full min-w-0 " +
+        " bg-layer-surface-default text-text-default mx-auto w-full min-w-[390px] max-[389px]:min-w-0 " +
         (preview
           ? `${styles.preview} max-w-[390px]`
           : `${styles.desktop} min-h-dvh pb-[calc(63px+env(safe-area-inset-bottom))] min-[1200px]:pb-0`)
