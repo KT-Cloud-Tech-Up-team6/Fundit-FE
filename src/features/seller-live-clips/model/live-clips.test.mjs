@@ -32,9 +32,12 @@ const highlight = (highlightId, startSec, overrides = {}) => ({
   startSec,
   endSec: startSec + 32,
   clipUrl: `https://ai.test/${highlightId}.mp4`,
+  thumbnailUrl: `https://ai.test/${highlightId}.jpg`,
   caption: null,
   isPublic: false,
   generationStatus: "COMPLETED",
+  // LIVE 방송 예정일(09.15)과 다른 날이라 날짜가 클립에서 오는지 가린다.
+  createdAt: "2026-09-16T01:00:00Z",
   ...overrides,
 });
 
@@ -65,7 +68,7 @@ test("최신 LIVE 먼저, LIVE 안에서는 시작 시각 순서로 생성 완�
     },
     {
       live: live("old", { scheduledStartAt: null, thumbnailUrl: null }),
-      clips: [highlight("o1", 5, { endSec: null, clipUrl: null })],
+      clips: [highlight("o1", 5, { endSec: null, clipUrl: null, thumbnailUrl: null })],
     },
   ]);
 
@@ -78,16 +81,17 @@ test("최신 LIVE 먼저, LIVE 안에서는 시작 시각 순서로 생성 완�
     highlightId: "n1",
     title: "클립 n1",
     badge: "하이라이트",
-    dateLabel: "09.15",
+    dateLabel: "09.16",
     durationLabel: "00:32",
     clipUrl: "https://ai.test/n1.mp4",
+    thumbnailUrl: "https://ai.test/n1.jpg",
     liveThumbnailUrl: "https://cdn.test/new.jpg",
     isPublic: true,
   });
   assert.equal(clips[1].badge, "시연 영상");
-  // 방송 예정일이 없으면 LIVE 생성일을 쓴다.
-  assert.equal(clips[2].dateLabel, "09.01");
+  assert.equal(clips[2].dateLabel, "09.16");
   assert.equal(clips[2].durationLabel, null);
+  assert.equal(clips[2].thumbnailUrl, null);
   assert.equal(clips[2].liveThumbnailUrl, null);
 });
 
@@ -96,15 +100,15 @@ test("BE가 null 필드를 빼고 보내도(키 없음) 제목·길이·영상·
   delete omitted.title;
   delete omitted.endSec;
   delete omitted.clipUrl;
+  delete omitted.thumbnailUrl;
   const source = live("l");
-  delete source.scheduledStartAt;
   delete source.thumbnailUrl;
   const [clip] = toLiveClips([{ live: source, clips: [omitted] }]);
   assert.equal(clip.title, "제목 없음");
   assert.equal(clip.durationLabel, null);
   assert.equal(clip.clipUrl, null);
+  assert.equal(clip.thumbnailUrl, null);
   assert.equal(clip.liveThumbnailUrl, null);
-  assert.equal(clip.dateLabel, "09.01");
 });
 
 test("저장 대상은 서버 값과 달라진 클립뿐이다", () => {

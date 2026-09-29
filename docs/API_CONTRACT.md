@@ -675,11 +675,11 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 판매자 목록    | GET `/api/v1/lives/{liveId}/highlights`                            | → `{markers: [...], clips: [...]}`(비공개·생성 중·실패 포함) |
 | 공개 여부 변경 | PATCH `/api/v1/lives/{liveId}/highlights/{highlightId}/visibility` | `{isPublic}` → 204                                           |
 
-- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`caption`이 없을 수 있다.
+- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). BE PR #185부터 판매자 목록과 공개 목록(5.6) 모두 항목에 `thumbnailUrl`·`createdAt`이 더 온다. `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`thumbnailUrl`·`caption`이 없을 수 있다.
 - `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
 - FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
 - 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
-- 대조한 커밋의 응답에는 클립 생성일·썸네일이 없었다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. BE PR #185부터 하이라이트 항목에 `thumbnailUrl`·`createdAt`이 오지만 이 화면은 아직 쓰지 않는다. 비공개 클립도 보여야 해서 프로젝트 공개 숏 클립 목록(5.10)으로 바꿀 수는 없다.
+- 카드의 생성일은 클립 `createdAt`의 한국 시간 날짜다. 썸네일은 클립 `thumbnailUrl` → `clipUrl` 영상의 첫 프레임 → 원본 LIVE `thumbnailUrl` 순서로 쓴다. 없는 것은 건너뛰고 불러오지 못하면 다음 것으로 넘어가며, 모두 없으면 빈 면이다. 클립 `thumbnailUrl`은 하이라이트 AI 콜백이 채우기 전까지 없다. 길이는 `endSec - startSec`이다. #366 당시(`f127a6f`) 응답에는 클립 생성일·썸네일이 없어 LIVE 방송 예정일과 첫 프레임으로 대신했고, #462에서 BE `develop` `2271a22`와 대조해 클립 값으로 바꿨다. 비공개 클립도 보여야 해서 프로젝트 공개 숏 클립 목록(5.10)으로 바꿀 수는 없다.
 - [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
 - dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
 

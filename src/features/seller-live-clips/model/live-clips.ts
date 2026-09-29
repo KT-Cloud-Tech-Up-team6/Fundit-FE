@@ -12,12 +12,14 @@ export type LiveClip = {
   title: string;
   /** DEMO면 "시연 영상", 나머지는 "하이라이트"(#317 규칙). */
   badge: string;
-  /** "09.15". 클립 생성일이 응답에 없어 원본 LIVE의 방송 예정일(없으면 LIVE 생성일)을 쓴다. */
+  /** "09.15". 클립 생성일이다. */
   dateLabel: string | null;
   /** "00:32". 끝 시각이 없으면 길이를 모른다. */
   durationLabel: string | null;
   clipUrl: string | null;
-  /** 클립 첫 프레임을 그리지 못할 때 대신 보여 줄 원본 LIVE 썸네일. 클립 썸네일은 응답에 없다. */
+  /** AI가 만든 클립 썸네일. 채워지기 전에는 비어 있다. */
+  thumbnailUrl: string | null;
+  /** 클립 썸네일도 첫 프레임도 그리지 못할 때 대신 보여 줄 원본 LIVE 썸네일. */
   liveThumbnailUrl: string | null;
   isPublic: boolean;
 };
@@ -49,9 +51,8 @@ export function formatClipDuration(startSec: number, endSec: number | null) {
 export function toLiveClips(
   entries: readonly { live: LiveSummaryResponse; clips: readonly Highlight[] }[],
 ): LiveClip[] {
-  return entries.flatMap(({ live, clips }) => {
-    const dateLabel = formatClipDate(live.scheduledStartAt ?? live.createdAt);
-    return clips
+  return entries.flatMap(({ live, clips }) =>
+    clips
       .filter((clip) => clip.generationStatus === "COMPLETED")
       .sort((a, b) => a.startSec - b.startSec)
       .map((clip) => ({
@@ -59,13 +60,14 @@ export function toLiveClips(
         highlightId: clip.highlightId,
         title: clip.title ?? "제목 없음",
         badge: clipBadge(clip.sceneLabel),
-        dateLabel,
+        dateLabel: formatClipDate(clip.createdAt),
         durationLabel: formatClipDuration(clip.startSec, clip.endSec),
         clipUrl: clip.clipUrl ?? null,
+        thumbnailUrl: clip.thumbnailUrl ?? null,
         liveThumbnailUrl: live.thumbnailUrl ?? null,
         isPublic: clip.isPublic,
-      }));
-  });
+      })),
+  );
 }
 
 /** 저장 전 토글 값. highlightId → 바꾼 공개 여부. */
