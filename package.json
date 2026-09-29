@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "lint:bom": "node scripts/check-bom.mjs",
     "test": "tsx --test",
+    "test:e2e": "playwright test",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -38,6 +39,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@storybook/addon-a11y": "^10.5.10",
     "@storybook/addon-docs": "^10.5.10",
     "@storybook/nextjs-vite": "^10.5.10",
