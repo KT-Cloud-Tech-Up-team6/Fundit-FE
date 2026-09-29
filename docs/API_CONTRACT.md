@@ -78,9 +78,11 @@ BE에 요청한 필드와 반영 상태는 아래와 같다.
 ## 프로젝트 스토리의 서식 저장 계약 (#234)
 
 - 2026-09-21 BE develop `ae1e032`의 `RichTextSanitizer`를 기준으로 TEXT 블록에 허용 HTML을 저장한다. b/strong/i/em/u/p/br/span/div/ul/ol/li와 제한된 color/text-align/font-weight만 허용한다. 링크·스크립트·이벤트·임의 CSS를 추가로 허용하지 않는다.
+- BE #153(`be36715`, 2026-09-28)부터 section·h2·h3·hr과 style `font-size`(px)·`line-height`(단위 없는 숫자 또는 px)·`border`(0 또는 선)·`border-top`·`border-left`(선: `Npx solid #hex`)·`padding-left`(px)·`margin`(0·px 값 1~4개)도 보존된다. AI Funding Story 하단(예산·일정·팀 소개·신뢰와 안전 섹션, 제목·소제목·구분선)이 이 형식이다(#331). FE는 같은 규칙(`story-content.ts`의 `styleRules`)으로 읽고, 섹션·제목·구분선의 style은 허용 선언만 남긴 문자열로 편집 왕복에 보존한다. 문단·글자는 에디터가 되살릴 수 있는 정렬·색·굵기만 읽는다.
 - 기존 일반 텍스트·줄바꿈은 복원 호환을 유지하며 이미지·영상은 별도 IMAGE/VIDEO_URL 블록으로 유지한다. 서버가 보존하지 못하는 레이아웃·서식은 저장 성공으로 가장하지 않는다.
 - 공개 화면은 허용 태그·스타일만 React 요소로 표시하며 API HTML을 그대로 삽입하지 않는다. 편집 저장·재진입·공개 표시를 함께 검증한다. AI 생성 API 및 실제 BE 배포 확인은 이번 범위와 구분한다.
-- 에디터는 저장 계약에 없는 heading·codeBlock·horizontalRule·code·strike·link를 등록하지 않는다.
+- 공개 화면과 AI 결과 모달은 같은 렌더러(`project-story/ui/story-html.tsx`)로 그린다(#331). 섹션 안 문단은 본문과 같은 간격이고, h2·h3는 Tailwind 기본 스타일이 지운 굵기를 되살려 굵게 보인다. AI 결과가 브라우저 기본 제목 모양을 전제로 만들어졌기 때문이며, 에디터도 같다.
+- 에디터는 저장 계약에 없는 codeBlock·code·strike·link를 등록하지 않는다. heading(h2·h3)·horizontalRule·section은 #331부터 AI 하단을 불러와 고치고 다시 저장하려고 등록하되, 입력 규칙("## "·"---")·단축키·툴바 컨트롤은 두지 않아 새로 만들 수는 없다. 섹션 안에 이미지를 넣으면 TEXT 블록 안에 이미지를 담을 수 없어 저장이 거부된다.
 - 인용구(blockquote)도 등록하지 않고 툴바 컨트롤을 제거했다(#259). 2026-09-22 BE 확인 결과 `RichTextSanitizer`의 허용 태그는 b·strong·i·em·u·p·br·span·div·ul·ol·li이며 blockquote는 보존되지 않는다. 다 작성한 뒤 저장 단계에서야 막히는 대신 만들 수 없게 한다. 저장할 수 없는 노드·마크가 편집기 스키마에 없다는 것은 `story-extensions.test.mjs`가 확인한다.
 - Figma 스토리 본문 화면(`1403:37656`) 툴바에는 `btn_insert_quote`가 남아 있다. 원본과 저장 계약이 어긋난 상태이므로 디자인 확인이 필요하다. BE가 blockquote를 허용하게 되면 툴바 컨트롤과 `blockHtml`·`htmlBlocks` 직렬화를 함께 되돌린다.
 

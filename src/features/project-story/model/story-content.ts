@@ -1,10 +1,18 @@
 import type { JSONContent } from "@tiptap/core";
 import type { IntroBlock } from "@/entities/project/api/story-api";
 
+/* 키는 CSS 속성의 camelCase라 React style로 그대로 넘길 수 있다. */
 type TextStyle = {
   color?: string;
   textAlign?: "left" | "center" | "right" | "justify";
   fontWeight?: string;
+  fontSize?: string;
+  lineHeight?: string;
+  border?: string;
+  borderTop?: string;
+  borderLeft?: string;
+  paddingLeft?: string;
+  margin?: string;
 };
 export type SafeStoryHtmlNode =
   string | { tag: string; style?: TextStyle; children: SafeStoryHtmlNode[] };
@@ -22,7 +30,32 @@ const allowedTags = new Set([
   "ul",
   "ol",
   "li",
+  "section",
+  "h2",
+  "h3",
+  "hr",
 ]);
+const voidTags = new Set(["br", "hr"]);
+/* AI Funding Story 하단(#331)의 섹션·제목·소제목·구분선. 서식을 통째로 style 문자열로 보존한다. */
+const blockStyleTags = new Set(["section", "h2", "h3", "hr"]);
+
+const PX = "\\d{1,3}px";
+const LINE = `\\d{1,2}px\\s+solid\\s+#[\\da-f]{3,6}`;
+/* BE RichTextSanitizer(#153, `be36715`)와 같은 선언 규칙이다. 어긋나면 저장 뒤 서식이 말없이 빠진다. */
+const styleRules: Record<string, { key: keyof TextStyle; pattern: RegExp }> = {
+  color: { key: "color", pattern: /^#[\da-f]{3,6}$/i },
+  "text-align": { key: "textAlign", pattern: /^(left|center|right|justify)$/ },
+  "font-weight": { key: "fontWeight", pattern: /^(bold|normal|[1-9]00)$/ },
+  "font-size": { key: "fontSize", pattern: new RegExp(`^${PX}$`) },
+  "line-height": { key: "lineHeight", pattern: new RegExp(`^(\\d(\\.\\d{1,2})?|${PX})$`) },
+  border: { key: "border", pattern: new RegExp(`^(0|${LINE})$`, "i") },
+  "border-top": { key: "borderTop", pattern: new RegExp(`^${LINE}$`, "i") },
+  "border-left": { key: "borderLeft", pattern: new RegExp(`^${LINE}$`, "i") },
+  "padding-left": { key: "paddingLeft", pattern: new RegExp(`^${PX}$`) },
+  margin: { key: "margin", pattern: new RegExp(`^(0|${PX})(\\s+(0|${PX})){0,3}$`) },
+};
+/* 문단·글자 서식은 에디터가 정렬·색·굵기로만 되살릴 수 있어 그 셋만 읽는다. */
+const inlineStyleProperties = new Set(["color", "text-align", "font-weight"]);
 const unsupported = () =>
   new Error(
     "현재 서식은 서버에서 보존되지 않습니다. 굵게·기울임·밑줄·색상·정렬·목록과 이미지·영상만 저장할 수 있습니다.",
@@ -58,26 +91,32 @@ const decodeEntities = (value: string) =>
     );
   });
 
-function sanitizeStyle(value: string | undefined, tag: string): TextStyle | undefined {
-  if (!value || !["span", "p", "div"].includes(tag)) return undefined;
+function sanitizeStyle(value: string | null | undefined, tag: string): TextStyle | undefined {
+  const blockStyle = blockStyleTags.has(tag);
+  if (!value || !(blockStyle || ["span", "p", "div"].includes(tag))) return undefined;
   const style: TextStyle = {};
   for (const declaration of value.split(";")) {
-    const [property, raw] = declaration.split(":", 2);
-    const normalized = raw?.trim();
-    if (property?.trim() === "color" && /^#[\da-f]{3,6}$/i.test(normalized ?? "")) {
-      style.color = normalized;
-    }
-    if (
-      property?.trim() === "text-align" &&
-      /^(left|center|right|justify)$/.test(normalized ?? "")
-    ) {
-      style.textAlign = normalized as TextStyle["textAlign"];
-    }
-    if (property?.trim() === "font-weight" && /^(bold|normal|[1-9]00)$/.test(normalized ?? "")) {
-      style.fontWeight = normalized;
-    }
+    const [rawProperty, raw] = declaration.split(":", 2);
+    const property = rawProperty?.trim().toLowerCase() ?? "";
+    const rule = styleRules[property];
+    const normalized = raw?.trim().replace(/\s+/g, " ") ?? "";
+    if (!rule || (!blockStyle && !inlineStyleProperties.has(property))) continue;
+    if (rule.pattern.test(normalized)) Object.assign(style, { [rule.key]: normalized });
   }
   return Object.keys(style).length ? style : undefined;
+}
+
+const cssProperty = Object.fromEntries(
+  Object.entries(styleRules).map(([property, { key }]) => [key, property]),
+) as Record<keyof TextStyle, string>;
+const styleText = (style: TextStyle | undefined) =>
+  Object.entries(style ?? {})
+    .map(([key, value]) => `${cssProperty[key as keyof TextStyle]}: ${value}`)
+    .join("; ");
+
+/** 섹션·제목·구분선의 style을 허용 선언만 남긴 문자열로 바꾼다. 남는 게 없으면 null. */
+export function storyBlockStyle(value: string | null | undefined) {
+  return styleText(sanitizeStyle(value, "section")) || null;
 }
 
 function parseHtml(html: string): SafeStoryHtmlNode[] {
@@ -117,7 +156,7 @@ function parseHtml(html: string): SafeStoryHtmlNode[] {
       const style = sanitizeStyle(styleMatch?.[1] ?? styleMatch?.[2] ?? styleMatch?.[3], tag);
       if (style) node.style = style;
       append(node);
-      if (tag !== "br" && !/\/\s*>$/.test(token)) stack.push(node);
+      if (!voidTags.has(tag) && !/\/\s*>$/.test(token)) stack.push(node);
       continue;
     }
     if (!ignoredDepth) append(decodeEntities(token));
@@ -158,11 +197,27 @@ function inlineHtml(nodes: JSONContent[] | undefined): string {
     .join("");
 }
 
+const blockStyleAttribute = (value: unknown) => {
+  const style = typeof value === "string" ? storyBlockStyle(value) : null;
+  return style ? ` style="${escapeHtml(style)}"` : "";
+};
+
 function blockHtml(node: JSONContent): string {
   if (node.type === "paragraph") {
     const align = node.attrs?.textAlign;
     if (align && !["left", "center", "right", "justify"].includes(align)) throw unsupported();
     return `<p${align ? ` style="text-align: ${align}"` : ""}>${inlineHtml(node.content)}</p>`;
+  }
+  if (node.type === "heading") {
+    const level = node.attrs?.level;
+    if (level !== 2 && level !== 3) throw unsupported();
+    return `<h${level}${blockStyleAttribute(node.attrs?.style)}>${inlineHtml(node.content)}</h${level}>`;
+  }
+  if (node.type === "horizontalRule") return `<hr${blockStyleAttribute(node.attrs?.style)}>`;
+  if (node.type === "section") {
+    return `<section${blockStyleAttribute(node.attrs?.style)}>${(node.content ?? [])
+      .map(blockHtml)
+      .join("")}</section>`;
   }
   if (node.type === "bulletList" || node.type === "orderedList") {
     const tag = node.type === "bulletList" ? "ul" : "ol";
@@ -275,13 +330,34 @@ function htmlBlocks(nodes: SafeStoryHtmlNode[], inherited: TextStyle = {}): JSON
       continue;
     }
     flushInline();
+    const blockStyle = styleText(node.style);
     if (
       node.tag === "div" &&
       node.children.some(
-        (child) => typeof child !== "string" && ["p", "div", "ul", "ol"].includes(child.tag),
+        (child) =>
+          typeof child !== "string" &&
+          ["p", "div", "ul", "ol", "section", "h2", "h3", "hr"].includes(child.tag),
       )
     ) {
       output.push(...htmlBlocks(node.children, { ...inherited, ...node.style }));
+    } else if (node.tag === "section") {
+      const children = htmlBlocks(node.children, inherited);
+      output.push({
+        type: "section",
+        ...(blockStyle ? { attrs: { style: blockStyle } } : {}),
+        content: children.length ? children : [{ type: "paragraph" }],
+      });
+    } else if (node.tag === "h2" || node.tag === "h3") {
+      output.push({
+        type: "heading",
+        attrs: { level: node.tag === "h2" ? 2 : 3, ...(blockStyle ? { style: blockStyle } : {}) },
+        content: inlineContent(node.children),
+      });
+    } else if (node.tag === "hr") {
+      output.push({
+        type: "horizontalRule",
+        ...(blockStyle ? { attrs: { style: blockStyle } } : {}),
+      });
     } else if (node.tag === "p" || node.tag === "div") {
       const style = { ...inherited, ...node.style };
       output.push({
@@ -316,7 +392,7 @@ function htmlBlocks(nodes: SafeStoryHtmlNode[], inherited: TextStyle = {}): JSON
 /* 에디터가 만든 TEXT 블록은 항상 태그로 시작한다. 문자열 중간의 태그 모양까지 서식으로 보면
    `<b>` 같은 글자를 담은 과거 평문이 서식으로 오인돼 재저장 시 HTML로 굳으므로 시작만 본다. */
 export function isStoryHtml(value: string) {
-  return /^\s*<(?:b|strong|i|em|u|p|br|span|div|ul|ol|li)\b[^>]*>/i.test(value);
+  return /^\s*<(?:b|strong|i|em|u|p|br|span|div|ul|ol|li|section|h2|h3|hr)\b[^>]*>/i.test(value);
 }
 
 export function fromIntroContent(blocks: IntroBlock[]): JSONContent {

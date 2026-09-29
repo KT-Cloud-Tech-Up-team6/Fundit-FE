@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -36,82 +36,7 @@ import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import { getPublicLives } from "@/entities/live/api/public-live-api";
 import { getPublicProjectClips } from "@/features/live-integration/api/live-api";
 import { clipVideo, endedLiveVideo } from "../model/live-replay";
-import {
-  safeStoryHtml,
-  isStoryHtml,
-  type SafeStoryHtmlNode,
-} from "@/features/project-story/model/story-content";
-
-function renderStoryHtml(nodes: SafeStoryHtmlNode[], keyPrefix = "story"): ReactNode[] {
-  return nodes.map((node, index) => {
-    const key = `${keyPrefix}-${index}`;
-    if (typeof node === "string") return <Fragment key={key}>{node}</Fragment>;
-    const children = renderStoryHtml(node.children, key);
-    const style = node.style
-      ? {
-          color: node.style.color,
-          textAlign: node.style.textAlign,
-          fontWeight: node.style.fontWeight,
-        }
-      : undefined;
-    if (node.tag === "br") return <br key={key} />;
-    if (node.tag === "strong" || node.tag === "b")
-      return (
-        <strong key={key} style={style}>
-          {children}
-        </strong>
-      );
-    if (node.tag === "em" || node.tag === "i")
-      return (
-        <em key={key} style={style}>
-          {children}
-        </em>
-      );
-    if (node.tag === "u")
-      return (
-        <u key={key} style={style}>
-          {children}
-        </u>
-      );
-    if (node.tag === "span")
-      return (
-        <span key={key} style={style}>
-          {children}
-        </span>
-      );
-    if (node.tag === "p")
-      return (
-        <p key={key} style={style}>
-          {children.length ? children : <br />}
-        </p>
-      );
-    if (node.tag === "div")
-      return (
-        <div key={key} style={style}>
-          {children}
-        </div>
-      );
-    if (node.tag === "ul" || node.tag === "ol") {
-      const List = node.tag;
-      return (
-        <List
-          key={key}
-          style={style}
-          className={node.tag === "ul" ? "list-disc pl-5" : "list-decimal pl-5"}
-        >
-          {children}
-        </List>
-      );
-    }
-    if (node.tag === "li")
-      return (
-        <li key={key} style={style}>
-          {children}
-        </li>
-      );
-    return null;
-  });
-}
+import { StoryTextBlock } from "@/features/project-story/ui/story-html";
 
 /* LIVE 다시 보기 목록마다 불러오는 중·오류·빈 목록을 따로 보인다(#319, 원본에 상태 없음). 불러오는 중과 빈 목록
    안내는 같은 자리의 `<p>`라 역할을 같게 두어 빈 목록으로 바뀐 것도 알린다. */
@@ -141,17 +66,6 @@ function videoListState(
       </p>
     );
   return undefined;
-}
-
-/* 리워드·환불·라이브 등 무관한 쿼리가 갱신될 때마다 정규식 토크나이저를 다시 돌리지 않도록
-   블록 단위 컴포넌트로 분리해 값이 그대로면 파싱 결과를 재사용한다. */
-function StoryTextBlock({ value }: { value: string }) {
-  const story = useMemo(() => ({ html: isStoryHtml(value), nodes: safeStoryHtml(value) }), [value]);
-  return (
-    <div className={story.html ? "space-y-4" : "whitespace-pre-wrap"}>
-      {renderStoryHtml(story.nodes)}
-    </div>
-  );
 }
 
 export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: string }) {
