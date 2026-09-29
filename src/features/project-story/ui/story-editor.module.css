@@ -21,3 +21,9 @@
   outline: 2px solid var(--border-primary);
   outline-offset: 2px;
 }
+
+/* AI Funding Story 하단(#331)의 제목·소제목. Tailwind 기본 스타일이 지운 굵기를 구매자 상세와 같게 되살린다. */
+.editor :global(h2),
+.editor :global(h3) {
+  font-weight: 700;
+}

@@ -315,3 +315,136 @@ test("numeric entities cannot crash parsing and unsupported color is not silentl
     }),
   );
 });
+
+/* AI Funding Story 하단(#331)은 섹션·제목·소제목·구분선에 인라인 style을 싣는다. 형식은
+   Funding Story AI `body.py`, 허용 규칙은 BE RichTextSanitizer(#153)와 같다. */
+const titleStyle =
+  "border-left:3px solid #202124;padding-left:10px;margin:0 0 24px;font-size:18px;line-height:1.45";
+const subtitleStyle = "margin:0 0 16px;font-size:16px;line-height:1.5";
+const dividerStyle = "border:0;border-top:1px solid #e6e6e6;margin:36px 0";
+const aiLowerHtml =
+  `<section><h2 style="${titleStyle}">프로젝트 예산</h2><p>제작비 A&amp;B 1,000만 원</p></section>` +
+  `<hr style="${dividerStyle}">` +
+  `<section><h2 style="${titleStyle}">신뢰와 안전</h2>` +
+  `<h3 style="${subtitleStyle}">크라우드 펀딩에 대한 안내</h3>` +
+  "<p><strong>펀딩은 계획의 실현을 함께 지원하는 과정입니다.</strong></p>" +
+  "<p>일정이 달라질 수 있습니다.<br>공지를 확인해 주세요.</p>" +
+  `<hr style="${dividerStyle}">` +
+  `<h3 style="${subtitleStyle}">예상되는 어려움</h3><p>부품 수급</p></section>`;
+const savedTitle =
+  "border-left: 3px solid #202124; padding-left: 10px; margin: 0 0 24px; font-size: 18px; line-height: 1.45";
+const savedSubtitle = "margin: 0 0 16px; font-size: 16px; line-height: 1.5";
+const savedDivider = "border: 0; border-top: 1px solid #e6e6e6; margin: 36px 0";
+const savedLowerHtml =
+  `<section><h2 style="${savedTitle}">프로젝트 예산</h2><p>제작비 A&amp;B 1,000만 원</p></section>` +
+  `<hr style="${savedDivider}">` +
+  `<section><h2 style="${savedTitle}">신뢰와 안전</h2>` +
+  `<h3 style="${savedSubtitle}">크라우드 펀딩에 대한 안내</h3>` +
+  "<p><strong>펀딩은 계획의 실현을 함께 지원하는 과정입니다.</strong></p>" +
+  "<p>일정이 달라질 수 있습니다.<br>공지를 확인해 주세요.</p>" +
+  `<hr style="${savedDivider}">` +
+  `<h3 style="${savedSubtitle}">예상되는 어려움</h3><p>부품 수급</p></section>`;
+
+test("AI 하단의 섹션·제목·소제목·구분선은 에디터를 거쳐 다시 저장해도 구조와 강조선이 남는다", () => {
+  const document = fromIntroContent([{ type: "TEXT", value: aiLowerHtml }]);
+  assert.deepEqual(
+    document.content.map((node) => node.type),
+    ["section", "horizontalRule", "section"],
+  );
+  assert.deepEqual(document.content[0].content[0], {
+    type: "heading",
+    attrs: { level: 2, style: savedTitle },
+    content: [{ type: "text", text: "프로젝트 예산" }],
+  });
+  assert.deepEqual(toIntroContent(document), [{ type: "TEXT", value: savedLowerHtml }]);
+});
+
+test("BE가 정제해 다시 준 들여쓰기·세미콜론 형태도 같은 HTML로 저장된다", () => {
+  const serverHtml = [
+    "<section>",
+    ` <h2 style="${savedTitle.replaceAll(": ", ":")};">프로젝트 예산</h2>`,
+    " <p>제작비 A&amp;B 1,000만 원</p>",
+    "</section>",
+    `<hr style="${savedDivider.replaceAll(": ", ":")};">`,
+  ].join("\n");
+  assert.deepEqual(toIntroContent(fromIntroContent([{ type: "TEXT", value: serverHtml }])), [
+    {
+      type: "TEXT",
+      value:
+        `<section><h2 style="${savedTitle}">프로젝트 예산</h2><p>제작비 A&amp;B 1,000만 원</p></section>` +
+        `<hr style="${savedDivider}">`,
+    },
+  ]);
+});
+
+test("섹션·제목·구분선도 BE 허용 선언만 남기고 허용되지 않은 태그·속성은 버린다", () => {
+  assert.deepEqual(
+    safeStoryHtml(
+      '<section style="position:fixed;background:url(javascript:alert(1))">' +
+        "<h1>큰 제목</h1>" +
+        '<h2 style="font-size:1000px;border-left:3px dashed #000;color:#ff0000" onclick="x()">제목</h2>' +
+        '<p style="margin:0;color:#123abc">본문</p>' +
+        '<hr style="border-top:1px solid red"><script>alert(1)</script>끝</section>',
+    ),
+    [
+      {
+        tag: "section",
+        children: [
+          "큰 제목",
+          { tag: "h2", style: { color: "#ff0000" }, children: ["제목"] },
+          // 문단은 에디터가 되살릴 수 있는 정렬·색·굵기만 읽는다.
+          { tag: "p", style: { color: "#123abc" }, children: ["본문"] },
+          // hr은 빈 요소라 뒤따르는 본문을 품지 않는다.
+          { tag: "hr", children: [] },
+          "끝",
+        ],
+      },
+    ],
+  );
+});
+
+test("h2·h3가 아닌 제목 단계는 저장하지 않는다", () => {
+  assert.throws(
+    () =>
+      toIntroContent({
+        type: "doc",
+        content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "x" }] }],
+      }),
+    /현재 서식은 서버에서 보존되지 않습니다/,
+  );
+});
+
+test("BE처럼 border의 단위·선 모양 대소문자를 가려, 저장 뒤 선이 말없이 사라지지 않게 한다", () => {
+  assert.deepEqual(
+    safeStoryHtml(
+      '<hr style="border-top:1PX SOLID #EEE;border-left:3px Solid #202124;border-top:1px solid #EEE">',
+    ),
+    [{ tag: "hr", style: { borderTop: "1px solid #EEE" }, children: [] }],
+  );
+});
+
+test("BE가 <br> 뒤에 넣는 줄바꿈·들여쓰기는 에디터 빈 줄이 되지 않는다", () => {
+  const value = "<p>10월 제작 착수<br>\n  11월 발송<br>\n </p>";
+  assert.deepEqual(fromIntroContent([{ type: "TEXT", value }]).content, [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "10월 제작 착수" },
+        { type: "hardBreak" },
+        { type: "text", text: "11월 발송" },
+        { type: "hardBreak" },
+      ],
+    },
+  ]);
+  assert.deepEqual(safeStoryHtml(value), [
+    {
+      tag: "p",
+      children: [
+        "10월 제작 착수",
+        { tag: "br", children: [] },
+        "11월 발송",
+        { tag: "br", children: [] },
+      ],
+    },
+  ]);
+});
