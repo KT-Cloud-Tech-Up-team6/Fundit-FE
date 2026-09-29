@@ -9,7 +9,7 @@ import {
 import { searchProjects } from "../../../entities/project/api/buyer-project-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 
-test("최근 검색어는 인증을 전달하고 특수문자를 포함한 삭제 경로와 204를 처리한다", async (t) => {
+test("최근 검색어는 인증을 전달하고 특수문자를 포함한 삭제 파라미터와 204를 처리한다", async (t) => {
   authTokenStore.set("search-test");
   t.after(() => authTokenStore.clear());
   const calls = [];
@@ -27,10 +27,9 @@ test("최근 검색어는 인증을 전달하고 특수문자를 포함한 삭�
   assert.equal(calls[0].init.signal, controller.signal);
   assert.equal(calls[0].init.headers.get("Authorization"), "Bearer search-test");
   assert.equal(await deleteRecentKeyword(recent.content[0].keyword), undefined);
-  assert.equal(
-    calls[1].url,
-    `/api/v1/search/recent-keywords/${encodeURIComponent("청소기/물 & 먼지")}`,
-  );
+  const removed = new URL(calls[1].url, "https://example.com");
+  assert.equal(removed.pathname, "/api/v1/search/recent-keywords");
+  assert.deepEqual(removed.searchParams.getAll("keyword"), ["청소기/물 & 먼지"]);
   assert.equal(calls[1].init.method, "DELETE");
   assert.equal(calls[1].init.headers.get("Authorization"), "Bearer search-test");
 });
