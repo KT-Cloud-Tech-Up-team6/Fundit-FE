@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { couponCodes, removeCoupon, selectCoupon } from "./coupon-selection.ts";
+import {
+  couponCodes,
+  hasConflictingCouponIssuer,
+  removeCoupon,
+  selectCoupon,
+} from "./coupon-selection.ts";
 
 const platform0 = { couponCode: "PLATFORM-1", issuerType: "PLATFORM" };
 const platform0Replacement = { couponCode: "PLATFORM-2", issuerType: "PLATFORM" };
@@ -13,12 +18,19 @@ test("preserves page-zero platform selection while selecting a page-one maker", 
   assert.deepEqual(couponCodes(pageOneSelection), ["PLATFORM-1", "MAKER-1"]);
 });
 
-test("replaces an issuer selected on another page without dropping the other issuer", () => {
+test("does not add another coupon from an issuer selected on another page", () => {
   const selected = selectCoupon(selectCoupon([], platform0), maker1);
   assert.deepEqual(couponCodes(selectCoupon(selected, platform0Replacement)), [
+    "PLATFORM-1",
     "MAKER-1",
-    "PLATFORM-2",
   ]);
+});
+
+test("identifies a second coupon from an already selected issuer", () => {
+  const selected = selectCoupon([], platform0);
+  assert.equal(hasConflictingCouponIssuer(selected, platform0), false);
+  assert.equal(hasConflictingCouponIssuer(selected, platform0Replacement), true);
+  assert.equal(hasConflictingCouponIssuer(selected, maker1), false);
 });
 
 test("reopening while coupon data is loading retains the stored issuer and code", () => {
