@@ -77,7 +77,6 @@ export const realLiveTitle = (live: LiveSummaryResponse) =>
 export const realLiveSeller = (live: LiveSummaryResponse) =>
   live.sellerNickname?.trim() || undefined;
 
-/** 예정 카드 딤의 날짜(`09.18`)·시간(`오후 3:40`). 한국 시간 기준이고 값이 없으면 비운다. */
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 날짜별 예정 섹션 제목의 날짜(`9/29일 (화)`, Figma `9/8일 (화)` 형식). 탭을 연 날(한국 날짜)이다(#432). */
@@ -97,6 +96,7 @@ export function upcomingTitleDate(now: number) {
   return `${part.month}/${part.day}일 (${weekdays[weekday]})`;
 }
 
+/** 예정 카드 딤의 날짜(`09.18`)·시간(`오후 3:40`). 한국 시간 기준이고 값이 없으면 비운다. */
 export function scheduleLabel(value: string | null) {
   const date = value ? new Date(value) : undefined;
   if (!date || Number.isNaN(date.getTime())) return { date: "", time: "" };

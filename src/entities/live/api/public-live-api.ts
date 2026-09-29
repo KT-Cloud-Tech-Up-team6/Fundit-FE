@@ -12,7 +12,7 @@ export type PublicLivesQuery = {
   sellerIds?: readonly string[];
 };
 
-/** 첫 페이지(기본 20건)만 받는다. LIVE 메인은 섹션마다 한두 칸만 채운다. */
+/** 첫 페이지(기본 20건)만 받는다. LIVE 메인은 섹션마다 최대 10칸을 채워(#432) 첫 페이지로 충분하다. */
 export function getPublicLives(
   { status, sort, sellerIds }: PublicLivesQuery,
   signal?: AbortSignal,
