@@ -19,7 +19,7 @@ import {
 } from "./payment-attempt.ts";
 import { ApiError } from "../../../shared/api/api-error.ts";
 
-const apiError = (code, status) => new ApiError({ code, status, message: code });
+const apiError = (code, status, detail) => new ApiError({ code, status, message: code, detail });
 
 test("successUrl 쿼리는 승인 요청으로, 금액은 양의 정수 문자열만 허용한다", () => {
   assert.deepEqual(
@@ -63,12 +63,26 @@ test("failUrl 쿼리는 실패로, 쿼리가 없으면 none으로 해석한다",
 test("승인 실패는 확정 오류만 재결제를 권하고 결과 불명은 확인을 먼저 안내한다", () => {
   for (const code of ["PAYMENT_AMOUNT_MISMATCH", "PAYMENT_EXPIRED"])
     assert.equal(confirmOutcome(apiError(code, 422)).next, "retry", code);
-  assert.equal(confirmOutcome(apiError("PG_CONFIRM_FAILED", 422)).next, "recheck");
   assert.equal(confirmOutcome(apiError("PAYMENT_NOT_PENDING", 409)).next, "check");
-  // BE가 ALREADY_PROCESSED_PAYMENT 등 Toss 4xx를 PG_CONFIRM_FAILED로 합치므로 미청구를 단정하지 않는다.
-  assert.doesNotMatch(confirmOutcome(apiError("PG_CONFIRM_FAILED", 422)).message, /결제되지 않/);
+  // BE #181: 토스 확정 거절은 detail.tossErrorCode와 함께 오고 결제가 FAILED라 새 결제로 다시 결제한다.
+  const rejected = confirmOutcome(
+    apiError("PG_CONFIRM_FAILED", 422, { tossErrorCode: "REJECT_CARD_COMPANY" }),
+  );
+  assert.equal(rejected.next, "retry");
+  assert.match(rejected.message, /승인되지 않았습니다/);
+  // 그 전 BE는 detail 없이 타임아웃·이미 처리된 결제도 이 코드로 합쳤다: 승인됐을 수 있어 재확인한다.
+  for (const detail of [undefined, null, {}, { tossErrorCode: 1 }])
+    assert.equal(
+      confirmOutcome(apiError("PG_CONFIRM_FAILED", 422, detail)).next,
+      "recheck",
+      JSON.stringify(detail),
+    );
   // 5xx·네트워크·파싱 실패는 승인 여부를 모른다: 같은 코드라도 재결제 금지.
-  assert.equal(confirmOutcome(apiError("PG_CONFIRM_FAILED", 503)).next, "recheck");
+  assert.equal(confirmOutcome(apiError("DEPENDENCY_FAILURE", 503)).next, "recheck");
+  assert.equal(
+    confirmOutcome(apiError("PG_CONFIRM_FAILED", 503, { tossErrorCode: "X" })).next,
+    "recheck",
+  );
   assert.equal(confirmOutcome(apiError("RESPONSE_PARSE_ERROR", 200)).next, "recheck");
   assert.equal(confirmOutcome(new TypeError("network")).next, "recheck");
 });
