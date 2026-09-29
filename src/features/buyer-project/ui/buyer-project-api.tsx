@@ -387,7 +387,10 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
         retry: () => void wish.refetch(),
         toggle: () => {
           if (!member) {
-            router.push(loginRedirectHref(`/projects/${encodeURIComponent(projectId)}?tab=${tab}`));
+            /* 보던 자리로 돌려보낸다. 탭만 다시 만들면 `page`처럼 이 화면이 쓰는 다른 쿼리가 사라진다
+               (`LoginRedirect`와 같은 방식). */
+            const { pathname, search, hash } = window.location;
+            router.push(loginRedirectHref(`${pathname}${search}${hash}`));
             return Promise.resolve();
           }
           return toggleWish.mutateAsync(!wish.data?.wished);
