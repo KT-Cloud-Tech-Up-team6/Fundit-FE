@@ -578,22 +578,23 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 기준은 `KT-Cloud-Tech-Up-team6/Fundit-backend`의 `live-service` 공개 컨트롤러·DTO(`LiveController`, `LiveAiController`)다. `liveId`·`projectId`는 UUID이며 인가는 전부 **소유권 검증**이다.
 
-| 동작           | Method·Path                              | 요청 → 응답                                                                                                                                  |
-| -------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| LIVE 생성      | POST `/api/v1/lives`                     | `{projectId}` → 201 `{liveId, status}`. 생성 직후는 항상 `DRAFT`다.                                                                          |
-| 기본 설정 저장 | PATCH `/api/v1/lives/{liveId}/settings`  | `{category:{major,minor}?, introText?, thumbnailUrl?, scheduledStartAt?}` → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}` |
-| 큐시트 생성    | POST `/api/v1/lives/{liveId}/cue-sheet`  | `{mode, targetDurationSec, demoAvailable?, emphasisPoints?, tone?, mandatoryPhrases?}` → 202 `GENERATING`                                    |
-| 큐시트 조회    | GET `/api/v1/lives/{liveId}/cue-sheet`   | `{status, mode, totalDurationSec, segments, failureReason}`                                                                                  |
-| 큐시트 수정    | PATCH `/api/v1/lives/{liveId}/cue-sheet` | `{segments: [...]}` → 같은 조회 DTO                                                                                                          |
+| 동작           | Method·Path                              | 요청 → 응답                                                                                                                                                                                      |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| LIVE 생성      | POST `/api/v1/lives`                     | `{projectId}` → 201 `{liveId, status}`. 생성 직후는 항상 `DRAFT`다.                                                                                                                              |
+| 기본 설정 저장 | PATCH `/api/v1/lives/{liveId}/settings`  | `{category:{major,minor}?, introText?, thumbnailUrl?, scheduledStartAt?}` → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                                                     |
+| 큐시트 생성    | POST `/api/v1/lives/{liveId}/cue-sheet`  | `{mode, targetDurationSec, demoAvailable?, emphasisPoints?, tone?, mandatoryPhrases?, productDescription?, motivation?, expectedRisks?, demoDescription?, deliverySchedule?}` → 202 `GENERATING` |
+| 큐시트 조회    | GET `/api/v1/lives/{liveId}/cue-sheet`   | `{status, mode, totalDurationSec, segments, failureReason}`                                                                                                                                      |
+| 큐시트 수정    | PATCH `/api/v1/lives/{liveId}/cue-sheet` | `{segments: [...]}` → 같은 조회 DTO                                                                                                                                                              |
 
 - LIVE 스튜디오에서 만들 때(#418) 연결할 프로젝트는 `GET /api/v1/projects?status=ONGOING&page=0&size=100`으로 받는다. 목록 API에 카테고리 필터가 없어 `categoryMajor`로 화면에서 추리고, `size`는 최대 100(`ProjectController.MAX_PAGE_SIZE`)이라 그보다 많으면 첫 페이지까지만 보인다. BE `LiveCreateService`는 소유만 확인해 진행 중만 고르게 한 것은 FE 결정(2026-09-28)이다.
 - **부분 업데이트다.** `PATCH /settings`에서 보내지 않은 필드는 서버가 건드리지 않는다. 연결 프로젝트는 요청에 없다 — 요구사항정의서 6.2.4.1이 변경 불가로 정했고 바꾸려면 LIVE를 새로 만든다.
 - `introText`는 `@Size(max = 200)`이다. 화면 입력 제한도 같은 값을 쓴다.
 - `mode`는 `SCENARIO`·`SCRIPT`, `targetDurationSec`는 600초 이하다. 넘기면 400이고 이미 생성 중이면 409다.
+- 생성 전 채팅의 답 5개는 질문 순서대로 `productDescription`(제품 설명)·`motivation`(개발 동기·제작 과정)·`expectedRisks`(예상 어려움·리워드)·`demoDescription`(시연 항목)·`deliverySchedule`(발송 일정·캠페인)에 싣는다(BE #185, 요청서 AI-1·BE-25, #419). 전부 선택·문자열·`@Size(max = 1000)`이고 BE는 저장하지 않고 AI로 넘기기만 한다. 건너뛴 답은 빈 문자열로 보내지 않고 필드째 뺀다. 채팅 입력칸은 1000자로 막는다. 다섯 답 뒤의 정정은 마지막 답(`deliverySchedule`) 뒤에 "정정 사항: "으로 붙어 함께 나가므로, 정정칸은 합친 길이가 1000자를 넘지 않게 남은 글자 수만 받는다(별도 안내 없이 더 입력되지 않는다). 넘기면 재시도해도 같은 400이라 빠져나올 수 없어서다(#439 리뷰). 답은 화면 상태에만 있어 새로고침 뒤의 재시도·재생성은 답 없이 나간다(채팅으로 돌아가 다시 답하면 실린다). `demoAvailable`·`emphasisPoints`·`tone`·`mandatoryPhrases`는 화면에 입력 자리가 없어 보내지 않는다.
 - **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이지만 AI 호출 예외 원문이라(AI 주소 등 내부 정보가 섞일 수 있다) 화면에 보이지 않는다(#403).
 - `segments`는 **JSON 문자열**이다. BE가 AI 계약을 타입으로 박지 않고 그대로 저장·반환하므로 구조 확인은 FE 몫이다. 현재 구간은 `{id, title, duration, outline, script}`이며 `duration`은 초다.
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다. 다만 없는 LIVE·남의 LIVE도 같은 404라, 큐시트 화면·콘솔은 LIVE 단건 조회(`GET /api/v1/lives/{liveId}`)가 404·403이면 "큐시트 없음" 대신 오류 화면을 보인다(#403).
-- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 일반 안내("잠시 후 다시 시도해 주세요.", 생성 요청 자체가 거절되면 상태별 안내)와 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`)으로 `POST`를 다시 보낸다.
+- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 일반 안내("잠시 후 다시 시도해 주세요.", 생성 요청 자체가 거절되면 상태별 안내)와 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`·채팅 답)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
 - #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾았다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)에 이어 큐시트 화면도 #326에서 단건 조회로 바꿔 우회를 걷었다.
 - 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AIC`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다.
