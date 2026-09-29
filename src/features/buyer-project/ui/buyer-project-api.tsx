@@ -35,6 +35,7 @@ import type { RewardCart } from "@/features/reward-selection/model/reward-demo";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import { getPublicLives } from "@/entities/live/api/public-live-api";
 import { getPublicProjectClips } from "@/features/live-integration/api/live-api";
+import { AI_SUMMARY_REFETCH_MS, aiSummaryState, isAiSummaryGenerating } from "../model/ai-summary";
 import { clipVideo, endedLiveVideo } from "../model/live-replay";
 import { StoryTextBlock } from "@/features/project-story/ui/story-html";
 
@@ -79,6 +80,9 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     queryKey: ["public-project", projectId],
     queryFn: ({ signal }) => getPublicProject(projectId, signal),
     enabled: state.status !== "checking",
+    /* AI 요약이 생성 중이면 화면이 보이는 동안 다시 받아, 끝나면 로딩 막대가 요약으로 바뀌게 한다(#407). */
+    refetchInterval: (query) =>
+      isAiSummaryGenerating(query.state.data?.pageSummary) ? AI_SUMMARY_REFETCH_MS : false,
   });
   const rewards = useQuery({ ...publicRewardsQuery(projectId), enabled: detail.isSuccess });
   const refund = useQuery({
@@ -347,6 +351,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       hasLive={false}
       liveCheckTab={!liveCheckHidden}
       server={summary}
+      aiSummary={aiSummaryState(data.pageSummary)}
       project={{
         title: data.title,
         seller: data.seller?.displayName ?? "",

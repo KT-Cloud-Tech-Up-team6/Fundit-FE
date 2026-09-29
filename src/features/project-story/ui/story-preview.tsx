@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { getSellerRewards } from "@/entities/project/api/reward-api";
 import type { StoryPreviewResponse } from "@/entities/project/api/story-api";
+import { aiSummaryState } from "@/features/buyer-project/model/ai-summary";
 import { projectDemo } from "@/features/buyer-project/model/project-demo";
 import { BuyerProjectDetail } from "@/features/buyer-project/ui/buyer-project-detail";
 import detailStyles from "@/features/buyer-project/ui/buyer-project-detail.module.css";
@@ -77,6 +78,8 @@ export function StoryPreview({
           hasLive={false}
           preview
           server={funding}
+          /* 저장된 내용 기준 요약이다. 안내 문구대로 소개 외 정보는 저장된 값을 보인다(자체 판단 135). */
+          aiSummary={aiSummaryState(detail?.pageSummary)}
           project={
             funding
               ? {

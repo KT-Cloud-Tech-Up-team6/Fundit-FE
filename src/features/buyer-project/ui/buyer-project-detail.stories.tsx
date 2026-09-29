@@ -153,3 +153,53 @@ export const DesktopRewards: Story = {
     expect(form.getByRole("status", { name: "리워드 총 금액" })).toHaveTextContent("401,000원");
   },
 };
+
+/* 실제 프로젝트의 AI 요약(#407). 데모 자리표시·라이브 요약 없이 BE WHAT·WHY를 제목·본문으로 보인다. */
+const server = { participantCount: 9, remainingDays: 25 };
+
+export const ServerAiSummary: Story = {
+  args: {
+    server,
+    aiSummary: {
+      status: "ready",
+      items: [
+        {
+          title: "꺼내는 순간 쓱, 1.2kg 데일리 무선청소기",
+          body: "35,000Pa 흡입력과 거치대 일체형 설계로 필요할 때 바로 꺼내 쓰는 청소기입니다.",
+        },
+        {
+          title: "청소기를 꺼내기 번거로워 미루던 1인 가구를 위해",
+          body: "무거운 본체와 복잡한 보관 때문에 청소를 미루는 순간을 줄이려고 만들었습니다.",
+        },
+      ],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(within(canvasElement).getByRole("region", { name: "AI 프로젝트 요약" }));
+    expect(
+      card.getByRole("heading", { name: "꺼내는 순간 쓱, 1.2kg 데일리 무선청소기" }),
+    ).toBeVisible();
+    expect(card.getByText(/35,000Pa 흡입력과 거치대/)).toBeVisible();
+    expect(card.queryByText("상세 내용")).not.toBeInTheDocument();
+    expect(card.queryByText(/라이브 요약/)).not.toBeInTheDocument();
+  },
+};
+
+export const ServerAiSummaryGenerating: Story = {
+  args: { server, aiSummary: { status: "generating" } },
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region", { name: "AI 프로젝트 요약" });
+    expect(region).toHaveAttribute("aria-busy", "true");
+    expect(within(region).getByText("AI가 프로젝트를 요약하고 있어요")).toBeVisible();
+    expect(within(region).queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
+  },
+};
+
+export const ServerWithoutAiSummary: Story = {
+  args: { server },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.queryByRole("region", { name: "AI 프로젝트 요약" })).not.toBeInTheDocument();
+    expect(canvas.queryByText("상세 내용")).not.toBeInTheDocument();
+  },
+};

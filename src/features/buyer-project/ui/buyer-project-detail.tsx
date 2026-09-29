@@ -6,6 +6,7 @@ import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/shared/components/ui/badge";
+import type { AiSummaryState } from "../model/ai-summary";
 import { projectDemo, replayDemos, clipDemos, questionDemos } from "../model/project-demo";
 import { Tooltip } from "@/shared/components/ui/tooltip";
 import type { VideoCard } from "../model/live-replay";
@@ -196,6 +197,81 @@ export function LiveReplaySection({
   );
 }
 
+/* 데모 카드는 Figma 자리표시 그대로다. 라이브 요약은 실제 프로젝트 범위 밖이다(#407). */
+const demoAiSummary = (hasLive: boolean): AiSummaryState => ({
+  status: "ready",
+  items: [
+    { title: "프로젝트 요약", body: "상세 내용" },
+    { title: "프로젝트 요약", body: "상세 내용" },
+    ...(hasLive ? [{ title: "라이브 요약", body: "상세 내용" }] : []),
+  ],
+});
+
+/**
+ * AI 프로젝트 요약 카드(모바일 Figma 1443:44427, 데스크톱 2107:70404). 체크 옆 제목, 그 아래 들여쓴 본문이다.
+ * 생성 중에는 같은 자리에 안내와 로딩 막대를 두어 요약이 도착해도 카드 크기가 크게 바뀌지 않게 한다(자체 판단 135).
+ * 데스크톱 글자·들여쓰기는 모듈의 `.desktop .aiSummary`에서 바꾼다.
+ */
+function AiSummary({ summary, preview }: { summary: AiSummaryState; preview: boolean }) {
+  const generating = summary.status === "generating";
+  return (
+    <section
+      className={`${styles.aiSummary} border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2`}
+      aria-label="AI 프로젝트 요약"
+      aria-busy={generating}
+    >
+      <div className="flex items-center gap-1">
+        <Image
+          data-summary-icon
+          src="/images/buyer-project/spark.svg"
+          width={14}
+          height={14}
+          alt=""
+        />
+        <h2 className="text-label-l">AI 프로젝트 요약</h2>
+        <Information label="AI 프로젝트 요약 안내" disabled={preview} />
+      </div>
+      {generating ? (
+        <>
+          <p data-summary-status className="text-caption-s text-text-secondary">
+            AI가 프로젝트를 요약하고 있어요
+          </p>
+          {["w-2/5", "w-1/3"].map((width) => (
+            <div key={width} aria-hidden className="text-caption-s">
+              <div data-summary-title className="flex h-[1lh] items-center gap-1">
+                <span className={`${styles.aiSummarySkeleton} size-3 rounded-full`} />
+                <span className={`${styles.aiSummarySkeleton} h-2.5 ${width} rounded-xs`} />
+              </div>
+              <div data-summary-body className="flex h-[1lh] items-center pl-4">
+                <span className={`${styles.aiSummarySkeleton} h-2.5 w-4/5 rounded-xs`} />
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        summary.items.map(({ title, body }, index) => (
+          <div key={index} className="text-caption-s">
+            <h3 data-summary-title className="flex items-start gap-1 font-medium break-words">
+              <span className="flex h-[1lh] shrink-0 items-center">
+                <Image
+                  src="/images/buyer-project/summary-check.svg"
+                  width={12}
+                  height={12}
+                  alt=""
+                />
+              </span>
+              <span className="min-w-0">{title}</span>
+            </h3>
+            <p data-summary-body className="pl-4 break-words">
+              {body}
+            </p>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 export function BuyerProjectDetail({
   projectId,
   activeTab,
@@ -209,6 +285,7 @@ export function BuyerProjectDetail({
   rewardSummary,
   rewardSelection,
   server,
+  aiSummary,
   tabContent,
 }: {
   projectId: string;
@@ -224,8 +301,11 @@ export function BuyerProjectDetail({
   rewardSummary?: ReactNode;
   rewardSelection?: ReactNode;
   server?: { remainingDays?: number | null; participantCount: number };
+  /** 실제 프로젝트의 AI 요약(#407). 없으면 카드를 그리지 않는다. 데모(server 없음)는 Figma 자리표시 카드다. */
+  aiSummary?: AiSummaryState | null;
   tabContent?: ReactNode;
 }) {
+  const summary = server ? aiSummary : demoAiSummary(hasLive);
   const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
@@ -396,34 +476,7 @@ export function BuyerProjectDetail({
                 </span>
               </div>
             </div>
-            {!server && (
-              <section
-                className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
-                aria-label="AI 프로젝트 요약"
-              >
-                <div className="flex items-center gap-1">
-                  <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
-                  <h2 className="text-label-l">AI 프로젝트 요약</h2>
-                  <Information label="AI 프로젝트 요약 안내" disabled={preview} />
-                </div>
-                {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
-                  (title, i) => (
-                    <div className="text-caption-s" key={i}>
-                      <h3 className="flex items-center gap-1 font-medium">
-                        <Image
-                          src="/images/buyer-project/summary-check.svg"
-                          width={12}
-                          height={12}
-                          alt=""
-                        />
-                        {title}
-                      </h3>
-                      <p className="pl-4">상세 내용</p>
-                    </div>
-                  ),
-                )}
-              </section>
-            )}
+            {summary && <AiSummary summary={summary} preview={preview} />}
           </section>
           {!preview && rewardSelection && (
             <div className="hidden min-[1200px]:block">{rewardSelection}</div>

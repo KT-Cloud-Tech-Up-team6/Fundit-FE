@@ -53,6 +53,13 @@ export type PublicProject = {
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };
+  pageSummary?: ProjectPageSummary | null;
+};
+/** 상세 페이지 AI 요약(BE #169, PR #184). 생성 중이면 `sections` 없이 `GENERATING`이고, 요약이 없거나
+    실패하면 BE가 키를 뺀다. `role`은 WHAT(무엇을)·WHY(왜)다. */
+export type ProjectPageSummary = {
+  status: string;
+  sections?: { role: string; headline: string; description: string }[] | null;
 };
 /** BE `RewardConsumerResponse`(sortOrder 순). BE는 null 필드를 JSON에서 빼므로 값이 없을 수
     있는 필드는 선택 키다. */
