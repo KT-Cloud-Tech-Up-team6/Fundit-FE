@@ -362,6 +362,7 @@ export function BuyerProjectDetail({
         type="button"
         aria-label={wish?.failed ? "찜 상태를 불러오지 못했습니다. 다시 시도" : "프로젝트 찜"}
         aria-pressed={wish?.failed ? undefined : wish ? wish.wished : liked}
+        aria-busy={wish && !wish.failed && wish.disabled ? true : undefined}
         disabled={preview || (wish ? wish.disabled : Boolean(server))}
         onClick={() =>
           wish?.failed

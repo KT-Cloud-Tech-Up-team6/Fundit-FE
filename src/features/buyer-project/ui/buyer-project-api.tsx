@@ -374,7 +374,11 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       liveCheckTab={!liveCheckHidden}
       server={summary}
       wish={{
-        wished: wish.data?.wished ?? false,
+        /* 응답을 기다리는 동안 누른 값으로 하트를 채운다 — 서버 왕복이 느리면 탭이 먹히지 않은 것처럼
+           보인다. 실패하면 `isPending`이 풀려 서버 값으로 되돌아온다. */
+        wished: toggleWish.isPending
+          ? (toggleWish.variables ?? false)
+          : (wish.data?.wished ?? false),
         failed: member && wish.isError,
         disabled:
           state.status === "checking" ||
