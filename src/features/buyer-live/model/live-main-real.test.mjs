@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   FOLLOW_FILTER_LIMIT,
-  REAL_LIVE_SLOTS,
   fillRealSlots,
   followSellerIds,
   pickNewOpen,
@@ -11,6 +10,7 @@ import {
   realLiveSeller,
   realLiveTitle,
   scheduleLabel,
+  upcomingTitleDate,
   withViewerCounts,
 } from "./live-main-real.ts";
 
@@ -26,15 +26,13 @@ const live = (overrides = {}) => ({
   ...overrides,
 });
 
-test("칸의 끝에서부터 정해진 수만 실제 LIVE로 채우고 나머지는 목업으로 둔다", () => {
-  assert.equal(REAL_LIVE_SLOTS, 1);
-  assert.deepEqual(fillRealSlots(4, ["a", "b"]), [undefined, undefined, undefined, "a"]);
+test("모든 칸을 실제 LIVE로 앞에서부터 API 순서대로 채우고 모자라는 뒤쪽 칸만 목업으로 둔다", () => {
+  assert.deepEqual(fillRealSlots(4, ["a", "b"]), ["a", "b", undefined, undefined]);
   // 실제 LIVE가 없으면 전부 목업이다.
   assert.deepEqual(fillRealSlots(5, []), [undefined, undefined, undefined, undefined, undefined]);
-  // 칸 수를 늘려도 실제가 모자라면 끝 칸부터 있는 만큼만 채운다.
-  assert.deepEqual(fillRealSlots(4, ["a", "b", "c"], 2), [undefined, undefined, "a", "b"]);
-  assert.deepEqual(fillRealSlots(4, ["a"], 3), [undefined, undefined, undefined, "a"]);
-  assert.deepEqual(fillRealSlots(2, ["a", "b", "c"], 5), ["a", "b"]);
+  // 실제 LIVE가 칸보다 많으면 칸 수만큼만 쓴다.
+  assert.deepEqual(fillRealSlots(2, ["a", "b", "c"]), ["a", "b"]);
+  assert.deepEqual(fillRealSlots(3, ["a", "b", "c"]), ["a", "b", "c"]);
 });
 
 test("신규 오픈은 방송 중·예정만, 날짜별 예정은 지금 이후를 이른 순서로 고른다", () => {
@@ -124,4 +122,11 @@ test("실제 LIVE 카드의 판매자 줄은 닉네임이 있을 때만 그린�
   assert.equal(realLiveSeller(live({ sellerNickname: null })), undefined);
   assert.equal(realLiveSeller(live({ sellerNickname: "  " })), undefined);
   assert.equal(realLiveSeller(live({ sellerNickname: " 뷰티마켓 " })), "뷰티마켓");
+});
+
+test("날짜별 예정 제목은 탭을 연 날의 한국 날짜와 요일이다", () => {
+  // 한국 시간 9/29(화) 00:30 — UTC로는 전날이지만 한국 날짜를 쓴다.
+  assert.equal(upcomingTitleDate(Date.parse("2026-09-28T15:30:00Z")), "9/29일 (화)");
+  assert.equal(upcomingTitleDate(Date.parse("2026-09-08T03:00:00Z")), "9/8일 (화)");
+  assert.equal(upcomingTitleDate(Date.parse("2026-10-04T14:59:59Z")), "10/4일 (일)");
 });

@@ -52,6 +52,7 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
   return (
     <BuyerLiveMain
       view={view}
+      openedAt={openedAt}
       hasFollowing={sellerIds.length > 0}
       real={{
         newOpen: withViewerCounts(pickNewOpen(newOpen), ranking),
