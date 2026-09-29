@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllOrders, getOrders, getOrder, ORDER_PAGE_SIZE } from "@/entities/order/api/order-api";
@@ -27,8 +26,9 @@ export function FundingListApi() {
 function FundingList({ memberId }: { memberId: string }) {
   const params = useSearchParams(),
     router = useRouter();
-  /* 최근 N개월의 끝인 오늘(한국 날짜)은 화면을 연 날로 고정한다. */
-  const [today] = useState(() => koreanDateKey(new Date()));
+  /* 최근 N개월의 끝인 오늘(한국 날짜)은 렌더할 때마다 다시 구한다. 화면을 연 채 자정이 지나도 조건을 바꾸면
+     오늘 참여한 건까지 조회된다. 날짜가 바뀔 때만 조회 키가 달라진다. */
+  const today = koreanDateKey(new Date());
   const client = useQueryClient();
   const query = parseFundingHistoryQuery(params, today);
   const { q, from, to, category, page } = query;

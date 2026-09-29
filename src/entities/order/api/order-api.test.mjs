@@ -113,6 +113,25 @@ test("전체 목록은 100건씩 hasNext가 끝날 때까지, 최대 20번까지
   assert.equal(capped.truncated, true);
 });
 
+test("쪽을 받는 사이 새 주문으로 밀려 다음 쪽에 다시 온 주문은 한 번만 담는다", async (t) => {
+  /* 첫 쪽을 받은 뒤 새 주문이 생겨 최신순 목록이 한 칸 밀리면 첫 쪽의 끝(o99)이 둘째 쪽 맨 앞에 다시 온다. */
+  const pageOf = (page) => {
+    const start = page === 0 ? 0 : page * 100 - 1;
+    return Array.from({ length: Math.min(100, 150 - start) }, (_, i) => ({
+      orderId: `o${start + i}`,
+    }));
+  };
+  t.mock.method(globalThis, "fetch", async (url) => {
+    const page = Number(new URL(url, "http://localhost").searchParams.get("page"));
+    return Response.json({ content: pageOf(page), totalElements: 151, hasNext: page === 0 });
+  });
+  const all = await getAllOrders({ status: ["GOAL_ACHIEVED"] });
+  const ids = all.content.map((order) => order.orderId);
+  assert.equal(ids.length, 150);
+  assert.equal(new Set(ids).size, 150);
+  assert.deepEqual(ids.slice(98, 101), ["o98", "o99", "o100"]);
+});
+
 test("주문 상세·취소는 v1, 결제 시도·승인은 v2와 PG 주문번호를 유지한다", async (t) => {
   const calls = [];
   t.mock.method(globalThis, "fetch", async (url, init) => {

@@ -180,12 +180,18 @@ export function getOrders(
 export const ORDER_FETCH_ALL_SIZE = 100;
 export const ORDER_FETCH_ALL_MAX_REQUESTS = 20;
 /** 조건에 맞는 주문을 최신 참여순으로 끝까지 받는다. 최대 요청 수에 닿으면 받은 데까지 주고
-    `truncated`로 알린다. 서버가 거르지 못하는 조건(진행 단계)을 화면이 거를 때 쓴다. */
+    `truncated`로 알린다. 서버가 거르지 못하는 조건(진행 단계)을 화면이 거를 때 쓴다.
+    쪽을 받는 사이 새 주문이 생기면 앞 쪽의 끝 주문이 다음 쪽에 다시 오므로 `orderId`로 한 번만 담는다. */
 export async function getAllOrders(filter: OrderListFilter, signal?: AbortSignal) {
   const content: OrderSummary[] = [];
+  const seen = new Set<string>();
   for (let page = 0; page < ORDER_FETCH_ALL_MAX_REQUESTS; page += 1) {
     const result = await getOrders(page, filter, signal, ORDER_FETCH_ALL_SIZE);
-    content.push(...result.content);
+    for (const order of result.content) {
+      if (seen.has(order.orderId)) continue;
+      seen.add(order.orderId);
+      content.push(order);
+    }
     if (!result.hasNext) return { content, truncated: false };
   }
   return { content, truncated: true };
