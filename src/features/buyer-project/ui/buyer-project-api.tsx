@@ -35,6 +35,7 @@ import type { RewardCart } from "@/features/reward-selection/model/reward-demo";
 import { NoticeDetail } from "@/features/project-community/ui/notice-detail";
 import { getPublicLives } from "@/entities/live/api/public-live-api";
 import { getPublicProjectClips } from "@/features/live-integration/api/live-api";
+import { AI_SUMMARY_REFETCH_MS, aiSummaryState, isAiSummaryGenerating } from "../model/ai-summary";
 import { clipVideo, endedLiveVideo } from "../model/live-replay";
 import { StoryTextBlock } from "@/features/project-story/ui/story-html";
 
@@ -79,17 +80,22 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     queryKey: ["public-project", projectId],
     queryFn: ({ signal }) => getPublicProject(projectId, signal),
     enabled: state.status !== "checking",
+    /* AI 요약이 생성 중이면 화면이 보이는 동안 다시 받아, 끝나면 로딩 막대가 요약으로 바뀌게 한다(#407). */
+    refetchInterval: (query) =>
+      isAiSummaryGenerating(query.state.data?.pageSummary) ? AI_SUMMARY_REFETCH_MS : false,
   });
-  const rewards = useQuery({ ...publicRewardsQuery(projectId), enabled: detail.isSuccess });
+  /* 재조회가 실패해도(`isSuccess` 거짓) 받은 상세가 있으면 탭 조회를 멈추지 않는다. */
+  const hasDetail = detail.data !== undefined;
+  const rewards = useQuery({ ...publicRewardsQuery(projectId), enabled: hasDetail });
   const refund = useQuery({
     queryKey: ["public-refund-policy", projectId],
     queryFn: ({ signal }) => getRefundPolicy(projectId, signal),
-    enabled: detail.isSuccess && tab === "refund-policy",
+    enabled: hasDetail && tab === "refund-policy",
   });
   const live = useQuery({
     queryKey: ["public-live-verifications", projectId],
     queryFn: ({ signal }) => getLiveVerifications(projectId, signal),
-    enabled: detail.isSuccess && tab === "live-proof",
+    enabled: hasDetail && tab === "live-proof",
   });
   /* LIVE 체크 탭 "LIVE 다시 보기"(#319). 종료된 라이브는 항상 공개(2026-09-23 PM)이고, 숏 클립은 판매자가 LIVE
      클립 관리에서 공개한 것만 온다. 두 목록 모두 비인증이고 첫 페이지(20건)만 받는다.
@@ -97,7 +103,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   const endedLives = useQuery({
     queryKey: ["public-lives", { status: "ENDED", projectId }],
     queryFn: ({ signal }) => getPublicLives({ status: "ENDED", projectId }, signal),
-    enabled: detail.isSuccess,
+    enabled: hasDetail,
   });
   /* IA 소비자 26행: LIVE 방송을 진행한 프로젝트만 LIVE 체크 탭을 보인다. 종료된 LIVE가 없다고 서버가 확인했을
      때만 숨기고, 불러오는 중·실패에는 그대로 둔다. 숨긴 탭 주소로 들어오면 기본 탭으로 바꾼다(자체 판단 133). */
@@ -109,20 +115,21 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
   const clips = useQuery({
     queryKey: ["public-project-clips", projectId],
     queryFn: ({ signal }) => getPublicProjectClips(projectId, signal),
-    enabled: detail.isSuccess && tab === "live-proof",
+    enabled: hasDetail && tab === "live-proof",
   });
   const notices = useQuery({
     queryKey: ["project-notices", projectId, page],
     queryFn: ({ signal }) => getPublicNotices(projectId, page, signal),
-    enabled: detail.isSuccess && tab === "news",
+    enabled: hasDetail && tab === "news",
   });
   const posts = useQuery({
     queryKey: ["public-community", projectId, page],
     queryFn: ({ signal }) => getPublicCommunity(projectId, page, signal),
-    enabled: detail.isSuccess && tab === "community",
+    enabled: hasDetail && tab === "community",
   });
   if (detail.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
-  if (detail.isError)
+  /* 처음 받기에 실패했을 때만 오류 화면이다. AI 요약 생성 중 재조회가 실패해도 받은 상세는 그대로 둔다. */
+  if (detail.isLoadingError)
     return (
       <ErrorState
         status={toErrorStatus(detail.error)}
@@ -347,6 +354,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       hasLive={false}
       liveCheckTab={!liveCheckHidden}
       server={summary}
+      aiSummary={aiSummaryState(data.pageSummary)}
       project={{
         title: data.title,
         seller: data.seller?.displayName ?? "",

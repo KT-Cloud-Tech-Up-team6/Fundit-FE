@@ -337,6 +337,28 @@
     padding: 12px 16px;
     gap: 12px;
   }
+  /* AI 프로젝트 요약 데스크톱(Figma 2107:70404): 제목 16/600·아이콘 16, 항목 14px(행간 1.42)·체크 옆 8·들여쓰기 20.
+     모바일 값은 1443:44427 그대로 컴포넌트에 있다. */
+  .desktop .aiSummary h2 {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .desktop .aiSummary [data-summary-icon] {
+    width: 16px;
+    height: 16px;
+  }
+  .desktop .aiSummary [data-summary-title],
+  .desktop .aiSummary [data-summary-body],
+  .desktop .aiSummary [data-summary-status] {
+    font-size: 14px;
+    line-height: 1.42;
+  }
+  .desktop .aiSummary [data-summary-title] {
+    gap: 8px;
+  }
+  .desktop .aiSummary [data-summary-body] {
+    padding-left: 20px;
+  }
   .desktop .footer {
     position: static;
     transform: none;
@@ -372,5 +394,25 @@
   }
   .desktop .videoPoster {
     height: 174px;
+  }
+}
+
+/* AI 요약 생성 중 로딩 막대(#407). 모션 줄이기 설정이면 깜빡이지 않는다. */
+.aiSummarySkeleton {
+  display: block;
+  flex-shrink: 0;
+  background: var(--layer-surface-disabled);
+  animation: ai-summary-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-summary-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aiSummarySkeleton {
+    animation: none;
   }
 }

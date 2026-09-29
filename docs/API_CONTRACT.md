@@ -493,6 +493,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용. 응답은 공개 상세와 같은 ProjectDetailResponse다.  |
 | 공개 상세        | GET `/api/v1/projects/{projectId}`                  | 미공개 DRAFT는 404.                                                            |
 
+- 상세 응답(공개·미리보기)의 `pageSummary`(BE #169, PR #184)는 상세 페이지 AI 요약이다. `{status, sections: [{role: "WHAT" | "WHY", headline, description}]}`이고, 생성 중이면 `sections` 없이 `GENERATING`, 요약이 없거나 실패하면 키가 빠진다. 공개 프로젝트의 제목·카테고리·리워드·본문이 바뀌면 BE 워커가 다시 만들고 그동안은 `GENERATING`이다. FE 표시는 [BUYER_PROJECT_DETAIL](./BUYER_PROJECT_DETAIL.md)의 #407 절.
+
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.
 
 신규 생성은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #213). 키는 판매자 범위이며 같은 키는 새 DRAFT 없이 기존 프로젝트를 200으로, 새 생성은 201로 돌려준다. 같은 키 요청이 동시에 처리 중이면 409 `CONFLICT`다. 키는 프로젝트 행에 저장돼 유효기간이 없고, 삭제된 DRAFT의 키는 다시 쓸 수 있다. FE는 시도마다 UUID 키를 만들어 요청 전에 판매자별 sessionStorage에 남기고, 결과를 모르는 시도는 같은 키로 다시 보내 서버가 만든 프로젝트를 되찾는다. 본문이 없어 같은 키를 다시 보내도 거절되지 않으므로 확정 4xx에서도 키를 버리지 않고, 새 프로젝트 화면으로 떠날 때 시도를 지운다.
