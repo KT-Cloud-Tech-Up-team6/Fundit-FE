@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -178,12 +178,20 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     enabled: detail.isSuccess && tab === "live-proof",
   });
   /* LIVE 체크 탭 "LIVE 다시 보기"(#319). 종료된 라이브는 항상 공개(2026-09-23 PM)이고, 숏 클립은 판매자가 LIVE
-     클립 관리에서 공개한 것만 온다. 두 목록 모두 비인증이고 첫 페이지(20건)만 받는다. */
+     클립 관리에서 공개한 것만 온다. 두 목록 모두 비인증이고 첫 페이지(20건)만 받는다.
+     종료된 라이브는 LIVE 체크 탭을 보일지 정하는 데도 써서 어느 탭에서든 받는다(#456). */
   const endedLives = useQuery({
     queryKey: ["public-lives", { status: "ENDED", projectId }],
     queryFn: ({ signal }) => getPublicLives({ status: "ENDED", projectId }, signal),
-    enabled: detail.isSuccess && tab === "live-proof",
+    enabled: detail.isSuccess,
   });
+  /* IA 소비자 26행: LIVE 방송을 진행한 프로젝트만 LIVE 체크 탭을 보인다. 종료된 LIVE가 없다고 서버가 확인했을
+     때만 숨기고, 불러오는 중·실패에는 그대로 둔다. 숨긴 탭 주소로 들어오면 기본 탭으로 바꾼다(자체 판단 133). */
+  const liveCheckHidden = endedLives.data?.totalElements === 0;
+  useEffect(() => {
+    if (liveCheckHidden && tab === "live-proof")
+      router.replace(`/projects/${encodeURIComponent(projectId)}?tab=story`, { scroll: false });
+  }, [liveCheckHidden, tab, projectId, router]);
   const clips = useQuery({
     queryKey: ["public-project-clips", projectId],
     queryFn: ({ signal }) => getPublicProjectClips(projectId, signal),
@@ -423,6 +431,7 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       projectId={projectId}
       activeTab={tab}
       hasLive={false}
+      liveCheckTab={!liveCheckHidden}
       server={summary}
       project={{
         title: data.title,
