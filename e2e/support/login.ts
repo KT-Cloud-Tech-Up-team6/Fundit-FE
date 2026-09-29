@@ -1,7 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-
-const E2E_LOGIN = { email: "e2e@fundit.test", password: "Passw0rd!1" };
+import { E2E_LOGIN } from "@/mocks/fixtures";
 
 export async function loginAsFixtureUser(page: Page) {
   await page.goto("/auth/login");
