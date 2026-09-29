@@ -8,6 +8,7 @@ import {
   getOriginals,
   getPlayback,
   getPublicHighlights,
+  getPublicProjectClips,
   getUnanswered,
   getVodChat,
   likeLive,
@@ -133,6 +134,31 @@ test("쇼츠 클릭은 비인증 POST로 하이라이트 id를 이스케이프�
     assert.equal(await recordHighlightClick("live", "h/1"), undefined);
     assert.match(calls[0][0], /\/lives\/live\/highlights\/h%2F1\/click$/);
     assert.equal(calls[0][1].method, "POST");
+    assert.equal(calls[0][1].headers.get("Authorization"), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
+  }
+});
+
+test("프로젝트 숏 클립 목록은 비인증 GET으로 projectId를 쿼리로 보낸다(#319)", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    return response({ content: [], totalElements: 0 });
+  };
+  try {
+    authTokenStore.set("live-token");
+    const controller = new AbortController();
+    assert.deepEqual(await getPublicProjectClips("p/1", controller.signal), {
+      content: [],
+      totalElements: 0,
+    });
+    const url = new URL(calls[0][0], "https://example.com");
+    assert.equal(url.pathname, "/api/v1/lives/highlights");
+    assert.equal(url.searchParams.get("projectId"), "p/1");
+    assert.equal(calls[0][1].signal, controller.signal);
     assert.equal(calls[0][1].headers.get("Authorization"), null);
   } finally {
     globalThis.fetch = originalFetch;

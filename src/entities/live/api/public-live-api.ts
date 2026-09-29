@@ -10,17 +10,20 @@ export type PublicLivesQuery = {
   sort?: "viewerCount";
   /** 이 판매자들의 LIVE만. 쉼표로 이어 보낸다. */
   sellerIds?: readonly string[];
+  /** 이 프로젝트의 LIVE만(BE PR #185). 프로젝트 상세 LIVE 체크 탭이 `status=ENDED`와 함께 쓴다. */
+  projectId?: string;
 };
 
 /** 첫 페이지(기본 20건)만 받는다. LIVE 메인은 섹션마다 최대 10칸을 채워(#432) 첫 페이지로 충분하다. */
 export function getPublicLives(
-  { status, sort, sellerIds }: PublicLivesQuery,
+  { status, sort, sellerIds, projectId }: PublicLivesQuery,
   signal?: AbortSignal,
 ) {
   const query = new URLSearchParams();
   if (status) query.set("status", status);
   if (sort) query.set("sort", sort);
   if (sellerIds?.length) query.set("sellerId", sellerIds.join(","));
+  if (projectId) query.set("projectId", projectId);
   const search = query.toString();
   return apiRequest<LivePage>(`/api/v1/lives${search ? `?${search}` : ""}`, { signal });
 }

@@ -652,9 +652,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 기준은 BE `develop` `d701b42`의 `LiveController.findPublic`·`LiveQueryService.findPublic`이다. 화면 사용은 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md)의 #345 절을 따른다.
 
-| 동작             | Method·Path         | 요청 → 응답                                                                                            |
-| ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| 소비자 LIVE 목록 | GET `/api/v1/lives` | `status`(단일)·`sort`·`sellerId`(여러 값)·`page`·`size`(기본 20) → `PageResponse<LiveSummaryResponse>` |
+| 동작                  | Method·Path                    | 요청 → 응답                                                                                                                                                               |
+| --------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 소비자 LIVE 목록      | GET `/api/v1/lives`            | `status`(단일)·`sort`·`sellerId`(여러 값)·`projectId`·`page`·`size`(기본 20) → `PageResponse<LiveSummaryResponse>`                                                        |
+| 프로젝트 공개 숏 클립 | GET `/api/v1/lives/highlights` | `projectId`(필수)·`page`·`size`(기본 20, 최대 50) → `PageResponse<{liveId, highlightId, sceneLabel, title, startSec, endSec, clipUrl, thumbnailUrl, caption, createdAt}>` |
 
 - 비인증이다. `DRAFT`는 쿼리에서 항상 빠지고, `status`가 없으면 `SCHEDULED`·`LIVE`·`ENDED`·`ERROR`가 모두 온다. 정렬은 `createdAt` 최신순 고정이다.
 - `sort=viewerCount`는 실시간 순위 전용이다. `LIVE`만 IVS 시청자 수 내림차순으로 오고 `status`·`sellerId`는 무시된다. `viewerCount`는 이때만 채워진다.
@@ -662,6 +663,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
 - BE PR #185부터 항목에 판매자 회원 ID `sellerId`가 온다(닉네임 조회가 실패해도 채워진다). 관심 목록 팔로잉 행의 LIVE 배지가 이 값으로 방송 중인 판매자를 맞춘다(#444). 판매자당 채널이 1개라 한 판매자의 동시 `LIVE`는 하나다.
 - 목록 항목에는 프로젝트명·카테고리·달성률이 없어, LIVE 홈 실시간 순위 카드는 프로젝트 상세(`GET /api/v1/projects/{projectId}`)의 `title`·`categoryMajor`·`fundingStatus.achievementRate`를 쓴다(#445).
+- BE PR #185부터 `projectId` 필터(다른 필터·정렬과 함께 쓸 수 있다)와 항목의 실제 방송 시작 시각 `actualStartAt`(시작 전이면 없다)이 있다. 구매자 프로젝트 상세 LIVE 체크 탭은 `status=ENDED&projectId=`의 첫 페이지를 종료된 라이브 목록으로 쓰고 날짜는 `actualStartAt`이다(#319).
+- 프로젝트 공개 숏 클립(BE PR #185)은 비인증이고 공개·생성 완료된 클립만 생성 최신순으로 온다. 마커와 `DRAFT` 방송은 빠진다. 방송 단위 `/{liveId}/highlights/public`과 달리 **조회 수를 올리지 않는다.** `thumbnailUrl`은 AI 콜백이 채우기 전까지 없다. 구매자 LIVE 체크 탭이 첫 페이지를 숏 클립 목록으로 쓴다(#319).
 
 ### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
 
@@ -676,7 +679,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
 - FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
 - 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
-- 응답에 클립 생성일·썸네일이 없다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. 클립 `createdAt`·썸네일과 프로젝트 단위 클립 목록은 BE 요청 후보다.
+- 대조한 커밋의 응답에는 클립 생성일·썸네일이 없었다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. BE PR #185부터 하이라이트 항목에 `thumbnailUrl`·`createdAt`이 오지만 이 화면은 아직 쓰지 않는다. 비공개 클립도 보여야 해서 프로젝트 공개 숏 클립 목록(5.10)으로 바꿀 수는 없다.
 - [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
 - dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
 
