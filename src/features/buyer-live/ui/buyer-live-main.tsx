@@ -23,6 +23,7 @@ import {
   realLiveSeller,
   realLiveTitle,
   scheduleLabel,
+  upcomingTitleDate,
   type RealLives,
 } from "../model/live-main-real";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -37,8 +38,12 @@ function scheduledTitle(id: string) {
   return getLiveDemo(id, true).title;
 }
 
-/* 모바일에서도 보이는 칸 수. 캐러셀의 나머지 칸과 목록의 나머지 행은 1200px 이상에서만 보인다.
-   실제 LIVE는 두 화면에 모두 보이는 칸의 끝에 넣는다. */
+/* 섹션별 칸 수. 모바일에서는 앞의 칸만 보이고 캐러셀의 나머지 칸과 목록의 나머지 행은 1200px 이상에서만
+   보인다. 실제 LIVE는 모든 칸을 앞에서부터 채우고 모자라는 뒤쪽 칸만 목업이다(#432). */
+const carouselCards = 6;
+const liveFollowingCards = 4;
+const rankingRows = 10;
+const scheduledRows = 8;
 const mobileCarouselCards = 4;
 const mobileListItems = 5;
 
@@ -265,10 +270,19 @@ function LiveCard({
 
 /* 방송 중이면 시청자 수를 목업 카드와 같은 뱃지로 보인다. 수는 실시간 순위 조회에서만 와서(withViewerCounts)
    모르면 숫자 대신 LIVE로 표시한다. */
-function RealLiveCard({ live, compact = false }: { live: LiveSummaryResponse; compact?: boolean }) {
+function RealLiveCard({
+  live,
+  compact = false,
+  desktopOnly = false,
+}: {
+  live: LiveSummaryResponse;
+  compact?: boolean;
+  desktopOnly?: boolean;
+}) {
   return (
     <LiveCardView
       compact={compact}
+      desktopOnly={desktopOnly}
       card={{
         href: realLiveHref(live),
         title: realLiveTitle(live),
@@ -450,11 +464,14 @@ export function BuyerLiveMain({
   hasFollowing = true,
   view = "live",
   real = noRealLives,
+  openedAt,
 }: {
   hasFollowing?: boolean;
   view?: "live" | "upcoming";
   /** 섹션별로 섞을 실제 LIVE(#345). 없으면 전부 목업이다. Storybook은 넘기지 않는다. */
   real?: RealLives;
+  /** 탭을 연 시각. 날짜별 예정 제목을 그날(한국 날짜)로 쓴다. 없으면(Storybook) Figma 원문 날짜다(#432). */
+  openedAt?: number;
 }) {
   const upcoming = view === "upcoming";
   const [notifications, setNotifications] = useState<ReadonlySet<string>>(
@@ -465,11 +482,14 @@ export function BuyerLiveMain({
   const subscriptionIds = Array.from(notifications).filter(
     (id) => getLiveDemoConnection(id, true) !== undefined,
   );
-  const newOpenSlots = fillRealSlots(mobileCarouselCards, real.newOpen);
-  const rankingSlots = fillRealSlots(mobileListItems, real.ranking);
-  /* 실시간 탭의 팔로우 4칸은 모두 보이고, 예정 탭은 캐러셀의 앞 4칸이 모바일에 보인다. */
-  const followingSlots = fillRealSlots(mobileCarouselCards, real.following);
-  const scheduledSlots = fillRealSlots(mobileListItems, real.scheduled);
+  const newOpenSlots = fillRealSlots(carouselCards, real.newOpen);
+  const rankingSlots = fillRealSlots(rankingRows, real.ranking);
+  /* 실시간 탭의 팔로우 4칸은 모두 보이고, 예정 탭은 캐러셀 6칸 중 앞 4칸이 모바일에 보인다. */
+  const followingSlots = fillRealSlots(
+    upcoming ? carouselCards : liveFollowingCards,
+    real.following,
+  );
+  const scheduledSlots = fillRealSlots(scheduledRows, real.scheduled);
   const [announcement, setAnnouncement] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
   const carouselDrag = useHorizontalDrag();
@@ -674,7 +694,7 @@ export function BuyerLiveMain({
                 className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
                 {...carouselDrag}
               >
-                {[1, 2, 3, 4, 5, 6].map((n) => {
+                {Array.from({ length: carouselCards }, (_, i) => i + 1).map((n) => {
                   const live = upcoming ? followingSlots[n - 1] : newOpenSlots[n - 1];
                   if (upcoming)
                     return scheduledCard(
@@ -683,7 +703,12 @@ export function BuyerLiveMain({
                       n > mobileCarouselCards,
                     );
                   return live ? (
-                    <RealLiveCard key={live.liveId} live={live} compact />
+                    <RealLiveCard
+                      key={live.liveId}
+                      live={live}
+                      compact
+                      desktopOnly={n > mobileCarouselCards}
+                    />
                   ) : (
                     <LiveCard
                       key={n}
@@ -698,30 +723,36 @@ export function BuyerLiveMain({
           )}
           <Section
             className="min-[1200px]:order-2"
-            title={upcoming ? "9/8일 (화) 예정된 라이브" : "실시간 순위"}
+            title={
+              upcoming
+                ? `${openedAt === undefined ? "9/8일 (화)" : upcomingTitleDate(openedAt)} 예정된 라이브`
+                : "실시간 순위"
+            }
           >
             <ol className="flex flex-col gap-4 min-[1200px]:grid min-[1200px]:grid-cols-2 min-[1200px]:gap-x-24">
-              {Array.from({ length: upcoming ? 8 : 10 }, (_, i) => i + 1).map((rank) => {
-                const live = (upcoming ? scheduledSlots : rankingSlots)[rank - 1];
-                return (
-                  <li
-                    key={rank}
-                    className={rank > mobileListItems ? "hidden min-[1200px]:block" : ""}
-                  >
-                    {upcoming ? (
-                      scheduledRow(
-                        rank,
-                        live ? realScheduled(live) : demoScheduled(`scheduled-${rank}`),
-                      )
-                    ) : (
-                      <RankingCard
-                        rank={rank}
-                        card={live ? realRanking(live) : demoRanking(rank)}
-                      />
-                    )}
-                  </li>
-                );
-              })}
+              {Array.from({ length: upcoming ? scheduledRows : rankingRows }, (_, i) => i + 1).map(
+                (rank) => {
+                  const live = (upcoming ? scheduledSlots : rankingSlots)[rank - 1];
+                  return (
+                    <li
+                      key={rank}
+                      className={rank > mobileListItems ? "hidden min-[1200px]:block" : ""}
+                    >
+                      {upcoming ? (
+                        scheduledRow(
+                          rank,
+                          live ? realScheduled(live) : demoScheduled(`scheduled-${rank}`),
+                        )
+                      ) : (
+                        <RankingCard
+                          rank={rank}
+                          card={live ? realRanking(live) : demoRanking(rank)}
+                        />
+                      )}
+                    </li>
+                  );
+                },
+              )}
             </ol>
             {upcoming ? (
               <PendingDestination
@@ -754,7 +785,7 @@ export function BuyerLiveMain({
                 aria-label="팔로우한 창작자 라이브 목록"
                 className={`${styles.carousel} grid grid-cols-2 gap-3 min-[1200px]:flex min-[1200px]:overflow-x-auto min-[1200px]:[&>article]:w-[226px] min-[1200px]:[&>article]:shrink-0`}
               >
-                {[1, 2, 3, 4].map((n) => {
+                {Array.from({ length: liveFollowingCards }, (_, i) => i + 1).map((n) => {
                   const live = followingSlots[n - 1];
                   return live ? (
                     <RealLiveCard key={live.liveId} live={live} />

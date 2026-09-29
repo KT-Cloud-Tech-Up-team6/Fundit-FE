@@ -132,17 +132,17 @@ BE에 요청한 필드와 반영 상태는 아래와 같다.
 
 BE develop `f127a6f`의 `RewardConsumerResponse`·`RewardQueryService`·`Reward`를 대조했다. `GET /api/v1/projects/{projectId}/rewards`는 sortOrder 순 배열이고, project-service는 `default-property-inclusion: non_null`이라 null 필드는 키가 빠진다.
 
-| 필드                                                                                              | FE 사용                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rewardId`                                                                                        | 주문 줄 `rewardId`. 장바구니 키는 숫자 키가 삽입 순서를 잃지 않도록 `reward-{rewardId}`로 둔다.                                                                 |
-| `name`·`description`                                                                              | 카드 이름, 메타 줄 첫 조각.                                                                                                                                     |
-| `price`·`isEarlyBird`·`earlyBirdDiscountType`·`earlyBirdDiscountValue`·`earlyBirdDiscountedPrice` | 얼리 버드면 할인가를 표시·합계 단가로 쓰고 `price`를 취소선으로 둔다. `RATE`는 "얼리 버드 N%", `AMOUNT`는 "얼리 버드".                                          |
-| `isLimited`                                                                                       | "선착순 한정" 배지.                                                                                                                                             |
-| `remainingStock`·`soldOut`                                                                        | 재고는 같은 리워드 모든 줄 수량 합의 상한(없으면 무제한), 품절은 선택 불가. BE는 `remainingStock <= 0`을 품절로 계산한다.                                       |
-| `options[{groupId, groupName, values[{valueId, value}]}]`                                         | 그룹마다 선택 상자. 모든 그룹을 고른 조합이 한 줄이고 `optionValueIds`는 그룹 순서의 `valueId`다.                                                               |
-| `shippingFee`                                                                                     | 0은 "무료배송", 그 밖에는 "배송비 N원". 없으면 적지 않는다.                                                                                                     |
-| `estimatedDeliveryDays`                                                                           | "펀딩 종료 후 N일"(BE `Reward` 주석). 공개 상세 `fundingStatus.fundingDeadline`에 더해 "예상 발송일 YYYY.MM.DD"(한국 날짜), 마감이 없으면 "N일 이내 발송 예정". |
-| `rewardDisplayCode`·`imageUrl`                                                                    | 사용하지 않는다.                                                                                                                                                |
+| 필드                                                                                              | FE 사용                                                                                                                     |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `rewardId`                                                                                        | 주문 줄 `rewardId`. 장바구니 키는 숫자 키가 삽입 순서를 잃지 않도록 `reward-{rewardId}`로 둔다.                             |
+| `name`·`description`                                                                              | 카드 이름, 메타 줄 첫 조각.                                                                                                 |
+| `price`·`isEarlyBird`·`earlyBirdDiscountType`·`earlyBirdDiscountValue`·`earlyBirdDiscountedPrice` | 얼리 버드면 할인가를 표시·합계 단가로 쓰고 `price`를 취소선으로 둔다. `RATE`는 "얼리 버드 N%", `AMOUNT`는 "얼리 버드".      |
+| `isLimited`                                                                                       | "선착순 한정" 배지.                                                                                                         |
+| `remainingStock`·`soldOut`                                                                        | 재고는 같은 리워드 모든 줄 수량 합의 상한(없으면 무제한), 품절은 선택 불가. BE는 `remainingStock <= 0`을 품절로 계산한다.   |
+| `options[{groupId, groupName, values[{valueId, value}]}]`                                         | 그룹마다 선택 상자. 모든 그룹을 고른 조합이 한 줄이고 `optionValueIds`는 그룹 순서의 `valueId`다.                           |
+| `shippingFee`                                                                                     | 사용하지 않는다. 판매자 리워드 등록에 입력 칸이 없어 비어 있고, 배송비는 주문 1건당 3,000원 고정이다(PM-3, #397 → PR #413). |
+| `estimatedDeliveryDays`                                                                           | 사용하지 않는다. 입력 칸이 없어 비어 있고, 예상 발송일은 표시하지 않는다(PM-3, #397 → PR #413).                             |
+| `rewardDisplayCode`·`imageUrl`                                                                    | 사용하지 않는다.                                                                                                            |
 
 - 선택 결과는 `/funding/{UUID}/checkout?items=[{rewardId, quantity, optionValueIds}]`로 넘기고 주문서가 같은 조회 캐시(`public-rewards`)로 검증한다. 같은 리워드라도 옵션 조합이 다르면 줄이 따로다. BE 주문 금액 계산(`OrderPricingService`)은 줄마다 리워드를 찾아 계산하므로 같은 `rewardId` 줄이 여럿이어도 된다.
 - BE #181(요청서 BE-22)부터 `OrderPricingService`는 얼리 버드 리워드의 단가로 `earlyBirdDiscountedPrice`를 써서 선택 화면 합계(할인가)와 주문서 미리보기 금액이 같다. 배송비는 리워드 `shippingFee`가 아닌 설정값(`order.policy.default-shipping-fee`, 3,000원)이다.
