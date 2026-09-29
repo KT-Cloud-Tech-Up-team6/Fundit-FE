@@ -89,7 +89,7 @@ export function useLiveChat({
     };
 
     function receive(data: unknown) {
-      if (typeof data !== "string") return;
+      if (stopped || typeof data !== "string") return;
       const frame = parseChatFrame(data);
       if (!frame) return;
       if (frame.type === "error") {
@@ -130,6 +130,7 @@ export function useLiveChat({
       socket = current;
       let openedAt = 0;
       current.onopen = () => {
+        if (stopped) return;
         openedAt = Date.now();
         socketRef.current = current;
       };
@@ -145,7 +146,11 @@ export function useLiveChat({
     return () => {
       stopped = true;
       clearTimeout(timer);
-      socket?.close();
+      /* 옛 소켓의 늦은 종료 이벤트가 다음 연결의 전송 대기(`pending`)까지 실패로 끝내지 않게 핸들러를 먼저 뗀다. */
+      if (socket) {
+        socket.onopen = socket.onmessage = socket.onclose = null;
+        socket.close();
+      }
       socketRef.current = null;
       failPending();
     };
