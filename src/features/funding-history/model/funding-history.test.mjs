@@ -78,7 +78,7 @@ test("배송 완료는 기간 안이면 반품·교환 신청, 지나면 비활�
 });
 
 test("성공·배송 중은 제작·배송 현황, 목표 미달은 환불 내역만 둔다", () => {
-  for (const stage of ["FUNDING_SUCCEEDED", "SHIPPING"]) {
+  for (const stage of ["FUNDING_SUCCEEDED", "IN_PRODUCTION", "SHIPPING"]) {
     assert.deepEqual(buttons(fundingActions(order(stage))), [
       "제작·배송 현황 /my/fundings/o1/fulfillment",
     ]);

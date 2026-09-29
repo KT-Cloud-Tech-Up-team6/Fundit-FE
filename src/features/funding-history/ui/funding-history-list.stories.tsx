@@ -3,7 +3,7 @@ import { useState, type ComponentProps } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import type { OrderRefundRequest } from "@/entities/order/api/order-api";
 import { fundingStageLabels, toFundingCard } from "../model/funding-history";
-import { categoryStage, relativePeriodRange } from "../model/funding-history-filter";
+import { categoryStages, relativePeriodRange } from "../model/funding-history-filter";
 import { demoOrderSummaries, demoOrderSummary } from "../model/funding-orders-demo";
 import { FundingHistoryList } from "./funding-history-list";
 
@@ -16,16 +16,17 @@ const defaultFilter = { q: "", category: "all" as const, ...relativePeriodRange(
    기간과 주문 상태 분류는 카드에 값이 없어 거르지 않는다. */
 function ServerFilteredList(args: ComponentProps<typeof FundingHistoryList>) {
   const [filter, setFilter] = useState(args.filter);
-  const stage = categoryStage(filter.category);
+  const stages = categoryStages(filter.category);
   const cards = args.cards.filter(
     (card) =>
-      card.projectTitle.includes(filter.q) && (!stage || card.stage === fundingStageLabels[stage]),
+      card.projectTitle.includes(filter.q) &&
+      (!stages || stages.some((stage) => card.stage === fundingStageLabels[stage])),
   );
   return (
     <FundingHistoryList
       {...args}
       cards={cards}
-      total={filter.q || stage ? cards.length : args.total}
+      total={filter.q || stages ? cards.length : args.total}
       filter={filter}
       onSearch={(q) => {
         setFilter((current) => ({ ...current, q }));

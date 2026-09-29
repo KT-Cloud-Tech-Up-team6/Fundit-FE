@@ -36,6 +36,8 @@ export function formatKoreanDate(value: string | undefined): string {
 export const fundingStageLabels: Record<string, string> = {
   FUNDING_IN_PROGRESS: "펀딩 진행 중",
   FUNDING_SUCCEEDED: "제작 중",
+  /* BE가 판매자 첫 진행 기록 뒤를 따로 내리기로 한 값(09-29 BE 회신, 미반영). 먼저 배포돼도 원문이 보이지 않게 둔다. */
+  IN_PRODUCTION: "제작 중",
   SHIPPING_DELAYED: "발송 지연",
   SHIPPING: "배송 중",
   DELIVERED: "배송 완료",
@@ -85,6 +87,7 @@ export function fundingActions(
         : [fulfillment];
     }
     case "FUNDING_SUCCEEDED":
+    case "IN_PRODUCTION":
     case "SHIPPING":
       return [fulfillment];
     /* 기본·신청 후는 FUND_1·IA 46·47처럼 제작·배송 현황을 함께 두고, 수령 후 7일이 지나 서버가

@@ -51,18 +51,19 @@ export const fundingCategoryOptions: readonly { value: FundingCategory; label: s
  * 분류마다 서버에 보낼 주문 상태(`status`, 여러 개면 합집합)와 화면이 거를 진행 단계.
  * 서버는 진행 단계로 거르지 못하므로, 목표 달성 주문의 네 단계(제작 중·발송 지연·배송 중·배송 완료)는
  * `GOAL_ACHIEVED`를 모두 받아 `progressStage`로 거른다. 펀딩 성공은 PM 정의(목표 금액 달성·목표 날짜 경과)대로
- * 목표 달성 주문 전체다.
+ * 목표 달성 주문 전체다. 제작 중은 BE가 `FUNDING_SUCCEEDED`를 판매자 첫 진행 기록 전후로 나눠 `IN_PRODUCTION`을
+ * 더하기로 해(09-29 BE 회신, 미반영) 두 값을 함께 거른다. BE 반영 뒤 기록 없는 `FUNDING_SUCCEEDED`는 "펀딩 성공"으로 옮긴다.
  */
 const categoryRules: Record<
   Exclude<FundingCategory, "all">,
-  { status: string[]; stage?: string }
+  { status: string[]; stages?: readonly string[] }
 > = {
   in_progress: { status: ["PENDING", "FUNDING_IN_PROGRESS"] },
   succeeded: { status: ["GOAL_ACHIEVED"] },
-  producing: { status: ["GOAL_ACHIEVED"], stage: "FUNDING_SUCCEEDED" },
-  delayed: { status: ["GOAL_ACHIEVED"], stage: "SHIPPING_DELAYED" },
-  shipping: { status: ["GOAL_ACHIEVED"], stage: "SHIPPING" },
-  delivered: { status: ["GOAL_ACHIEVED"], stage: "DELIVERED" },
+  producing: { status: ["GOAL_ACHIEVED"], stages: ["FUNDING_SUCCEEDED", "IN_PRODUCTION"] },
+  delayed: { status: ["GOAL_ACHIEVED"], stages: ["SHIPPING_DELAYED"] },
+  shipping: { status: ["GOAL_ACHIEVED"], stages: ["SHIPPING"] },
+  delivered: { status: ["GOAL_ACHIEVED"], stages: ["DELIVERED"] },
   goal_failed: { status: ["GOAL_FAILED_REFUNDED"] },
   cancelled: { status: ["CANCELLED_BY_MEMBER"] },
   payment_expired: { status: ["PAYMENT_EXPIRED"] },
@@ -79,18 +80,18 @@ export function categoryStatuses(category: FundingCategory): string[] {
 }
 
 /** 화면이 거를 진행 단계. 서버가 거르는 분류면 없다. */
-export function categoryStage(category: FundingCategory): string | undefined {
-  return category === "all" ? undefined : categoryRules[category].stage;
+export function categoryStages(category: FundingCategory): readonly string[] | undefined {
+  return category === "all" ? undefined : categoryRules[category].stages;
 }
 
-/** 서버가 준 목록 전체에서 진행 단계가 같은 주문만 남겨 `size`건씩 나눈 `page`(1부터)번째 쪽. */
-export function pageByStage<T extends { progressStage: string }>(
+/** 서버가 준 목록 전체에서 진행 단계가 `stages` 중 하나인 주문만 남겨 `size`건씩 나눈 `page`(1부터)번째 쪽. */
+export function pageByStages<T extends { progressStage: string }>(
   orders: readonly T[],
-  stage: string,
+  stages: readonly string[],
   page: number,
   size: number,
 ): { content: T[]; totalElements: number; hasNext: boolean } {
-  const matched = orders.filter((order) => order.progressStage === stage);
+  const matched = orders.filter((order) => stages.includes(order.progressStage));
   const start = (page - 1) * size;
   return {
     content: matched.slice(start, start + size),

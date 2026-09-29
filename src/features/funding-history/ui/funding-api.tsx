@@ -10,10 +10,10 @@ import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { previousPage } from "@/shared/lib/previous-page";
 import { koreanDateKey, toFundingCard, toFundingDetailView } from "../model/funding-history";
 import {
-  categoryStage,
+  categoryStages,
   categoryStatuses,
   fundingHistoryHref,
-  pageByStage,
+  pageByStages,
   parseFundingHistoryQuery,
   type FundingHistoryQuery,
 } from "../model/funding-history-filter";
@@ -37,8 +37,8 @@ function FundingList({ memberId }: { memberId: string }) {
     queryKey: ["orders", memberId, page, q, from, to, category],
     queryFn: async ({ signal }) => {
       const filter = { q, from, to, status: categoryStatuses(category) };
-      const stage = categoryStage(category);
-      if (!stage) return { ...(await getOrders(page - 1, filter, signal)), truncated: false };
+      const stages = categoryStages(category);
+      if (!stages) return { ...(await getOrders(page - 1, filter, signal)), truncated: false };
       /* 서버는 진행 단계로 거르지 못해 목표 달성 주문을 모두 받아 화면에서 거르고 20건씩 나눈다.
          받은 목록은 조건별로 잠시 캐시해 페이지·단계를 바꿀 때마다 다시 받지 않는다. */
       const all = await client.fetchQuery({
@@ -47,7 +47,7 @@ function FundingList({ memberId }: { memberId: string }) {
         staleTime: 60_000,
       });
       return {
-        ...pageByStage(all.content, stage, page, ORDER_PAGE_SIZE),
+        ...pageByStages(all.content, stages, page, ORDER_PAGE_SIZE),
         truncated: all.truncated,
       };
     },

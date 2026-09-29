@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  categoryStage,
+  categoryStages,
   categoryStatuses,
   customRangeError,
   fundingCategoryOptions,
@@ -10,7 +10,7 @@ import {
   fundingPeriodOptions,
   isDateKey,
   monthsBefore,
-  pageByStage,
+  pageByStages,
   parseFundingHistoryQuery,
   relativePeriodRange,
 } from "./funding-history-filter.ts";
@@ -139,14 +139,14 @@ test("분류별 서버 status와 화면이 거를 진행 단계", () => {
   const rules = Object.fromEntries(
     fundingCategoryOptions.map(({ value }) => [
       value,
-      [categoryStatuses(value).join("+"), categoryStage(value) ?? "-"],
+      [categoryStatuses(value).join("+"), categoryStages(value)?.join("+") ?? "-"],
     ]),
   );
   assert.deepEqual(rules, {
     all: ["", "-"],
     in_progress: ["PENDING+FUNDING_IN_PROGRESS", "-"],
     succeeded: ["GOAL_ACHIEVED", "-"],
-    producing: ["GOAL_ACHIEVED", "FUNDING_SUCCEEDED"],
+    producing: ["GOAL_ACHIEVED", "FUNDING_SUCCEEDED+IN_PRODUCTION"],
     delayed: ["GOAL_ACHIEVED", "SHIPPING_DELAYED"],
     shipping: ["GOAL_ACHIEVED", "SHIPPING"],
     delivered: ["GOAL_ACHIEVED", "DELIVERED"],
@@ -160,7 +160,7 @@ test("분류별 서버 status와 화면이 거를 진행 단계", () => {
 test("진행 단계 분류는 받은 목록에서 같은 단계만 남겨 20건씩 나눈다", () => {
   const stages = ["FUNDING_SUCCEEDED", "SHIPPING", "DELIVERED"];
   const orders = Array.from({ length: 130 }, (_, i) => ({ id: i, progressStage: stages[i % 3] }));
-  const first = pageByStage(orders, "SHIPPING", 1, 20);
+  const first = pageByStages(orders, ["SHIPPING"], 1, 20);
   assert.equal(first.totalElements, 43);
   assert.equal(first.hasNext, true);
   assert.deepEqual(
@@ -168,16 +168,30 @@ test("진행 단계 분류는 받은 목록에서 같은 단계만 남겨 20건�
     [1, 4, 7],
   );
   assert.ok(first.content.every((order) => order.progressStage === "SHIPPING"));
-  const last = pageByStage(orders, "SHIPPING", 3, 20);
+  const last = pageByStages(orders, ["SHIPPING"], 3, 20);
   assert.equal(last.content.length, 3);
   assert.equal(last.hasNext, false);
-  const beyond = pageByStage(orders, "SHIPPING", 4, 20);
+  const beyond = pageByStages(orders, ["SHIPPING"], 4, 20);
   assert.deepEqual([beyond.content.length, beyond.totalElements, beyond.hasNext], [0, 43, false]);
-  assert.deepEqual(pageByStage(orders, "SHIPPING_DELAYED", 1, 20), {
+  assert.deepEqual(pageByStages(orders, ["SHIPPING_DELAYED"], 1, 20), {
     content: [],
     totalElements: 0,
     hasNext: false,
   });
+});
+
+test("제작 중은 BE가 나눠 줄 IN_PRODUCTION도 함께 거른다(09-29 BE 회신, 미반영)", () => {
+  const orders = [
+    { id: 1, progressStage: "FUNDING_SUCCEEDED" },
+    { id: 2, progressStage: "IN_PRODUCTION" },
+    { id: 3, progressStage: "SHIPPING" },
+  ];
+  const page = pageByStages(orders, categoryStages("producing"), 1, 20);
+  assert.deepEqual(
+    page.content.map((order) => order.id),
+    [1, 2],
+  );
+  assert.equal(page.totalElements, 2);
 });
 
 test("잘못된 직접 기간은 최근 한 달로 돌아간다", () => {
