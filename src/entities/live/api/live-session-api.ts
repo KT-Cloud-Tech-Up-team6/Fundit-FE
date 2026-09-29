@@ -32,6 +32,9 @@ export type LiveSettingsBody = {
   thumbnailUrl?: string;
   /** ISO-8601 UTC(`Instant`). */
   scheduledStartAt?: string;
+  /** 예약 해제(BE PR #185). `scheduledStartAt`을 빼는 것은 "변경 없음"이라 해제로 쓸 수 없다.
+      `scheduledStartAt`과 같이 보내면 400이다. */
+  clearSchedule?: true;
 };
 
 export function createLive(projectId: string) {

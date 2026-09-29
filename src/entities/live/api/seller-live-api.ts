@@ -20,6 +20,8 @@ export type LiveSummaryResponse = {
   viewerCount?: number;
   /** 판매자 닉네임(BE PR #165). 소비자 목록만 채우고, 닉네임이 없거나 member 조회가 실패하면 빠진다. */
   sellerNickname?: string | null;
+  /** 판매자 회원 ID(BE PR #185). 팔로우 목록의 `sellerId`와 같은 값이다. 배포 전 서버에는 없다. */
+  sellerId?: string;
 };
 
 export type LivePage = {

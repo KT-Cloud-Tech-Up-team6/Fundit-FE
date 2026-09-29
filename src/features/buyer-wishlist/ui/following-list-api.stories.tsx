@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { FollowedSeller } from "@/entities/seller/api/follow-api";
 import { FollowingListApi } from "./following-list-api";
 
@@ -11,6 +11,8 @@ const sellers = Array.from({ length: 21 }, (_, index) => ({
   wishCount: index * 2,
   createdAt: "2026-09-28T00:00:00Z",
 }));
+/* 방송 중인 판매자. 21번은 무한 스크롤로 불러오는 둘째 페이지에 있다. */
+const liveSellerIds = new Set(["seller-1", "seller-3", "seller-21"]);
 
 function FollowingPreview() {
   const [unfollowed, setUnfollowed] = useState<ReadonlyMap<string, FollowedSeller>>(new Map());
@@ -63,6 +65,30 @@ export const InfiniteFollowAndRestore: Story = {
           hasNext: (page + 1) * size < rows.length,
         });
       }
+      if (url.pathname === "/api/v1/lives" && method === "GET") {
+        const asked = url.searchParams.get("sellerId")?.split(",") ?? [];
+        const content = asked
+          .filter((id) => liveSellerIds.has(id))
+          .map((id) => ({
+            liveId: `live-${id}`,
+            introText: null,
+            status: "LIVE",
+            projectId: "project-1",
+            thumbnailUrl: null,
+            scheduledStartAt: null,
+            likeCount: 0,
+            createdAt: "2026-09-29T00:00:00Z",
+            sellerId: id,
+          }));
+        return Response.json({
+          content,
+          page: 0,
+          size: 20,
+          totalElements: content.length,
+          totalPages: 1,
+          hasNext: false,
+        });
+      }
       if (sellerId && url.pathname.startsWith("/api/v1/follows/")) {
         if (method === "DELETE") followed.delete(sellerId);
         if (method === "PUT") followed.add(sellerId);
@@ -82,6 +108,9 @@ export const InfiniteFollowAndRestore: Story = {
     await expect(await canvas.findByRole("article", { name: "판매자 1" })).toHaveTextContent(
       "팔로워 10",
     );
+    // 방송 중인 판매자만 LIVE 배지가 붙는다.
+    await waitFor(() => expect(row()).toHaveTextContent("LIVE"));
+    await expect(canvas.getByRole("article", { name: "판매자 2" })).not.toHaveTextContent("LIVE");
     await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" }));
     await expect(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" })).toBeVisible();
     // 해제 직후 남는 행은 본인 팔로우를 뺀 수를 보인다.
@@ -89,6 +118,11 @@ export const InfiniteFollowAndRestore: Story = {
     await expect(
       await canvas.findByRole("button", { name: "판매자 21 팔로우 해제" }),
     ).toBeVisible();
+    // 해제한 행과 더 불러온 행도 방송 중이면 배지가 있다.
+    await waitFor(() =>
+      expect(canvas.getByRole("article", { name: "판매자 21" })).toHaveTextContent("LIVE"),
+    );
+    await expect(row()).toHaveTextContent("LIVE");
     await userEvent.click(await canvas.findByRole("button", { name: "판매자 1 다시 팔로우" }));
     await expect(await canvas.findByRole("button", { name: "판매자 1 팔로우 해제" })).toBeVisible();
     await expect(row()).toHaveTextContent("팔로워 10");

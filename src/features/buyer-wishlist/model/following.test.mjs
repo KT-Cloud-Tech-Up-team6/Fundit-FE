@@ -5,6 +5,8 @@ import {
   displayedFollowingTotal,
   followingName,
   followingRowSeller,
+  liveBadgeBatches,
+  liveSellerIds,
   uniqueFollowings,
 } from "./following.ts";
 
@@ -66,7 +68,7 @@ test("the following row passes the server counts without my own follow", () => {
     createdAt: "2026-09-28",
   });
   // SellerRow adds 1 back while following, so a followed row shows 12 and an unfollowed one 11.
-  assert.deepEqual(row, { id: "a", name: "길동 공방", followers: 11, likes: 3 });
+  assert.deepEqual(row, { id: "a", name: "길동 공방", followers: 11, likes: 3, live: false });
   assert.equal(followingRowSeller({ sellerId: "b", followerCount: 0, createdAt: "" }).followers, 0);
 });
 
@@ -74,4 +76,37 @@ test("the following row leaves the counts out when an older server omits them", 
   const row = followingRowSeller({ sellerId: "a", sellerName: "홍길동", createdAt: "2026-09-28" });
   assert.equal(row.followers, undefined);
   assert.equal(row.likes, undefined);
+});
+
+test("the LIVE badge query sends at most 20 sellers per request", () => {
+  const ids = Array.from({ length: 45 }, (_, index) => `seller-${index}`);
+  const batches = liveBadgeBatches(ids);
+  assert.deepEqual(
+    batches.map((batch) => batch.length),
+    [20, 20, 5],
+  );
+  assert.deepEqual(batches.flat(), ids);
+  assert.deepEqual(liveBadgeBatches([]), []);
+});
+
+test("the LIVE badge marks only sellers returned by the LIVE list", () => {
+  const page = (content) => ({
+    content,
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 1,
+    hasNext: false,
+  });
+  const live = (liveId, sellerId) => ({
+    liveId,
+    status: "LIVE",
+    projectId: "p",
+    likeCount: 0,
+    createdAt: "",
+    sellerId,
+  });
+  assert.deepEqual(liveSellerIds([page([live("l1", "a")]), page([live("l2", "c")])]), ["a", "c"]);
+  // A server without BE PR #185 omits sellerId, so no row gets the badge.
+  assert.deepEqual(liveSellerIds([page([live("l1", undefined)])]), []);
 });

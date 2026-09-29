@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { getPublicLives } from "@/entities/live/api/public-live-api";
 import {
   followSeller,
   followsQueryKey,
@@ -15,12 +21,14 @@ import {
   displayedFollowings,
   displayedFollowingTotal,
   followingRowSeller,
+  liveBadgeBatches,
+  liveSellerIds,
 } from "../model/following";
 
-/* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 행은 이름·팔로워 수·♥(#427, BE PR #173)와
-   [팔로잉]을 채운다. 프로필 이미지는 BE에 업로드 경로가 없어 기본 이미지이고, 방송 중 여부는 LIVE 목록에
-   `sellerId`가 오기 전까지 비운다(노션 FE 자체 판단 89). 판매자 상세 목적지가 없어 행은 이동하지 않고,
-   광고는 찜 탭 실제 화면처럼 두지 않는다(92). */
+/* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 행은 이름·팔로워 수·♥(#427, BE PR #173)·
+   LIVE 배지(#444, BE PR #185)와 [팔로잉]을 채운다. 프로필 이미지는 BE에 업로드 경로가 없어 기본 이미지다.
+   판매자 상세 목적지가 없어 행은 이동하지 않고(배지도 표시만 한다), 광고는 찜 탭 실제 화면처럼 두지
+   않는다(노션 FE 자체 판단 89·92). */
 export function FollowingListApi({
   memberId,
   unfollowed,
@@ -52,6 +60,23 @@ export function FollowingListApi({
     fetched,
     unfollowed,
   );
+  /* 방송 중 여부는 보이는 판매자로 공개 LIVE 목록(`status=LIVE`)을 거른다. 목록을 더 불러오거나 해제로
+     행이 바뀌면 다시 묻고, 그동안은 앞선 결과로 배지를 둔다. 조회가 실패하면 배지만 빼고 목록은 그대로다. */
+  const sellerIds = follows.map(({ sellerId }) => sellerId);
+  const liveSellers = useQuery({
+    queryKey: ["following-live-sellers", sellerIds],
+    queryFn: async ({ signal }) =>
+      liveSellerIds(
+        await Promise.all(
+          liveBadgeBatches(sellerIds).map((batch) =>
+            getPublicLives({ status: "LIVE", sellerIds: batch }, signal),
+          ),
+        ),
+      ),
+    enabled: sellerIds.length > 0,
+    placeholderData: keepPreviousData,
+  });
+  const liveIds = new Set(liveSellers.data);
 
   useEffect(() => {
     const target = sentinel.current;
@@ -132,7 +157,7 @@ export function FollowingListApi({
                 return (
                   <SellerRow
                     key={seller.sellerId}
-                    seller={followingRowSeller(seller)}
+                    seller={followingRowSeller(seller, liveIds.has(seller.sellerId))}
                     following={!isUnfollowed}
                     followLabel={isUnfollowed ? "다시 팔로우" : undefined}
                     followUnavailable={busy}

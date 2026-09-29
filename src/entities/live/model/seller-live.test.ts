@@ -80,7 +80,11 @@ test("관리 버튼은 실제로 있는 화면으로만 간다", () => {
   const id = "0199c3a0-1b2c-7a3b-8c4d-5e6f7a8b9c0d";
   const projectId = "0199c3a0-1b2c-7a3b-8c4d-5e6f7a8b9c0e";
   assert.equal(liveManageHref("DRAFT", id, projectId), `/seller/live/${id}/cue-sheet`);
-  assert.equal(liveManageHref("SCHEDULED", id, projectId), `/seller/live/${id}/cue-sheet`);
+  /* 예약한 LIVE는 그 프로젝트의 LIVE 생성에 불러와 고친다(IA 판매자 18행, #444). */
+  assert.equal(
+    liveManageHref("SCHEDULED", id, projectId),
+    `/seller/projects/${projectId}/live/new?liveId=${id}`,
+  );
   assert.equal(liveManageHref("LIVE", id, projectId), `/seller/live/${id}/console`);
   /* 종료 방송은 콘솔 위에 LIVE 체크 작성 모달을 연다(IA 판매자 18행, #399). */
   assert.equal(liveManageHref("ENDED", id, projectId), `/seller/live/${id}/console?check=open`);
