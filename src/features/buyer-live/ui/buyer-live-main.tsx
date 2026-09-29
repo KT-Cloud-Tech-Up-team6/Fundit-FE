@@ -17,13 +17,17 @@ import {
   type LiveDemo,
 } from "../model/live-demo";
 import {
+  DEMO_RANK,
+  fillRankingSlots,
   fillRealSlots,
   noRealLives,
+  RANKING_ROWS,
   realLiveHref,
   realLiveSeller,
   realLiveTitle,
   scheduleLabel,
   upcomingTitleDate,
+  type RankingProject,
   type RealLives,
 } from "../model/live-main-real";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -42,7 +46,6 @@ function scheduledTitle(id: string) {
    보인다. 실제 LIVE는 모든 칸을 앞에서부터 채우고 모자라는 뒤쪽 칸만 목업이다(#432). */
 const carouselCards = 6;
 const liveFollowingCards = 4;
-const rankingRows = 10;
 const scheduledRows = 8;
 const mobileCarouselCards = 4;
 const mobileListItems = 5;
@@ -349,7 +352,8 @@ function ScheduleMedia({
   );
 }
 
-/** 실시간 순위 한 행의 표시 값. 실제 LIVE는 카테고리·달성률이 BE에 없어 비운다. */
+/** 실시간 순위 한 행의 표시 값. 실제 LIVE의 제목(프로젝트명)·카테고리·달성률은 프로젝트 상세에서 받는다(#445).
+    받기 전·실패하면 제목은 소개 문구로 두고 카테고리·달성률은 비운다. */
 type RankingView = {
   href: string;
   title: string;
@@ -394,6 +398,9 @@ function RankingCard({ rank, card }: { rank: number; card: RankingView }) {
   );
 }
 
+/** Figma 순위 목업 카드의 PC 달성률. 모바일 목업은 모두 10,000%다. */
+const demoRankingRates = [16000, 120000, 11000, 10900, 9000, 9700, 8080, 8000, 17000, 10000];
+
 function demoRanking(rank: number): RankingView {
   const data = getLiveDemo(`rank-${rank}`);
   return {
@@ -406,9 +413,7 @@ function demoRanking(rank: number): RankingView {
       <span className="text-title-s text-text-primary-live">
         <span className="min-[1200px]:hidden">10,000</span>
         <span className="hidden min-[1200px]:inline">
-          {[16000, 120000, 11000, 10900, 9000, 9700, 8080, 8000, 17000, 10000][
-            rank - 1
-          ].toLocaleString("ko-KR")}
+          {demoRankingRates[rank - 1].toLocaleString("ko-KR")}
         </span>
         % 달성
       </span>
@@ -417,13 +422,33 @@ function demoRanking(rank: number): RankingView {
   };
 }
 
-const realRanking = (live: LiveSummaryResponse): RankingView => ({
+const realRanking = (live: LiveSummaryResponse, project?: RankingProject): RankingView => ({
   href: realLiveHref(live),
-  title: realLiveTitle(live),
+  title: project?.title ?? realLiveTitle(live),
   image: live.thumbnailUrl,
   viewers: live.viewerCount?.toLocaleString("ko-KR"),
+  category: project?.category,
+  achievement: project && (
+    <span className="text-title-s text-text-primary-live">
+      {project.achievementRate.toLocaleString("ko-KR")}% 달성
+    </span>
+  ),
   seller: realSellerLine(live),
 });
+
+/* 시연 칸(PM 2026-09-29)은 목업 로봇청소기 카드를 그대로 두고, 가장 최근에 만든 방송 중 LIVE가 있으면 그리로 보낸다.
+   달성률은 모바일에서도 PC와 같은 값(10,900%)이다(2026-09-29 사용자 결정). */
+function demoLiveRanking(demo?: LiveSummaryResponse): RankingView {
+  const card: RankingView = {
+    ...demoRanking(DEMO_RANK),
+    achievement: (
+      <span className="text-title-s text-text-primary-live">
+        {demoRankingRates[DEMO_RANK - 1].toLocaleString("ko-KR")}% 달성
+      </span>
+    ),
+  };
+  return demo ? { ...card, href: realLiveHref(demo) } : card;
+}
 
 /** 예정 카드 한 장의 표시 값. `id`는 알림 버튼 상태의 키다. */
 type ScheduledView = {
@@ -483,7 +508,7 @@ export function BuyerLiveMain({
     (id) => getLiveDemoConnection(id, true) !== undefined,
   );
   const newOpenSlots = fillRealSlots(carouselCards, real.newOpen);
-  const rankingSlots = fillRealSlots(rankingRows, real.ranking);
+  const rankingSlots = fillRankingSlots(real.ranking, real.demo?.liveId);
   /* 실시간 탭의 팔로우 4칸은 모두 보이고, 예정 탭은 캐러셀 6칸 중 앞 4칸이 모바일에 보인다. */
   const followingSlots = fillRealSlots(
     upcoming ? carouselCards : liveFollowingCards,
@@ -730,7 +755,7 @@ export function BuyerLiveMain({
             }
           >
             <ol className="flex flex-col gap-4 min-[1200px]:grid min-[1200px]:grid-cols-2 min-[1200px]:gap-x-24">
-              {Array.from({ length: upcoming ? scheduledRows : rankingRows }, (_, i) => i + 1).map(
+              {Array.from({ length: upcoming ? scheduledRows : RANKING_ROWS }, (_, i) => i + 1).map(
                 (rank) => {
                   const live = (upcoming ? scheduledSlots : rankingSlots)[rank - 1];
                   return (
@@ -746,7 +771,13 @@ export function BuyerLiveMain({
                       ) : (
                         <RankingCard
                           rank={rank}
-                          card={live ? realRanking(live) : demoRanking(rank)}
+                          card={
+                            rank === DEMO_RANK
+                              ? demoLiveRanking(real.demo)
+                              : live
+                                ? realRanking(live, real.rankingProjects?.get(live.projectId))
+                                : demoRanking(rank)
+                          }
                         />
                       )}
                     </li>

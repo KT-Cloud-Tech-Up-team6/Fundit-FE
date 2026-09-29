@@ -1,11 +1,24 @@
 /* LIVE 메인(#345)에 실제 LIVE를 섞는 순수 헬퍼. 목업 데이터는 BE 시더가 채우기로 해(2026-09-29 결정, #432)
-   섹션의 모든 칸을 실제 LIVE로 앞에서부터 채우고 모자라는 뒤쪽 칸만 목업으로 둔다. 실제 카드는 BE에 없는
-   카테고리·달성률을 채우지 않는다. */
+   섹션의 모든 칸을 실제 LIVE로 앞에서부터 채우고 모자라는 뒤쪽 칸만 목업으로 둔다. 실시간 순위의 시연 칸은
+   예외로 목업 카드를 고정한다(#445). */
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
 import type { FollowedSeller } from "@/entities/seller/api/follow-api";
 
 /** 팔로우 목록 앞에서 이만큼만 `sellerId`로 보낸다. UUID가 한 명당 37자라 주소가 너무 길어지지 않게 한다. */
 export const FOLLOW_FILTER_LIMIT = 100;
+
+/** 실시간 순위 칸 수. 모바일은 앞의 칸만 보인다. */
+export const RANKING_ROWS = 10;
+
+/**
+ * 시연 칸(PM 2026-09-29). 실시간 순위 4위는 시연할 로봇청소기(Figma 목업 `rank-4` 카드)로 고정하고,
+ * 누르면 가장 최근에 만든 방송 중 LIVE로 보낸다(2026-09-29 사용자 결정). 시연 때 만들어 시작한 방송이
+ * 가장 최근 LIVE라 그 방송으로 들어간다. 방송 중인 LIVE가 없으면 목업 화면(`/live/rank-4`)으로 간다.
+ */
+export const DEMO_RANK = 4;
+
+/** 실시간 순위 실제 카드의 제목(프로젝트명)·대분류·달성률. LIVE 목록에 없어 프로젝트 상세에서 받는다(#445). */
+export type RankingProject = { title?: string; category?: string; achievementRate: number };
 
 /** 섹션별 실제 LIVE 후보. 앞에서부터 칸을 채운다. */
 export type RealLives = {
@@ -14,6 +27,10 @@ export type RealLives = {
   /** 실시간 탭은 방송 중, 예정 탭은 예정인 팔로우 판매자의 LIVE다. */
   following: readonly LiveSummaryResponse[];
   scheduled: readonly LiveSummaryResponse[];
+  /** 가장 최근에 만든 방송 중 LIVE. 있으면 시연 칸이 이 LIVE로 간다. */
+  demo?: LiveSummaryResponse;
+  /** 실시간 순위 실제 카드의 제목·대분류·달성률. 키는 `projectId`이고, 받기 전·실패한 프로젝트는 없다. */
+  rankingProjects?: ReadonlyMap<string, RankingProject>;
 };
 
 export const noRealLives: RealLives = { newOpen: [], ranking: [], following: [], scheduled: [] };
@@ -25,6 +42,24 @@ export const noRealLives: RealLives = { newOpen: [], ranking: [], following: [],
 export function fillRealSlots<T>(count: number, real: readonly T[]): (T | undefined)[] {
   return Array.from({ length: count }, (_, index) => real[index]);
 }
+
+/**
+ * 실시간 순위 칸. 시연 칸(`DEMO_RANK`)은 비워 두고(`undefined`) 나머지 칸을 실제 LIVE로 앞에서부터 채운다.
+ * 시연 칸이 가리키는 LIVE가 순위에 섞여 오면 두 번 보이지 않게 뺀다.
+ */
+export function fillRankingSlots(
+  ranking: readonly LiveSummaryResponse[],
+  demoLiveId?: string,
+): (LiveSummaryResponse | undefined)[] {
+  const others = demoLiveId ? ranking.filter((live) => live.liveId !== demoLiveId) : ranking;
+  const slots = fillRealSlots(RANKING_ROWS - 1, others);
+  slots.splice(DEMO_RANK - 1, 0, undefined);
+  return slots;
+}
+
+/** 시연 칸의 목적지. 최신순(`createdAt` 내림차순) 목록에서 가장 최근에 만든 방송 중 LIVE다. */
+export const pickDemoLive = (latest: readonly LiveSummaryResponse[]) =>
+  latest.find((live) => live.status === "LIVE");
 
 export const followSellerIds = (follows: readonly FollowedSeller[]) =>
   follows.slice(0, FOLLOW_FILTER_LIMIT).map((follow) => follow.sellerId);

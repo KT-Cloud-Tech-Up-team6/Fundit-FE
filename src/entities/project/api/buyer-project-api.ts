@@ -37,6 +37,8 @@ export type PublicProject = {
   projectId: string;
   title: string;
   status: string;
+  /** 카드의 대분류 자리에 쓴다(LIVE 홈 실시간 순위, #445). BE는 null 필드를 뺀다. */
+  categoryMajor?: string | null;
   goalAmount: number | null;
   coverImageUrl: string | null;
   introContent: { type: string; value: string }[];

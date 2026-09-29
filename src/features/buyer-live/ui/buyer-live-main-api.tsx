@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { getPublicLives, type PublicLivesQuery } from "@/entities/live/api/public-live-api";
+import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { followsQueryKey, getAllFollows } from "@/entities/seller/api/follow-api";
 import { useAuth } from "@/providers/auth-provider";
 import {
+  fillRankingSlots,
   followSellerIds,
+  pickDemoLive,
   pickNewOpen,
   pickUpcoming,
   withViewerCounts,
+  type RankingProject,
 } from "../model/live-main-real";
 import { BuyerLiveMain } from "./buyer-live-main";
 
@@ -43,6 +47,31 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
 
   const newOpen = usePublicLives({}, !upcoming);
   const ranking = usePublicLives({ status: "LIVE", sort: "viewerCount" }, !upcoming);
+  /* 시연 칸(PM 2026-09-29): 실시간 순위 4위 카드는 가장 최근에 만든 방송 중 LIVE로 간다. 신규 오픈이 받은
+     최신순 목록에서 고른다. */
+  const demo = upcoming ? undefined : pickDemoLive(newOpen);
+  /* 실시간 순위 실제 카드의 제목(프로젝트명)·대분류·달성률은 LIVE 목록에 없어 보이는 칸의 프로젝트 상세를
+     한 번씩 읽는다(#445). BE 시더가 넣은 목업 달성률이고, 상세 화면과 같은 키라 카드와 상세의 값이 같다. */
+  const rankingProjectIds = [
+    ...new Set(
+      fillRankingSlots(ranking, demo?.liveId).flatMap((live) => (live ? [live.projectId] : [])),
+    ),
+  ];
+  const rankingProjectResults = useQueries({
+    queries: rankingProjectIds.map((projectId) => ({
+      queryKey: ["public-project", projectId],
+      queryFn: ({ signal }) => getPublicProject(projectId, signal),
+    })),
+  });
+  const rankingProjects = new Map<string, RankingProject>();
+  rankingProjectResults.forEach(({ data }, index) => {
+    if (!data) return;
+    rankingProjects.set(rankingProjectIds[index], {
+      title: data.title?.trim() || undefined,
+      category: data.categoryMajor ?? undefined,
+      achievementRate: data.fundingStatus.achievementRate,
+    });
+  });
   const following = usePublicLives(
     { status: upcoming ? "SCHEDULED" : "LIVE", sellerIds },
     sellerIds.length > 0,
@@ -57,6 +86,8 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
       real={{
         newOpen: withViewerCounts(pickNewOpen(newOpen), ranking),
         ranking,
+        demo,
+        rankingProjects,
         /* 예정 탭의 팔로우 칸도 날짜별 예정과 같이 아직 시작 시각이 오지 않은 예정만 이른 순서로 고른다.
            BE는 시각이 지나도 판매자가 시작하기 전까지 SCHEDULED로 둔다. */
         following: upcoming ? pickUpcoming(following, openedAt) : following,

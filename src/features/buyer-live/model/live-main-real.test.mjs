@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DEMO_RANK,
   FOLLOW_FILTER_LIMIT,
+  RANKING_ROWS,
+  fillRankingSlots,
   fillRealSlots,
   followSellerIds,
+  pickDemoLive,
   pickNewOpen,
   pickUpcoming,
   realLiveHref,
@@ -33,6 +37,61 @@ test("모든 칸을 실제 LIVE로 앞에서부터 API 순서대로 채우고 �
   // 실제 LIVE가 칸보다 많으면 칸 수만큼만 쓴다.
   assert.deepEqual(fillRealSlots(2, ["a", "b", "c"]), ["a", "b"]);
   assert.deepEqual(fillRealSlots(3, ["a", "b", "c"]), ["a", "b", "c"]);
+});
+
+test("실시간 순위는 시연 칸(4위)을 비워 두고 나머지 칸을 실제 LIVE로 채운다", () => {
+  const lives = Array.from({ length: 12 }, (_, index) =>
+    live({ liveId: `l${index + 1}`, projectId: `p${index + 1}` }),
+  );
+  const slots = fillRankingSlots(lives);
+  assert.equal(slots.length, RANKING_ROWS);
+  assert.equal(slots[DEMO_RANK - 1], undefined);
+  assert.deepEqual(
+    slots.map((slot) => slot?.liveId),
+    ["l1", "l2", "l3", undefined, "l4", "l5", "l6", "l7", "l8", "l9"],
+  );
+  // 실제 LIVE가 모자라면 뒤쪽 칸은 목업이고, 시연 칸은 늘 4위다.
+  assert.deepEqual(
+    fillRankingSlots(lives.slice(0, 2)).map((slot) => slot?.liveId),
+    [
+      "l1",
+      "l2",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ],
+  );
+});
+
+test("시연 칸이 가리키는 LIVE는 순위에 섞여 와도 다른 칸에 두 번 보이지 않는다", () => {
+  const lives = [live({ liveId: "a" }), live({ liveId: "demo" }), live({ liveId: "b" })];
+  assert.deepEqual(
+    fillRankingSlots(lives, "demo")
+      .map((slot) => slot?.liveId)
+      .slice(0, 3),
+    ["a", "b", undefined],
+  );
+});
+
+test("시연 칸은 최신순 목록에서 가장 최근에 만든 방송 중 LIVE로 간다", () => {
+  const newest = live({ liveId: "newest" });
+  // 최신순 목록의 앞쪽에 예정·종료 LIVE가 있어도 방송 중인 첫 LIVE를 고른다.
+  assert.equal(
+    pickDemoLive([
+      live({ liveId: "draft-like", status: "SCHEDULED" }),
+      newest,
+      live({ liveId: "older" }),
+    ]),
+    newest,
+  );
+  // 방송 중인 LIVE가 없으면 목업 화면으로 간다.
+  assert.equal(pickDemoLive([live({ status: "ENDED" }), live({ status: "SCHEDULED" })]), undefined);
+  assert.equal(pickDemoLive([]), undefined);
 });
 
 test("신규 오픈은 방송 중·예정만, 날짜별 예정은 지금 이후를 이른 순서로 고른다", () => {
