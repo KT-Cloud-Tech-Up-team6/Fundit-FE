@@ -1111,3 +1111,18 @@ BE #181(`develop`, dev 배포 전)이 목록 조건과 상세 `createdAt`을 더
 제작·배송 트래커는 펀딩이 성립될 때 만들어져 모금 중에는 `GET /api/v2/projects/{projectId}/fulfillment`가 404다. 진행 중 카드도 [제작·배송 현황]으로 보내므로 구매자 화면은 이때 오류 대신 "펀딩이 성립되면 제작·배송 현황을 볼 수 있어요."와 [펀딩 상세로 돌아가기]를 보이고 배송 현황은 두지 않는다(노션 FE 자체 판단 41). 판매자 제작·배송 탭도 이 404에서 오류 대신 안내를 보인다(#389, 자체 판단 94): 프로젝트 상태가 FAILED면 "펀딩이 성립되지 않아 제작·배송을 진행하지 않아요.", 그 밖에는 "펀딩이 성립되면 제작·배송 현황을 기록할 수 있어요.". 일정 변경의 `reasonDetail`은 선택 값이라 비우면 보내지 않는다(BE는 null일 때만 기록 문구의 콜론을 뺀다).
 
 BE 요청 후보였던 상세 응답의 `createdAt`과 목록의 검색·기간 필터는 BE #181에 반영됐다(FE #431). 진행 단계 필터는 없어 주문 상태 `status`와 화면 거르기로 분류를 만든다(위 #431 절). 상세의 `sellerDisplayName`은 반영되지 않아 창작자는 계속 두지 않는다.
+
+### 2026-09-30 프로젝트 상세 찜(공개 UUID) 계약 (#448)
+
+2026-09-30 BE develop `58fe3de`의 `WishController`, `WishService`, `WishStatusResponse`, `WishControllerTest`와 Gateway `application.yml`을 확인했다. 코드를 읽은 결과이며 실제 호출 검증은 아니다. 프로젝트 상세는 숫자 `projectId`를 받지 않으므로 공개 UUID 경로를 쓴다. 찜 데이터는 숫자 id API와 **같은 테이블**이고, BE가 UUID를 숫자 id로 바꿔 같은 메서드를 태운다(멱등성과 "상태가 바뀔 때만 이벤트 적재" 규칙도 동일). Gateway는 `Path=/api/v1/wishes/**`로 라우팅해 하위 경로까지 member-service로 간다.
+
+| 경로                                               | 요청 → 응답                                                   |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| GET `/api/v1/wishes/projects/{projectPublicId}`    | 인증, UUID 경로 변수 → 200 `projectPublicId`(UUID), `wished`. |
+| PUT `/api/v1/wishes/projects/{projectPublicId}`    | 인증, 본문 없음 → 200 `projectPublicId`, `wished`(항상 true). |
+| DELETE `/api/v1/wishes/projects/{projectPublicId}` | 인증, 본문 없음 → **204, 본문 없음**.                         |
+
+- 찜하지 않은 프로젝트는 404가 아니라 200 + `wished: false`다. **404는 "찜 안 함"이 아니다.**
+- 세 경로 모두 member-service에 프로젝트 스냅샷이 없으면 404(`WishService.projectIdOf`)다. 스냅샷은 승인 이벤트를 Kafka로 받아 쌓이므로, 방금 승인된 프로젝트는 전파 전까지 404다. 그래서 상세의 404를 `wished: false`로 바꾸지 않는다 — 실제 불일치를 숨긴다.
+- 인증 헤더가 없으면 401이라 FE는 로그인 사용자에게만 조회한다.
+- 숫자 id `DELETE /api/v1/wishes/{projectId}`도 코드는 204를 반환한다(위 표의 YAML 기준 "200, 응답 content 정의 없음"과 다름).
