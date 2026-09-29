@@ -1,9 +1,7 @@
-/* 홈(#367)의 FE 목업. 히어로 배너·마감 임박 프로젝트·추천 프로젝트는 주는 API가 없어
-   (배너·추천 API 없음, 전체 프로젝트 마감순 목록 없음) Figma 홈 화면 `2315:72822`의 문구·이미지를 그대로 쓴다.
+/* 홈(#367)의 FE 목업. 히어로 배너·추천 프로젝트는 주는 API가 없어(배너·추천 API 없음)
+   Figma 홈 화면 `2315:72822`의 문구·이미지를 그대로 쓴다. 마감 임박은 홈 피드 마감순으로 옮겼다(#453).
    API 응답 DTO가 아니며, API가 생기면 이 목록을 조회 결과로 바꾼다. 카드는 모두 디자인 확인용
    데모 상세로 보낸다. 데모 ID를 실제 프로젝트 ID처럼 쓰지 않는다. */
-import { ddayLabel } from "@/entities/project/model/remaining-days";
-
 export const homeDemoProjectHref = "/projects/demo-project";
 
 export type HeroSlide = {
@@ -34,25 +32,9 @@ export type MockProjectCard = {
   title: string;
   seller: string;
   image: string;
-  /** 마감 임박의 D-N. */
-  dday?: string;
   /** 추천 이유 칩. 실제 추천 사유 계산이 아니다. */
   reasons?: readonly string[];
 };
-
-/* PC `2315:71837` 카드 4장. 남은 일수는 Figma 표기다. */
-export const deadlineProjects: readonly MockProjectCard[] = [
-  { title: "하루의 끝을 편안하게,\n스마트 수면 조명", seller: "라이트온", remainingDays: 1 },
-  { title: "매일 30초, 건강한 한 잔을 만드는 미니 블렌더", seller: "블렌디", remainingDays: 3 },
-  { title: "흩어진 책상을 한 번에 정리하는 모듈 데스크", seller: "모듈랩", remainingDays: 1 },
-  { title: "우리 아이의 식사 시간을 챙겨주는 스마트 급식기", seller: "펫밸런스", remainingDays: 4 },
-].map(({ remainingDays, ...card }, index) => ({
-  ...card,
-  id: `deadline-${index + 1}`,
-  href: homeDemoProjectHref,
-  image: `/images/buyer-home/deadline-${index + 1}.jpg`,
-  dday: ddayLabel(remainingDays),
-}));
 
 /* PC `2315:72021`은 아래 8종을 반복해 20칸을 채운다. 같은 카드를 되풀이하지 않고 8종만 보인다.
    문구·이미지가 LIVE 메인 추천 목업과 같아 이미지 파일은 `public/images/buyer-live`의 것을 쓴다. */

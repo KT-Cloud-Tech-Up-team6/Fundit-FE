@@ -97,11 +97,13 @@ export function searchProjects(
   });
 }
 /**
- * 홈 "지금 주목받는 프로젝트"(search-service). 진행 중 프로젝트를 참여자·찜 많은 순으로 준다.
+ * 홈 피드(search-service). `POPULAR`는 "지금 주목받는 프로젝트"(참여자·찜 많은 순), `DEADLINE`은
+ * "마감 임박 프로젝트"(마감이 지나지 않은 진행 중 프로젝트를 마감 가까운 순, BE-19)다.
  * 페이지 없이 `size`개(기본 20, 최대 100)만 오고, 카드 모양은 검색 상품 탭과 같다. 비인증이다.
  */
-export function getHomeFeed(size: number, signal?: AbortSignal) {
-  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?size=${size}`, {
+export function getHomeFeed(sort: "POPULAR" | "DEADLINE", size: number, signal?: AbortSignal) {
+  const params = new URLSearchParams({ sort, size: String(size) });
+  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?${params}`, {
     signal,
   });
 }
