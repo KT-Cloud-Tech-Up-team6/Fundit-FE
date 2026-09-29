@@ -236,11 +236,7 @@
 }
 
 .heroImage {
-  width: 145% !important;
-  height: 133.84% !important;
-  max-width: none;
-  left: -22.5% !important;
-  top: -16.92% !important;
+  object-fit: cover;
 }
 
 .tabs,

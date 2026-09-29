@@ -37,7 +37,7 @@ export function PaymentMethodSection({
         ).map(([value, label]) => (
           <div
             key={value}
-            className={`border-border-default rounded-xs border px-4 ${value === "credit_card" && form.method === value ? "flex flex-col gap-2 py-2" : "h-[46px] py-3"}`}
+            className={`border-border-default rounded-xs border px-4 ${value === "credit_card" && form.method === value ? "flex flex-col gap-2 py-2" : "flex h-[46px] items-center"}`}
           >
             <label className="flex cursor-pointer items-center gap-3">
               <input
