@@ -40,6 +40,7 @@ import {
   getOriginals,
   getPlayback,
   getUnanswered,
+  MARK_DONE_ANSWER,
   requestAnswer,
   type AnswerDraft,
   type AnsweredQuestion,
@@ -532,6 +533,13 @@ function QuestionPanel({
   const unavailable = (questionId: string) =>
     draftUnavailable(cache.getQueryData<AnswerDraft>(draftKey(questionId)));
   const aggregated = answered.data ?? [];
+  /* 답변 완료 처리 표시는 보낼 답이 아니다. 입력란에 채우면 채팅 보내기 한 번으로 AI에 답변으로
+     등록돼 비슷한 질문에 재사용되므로 비워 둔다(#441). `undefined`가 아니라 빈 문자열이어야 처리 전에
+     받아 둔 초안 캐시로도 채워지지 않는다 — 초안은 판매자가 재생성할 때만 보인다. */
+  const registeredAnswer = (questionId: string) => {
+    const answer = aggregated.find((item) => item.questionId === questionId)?.answerText;
+    return answer === MARK_DONE_ANSWER ? "" : answer;
+  };
   const back = () => onView({ kind: "summary" });
 
   return (
@@ -567,9 +575,7 @@ function QuestionPanel({
             ownerKey={ownerKey}
             draftKey={draftKey(question.questionId)}
             question={question}
-            registered={
-              aggregated.find((item) => item.questionId === question.questionId)?.answerText
-            }
+            registered={registeredAnswer(question.questionId)}
             disabled={!live}
             onNotice={onNotice}
             onDone={back}
@@ -757,15 +763,16 @@ function AnswerView({
      올리지 않는다. 목록을 다시 받은 뒤 돌아가야 옮겨진 질문이 "답변 완료"에 바로 보인다(#441). */
   const markDone = useMutation({
     mutationFn: () => requestAnswer(liveId, question.questionId, { action: "MARK_DONE" }),
-    onSuccess: async () => {
-      await Promise.all([
+    onSuccess: () =>
+      Promise.all([
         cache.invalidateQueries({ queryKey: [...ownerKey, "unanswered"] }),
         cache.invalidateQueries({ queryKey: [...ownerKey, "insights"] }),
         cache.invalidateQueries({ queryKey: ["live", liveId, "answered-questions"] }),
-      ]);
-      onDone();
-    },
+      ]),
   });
+  /* 복귀는 호출별 콜백에 둔다. 판매자가 기다리지 않고 다른 화면으로 옮겨 가 이 화면이 사라졌으면
+     불리지 않아, 끝난 요청이 지금 보는 화면과 입력을 덮지 않는다. */
+  const markAsDone = () => markDone.mutate(undefined, { onSuccess: onDone });
   const busy = send.isPending || markDone.isPending;
   /* 답변 완료 질문은 서버에 등록된 답변이 기준이다. 초안 캐시는 등록 전 AI 원본이라, 판매자가
      재생성을 누르기 전에는 등록한 답변을 먼저 보인다. */
@@ -842,8 +849,9 @@ function AnswerView({
           답변 등록을 확인하지 못했습니다. 입력 내용은 유지됩니다.
         </p>
       )}
-      {markDone.isError && (
-        <MutationError error={markDone.error} disabled={busy} retry={() => markDone.mutate()} />
+      {/* 실패 뒤 채팅 보내기로 답해 이미 답변 완료가 됐으면 이 오류는 더 해당하지 않는다. */}
+      {markDone.isError && !question.complete && (
+        <MutationError error={markDone.error} disabled={busy} retry={markAsDone} />
       )}
       <div className="mt-auto flex gap-3 pt-3">
         {/* 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 눌러도 바뀌는 것이 없다. */}
@@ -852,7 +860,7 @@ function AnswerView({
           size="sm"
           className="text-body-s h-10 flex-1"
           disabled={disabled || question.complete || busy}
-          onClick={() => markDone.mutate()}
+          onClick={markAsDone}
         >
           답변 완료 처리
         </Button>

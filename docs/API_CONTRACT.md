@@ -545,15 +545,15 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 기준은 [BE PR #95](https://github.com/KT-Cloud-Tech-Up-team6/Fundit-backend/pull/95)의 병합 커밋 `b1f3b23d17f1726b900e7e06f8edc981e6ddeff9`에 있는 공개 컨트롤러·DTO다. 아래 경로의 접두사는 `/api/v1/lives/{liveId}`이며 `liveId`와 공개 `questionId`는 UUID다. FE는 AI 내부 `qid`를 요청 식별자로 사용하지 않는다.
 
-| 동작                | Method·Path                                   | 인증·결과                                                                                     |
-| ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`. |
-| 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                          |
-| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{aiStatus, qna: [...]}`.                                                 |
-| 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                      |
-| 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                           |
-| 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}` 또는 `{action: "SEND", finalAnswer}`.              |
-| 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.       |
+| 동작                | Method·Path                                   | 인증·결과                                                                                                            |
+| ------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 재생 정보           | GET `/playback`                               | 공개. `liveId`, `type` (`LIVE`/`VOD`), `playbackUrl`, `projectId`, `likeCount`, `vodReadyAt`.                        |
+| 다시보기 정보       | GET `/vod`                                    | 공개. 같은 재생 DTO.                                                                                                 |
+| 집계 Q&A            | GET `/chat/insights?topN=10`                  | 판매자 소유권 확인. `{aiStatus, qna: [...]}`.                                                                        |
+| 미답변 질문         | GET `/chat/unanswered?topN=10`                | 판매자 소유권 확인. `{pending: [...], answered: [...]}`.                                                             |
+| 원본 댓글           | GET `/chat/questions/{questionId}`            | 판매자 소유권 확인. `{commentId, content, atMs}[]`.                                                                  |
+| 초안 조회·답변 등록 | POST `/chat/questions/{questionId}/ai-answer` | 판매자 소유권 확인. `{action: "GENERATE"}`, `{action: "SEND", finalAnswer}` 또는 `{action: "MARK_DONE"}`(#441, 5.8). |
+| 구매자 Q&A          | GET `/chat/answered-questions`                | 공개. `{questionId, summaryText, questionCount, answerText, answeredBy, answeredAt}[]`.                              |
 
 - 집계 Q&A 항목은 `questionId`, `summaryText`, `count`, `category`, `answeredBy`, `answeredAt`, `answerText`, `promoted`를 제공한다. 서버 순서를 유지하며 답변 주체는 `answeredBy`로 구분한다.
 - 구매자 Q&A(`/chat/answered-questions`)의 `answerText`가 `null`이면 BE가 키를 응답에서 뺀다(non_null). 답변 본문이 없거나 빈 행은 보일 답이 없어 FE가 `getAnsweredQuestions`에서 거른다. 구매자 Q&A·콘솔 집계 Q&A·LIVE 체크 후보가 같은 목록을 쓴다(#405).
@@ -625,7 +625,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 이미 올린 질문은 체크 흐름을 열 때 받는 `live-questions`의 `answered`로 "추가됨" 표시하고 다시 고르지 못하게 한다. 이 목록은 프로젝트 단위(`liveId` 없음)이고 `questionSummaryId`가 `answered-questions`의 `questionId`와 같다(live-service 질문 요약 id). 받기 전이나 조회가 실패해도 흐름을 막지 않는다. 다시 올리면 409라 결과가 같기 때문이다.
 - 송출 모니터링의 주문 칸(Figma `0건 · 0원`)은 #342부터 BE #151의 `GET /api/v1/orders/live-stats`로 채운다. 결제 완료(`paidCount`·`paidAmount`)만 "N건 · N원"으로 적고 결제 전(`pendingCount`·`pendingAmount`, 30분 뒤 만료)은 넣지 않는다(2026-09-24 결정). 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이고 방송 중 들어온 주문만 센다. 방송 중에만 5초마다 다시 부르고(BE 권장 3~5초), 종료하면 한 번 더 읽고 멈춘다. 처음 받기 전이나 첫 조회가 실패하면 `-`다. 이후 갱신이 잠깐 실패하면 칸이 깜빡이지 않게 마지막 값을 두고, 마지막 성공 뒤 15초(3번) 넘게 실패가 이어지면 멈춘 매출을 지금 값처럼 보이지 않게 `-`로 바꾼다. 소유자가 아니면 403, 세션이 없으면 404, live 조회 실패는 503이다. 대조한 BE는 `develop` `d701b42`이고, 실제 BE 연동(BE #151 배포, 인프라 `LIVE_SERVICE_BASE_URL` 반영)은 확인하지 못했다.
 - 판매자 채팅은 IVS 미연동이라 Figma 자리에 목업으로 둔다. 보내면 "준비 중"을 안내하고 채팅 건수는 `-`다(2026-09-23 결정). 같은 결정으로 목업이던 답변 완료 처리·스트림 상태 확인은 BE #185(요청서 BE-14·16)로 #441에서 연결했다.
-- "답변 완료 처리"는 `MARK_DONE`을 보낸다(IA 판매자 26행). BE는 고정 문구 "방송 중 답변 완료"만 기록하고(작성자 `SELLER`) AI 등록·채팅 게시는 하지 않는다. 성공하면 질문 목록·집계를 다시 받은 뒤 질문 요약 목록으로 돌아가고, 질문은 "답변 완료"로 옮겨진다. 실패하면 답변 화면에 머물러 다시 시도한다. 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 버튼을 끈다. 누른 뒤의 흐름은 원본(Figma·IA)에 없어 2026-09-29 사용자 결정으로 정했다.
+- "답변 완료 처리"는 `MARK_DONE`을 보낸다(IA 판매자 26행). BE는 고정 문구 "방송 중 답변 완료"만 기록하고(작성자 `SELLER`) AI 등록·채팅 게시는 하지 않는다. 성공하면 질문 목록·집계를 다시 받은 뒤 질문 요약 목록으로 돌아가고, 질문은 "답변 완료"로 옮겨진다. 실패하면 답변 화면에 머물러 다시 시도한다(기다리지 않고 다른 화면으로 옮겨 갔으면 끝나도 그 화면을 바꾸지 않는다). 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 버튼을 끈다. 답변 완료 처리한 질문을 다시 열면 고정 문구를 답변 입력란에 채우지 않는다 — 처리 표시일 뿐 답이 아니고, 그대로 "채팅 보내기"를 누르면 `SEND`로 AI에 등록돼 비슷한 질문에 재사용되기 때문이다(BE가 `MARK_DONE`에서 등록하지 않는 이유와 같다). 실제 답을 써서 보내면 그 답이 표시를 대신한다. 누른 뒤의 흐름은 원본(Figma·IA)에 없어 2026-09-29 사용자 결정으로 정했다.
 - "스트림 상태 확인"은 누를 때만 `stream-status`를 한 번 부르고 결과를 콘솔 안내 줄에 적는다(IA 판매자 25행). Figma에 상태 표시 자리가 없어 배지·주기 조회는 두지 않는다(2026-09-29 사용자 결정). `LIVE`·`HEALTHY` "송출이 정상적으로 들어오고 있습니다.", `LIVE`·`STARVING` "송출은 들어오지만 전송 속도가 부족합니다…", 그 밖의 `LIVE` "송출이 들어오고 있습니다.", `OFFLINE` "송출이 들어오지 않고 있습니다…", 실패(IVS 오류 503 포함) "송출 상태를 확인하지 못했습니다…"다. BE는 방송 중이 아니면 IVS를 부르지 않고 `OFFLINE`을 주며, dev의 IVS stub은 방송 중이면 늘 `LIVE`·`HEALTHY`다.
 - 질문 문구·건수는 BE #156부터 project-service가 방송 종료 이벤트 `live.questions-summarized.v1`을 받아 저장하고 조회할 때 답변과 합친다. 이벤트는 종료 커밋 뒤 AI 최종 집계(상위 100개)를 거쳐 비동기로 발행된다. 그래서 종료 직후, AI 실패로 발행이 없을 때, 상위 100개 밖 질문의 등록은 404다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다. 대조한 BE는 `develop` `ee5d5b7`이고, 실제 BE 연동(BE #156 배포, project-service Kafka 구독)은 확인하지 못했다.
 
