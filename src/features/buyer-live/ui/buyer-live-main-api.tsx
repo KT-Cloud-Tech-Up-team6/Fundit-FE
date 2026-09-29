@@ -47,9 +47,10 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
 
   const newOpen = usePublicLives({}, !upcoming);
   const ranking = usePublicLives({ status: "LIVE", sort: "viewerCount" }, !upcoming);
-  /* 시연 칸(PM 2026-09-29): 실시간 순위 4위 카드는 가장 최근에 만든 방송 중 LIVE로 간다. 신규 오픈이 받은
-     최신순 목록에서 고른다. */
-  const demo = upcoming ? undefined : pickDemoLive(newOpen);
+  /* 시연 칸(PM 2026-09-29): 실시간 순위 4위 카드는 가장 최근에 만든 방송 중 LIVE로 간다. 신규 오픈의 전체 상태
+     최신순 첫 페이지에서 고르면 그 뒤에 예정·종료 LIVE가 20건 넘게 생겼을 때 방송 중 LIVE를 놓치므로, 방송 중만
+     최신순으로 따로 받는다(#447 CodeRabbit 리뷰). */
+  const demo = pickDemoLive(usePublicLives({ status: "LIVE" }, !upcoming));
   /* 실시간 순위 실제 카드의 제목(프로젝트명)·대분류·달성률은 LIVE 목록에 없어 보이는 칸의 프로젝트 상세를
      한 번씩 읽는다(#445). BE 시더가 넣은 목업 달성률이고, 상세 화면과 같은 키라 카드와 상세의 값이 같다. */
   const rankingProjectIds = [
