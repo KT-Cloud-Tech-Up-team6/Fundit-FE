@@ -50,6 +50,13 @@ test("최소 금액·소유권·예산·알 수 없는 거절 사유를 안내�
       "",
     );
   }
+  assert.equal(
+    couponPreviewError(
+      { unavailableCoupons: [{ couponCode: "SAVE", reason: "EXCEEDS_ORDER_AMOUNT" }] },
+      ["SAVE"],
+    ),
+    "최소 결제금액 보다 낮아 이 쿠폰을 사용할 수 없습니다",
+  );
 });
 
 test("결제 금액을 0원 이하로 만드는 쿠폰은 BE 명세의 최소 결제금액 문구로 안내한다", () => {
@@ -58,7 +65,7 @@ test("결제 금액을 0원 이하로 만드는 쿠폰은 BE 명세의 최소 �
       { unavailableCoupons: [{ couponCode: "BIG", reason: "EXCEEDS_ORDER_AMOUNT" }] },
       ["BIG"],
     ),
-    "최소 결제금액보다 낮아 이 쿠폰을 사용할 수 없습니다.",
+    "최소 결제금액 보다 낮아 이 쿠폰을 사용할 수 없습니다",
   );
 });
 
