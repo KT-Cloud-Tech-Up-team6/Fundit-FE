@@ -302,8 +302,11 @@
     padding: 0;
     position: relative;
   }
+  /* 판매자명 줄에 D-N 배지(md 26px)가 절대 위치로 놓인다(Figma 1541:50639). 판매자명이 비어도 줄 높이를
+     남겨야 배지가 제목을 가리지 않는다. */
   .desktop .projectInfo > p {
     padding-right: 60px;
+    min-height: 26px;
   }
   .desktop .fundingNumbers > div:first-child > span {
     position: absolute;
