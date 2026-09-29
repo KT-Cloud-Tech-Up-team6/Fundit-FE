@@ -218,16 +218,16 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     error: refund.error ?? rewards.error,
     refetch: () => Promise.all([refund.refetch(), rewards.refetch()]),
   };
+  /* LIVE 체크 탭은 탭 단위로 막지 않는다. LIVE 다시 보기 두 목록과 LIVE Q&A가 각자 불러오는 중·오류를 보여
+     한쪽이 늦거나 실패해도 나머지는 보인다(#319). */
   const active =
     tab === "refund-policy"
       ? refundTab
-      : tab === "live-proof"
-        ? live
-        : tab === "news"
-          ? notices
-          : tab === "community"
-            ? posts
-            : null;
+      : tab === "news"
+        ? notices
+        : tab === "community"
+          ? posts
+          : null;
   const content = active?.isPending ? (
     <p role="status">불러오는 중입니다.</p>
   ) : active?.isError ? (
@@ -322,31 +322,45 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
             <DetailIcon name="question-filled" className="text-text-primary-live size-5" />
             LIVE Q&amp;A
           </span>{" "}
-          <small className="text-caption-s text-text-secondary font-medium">
-            {live.data?.content?.length ?? 0}건
-          </small>
+          {live.data && (
+            <small className="text-caption-s text-text-secondary font-medium">
+              {live.data.content?.length ?? 0}건
+            </small>
+          )}
         </h2>
         <Information label="LIVE Q&A 안내" />
       </div>
       {/* Figma LIVE Q&A 카드(1408:42965). BE가 날짜를 주지 않아 "N건 · 날짜"는 건수만 적는다.
           질문 요약을 받기 전에 등록된 항목은 문구가 없어 답변만 보인다. */}
-      <div className="flex flex-col gap-6">
-        {live.data?.content?.map((item) => (
-          <article key={item.liveVerificationId} className="flex flex-col gap-2">
-            {item.questionText && (
-              <div>
-                <h3 className="text-body-strong">{item.questionText}</h3>
-                <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
+      {live.isPending ? (
+        <p role="status">LIVE Q&amp;A를 불러오고 있습니다.</p>
+      ) : live.isError ? (
+        <QueryErrorState
+          variant="section"
+          error={live.error}
+          description="LIVE Q&A를 불러오지 못했습니다."
+          onRetry={() => void live.refetch()}
+        />
+      ) : live.data.content?.length ? (
+        <div className="flex flex-col gap-6">
+          {live.data.content.map((item) => (
+            <article key={item.liveVerificationId} className="flex flex-col gap-2">
+              {item.questionText && (
+                <div>
+                  <h3 className="text-body-strong">{item.questionText}</h3>
+                  <p className="text-caption-s text-text-secondary">{item.questionCount}건</p>
+                </div>
+              )}
+              <div className="border-border-default text-body-s flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
+                <p className="whitespace-pre-wrap">{item.answer}</p>
+                <p className="text-caption-s text-text-secondary">판매자</p>
               </div>
-            )}
-            <div className="border-border-default text-body-s flex flex-col gap-1 rounded-xs border px-3 py-2 font-medium">
-              <p className="whitespace-pre-wrap">{item.answer}</p>
-              <p className="text-caption-s text-text-secondary">판매자</p>
-            </div>
-          </article>
-        ))}
-      </div>
-      {!live.data?.content?.length && <p>등록된 LIVE Q&amp;A가 없습니다.</p>}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p role="status">등록된 LIVE Q&amp;A가 없습니다.</p>
+      )}
     </>
   ) : tab === "news" ? (
     <>
