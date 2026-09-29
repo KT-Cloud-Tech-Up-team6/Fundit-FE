@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getHomeFeed } from "@/entities/project/api/buyer-project-api";
+import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { getHomeFeed, getPublicProject } from "@/entities/project/api/buyer-project-api";
+import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { getPublicLives, type PublicLivesQuery } from "@/entities/live/api/public-live-api";
 import { featuredCard, liveCard, type SectionData } from "../model/home-cards";
 import { BuyerHome } from "./buyer-home";
@@ -34,10 +35,36 @@ export function BuyerHomeApi() {
     queryKey: ["public-lives", liveQuery],
     queryFn: ({ signal }) => getPublicLives(liveQuery, signal),
   });
+  /* 피드의 달성률은 늘 0이라(SEARCH-013 전) BE 시더가 넣은 목업 달성률을 프로젝트 상세에서 한 번씩 읽는다(#445).
+     상세 화면과 같은 키라 카드와 상세의 값이 같다. 공개 UUID가 없거나 실패한 카드는 달성률을 비운다. */
+  const featuredIds = [
+    ...new Set(
+      (feed.data?.content ?? []).flatMap(({ projectPublicId }) =>
+        isPublicUuid(projectPublicId) ? [projectPublicId] : [],
+      ),
+    ),
+  ];
+  const featuredDetails = useQueries({
+    queries: featuredIds.map((projectId) => ({
+      queryKey: ["public-project", projectId],
+      queryFn: ({ signal }) => getPublicProject(projectId, signal),
+    })),
+  });
+  const achievementRates = new Map<string, number>();
+  featuredDetails.forEach(({ data }, index) => {
+    if (data) achievementRates.set(featuredIds[index], data.fundingStatus.achievementRate);
+  });
 
   return (
     <BuyerHome
-      featured={toSectionData(feed, (data) => data.content.map(featuredCard))}
+      featured={toSectionData(feed, (data) =>
+        data.content.map((row) =>
+          featuredCard(
+            row,
+            row.projectPublicId ? achievementRates.get(row.projectPublicId) : undefined,
+          ),
+        ),
+      )}
       lives={toSectionData(lives, (data) => data.content.map(liveCard))}
     />
   );

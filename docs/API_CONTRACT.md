@@ -661,6 +661,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
 - BE PR #185부터 항목에 판매자 회원 ID `sellerId`가 온다(닉네임 조회가 실패해도 채워진다). 관심 목록 팔로잉 행의 LIVE 배지가 이 값으로 방송 중인 판매자를 맞춘다(#444). 판매자당 채널이 1개라 한 판매자의 동시 `LIVE`는 하나다.
+- 목록 항목에는 프로젝트명·카테고리·달성률이 없어, LIVE 홈 실시간 순위 카드는 프로젝트 상세(`GET /api/v1/projects/{projectId}`)의 `title`·`categoryMajor`·`fundingStatus.achievementRate`를 쓴다(#445).
 
 ### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
 

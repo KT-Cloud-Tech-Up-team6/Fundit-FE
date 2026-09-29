@@ -21,11 +21,17 @@ const row: ProjectCardResponse = {
 };
 
 test("featured cards open the detail by public UUID and show the major category", () => {
-  const card = featuredCard(row);
+  const card = featuredCard(row, 38);
   assert.equal(card.href, `/projects/${uuid}`);
   assert.equal(card.category, "테크·가전");
   assert.equal(card.seller, "프라이팬장인");
-  assert.equal(card.achievement, "1,520% 달성");
+  assert.equal(card.achievement, "38% 달성");
+});
+
+test("featured cards show the detail's achievement rate, not the feed's search-index value", () => {
+  // The feed row still carries 1520, but the search index reports 0 until SEARCH-013, so the card waits for the detail.
+  assert.equal(featuredCard(row).achievement, undefined);
+  assert.equal(featuredCard({ ...row, achievementRate: 0 }, 2180).achievement, "2,180% 달성");
 });
 
 test("featured cards without a public UUID never link to the numeric project id", () => {

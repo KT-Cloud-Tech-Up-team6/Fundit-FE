@@ -155,7 +155,8 @@ function FeaturedItem({ card }: { card: FeaturedCard }) {
           <h3 className="line-clamp-2 text-[14px] leading-[1.42] font-medium min-[1200px]:text-[18px]">
             {card.title}
           </h3>
-          <p className="text-title-s min-[1200px]:text-title-l">{card.achievement}</p>
+          {/* 달성률은 상세를 받은 뒤 채워진다. 그동안 카드 높이가 바뀌지 않게 한 줄을 비워 둔다. */}
+          <p className="text-title-s min-[1200px]:text-title-l min-h-[1lh]">{card.achievement}</p>
         </div>
         {card.seller && (
           <p className="hidden text-[14px] leading-[1.42] font-medium min-[1200px]:block">

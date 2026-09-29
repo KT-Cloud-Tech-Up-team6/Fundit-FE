@@ -24,10 +24,15 @@ export type FeaturedCard = {
   /** PC 카드 위쪽의 대분류. */
   category?: string;
   seller?: string;
-  achievement: string;
+  /** 달성률 문구. 프로젝트 상세를 받기 전·실패하면 비운다. */
+  achievement?: string;
 };
 
-export function featuredCard(row: ProjectCardResponse): FeaturedCard {
+/**
+ * 홈 피드 달성률은 검색 색인 값이라 BE 명세상 펀딩 집계 이벤트(SEARCH-013) 전까지 0이다. 그래서 행의
+ * `achievementRate` 대신 프로젝트 상세의 달성률(`achievementRate`)을 받아 쓴다(#445).
+ */
+export function featuredCard(row: ProjectCardResponse, achievementRate?: number): FeaturedCard {
   return {
     id: String(row.projectId),
     /* 상세 API의 경로 변수는 공개 UUID다. 숫자 projectId를 넣으면 안 된다(BE SearchDomainApiSpec). */
@@ -36,7 +41,10 @@ export function featuredCard(row: ProjectCardResponse): FeaturedCard {
     image: row.thumbnailUrl,
     category: row.categoryMajor,
     seller: row.sellerDisplayName,
-    achievement: `${row.achievementRate.toLocaleString("ko-KR")}% 달성`,
+    achievement:
+      achievementRate === undefined
+        ? undefined
+        : `${achievementRate.toLocaleString("ko-KR")}% 달성`,
   };
 }
 
