@@ -203,6 +203,7 @@ export function BuyerProjectDetail({
   project = projectDemo,
   liveId = "demo-live",
   hasLive = true,
+  liveCheckTab = true,
   preview = false,
   storyContent,
   rewardSummary,
@@ -216,6 +217,8 @@ export function BuyerProjectDetail({
   project?: typeof projectDemo;
   liveId?: string;
   hasLive?: boolean;
+  /** LIVE 체크 탭을 보일지. IA 소비자 26행은 LIVE를 진행한 프로젝트만 보인다(#456). 데모는 늘 보인다. */
+  liveCheckTab?: boolean;
   preview?: boolean;
   storyContent?: ReactNode;
   rewardSummary?: ReactNode;
@@ -431,32 +434,34 @@ export function BuyerProjectDetail({
           )}
         </aside>
         <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
-          {tabs.map(([value, label]) =>
-            preview ? (
-              <button
-                key={value}
-                type="button"
-                disabled
-                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
-                aria-current={value === activeTab ? "page" : undefined}
-              >
-                {label}
-                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
-              </button>
-            ) : (
-              <Link
-                scroll={false}
-                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
-                key={value}
-                ref={value === activeTab ? selectedTab : undefined}
-                href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
-                aria-current={value === activeTab ? "page" : undefined}
-              >
-                {label}
-                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
-              </Link>
-            ),
-          )}
+          {tabs
+            .filter(([value]) => liveCheckTab || value !== "live-proof")
+            .map(([value, label]) =>
+              preview ? (
+                <button
+                  key={value}
+                  type="button"
+                  disabled
+                  className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                  aria-current={value === activeTab ? "page" : undefined}
+                >
+                  {label}
+                  {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
+                </button>
+              ) : (
+                <Link
+                  scroll={false}
+                  className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                  key={value}
+                  ref={value === activeTab ? selectedTab : undefined}
+                  href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
+                  aria-current={value === activeTab ? "page" : undefined}
+                >
+                  {label}
+                  {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
+                </Link>
+              ),
+            )}
         </nav>
         {tabContent ? (
           <section className={styles.story + " relative mx-5 mt-4 mb-8"}>{tabContent}</section>
