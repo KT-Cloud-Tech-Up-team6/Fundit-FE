@@ -806,7 +806,9 @@ function AnswerView({
           </button>
         )}
       </div>
-      {draft.isError ? (
+      {/* 초안 캐시는 답변 완료 뒤에도 남는다. 초안을 보일 때만 그 실패를 보여, 미답변 때 생성이 실패했던
+          질문도 답변 완료 뒤에는 등록한 답변을 보인다(#459). */}
+      {showDraft && draft.isError ? (
         <MutationError
           error={draft.error}
           disabled={generating}
