@@ -16,7 +16,9 @@ export default defineConfig({
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    // 이미 떠 있는 dev 서버는 MSW·빈 Toss 키 env가 적용돼 있지 않아 실제 BE·Toss로 나갈 수 있다.
+    // 항상 이 설정의 서버를 새로 띄우고, 3000번 포트가 사용 중이면 실행을 멈춘다.
+    reuseExistingServer: false,
     timeout: 60_000,
     env: {
       NEXT_PUBLIC_MSW_ENABLED: "true",
