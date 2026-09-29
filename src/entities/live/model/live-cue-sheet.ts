@@ -1,6 +1,8 @@
 import {
   CUE_SHEET_MAX_DURATION_SEC,
+  cueSheetBriefFields,
   cueSheetStatuses,
+  type CueSheetBrief,
   type CueSheetMode,
   type CueSheetResponse,
 } from "../api/live-cue-sheet-api";
@@ -54,6 +56,19 @@ export function toCueSheetType(
   if (mode === "SCENARIO") return "scenario";
   if (mode === "SCRIPT") return "script";
   return null;
+}
+
+/**
+ * 채팅 답변(질문 순서) → 생성 요청 필드. 건너뛴 답(빈 문자열)은 빈 값으로 보내지 않고
+ * 필드째 뺀다 — "답 없음"을 AI에 빈 입력으로 넘기지 않는다.
+ */
+export function toCueSheetBrief(answers: readonly string[]): CueSheetBrief {
+  const brief: CueSheetBrief = {};
+  cueSheetBriefFields.forEach((field, index) => {
+    const answer = answers[index]?.trim();
+    if (answer) brief[field] = answer;
+  });
+  return brief;
 }
 
 function text(value: unknown): string {

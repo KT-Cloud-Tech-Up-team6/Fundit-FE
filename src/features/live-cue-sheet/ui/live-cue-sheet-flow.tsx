@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
+import { CUE_SHEET_BRIEF_MAX_LENGTH } from "@/entities/live/api/live-cue-sheet-api";
 import {
   createDemoScenes,
   demoAnswers,
@@ -46,8 +47,8 @@ type LiveCueSheetFlowProps = {
   initialSavedCueSheet?: SavedCueSheet;
   autoAdvanceGeneration?: boolean;
   generation?: CueSheetGenerationView;
-  /** 주면 API 모드다. 데모 장면을 만들지 않고 서버에 생성을 요청한다. */
-  onGenerate?: (request: { type: CueSheetType; minutes: number }) => void;
+  /** 주면 API 모드다. 데모 장면을 만들지 않고 서버에 생성을 요청한다. `answers`는 질문 순서다. */
+  onGenerate?: (request: { type: CueSheetType; minutes: number; answers: string[] }) => void;
   saving?: boolean;
   /** 저장·생성 결과처럼 화면 밖에서 온 안내. 내부 안내보다 우선한다. */
   notice?: string;
@@ -223,7 +224,7 @@ export function LiveCueSheetFlow({
          요청이 거절되면 컨테이너가 notice로 사유를 준다. */
       setStep("generating");
       setNotice("");
-      onGenerate({ type, minutes });
+      onGenerate({ type, minutes, answers: [...answers] });
       return;
     }
     setScenes(createDemoScenes(minutes, answers, project));
@@ -466,6 +467,8 @@ export function LiveCueSheetFlow({
                           placeholder={
                             complete ? "정정할 내용을 작성해주세요" : "답변을 작성해주세요"
                           }
+                          /* 답 하나가 생성 요청 필드 하나다(BE `@Size(max = 1000)`). */
+                          maxLength={CUE_SHEET_BRIEF_MAX_LENGTH}
                           value={draft}
                           onChange={(event) => setDraft(event.target.value)}
                           onKeyDown={(event) => {

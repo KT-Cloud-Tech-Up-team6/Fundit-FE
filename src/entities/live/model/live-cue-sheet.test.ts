@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   CUE_SHEET_MAX_MINUTES,
   parseCueSheetSegments,
+  toCueSheetBrief,
   toCueSheetMinutes,
   toCueSheetMode,
   toCueSheetSegmentBody,
@@ -120,4 +121,22 @@ test("저장 본문은 다섯 필드만 담는다", () => {
     { id: "s-1", title: "오프닝", duration: 30, outline: "인사", script: "안녕하세요." },
   ]);
   assert.deepEqual(Object.keys(body[0]), ["id", "title", "duration", "outline", "script"]);
+});
+
+test("채팅 답변은 질문 순서대로 생성 요청 필드에 싣는다", () => {
+  assert.deepEqual(toCueSheetBrief(["제품", "동기", "어려움", "시연", "발송"]), {
+    productDescription: "제품",
+    motivation: "동기",
+    expectedRisks: "어려움",
+    demoDescription: "시연",
+    deliverySchedule: "발송",
+  });
+});
+
+test("건너뛴 답과 아직 받지 않은 답은 필드째 뺀다", () => {
+  assert.deepEqual(toCueSheetBrief(["제품", "", "  ", "시연"]), {
+    productDescription: "제품",
+    demoDescription: "시연",
+  });
+  assert.deepEqual(toCueSheetBrief([]), {});
 });
