@@ -1,10 +1,8 @@
-/* LIVE 메인(#345)에 실제 LIVE를 섞는 순수 헬퍼. PM 방식(2026-09-24): 섹션의 일부 칸만 실제 LIVE로
-   채우고 나머지는 목업으로 둔다. 실제 카드는 BE에 없는 카테고리·달성률을 채우지 않는다. */
+/* LIVE 메인(#345)에 실제 LIVE를 섞는 순수 헬퍼. 목업 데이터는 BE 시더가 채우기로 해(2026-09-29 결정, #432)
+   섹션의 모든 칸을 실제 LIVE로 앞에서부터 채우고 모자라는 뒤쪽 칸만 목업으로 둔다. 실제 카드는 BE에 없는
+   카테고리·달성률을 채우지 않는다. */
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
 import type { FollowedSeller } from "@/entities/seller/api/follow-api";
-
-/** 섹션마다 실제 LIVE로 바꾸는 칸 수. 검수에서 조정할 수 있게 한곳에 둔다. */
-export const REAL_LIVE_SLOTS = 1;
 
 /** 팔로우 목록 앞에서 이만큼만 `sellerId`로 보낸다. UUID가 한 명당 37자라 주소가 너무 길어지지 않게 한다. */
 export const FOLLOW_FILTER_LIMIT = 100;
@@ -21,18 +19,11 @@ export type RealLives = {
 export const noRealLives: RealLives = { newOpen: [], ranking: [], following: [], scheduled: [] };
 
 /**
- * 칸 `count`개의 끝에서부터 `slots`칸을 실제 LIVE로 채운다. 실제 LIVE가 모자라면 남는 칸은 목업이다.
+ * 칸 `count`개를 실제 LIVE로 앞에서부터 API 순서대로 채운다. 실제 LIVE가 모자라면 남는 뒤쪽 칸은 목업이다.
  * 결과에서 `undefined`인 자리가 목업 칸이다.
  */
-export function fillRealSlots<T>(
-  count: number,
-  real: readonly T[],
-  slots = REAL_LIVE_SLOTS,
-): (T | undefined)[] {
-  const start = count - Math.max(0, Math.min(slots, real.length, count));
-  return Array.from({ length: count }, (_, index) =>
-    index >= start ? real[index - start] : undefined,
-  );
+export function fillRealSlots<T>(count: number, real: readonly T[]): (T | undefined)[] {
+  return Array.from({ length: count }, (_, index) => real[index]);
 }
 
 export const followSellerIds = (follows: readonly FollowedSeller[]) =>
@@ -87,6 +78,25 @@ export const realLiveSeller = (live: LiveSummaryResponse) =>
   live.sellerNickname?.trim() || undefined;
 
 /** 예정 카드 딤의 날짜(`09.18`)·시간(`오후 3:40`). 한국 시간 기준이고 값이 없으면 비운다. */
+const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 날짜별 예정 섹션 제목의 날짜(`9/29일 (화)`, Figma `9/8일 (화)` 형식). 탭을 연 날(한국 날짜)이다(#432). */
+export function upcomingTitleDate(now: number) {
+  const part = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    })
+      .formatToParts(new Date(now))
+      .map((item) => [item.type, item.value]),
+  );
+  /* 요일 이름도 런타임 로캘 데이터에 기대지 않도록 한국 날짜로 직접 구한다. */
+  const weekday = new Date(Date.UTC(+part.year, +part.month - 1, +part.day)).getUTCDay();
+  return `${part.month}/${part.day}일 (${weekdays[weekday]})`;
+}
+
 export function scheduleLabel(value: string | null) {
   const date = value ? new Date(value) : undefined;
   if (!date || Number.isNaN(date.getTime())) return { date: "", time: "" };
