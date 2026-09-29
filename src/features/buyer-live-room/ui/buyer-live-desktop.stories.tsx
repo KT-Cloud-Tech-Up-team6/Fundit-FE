@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
+import { useState, type ComponentProps } from "react";
+import { expect, fireEvent, fn, userEvent, waitFor, within } from "storybook/test";
+import type { LiveChatMessage, LiveChatSendResult } from "../model/live-chat";
 import { BuyerLiveDesktop } from "./buyer-live-desktop";
 import { LiveRewardSummary } from "@/features/reward-selection/ui/live-reward-summary";
 import { questionDemos } from "@/features/buyer-project/model/project-demo";
@@ -114,5 +116,110 @@ export const Clip: Story = {
     expect(canvas.getByText("물걸레+진공")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Q&A" }));
     expect(await canvas.findByRole("dialog", { name: "Q&A" })).toBeVisible();
+  },
+};
+
+/* 아래는 실제 LIVE 채팅(#470) 표시다. 실제 경로는 리워드가 없어도 오른쪽 열에 채팅 패널과 입력을 그린다.
+   작성자는 시청자·나·판매자, 판매자 답변은 @everyone, AI 답변은 "AI 매니저" 윗줄 라벨과 초록 본문이다. */
+const liveChatRows: LiveChatMessage[] = [
+  { id: "1", author: "시청자", text: "f25 흡입력이랑 물걸레 동시 작동할 때 소음은 어떤가요?" },
+  { id: "2", author: "판매자", text: "오늘 방송 시작합니다!" },
+  { id: "3", author: "나", text: "물걸레 건조 모드가 있나요?" },
+  { id: "4", author: "판매자", text: "@everyone 네, 물걸레 건조 모드를 지원합니다." },
+  {
+    id: "5",
+    author: "AI 매니저",
+    text: "미세 거품을 분사해 찌든 때를 불려 쉽게 닦아내는 기능입니다.",
+    ai: true,
+  },
+];
+const liveArgs = {
+  demoMode: false,
+  rewardSummary: null,
+  chapters: [],
+  seller: { name: "홈메이트랩", following: false, onToggleFollow: fn() },
+};
+
+function LiveChatDesktop({
+  result,
+  ...props
+}: ComponentProps<typeof BuyerLiveDesktop> & { result: LiveChatSendResult }) {
+  const [messages, setMessages] = useState(liveChatRows);
+  return (
+    <BuyerLiveDesktop
+      {...props}
+      liveChat={{
+        messages,
+        maxLength: 500,
+        onSend: async (text) => {
+          if (result === "sent")
+            setMessages((current) => [
+              ...current,
+              { id: String(current.length + 1), author: "나", text },
+            ]);
+          return result;
+        },
+      }}
+    />
+  );
+}
+
+export const LiveChat: Story = {
+  args: liveArgs,
+  render: (args) => <LiveChatDesktop {...args} result="sent" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const panel = canvas.getByRole("region", { name: "실시간 채팅" });
+    const log = within(panel).getByRole("log", { name: "채팅 메시지" });
+    expect(log).toHaveTextContent("판매자@everyone 네, 물걸레 건조 모드를 지원합니다.");
+    expect(within(log).getByText(/미세 거품을/)).toHaveClass("text-text-success");
+    // 실제 경로는 채팅 수 배지를 그리지 않는다.
+    expect(within(panel).queryByText("53")).not.toBeInTheDocument();
+    const input = within(panel).getByRole("textbox", { name: "메시지 입력" });
+    await userEvent.type(input, "배송이 궁금합니다{Enter}");
+    await waitFor(() => expect(input).toHaveValue(""));
+    expect(log).toHaveTextContent("나배송이 궁금합니다");
+  },
+};
+
+export const LiveChatGuest: Story = {
+  args: {
+    ...liveArgs,
+    liveChat: { messages: [], maxLength: 500, onSend: fn(), onRequireLogin: fn() },
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.queryByRole("textbox", { name: "메시지 입력" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "로그인하고 메시지 입력" }));
+    expect(args.liveChat?.onRequireLogin).toHaveBeenCalledTimes(1);
+  },
+};
+
+export const LiveChatRejected: Story = {
+  args: liveArgs,
+  render: (args) => <LiveChatDesktop {...args} result="rejected" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("textbox", { name: "메시지 입력" });
+    await userEvent.type(input, "거절될 메시지{Enter}");
+    expect(await canvas.findByRole("alert")).toHaveTextContent("메시지를 전송할 수 없습니다");
+    expect(input).toHaveValue("거절될 메시지");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+  },
+};
+
+export const LiveChatSendFailed: Story = {
+  args: liveArgs,
+  render: (args) => <LiveChatDesktop {...args} result="failed" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("textbox", { name: "메시지 입력" });
+    await userEvent.type(input, "연결이 끊긴 메시지{Enter}");
+    await waitFor(() =>
+      expect(canvas.getByRole("status")).toHaveTextContent(
+        "메시지를 보내지 못했습니다. 다시 시도해주세요.",
+      ),
+    );
+    expect(input).toHaveValue("연결이 끊긴 메시지");
   },
 };

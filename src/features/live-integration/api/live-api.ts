@@ -80,6 +80,12 @@ export const requestAnswer = (
     { auth: true, method: "POST", body, signal },
   );
 
+/** IVS 채팅 토큰(#470). 만료 필드는 없고 한 번만 쓸 수 있어 다시 연결할 때마다 새로 받는다. */
+export type ChatToken = { token: string; roomArn: string; capabilities: string[] };
+/* 로그인이 필요하다(401). 없거나 DRAFT인 LIVE는 404, 채팅방이 아직 없으면(시작 전) 409, IVS 오류는 503이다. */
+export const createChatToken = (liveId: string) =>
+  apiRequest<ChatToken>(`${livePath(liveId)}/chat/token`, { auth: true, method: "POST" });
+
 /* 좋아요·취소는 갱신된 수를 함께 돌려준다(BE #123 LikeResponse). 둘 다 idempotent다. */
 export type LikeResult = { liked: boolean; likeCount: number };
 export const likeLive = (liveId: string) =>

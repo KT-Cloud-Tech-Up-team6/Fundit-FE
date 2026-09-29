@@ -151,6 +151,17 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
+.message[data-ai] {
+  flex-direction: column;
+  gap: 0;
+}
+.message[data-ai] strong {
+  width: auto;
+}
+.message[data-ai] > span {
+  color: var(--text-success);
+}
 .product {
   display: flex;
   overflow: hidden;
@@ -228,6 +239,13 @@
   display: none;
 }
 .inputBox textarea::placeholder {
+  color: var(--text-secondary);
+}
+/* 비로그인의 입력칸 자리. 입력칸과 같은 모양에 자리표시 문구를 그린다. */
+.loginPrompt {
+  font-size: 16px;
+  line-height: 24px;
+  text-align: left;
   color: var(--text-secondary);
 }
 .inputMirror {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createChatToken,
   getAnsweredQuestions,
   getHighlights,
   getInsights,
@@ -215,5 +216,33 @@ test("답변된 질문 목록은 BE가 뺀 answerText(null)나 빈 답변 행을
     );
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("채팅 토큰은 본문 없는 인증 POST로 받고 응답의 token·roomArn을 그대로 돌려준다(#470)", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  const token = {
+    token: "chat-token",
+    roomArn: "arn:aws:ivschat:ap-northeast-2:123456789012:room/abcd",
+    capabilities: ["SEND_MESSAGE"],
+  };
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    return response(token);
+  };
+  try {
+    authTokenStore.set("live-token");
+    assert.deepEqual(await createChatToken("7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87"), token);
+    assert.match(
+      calls[0][0],
+      /\/api\/v1\/lives\/7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87\/chat\/token$/,
+    );
+    assert.equal(calls[0][1].method, "POST");
+    assert.equal(calls[0][1].body, undefined);
+    assert.equal(calls[0][1].headers.get("Authorization"), "Bearer live-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
   }
 });
