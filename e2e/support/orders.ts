@@ -4,7 +4,7 @@ import {
   FIXTURE_PROJECT_ID,
   FIXTURE_SELLER_ORDER_IDS,
   FIXTURE_SELLER_PROJECT_ID,
-} from "../../src/mocks/fixtures";
+} from "@/mocks/fixtures";
 
 /* MSW 주문 스토어(src/mocks/order-handlers.ts)는 sessionStorage에 미러링된다. 앱이 뜨기 전에 그 키를
    심어 스펙이 필요한 주문 상태(없음·배송 완료 등)로 시작한다. 이미 값이 있으면 덮지 않아 페이지를

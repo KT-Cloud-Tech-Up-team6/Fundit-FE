@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 /* UCS 소비자 26~30: 리워드 선택 → 주문서 → 결제 → 주문 완료.
    Toss 위젯은 E2E에서 띄우지 않으므로 결제창이 돌려주는 복귀 URL(successUrl/failUrl)을 직접 연다. */

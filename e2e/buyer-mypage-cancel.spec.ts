@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_ORDER_ID } from "../src/mocks/fixtures";
+import { FIXTURE_ORDER_ID } from "@/mocks/fixtures";
 
 test("펀딩 취소를 신청하면 취소/환불 내역에 반영된다", async ({ page }) => {
   await loginAsFixtureUser(page);

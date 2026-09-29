@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { E2E_LOGIN } from "../src/mocks/fixtures";
+import { E2E_LOGIN } from "@/mocks/fixtures";
 
 /* 로그인 가드: 이 저장소엔 middleware가 없고 인증이 전부 클라이언트 상태라, 비로그인 진입은
    화면이 직접 /auth/login?returnTo=…로 보낸다(LoginRedirect). 로그인 뒤 원래 화면으로 돌아와야 한다. */

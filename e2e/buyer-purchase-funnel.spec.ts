@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 test("구매자가 로그인부터 결제 진입 직전까지 펀딩 참여를 완료한다", async ({ page }) => {
   await loginAsFixtureUser(page);

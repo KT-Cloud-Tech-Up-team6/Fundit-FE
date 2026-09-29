@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 /* 예외케이스 소비자 18·19: 리워드 재고가 없는 경우. */
 test("품절 리워드는 선택할 수 없다", async ({ page }) => {

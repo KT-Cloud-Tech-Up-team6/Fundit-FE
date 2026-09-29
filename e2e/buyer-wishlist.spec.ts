@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 /* 소비자 탐색: 관심 목록(찜 프로젝트·팔로잉). 응답은 src/mocks/discovery-handlers.ts가 만든다. */
 test.beforeEach(async ({ page }) => {

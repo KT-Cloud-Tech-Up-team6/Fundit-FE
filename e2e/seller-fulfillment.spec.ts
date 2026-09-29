@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_SELLER_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_SELLER_PROJECT_ID } from "@/mocks/fixtures";
 
 /* UCS 판매자 54~58: 프로젝트 관리 → 제작·배송 탭에서 단계 진행 기록·일정 변경(지연사유)·단계 완료.
    같은 탭 안에서만 상태가 이어지므로(MSW 인메모리) 로그인 뒤 한 번 진입해 끝까지 진행한다. */

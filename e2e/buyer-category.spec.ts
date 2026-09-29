@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { buyerCategories } from "../src/entities/category/model/category-mock";
+import { buyerCategories } from "@/entities/category/model/category-mock";
 
 /* 소비자 탐색: 카테고리 화면은 정적 목록이라 핸들러 없이 검증한다.
    소분류는 PM 결정(#307)에 따라 결과 화면 없이 LIVE 홈으로 보낸다. */

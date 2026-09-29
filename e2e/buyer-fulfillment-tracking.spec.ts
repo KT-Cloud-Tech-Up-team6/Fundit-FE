@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
 import { FULFILLMENT_ORDER_ID, fundedOrder, seedOrders } from "./support/orders";
-import { FIXTURE_SELLER_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_SELLER_PROJECT_ID } from "@/mocks/fixtures";
 
 /* UCS 소비자 32: 판매자가 갱신한 제작·배송 진행이 구매자의 제작·배송 현황(5단계)에 반영된다.
    같은 픽스처 계정이 두 역할을 다 하고, 진행 상태는 sessionStorage로 이어진다(fulfillment-handlers.ts). */

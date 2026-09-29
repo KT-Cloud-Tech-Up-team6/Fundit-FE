@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
 import { DELIVERED_ORDER_TITLE, deliveredOrder, seedOrders } from "./support/orders";
-import { FIXTURE_DELIVERED_ORDER_ID } from "../src/mocks/fixtures";
+import { FIXTURE_DELIVERED_ORDER_ID } from "@/mocks/fixtures";
 
 /* UCS 소비자 34~37: 배송 완료 뒤 펀딩 내역에서 교환/반품을 신청하고 내역에서 확인한다. */
 async function requestFromList(page: Page, type: "교환" | "반품", reason: string) {

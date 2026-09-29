@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 /* 소비자 탐색: 통합 검색(프로젝트·판매자 탭, 정렬, 종료 프로젝트, 최근·인기 검색어).
    검색 응답은 src/mocks/discovery-handlers.ts가 만든다. */

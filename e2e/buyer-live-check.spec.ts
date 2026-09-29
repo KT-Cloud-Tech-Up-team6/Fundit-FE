@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { FIXTURE_PROJECT_ID } from "../src/mocks/fixtures";
+import { FIXTURE_PROJECT_ID } from "@/mocks/fixtures";
 
 /* UCS 소비자 24: 방송 종료 뒤 프로젝트 상세의 LIVE 체크 탭에서 Q&A를 확인한다. */
 test("LIVE 체크 탭에서 질문·답변을 보고, 질문 요약 전 답변은 답변만 보인다", async ({ page }) => {
