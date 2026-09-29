@@ -64,3 +64,17 @@ export function setWish(projectId: number, wished: boolean) {
     method: wished ? "PUT" : "DELETE",
   });
 }
+/* 프로젝트 상세는 공개 UUID로 찜한다. 숫자 ID API(`setWish`)와 경로가 달라 섞어 쓰지 않는다. */
+export type ProjectWish = { projectPublicId: string; wished: boolean };
+export function getProjectWish(projectPublicId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectWish>(`/api/v1/wishes/projects/${projectPublicId}`, {
+    auth: true,
+    signal,
+  });
+}
+export function setProjectWish(projectPublicId: string, wished: boolean) {
+  return apiRequest<ProjectWish | void>(`/api/v1/wishes/projects/${projectPublicId}`, {
+    auth: true,
+    method: wished ? "PUT" : "DELETE",
+  });
+}

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -10,6 +10,8 @@ import {
   getLiveVerifications,
   getPublicCommunity,
 } from "@/entities/project/api/buyer-project-api";
+import { getProjectWish, setProjectWish } from "@/entities/member/api/member-api";
+import { loginRedirectHref } from "@/shared/lib/login-redirect-href";
 import { getPublicNotices } from "@/entities/project/api/buyer-project-api";
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState, toErrorStatus } from "@/shared/components/ui/error-state";
@@ -126,6 +128,23 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
     queryKey: ["public-community", projectId, page],
     queryFn: ({ signal }) => getPublicCommunity(projectId, page, signal),
     enabled: hasDetail && tab === "community",
+  });
+  /* 찜은 로그인 사용자만 조회한다. 조회 실패 시 하트에서 재시도한다. */
+  const client = useQueryClient(),
+    wishKey = ["project-wish", projectId],
+    member = state.status === "authenticated";
+  const wish = useQuery({
+    queryKey: wishKey,
+    queryFn: ({ signal }) => getProjectWish(projectId, signal),
+    enabled: member,
+  });
+  const toggleWish = useMutation({
+    mutationFn: (wished: boolean) => setProjectWish(projectId, wished),
+    onSuccess: (_, wished) => {
+      client.setQueryData(wishKey, { projectPublicId: projectId, wished });
+      /* 관심 목록은 다음 진입에 새로 받는다. */
+      void client.invalidateQueries({ queryKey: ["member-wishes"] });
+    },
   });
   if (detail.isPending) return <p role="status">프로젝트를 불러오고 있습니다.</p>;
   /* 처음 받기에 실패했을 때만 오류 화면이다. AI 요약 생성 중 재조회가 실패해도 받은 상세는 그대로 둔다. */
@@ -354,6 +373,22 @@ export function BuyerProjectApi({ projectId, tab }: { projectId: string; tab: st
       hasLive={false}
       liveCheckTab={!liveCheckHidden}
       server={summary}
+      wish={{
+        wished: wish.data?.wished ?? false,
+        failed: member && wish.isError,
+        disabled:
+          state.status === "checking" ||
+          toggleWish.isPending ||
+          (member && (wish.isPending || wish.isFetching)),
+        retry: () => void wish.refetch(),
+        toggle: () => {
+          if (!member) {
+            router.push(loginRedirectHref(`/projects/${encodeURIComponent(projectId)}?tab=${tab}`));
+            return Promise.resolve();
+          }
+          return toggleWish.mutateAsync(!wish.data?.wished);
+        },
+      }}
       aiSummary={aiSummaryState(data.pageSummary)}
       project={{
         title: data.title,

@@ -8,6 +8,8 @@ import {
   deleteAddress,
   getWishes,
   setWish,
+  getProjectWish,
+  setProjectWish,
 } from "./member-api.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 
@@ -115,6 +117,31 @@ test("배송지 삭제 실패를 성공으로 바꾸지 않는다", async () => 
   globalThis.fetch = async () => Response.json({ message: "삭제 실패" }, { status: 500 });
   try {
     await assert.rejects(deleteAddress(7), /삭제 실패/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("프로젝트 상세 찜은 숫자 ID가 아닌 공개 UUID 경로를 쓴다", async () => {
+  const original = globalThis.fetch;
+  const id = "0197a3c2-1b2d-7c4e-9f10-a1b2c3d4e5f6";
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push([url, init.method ?? "GET"]);
+    return init.method === "DELETE"
+      ? new Response(null, { status: 204 })
+      : Response.json({ projectPublicId: id, wished: true });
+  };
+  try {
+    assert.equal((await getProjectWish(id)).wished, true);
+    await setProjectWish(id, true);
+    await setProjectWish(id, false);
+    const path = `/api/v1/wishes/projects/${id}`;
+    assert.deepEqual(calls, [
+      [path, "GET"],
+      [path, "PUT"],
+      [path, "DELETE"],
+    ]);
   } finally {
     globalThis.fetch = original;
   }
