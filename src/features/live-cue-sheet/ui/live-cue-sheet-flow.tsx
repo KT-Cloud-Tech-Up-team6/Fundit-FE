@@ -22,6 +22,9 @@ import styles from "./cue-sheet.module.css";
 type Step =
   "closed" | "chat" | "summary" | "options" | "generating" | "ready" | "editor" | "failed";
 
+/** 다섯 답을 받은 뒤의 정정은 새 답이 아니라 마지막 답 뒤에 이 머리말로 붙는다. */
+const CORRECTION_PREFIX = "\n정정 사항: ";
+
 /**
  * 서버가 아는 큐시트 상태. `onGenerate`와 함께 주면 이 화면은 **API 모드**로 동작한다 —
  * 생성은 서버가 하고, 생성 중·성공·실패 단계 전환은 이 값이 끈다.
@@ -141,6 +144,14 @@ export function LiveCueSheetFlow({
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const open = step !== "closed";
   const complete = answers.length === demoQuestions.length;
+  /* 답 하나가 생성 요청 필드 하나다(BE `@Size(max = 1000)`). 정정은 마지막 답에 붙어 함께
+     나가므로 합친 길이가 한도를 넘지 않게 남은 만큼만 받는다 — 넘기면 재시도해도 같은 400이다. */
+  const draftMaxLength = complete
+    ? Math.max(
+        0,
+        CUE_SHEET_BRIEF_MAX_LENGTH - answers[answers.length - 1].length - CORRECTION_PREFIX.length,
+      )
+    : CUE_SHEET_BRIEF_MAX_LENGTH;
   const apiMode = Boolean(onGenerate);
   const message = externalNotice || notice;
   /* 서버 상태가 "바뀐 순간"에만 단계를 옮긴다. 매 렌더마다 옮기면 판매자가 편집기에서
@@ -208,7 +219,7 @@ export function LiveCueSheetFlow({
     if (complete) {
       setAnswers(
         answers.map((answer, index) =>
-          index === answers.length - 1 ? `${answer}\n정정 사항: ${draft.trim()}` : answer,
+          index === answers.length - 1 ? `${answer}${CORRECTION_PREFIX}${draft.trim()}` : answer,
         ),
       );
     } else {
@@ -467,8 +478,7 @@ export function LiveCueSheetFlow({
                           placeholder={
                             complete ? "정정할 내용을 작성해주세요" : "답변을 작성해주세요"
                           }
-                          /* 답 하나가 생성 요청 필드 하나다(BE `@Size(max = 1000)`). */
-                          maxLength={CUE_SHEET_BRIEF_MAX_LENGTH}
+                          maxLength={draftMaxLength}
                           value={draft}
                           onChange={(event) => setDraft(event.target.value)}
                           onKeyDown={(event) => {
