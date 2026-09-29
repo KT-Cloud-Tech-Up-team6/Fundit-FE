@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkoutLineItems, listPriceTotal } from "./checkout-lines.ts";
+import {
+  checkoutLineItems,
+  isBilledAsShown,
+  listPriceTotal,
+  withoutEarlyBird,
+} from "./checkout-lines.ts";
 import { toRewards } from "../../reward-selection/model/public-reward.ts";
 
 /* BE RewardConsumerResponse 모양. null 필드는 키가 빠진다. */
@@ -84,4 +89,23 @@ test("조회 결과에 없는 리워드 줄은 이름·금액 없이 수량만 �
     checkoutLineItems([{ rewardId: 99, quantity: 2, optionValueIds: [] }], rewards),
     [{ label: "찾을 수 없는 리워드 · 2개" }],
   );
+});
+
+test("줄 청구 합계가 미리보기 금액과 같을 때만 얼리 버드 표시를 그대로 쓰고, 다르면 줄을 정가로 되돌린다", () => {
+  const items = checkoutLineItems(
+    [
+      { rewardId: 11, quantity: 2, optionValueIds: [101, 201] },
+      { rewardId: 12, quantity: 1, optionValueIds: [] },
+      { rewardId: 99, quantity: 1, optionValueIds: [] },
+    ],
+    rewards,
+  );
+  assert.equal(isBilledAsShown(items, 510_000), true);
+  // BE #181 이전 BE는 얼리 버드도 정가로 청구한다.
+  assert.equal(isBilledAsShown(items, 550_000), false);
+  assert.deepEqual(withoutEarlyBird(items), [
+    { label: "얼리버드 컬러 세트 · 블랙 / S · 2개", price: 400_000 },
+    { label: "기본 세트 · 1개", price: 150_000 },
+    { label: "찾을 수 없는 리워드 · 1개" },
+  ]);
 });

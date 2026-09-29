@@ -36,7 +36,7 @@ import { isOrderable } from "../model/order-lines";
 import { CouponApiSheet } from "./coupon-api-sheet";
 import { couponDroppedMessage, couponPreviewError } from "../model/coupon-preview";
 import { couponCodes, type CouponSelection } from "../model/coupon-selection";
-import { checkoutLineItems, listPriceTotal } from "../model/checkout-lines";
+import { checkoutLineItems, isBilledAsShown, withoutEarlyBird } from "../model/checkout-lines";
 import { previewSummaryRows } from "../model/payment-summary";
 import { emptyShippingAddress, formatWon, type ShippingAddress } from "../model/checkout-demo";
 
@@ -184,6 +184,9 @@ function Checkout({
   const couponError = preview.data ? couponPreviewError(preview.data, selectedCouponCodes) : "";
   const amount = valid && address && preview.data ? preview.data : null;
   const items = rewards.data ? checkoutLineItems(lines, toRewards(rewards.data)) : [];
+  /* 미리보기가 줄 청구 합계와 다르면 청구와 맞지 않는 얼리 버드 할인을 보이지 않고 줄을 정가로 보인다. */
+  const shownItems =
+    amount && !isBilledAsShown(items, amount.rewardAmount) ? withoutEarlyBird(items) : items;
   function requireAddress() {
     if (address) return true;
     setAddressWarning(true);
@@ -313,9 +316,7 @@ function Checkout({
     <>
       <CheckoutLayout
         summary={
-          <PaymentSummarySection
-            rows={amount ? previewSummaryRows(amount, listPriceTotal(items)) : undefined}
-          >
+          <PaymentSummarySection rows={amount ? previewSummaryRows(amount, items) : undefined}>
             {!valid ? (
               <p className="text-body-s text-text-secondary">
                 주문 상품을 확인한 뒤 결제 금액을 보여 드립니다.
@@ -423,7 +424,7 @@ function Checkout({
             <ProjectOrderItems
               title={project.data.title}
               image={project.data.coverImageUrl}
-              items={items}
+              items={shownItems}
             />
           )}
           {/* 품절·재고 초과·없는 옵션처럼 주문할 수 없는 줄은 여기서 고칠 수 없어 상세로 돌려보낸다. */}

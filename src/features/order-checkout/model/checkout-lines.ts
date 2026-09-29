@@ -40,3 +40,17 @@ export function checkoutLineItems(lines: OrderLine[], rewards: Reward[]): Checko
 export function listPriceTotal(items: CheckoutLineItem[]): number {
   return items.reduce((sum, item) => sum + (item.originalPrice ?? item.price ?? 0), 0);
 }
+
+/** 줄 청구 금액 합계가 BE 미리보기 `rewardAmount`와 같을 때만 얼리 버드 표시가 실제 청구와 맞다. 다르면
+    BE #181 이전 BE가 정가로 청구했거나, 리워드 조회와 미리보기 사이에 가격이 바뀐 것이다(주문서에
+    들어오면 리워드를 다시 조회한다). */
+export function isBilledAsShown(items: CheckoutLineItem[], rewardAmount: number): boolean {
+  return items.reduce((sum, item) => sum + (item.price ?? 0), 0) === rewardAmount;
+}
+
+/** 청구와 맞지 않는 얼리 버드 할인을 보이지 않도록 줄을 정가("상품 금액")로 되돌린다. */
+export function withoutEarlyBird(items: CheckoutLineItem[]): CheckoutLineItem[] {
+  return items.map(({ label, price, originalPrice }) =>
+    price === undefined ? { label } : { label, price: originalPrice ?? price },
+  );
+}

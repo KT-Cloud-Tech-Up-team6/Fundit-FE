@@ -3,64 +3,85 @@ import test from "node:test";
 import { demoSummaryRows, previewSummaryRows } from "./payment-summary.ts";
 import { demoPaymentSummary } from "./checkout-demo.ts";
 
+/* 주문 줄: 얼리 버드 180,000(정가 200,000) × 2개, 일반 150,000 × 1개. 청구 합계 510,000, 정가 합계 550,000. */
+const items = [
+  { label: "얼리버드 세트 · 2개", price: 360_000, originalPrice: 400_000 },
+  { label: "기본 세트 · 1개", price: 150_000 },
+];
+
 test("실제 주문서 결제 금액은 펀딩 금액을 정가 합계로, 차액을 얼리버드 할인으로 두고 적립금 줄은 없다", () => {
   // BE #181: rewardAmount는 얼리 버드 할인가 합계, discountAmount는 쿠폰 할인이다.
   const rows = previewSummaryRows(
     {
-      rewardAmount: 540_000,
+      rewardAmount: 510_000,
       shippingFee: 3_000,
       discountAmount: 10_000,
-      finalAmount: 533_000,
+      finalAmount: 503_000,
       appliedCoupons: [{ couponCode: "SAVE", issuerType: "PLATFORM", discountType: "AMOUNT" }],
     },
-    600_000,
+    items,
   );
   assert.deepEqual(rows, {
     order: [
-      { label: "총 주문 금액", amount: 603_000 },
-      { label: "ㄴ펀딩 금액", amount: 600_000 },
+      { label: "총 주문 금액", amount: 553_000 },
+      { label: "ㄴ펀딩 금액", amount: 550_000 },
       { label: "ㄴ배송비", amount: 3_000 },
     ],
     discount: [
-      { label: "총 할인 금액", amount: 70_000 },
-      { label: "ㄴ얼리버드 할인", amount: 60_000 },
+      { label: "총 할인 금액", amount: 50_000 },
+      { label: "ㄴ얼리버드 할인", amount: 40_000 },
       { label: "ㄴ쿠폰 사용", amount: 10_000 },
     ],
-    finalAmount: 533_000,
+    finalAmount: 503_000,
   });
   // 총 주문 금액 − 총 할인 금액이 BE 최종 결제 금액과 같다.
   assert.equal(rows.order[0].amount - rows.discount[0].amount, rows.finalAmount);
 });
 
-test("얼리 버드가 없으면 얼리버드 할인은 0원이고, 정가가 미리보기보다 낮게 오면 할인을 음수로 만들지 않는다", () => {
-  const preview = {
-    rewardAmount: 150_000,
-    shippingFee: 3_000,
-    discountAmount: 0,
-    finalAmount: 153_000,
-  };
-  for (const listAmount of [150_000, 140_000]) {
-    const rows = previewSummaryRows(preview, listAmount);
+test("얼리 버드 줄이 없으면 얼리버드 할인은 0원 줄이다", () => {
+  const rows = previewSummaryRows(
+    { rewardAmount: 150_000, shippingFee: 3_000, discountAmount: 0, finalAmount: 153_000 },
+    [items[1]],
+  );
+  assert.deepEqual(
+    rows.order.map((row) => row.amount),
+    [153_000, 150_000, 3_000],
+  );
+  assert.deepEqual(
+    rows.discount.map((row) => row.amount),
+    [0, 0, 0],
+  );
+});
+
+test("미리보기 금액이 줄 청구 합계와 다르면 가격 차이를 얼리버드 할인으로 추정하지 않고 BE 금액만 쓴다", () => {
+  // BE #181 이전 BE는 정가(550,000)로, 조회 사이 가격이 바뀌면 또 다른 값으로 계산한다.
+  for (const rewardAmount of [550_000, 500_000]) {
+    const rows = previewSummaryRows(
+      { rewardAmount, shippingFee: 3_000, discountAmount: 0, finalAmount: rewardAmount + 3_000 },
+      items,
+    );
     assert.deepEqual(
       rows.order.map((row) => row.amount),
-      [153_000, 150_000, 3_000],
+      [rewardAmount + 3_000, rewardAmount, 3_000],
+      String(rewardAmount),
     );
     assert.deepEqual(
       rows.discount.map((row) => row.amount),
       [0, 0, 0],
+      String(rewardAmount),
     );
   }
 });
 
 test("최종 결제 금액은 합계로 다시 계산하지 않고 BE finalAmount를 따른다", () => {
   const rows = previewSummaryRows(
-    { rewardAmount: 10_000, shippingFee: 3_000, discountAmount: 20_000, finalAmount: 0 },
-    10_000,
+    { rewardAmount: 150_000, shippingFee: 3_000, discountAmount: 200_000, finalAmount: 0 },
+    [items[1]],
   );
   assert.equal(rows.finalAmount, 0);
   assert.deepEqual(
     rows.discount.map((row) => row.amount),
-    [20_000, 0, 20_000],
+    [200_000, 0, 200_000],
   );
 });
 

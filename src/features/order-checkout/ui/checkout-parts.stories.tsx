@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { toRewards } from "@/features/reward-selection/model/public-reward";
-import { checkoutLineItems, listPriceTotal } from "../model/checkout-lines";
+import { checkoutLineItems } from "../model/checkout-lines";
 import { previewSummaryRows } from "../model/payment-summary";
 import { CheckoutLayout, PaymentSummarySection, ProjectOrderItems } from "./checkout-parts";
 import { ShippingAddressSection } from "./shipping-address-section";
@@ -73,7 +73,7 @@ const rows = previewSummaryRows(
     discountAmount: 10_000,
     finalAmount: 663_000,
   },
-  listPriceTotal(items),
+  items,
 );
 
 function RealCheckout({ onPay }: { onPay: () => void }) {
