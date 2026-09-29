@@ -83,8 +83,13 @@ function SectionBody<T>({
         className="py-6"
       />
     );
+  /* 불러오는 중 안내와 같은 자리의 `<p>`라 DOM이 재사용된다. 역할을 유지해야 빈 목록으로 바뀐 것을 알린다. */
   if (data.items.length === 0)
-    return <p className="text-body-s text-text-secondary py-6 text-center">{messages.empty}</p>;
+    return (
+      <p role="status" className="text-body-s text-text-secondary py-6 text-center">
+        {messages.empty}
+      </p>
+    );
   return children(data.items);
 }
 

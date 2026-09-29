@@ -86,21 +86,21 @@ IA v1.2와 `FE_화면명세_컴포넌트계층_라우팅설계서_v1.2_최신화
 
 ## 구매자 탐색·LIVE
 
-| URL                                    | 화면                    | 접근 조건                 | 상태                                                    |
-| -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------- |
-| `/`                                    | 홈                      | public                    | implemented (주목·LIVE 실제 API, 나머지 목업, #367)     |
-| `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                      |
-| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | `/live`로 redirect (next.config, #307)                  |
-| `/search`                              | 통합 검색               | public                    | implemented (목업)                                      |
-| `/live`                                | LIVE 메인               | public                    | implemented                                             |
-| `/live/new`                            | 신규 LIVE               | public                    | placeholder                                             |
-| `/live/rank`                           | 실시간 순위             | public                    | placeholder                                             |
-| `/live/recommended`                    | 추천 LIVE               | public                    | placeholder                                             |
-| `/live/following`                      | 팔로우 LIVE             | member                    | placeholder                                             |
-| `/live/upcoming`                       | 예정 LIVE               | public                    | implemented (목업)                                      |
-| `/live/search`                         | LIVE 검색·결과          | public                    | placeholder                                             |
-| `/live/[liveId]`                       | LIVE 방송·채팅·다시보기 | read public, write member | live / replay / clip implemented (UUID API)             |
-| `/projects/[projectId]`                | 프로젝트 상세 탭        | public 또는 조건부        | story·live-proof implemented (목업), 나머지 placeholder |
+| URL                                    | 화면                    | 접근 조건                 | 상태                                                               |
+| -------------------------------------- | ----------------------- | ------------------------- | ------------------------------------------------------------------ |
+| `/`                                    | 홈                      | public                    | implemented (주목·LIVE·마감 임박 실제 API, 나머지 목업, #367·#453) |
+| `/categories/[slug]`                   | 카테고리                | public                    | implemented (목업)                                                 |
+| `/categories/[slug]/[subcategorySlug]` | 소분류 결과 목록        | public                    | `/live`로 redirect (next.config, #307)                             |
+| `/search`                              | 통합 검색               | public                    | implemented (목업)                                                 |
+| `/live`                                | LIVE 메인               | public                    | implemented                                                        |
+| `/live/new`                            | 신규 LIVE               | public                    | placeholder                                                        |
+| `/live/rank`                           | 실시간 순위             | public                    | placeholder                                                        |
+| `/live/recommended`                    | 추천 LIVE               | public                    | placeholder                                                        |
+| `/live/following`                      | 팔로우 LIVE             | member                    | placeholder                                                        |
+| `/live/upcoming`                       | 예정 LIVE               | public                    | implemented (목업)                                                 |
+| `/live/search`                         | LIVE 검색·결과          | public                    | placeholder                                                        |
+| `/live/[liveId]`                       | LIVE 방송·채팅·다시보기 | read public, write member | live / replay / clip implemented (UUID API)                        |
+| `/projects/[projectId]`                | 프로젝트 상세 탭        | public 또는 조건부        | story·live-proof implemented (목업), 나머지 placeholder            |
 
 ## 펀딩·결제
 

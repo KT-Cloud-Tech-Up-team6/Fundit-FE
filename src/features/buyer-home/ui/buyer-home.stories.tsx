@@ -172,7 +172,10 @@ export const ErrorAndEmpty: Story = {
     const liveSection = within(canvas.getByRole("region", { name: "실시간 LIVE" }));
     expect(liveSection.getByText("지금 진행 중인 LIVE가 없습니다.")).toBeInTheDocument();
     const deadlineSection = within(canvas.getByRole("region", { name: "마감 임박 프로젝트" }));
-    expect(deadlineSection.getByText("마감 임박 프로젝트가 없습니다.")).toBeInTheDocument();
+    expect(deadlineSection.getByText("마감 임박 프로젝트가 없습니다.")).toHaveAttribute(
+      "role",
+      "status",
+    );
   },
 };
 
