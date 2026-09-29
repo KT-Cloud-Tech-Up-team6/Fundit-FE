@@ -72,9 +72,12 @@ export function couponCardConditions(coupon: CheckoutCoupon, projectId: string) 
           .replace(/\.$/, "")
       : null;
   return {
-    condition: hasMinimum
-      ? `${formatFundingAmount(coupon.minFundingAmount)} 이상 펀딩 시 사용 가능`
-      : target,
+    condition:
+      target === "다른 프로젝트 전용"
+        ? target
+        : hasMinimum
+          ? `${formatFundingAmount(coupon.minFundingAmount)} 이상 펀딩 시 사용 가능`
+          : target,
     expiry: date ? `~${date} 까지사용가능` : "유효기간 확인 필요",
   };
 }

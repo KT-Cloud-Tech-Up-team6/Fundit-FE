@@ -45,11 +45,18 @@ export function CouponApiSheet({
   });
   const couponList = coupons.data?.pages.flatMap((page) => page.content) ?? [];
   useEffect(() => {
-    if (!coupons.hasNextPage || coupons.isFetchingNextPage || coupons.isFetchNextPageError) return;
+    if (
+      !coupons.hasNextPage ||
+      coupons.isFetching ||
+      coupons.isFetchingNextPage ||
+      coupons.isFetchNextPageError
+    )
+      return;
     void coupons.fetchNextPage();
   }, [
     coupons.fetchNextPage,
     coupons.hasNextPage,
+    coupons.isFetching,
     coupons.isFetchingNextPage,
     coupons.isFetchNextPageError,
   ]);

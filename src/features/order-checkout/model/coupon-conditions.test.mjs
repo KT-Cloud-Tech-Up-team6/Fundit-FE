@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { couponConditions } from "./coupon-conditions.ts";
+import { couponCardConditions, couponConditions } from "./coupon-conditions.ts";
 
 const base = {
   couponCode: "SAVE",
@@ -81,4 +81,15 @@ test("shows zero cap as zero discount and unknown caps safely", () => {
       couponConditions({ ...base, maxDiscountAmount }, "project").condition,
       /최대 할인 금액 확인 필요/,
     );
+});
+
+test("coupon card prioritizes another project's restriction over its minimum", () => {
+  assert.equal(
+    couponCardConditions(
+      { ...base, targetScope: "PROJECT", targetRefId: "another-uuid" },
+      "project",
+    ).condition,
+    "다른 프로젝트 전용",
+  );
+  assert.equal(couponCardConditions(base, "project").condition, "5만원 이상 펀딩 시 사용 가능");
 });
