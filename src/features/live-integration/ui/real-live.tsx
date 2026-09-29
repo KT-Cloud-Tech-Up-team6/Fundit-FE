@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ComponentProps } from "react";
 import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import {
   followSeller,
@@ -36,6 +36,16 @@ import {
   pickClip,
   toChapters,
 } from "../model/vod-chapters";
+
+/* 영상 영역은 늘 검정이다. 공용 오류 안내는 밝은 배경용이라 [다시 시도]가 묻히므로, 이미 정의된 다크 테마
+   토큰으로 보이고 영역 가운데에 둔다(#455). */
+function VideoAreaError(props: ComponentProps<typeof QueryError>) {
+  return (
+    <div data-theme="dark" className="text-text-default grid h-full place-items-center p-6">
+      <QueryError {...props} />
+    </div>
+  );
+}
 
 function answeredByLabel(value: string) {
   return value === "AI" ? "AI 답변" : value === "SELLER" ? "판매자 답변" : "답변자 미확인";
@@ -291,7 +301,7 @@ export function RealBuyerLive({
     highlights.isPending ? (
       <p>쇼츠를 불러오는 중입니다.</p>
     ) : highlights.isError ? (
-      <QueryError error={highlights.error} retry={() => void highlights.refetch()} />
+      <VideoAreaError error={highlights.error} retry={() => void highlights.refetch()} />
     ) : shortClip?.clipUrl ? (
       <LivePlayer
         key={shortClip.highlightId}
@@ -318,7 +328,7 @@ export function RealBuyerLive({
   ) : playback.isPending ? (
     <p>영상을 불러오는 중입니다.</p>
   ) : playback.isError ? (
-    <QueryError error={playback.error} retry={() => void playback.refetch()} />
+    <VideoAreaError error={playback.error} retry={() => void playback.refetch()} />
   ) : (
     <LivePlayer
       src={playback.data.playbackUrl}
