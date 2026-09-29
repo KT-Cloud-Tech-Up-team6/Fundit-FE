@@ -14,18 +14,18 @@
 
 ## 실제 API와 목업의 경계
 
-| 섹션                   | 출처                                                   | 카드 목적지                          |
-| ---------------------- | ------------------------------------------------------ | ------------------------------------ |
-| 지금 주목받는 프로젝트 | `GET /api/v1/home/feed?size=8`(search-service, 인기순) | `/projects/{projectPublicId}`        |
-| 실시간 LIVE            | `GET /api/v1/lives?status=LIVE&sort=viewerCount`       | `/live/{liveId}`, 전체보기는 `/live` |
-| 히어로 배너            | **FE 목업** `features/buyer-home/model/home-mock.ts`   | 데모 상세 `/projects/demo-project`   |
-| 카테고리               | 확정 7종 목업 `entities/category/model/category-mock`  | `/categories/{slug}`                 |
-| 마감 임박 프로젝트     | **FE 목업** (전체 프로젝트 마감순 API 없음)            | 데모 상세 `/projects/demo-project`   |
-| 추천 프로젝트          | **FE 목업** (추천 API 없음)                            | 데모 상세 `/projects/demo-project`   |
-| 검색                   | 기존 검색 결과 화면                                    | `/search?q=...`                      |
+| 섹션                   | 출처                                                                                | 카드 목적지                          |
+| ---------------------- | ----------------------------------------------------------------------------------- | ------------------------------------ |
+| 지금 주목받는 프로젝트 | `GET /api/v1/home/feed?sort=POPULAR&size=8`(search-service, 인기순)                 | `/projects/{projectPublicId}`        |
+| 실시간 LIVE            | `GET /api/v1/lives?status=LIVE&sort=viewerCount`                                    | `/live/{liveId}`, 전체보기는 `/live` |
+| 히어로 배너            | **FE 목업** `features/buyer-home/model/home-mock.ts`                                | 데모 상세 `/projects/demo-project`   |
+| 카테고리               | 확정 7종 목업 `entities/category/model/category-mock`                               | `/categories/{slug}`                 |
+| 마감 임박 프로젝트     | `GET /api/v1/home/feed?sort=DEADLINE&size=4`(search-service, 마감 가까운 순, BE-19) | `/projects/{projectPublicId}`        |
+| 추천 프로젝트          | **FE 목업** (추천 API 없음)                                                         | 데모 상세 `/projects/demo-project`   |
+| 검색                   | 기존 검색 결과 화면                                                                 | `/search?q=...`                      |
 
-- 목업 데이터는 BE 시더로 기존 API를 채우기로 한 팀 규칙(BE #154)을 따른다. API가 있는 두 섹션은 실제 경로에 FE 목업을 두지 않는다. BE #154가 병합·배포되기 전에는 dev 목록이 비어 있을 수 있다.
-- 실제 API 두 섹션은 조회 중·실패·빈 목록에도 섹션 제목을 남기고 안내를 보인다. 실패하면 섹션 오류 안내와 [다시 시도]를 보이며 다시 조회하는 동안은 불러오는 중으로 돌아간다. 문구는 FE가 정했다(원본에 상태 없음).
+- 목업 데이터는 BE 시더로 기존 API를 채우기로 한 팀 규칙(BE #154)을 따른다. API가 있는 세 섹션은 실제 경로에 FE 목업을 두지 않는다. BE #154가 병합·배포되기 전에는 dev 목록이 비어 있을 수 있다.
+- 실제 API 세 섹션은 조회 중·실패·빈 목록에도 섹션 제목을 남기고 안내를 보인다. 실패하면 섹션 오류 안내와 [다시 시도]를 보이며 다시 조회하는 동안은 불러오는 중으로 돌아간다. 문구는 FE가 정했다(원본에 상태 없음).
 - 홈 피드 카드는 검색 상품 탭과 같은 `ProjectCardResponse`다. 상세 경로는 공개 UUID(`projectPublicId`)만 쓴다. 숫자 `projectId`로 상세를 열지 않으며, 공개 UUID가 없는 카드는 링크 없이 "상세 연결 준비 중"을 보인다(검색 목록과 같다).
 - 홈 피드의 `achievementRate`는 검색 색인 값이라 BE 명세상 펀딩 집계 이벤트(SEARCH-013)가 붙기 전까지 늘 0이다. 그래서 카드의 달성률은 공개 UUID로 프로젝트 상세(`GET /api/v1/projects/{projectPublicId}`)를 한 번씩 읽어 `fundingStatus.achievementRate`를 쓴다(#445). 이 값은 PM이 준 목업 달성률을 BE 시더(BE #154)가 넣은 것이고, 상세 화면과 같은 쿼리 키(`["public-project", id]`)라 카드와 상세의 값이 같다. 받기 전과 실패한 카드는 달성률 줄을 비워 두되 높이는 유지한다. BE가 피드에 실제 값을 채우면 이 조회를 걷는다.
 - 실시간 LIVE는 LIVE 메인 실시간 순위와 같은 조건·쿼리 키라 캐시를 함께 쓴다. `/api/v1/home/lives`는 시청자 수가 항상 비어 있어 쓰지 않는다. 카드 제목은 `introText`(비면 "소개 문구 없음"), 판매자는 BE #154의 `sellerNickname`이 올 때만 보인다. 시청자 수가 없으면 뱃지를 그리지 않는다.
@@ -37,7 +37,7 @@
 
 - 카테고리는 확정 7종과 기존 아이콘을 쓰고 모두 보이므로 Figma의 9종·더보기는 두지 않는다. 누르면 그 카테고리가 선택된 카테고리 화면(`/categories/{slug}`)으로 가고, 하단 메뉴·PC 헤더의 카테고리처럼 홈 주소를 복귀 경로로 남겨 카테고리 화면에서 카테고리 탭을 다시 누르면 홈으로 돌아온다.
 - 추천 섹션 제목은 모바일 원본의 "추천 라이브" 대신 IA·PC의 "추천 프로젝트"다. 프로젝트 카드와 추천 이유 칩(많이 본·찜한 취향·관심 카테고리)을 목업으로 둔다. 실제 추천 순서·사유 계산은 없다.
-- 마감 임박은 Figma 문구(D-N·제목·판매자) 그대로의 목업이다.
+- 마감 임박은 기간 제한 없이 BE 마감순(`sort=DEADLINE`, 마감이 지나지 않은 진행 중 프로젝트) 앞 4개를 보인다(#453). IA 소비자 5행은 "마감 임박 및 신규 프로젝트 큐레이션"만 적고 기간 기준이 없고, 4개는 Figma 카드 수(모바일 `2315:71408`, PC `2315:71837`)다. 카드는 Figma처럼 썸네일·D-N(피드의 `remainingDays`)·제목·판매자만 있고 달성률은 없다. 공개 UUID가 없는 카드는 주목받는 프로젝트처럼 링크 없이 "상세 연결 준비 중"을 보인다.
 - 실시간 LIVE의 "라이브 특가" 뱃지는 BE에 값이 없어 두지 않는다.
 - 주목받는·마감 임박·추천의 전체보기는 목록 화면이 이번 범위가 아니라 비활성(준비중)이다. 실시간 LIVE의 전체보기·라이브 전체보기만 `/live`로 간다.
 - 주목받는 프로젝트의 PC 판매자 아바타는 BE에 없어 이름만 보인다. "신규 프로젝트 큐레이션" 섹션은 두지 않는다.
@@ -58,7 +58,7 @@
 
 - `/`는 `(buyer-home)` 그룹이다. BuyerShell을 쓰지 않고 공통 `BuyerDesktopHeader`(1200px 이상)와 `BuyerBottomNavigation`(flat, 홈 선택)을 직접 그린다. `next.config.ts`의 `/` → `/live` redirect는 지웠다.
 - `features/buyer-home/ui/buyer-home.tsx`는 표시 전용이고 실제 조회는 `buyer-home-api.tsx`가 한다. 실제 섹션 값은 `model/home-cards.ts`의 순수 함수가 만들고 단위 테스트가 있다.
-- 새 이미지: `public/images/buyer-home/hero.jpg`(PC 히어로 `2315:71557`), `deadline-1~4.jpg`(마감 임박 `2315:71837` 카드 이미지). Figma 원본을 JPEG로 줄였다.
+- 새 이미지: `public/images/buyer-home/hero.jpg`(PC 히어로 `2315:71557`), `deadline-1~4.jpg`(마감 임박 `2315:71837` 카드 이미지, 실제 목록으로 바꾼 뒤로는 Storybook 고정 값에서만 쓴다). Figma 원본을 JPEG로 줄였다.
 - 스타일은 Tailwind와 semantic 토큰을 쓴다. CSS Module은 포커스·스크롤바·스크롤 스냅·드래그 커서에 한정한다.
 
 ## 검증

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { searchProjects, getPublicProject } from "./buyer-project-api.ts";
+import { searchProjects, getPublicProject, getHomeFeed } from "./buyer-project-api.ts";
 
 test("공개 검색은 BE 정렬·종료 구분·페이지를 전달하고 목록의 숫자 ID를 UUID로 바꾸지 않는다", async (t) => {
   let request;
@@ -15,6 +15,19 @@ test("공개 검색은 BE 정렬·종료 구분·페이지를 전달하고 목�
   assert.equal(url.searchParams.get("sort"), "DEADLINE");
   assert.equal(url.searchParams.get("page"), "1");
   assert.equal(result.content[0].projectId, 731);
+  assert.equal(new Headers(request.init.headers).has("Authorization"), false);
+});
+test("홈 피드는 정렬과 개수를 비인증으로 전달한다", async (t) => {
+  let request;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    request = { url, init };
+    return Response.json({ content: [] });
+  });
+  await getHomeFeed("DEADLINE", 4);
+  const url = new URL(request.url, "https://example.com");
+  assert.equal(url.pathname, "/api/v1/home/feed");
+  assert.equal(url.searchParams.get("sort"), "DEADLINE");
+  assert.equal(url.searchParams.get("size"), "4");
   assert.equal(new Headers(request.init.headers).has("Authorization"), false);
 });
 test("공개 상세 404를 오류로 전달한다", async (t) => {

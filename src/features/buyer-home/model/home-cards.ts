@@ -1,7 +1,9 @@
-/* 홈(#367)의 실제 API 섹션 카드 값. "지금 주목받는 프로젝트"는 `GET /api/v1/home/feed`,
-   "실시간 LIVE"는 `GET /api/v1/lives?status=LIVE&sort=viewerCount`에서 온다. BE에 없는 값은 채우지 않는다. */
+/* 홈(#367)의 실제 API 섹션 카드 값. "지금 주목받는 프로젝트"는 `GET /api/v1/home/feed?sort=POPULAR`,
+   "마감 임박 프로젝트"는 `GET /api/v1/home/feed?sort=DEADLINE`, "실시간 LIVE"는
+   `GET /api/v1/lives?status=LIVE&sort=viewerCount`에서 온다. BE에 없는 값은 채우지 않는다. */
 import type { ProjectCardResponse } from "@/entities/project/api/buyer-project-api";
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
+import { ddayLabel } from "@/entities/project/model/remaining-days";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 import {
   realLiveHref,
@@ -28,6 +30,11 @@ export type FeaturedCard = {
   achievement?: string;
 };
 
+/* 상세 API의 경로 변수는 공개 UUID다. 숫자 projectId를 넣으면 안 된다(BE SearchDomainApiSpec). */
+function projectHref(row: ProjectCardResponse) {
+  return isPublicUuid(row.projectPublicId) ? `/projects/${row.projectPublicId}` : undefined;
+}
+
 /**
  * 홈 피드 달성률은 검색 색인 값이라 BE 명세상 펀딩 집계 이벤트(SEARCH-013) 전까지 0이다. 그래서 행의
  * `achievementRate` 대신 프로젝트 상세의 달성률(`achievementRate`)을 받아 쓴다(#445).
@@ -35,8 +42,7 @@ export type FeaturedCard = {
 export function featuredCard(row: ProjectCardResponse, achievementRate?: number): FeaturedCard {
   return {
     id: String(row.projectId),
-    /* 상세 API의 경로 변수는 공개 UUID다. 숫자 projectId를 넣으면 안 된다(BE SearchDomainApiSpec). */
-    href: isPublicUuid(row.projectPublicId) ? `/projects/${row.projectPublicId}` : undefined,
+    href: projectHref(row),
     title: row.title,
     image: row.thumbnailUrl,
     category: row.categoryMajor,
@@ -45,6 +51,28 @@ export function featuredCard(row: ProjectCardResponse, achievementRate?: number)
       achievementRate === undefined
         ? undefined
         : `${achievementRate.toLocaleString("ko-KR")}% 달성`,
+  };
+}
+
+/** 마감 임박 카드(모바일 `2315:71409`, PC `2315:71837`). Figma처럼 D-N·제목·판매자만 있고 달성률은 없다. */
+export type DeadlineCard = {
+  id: string;
+  /** 상세 경로. 공개 UUID가 없으면 비워 카드를 링크로 만들지 않는다. */
+  href?: string;
+  title: string;
+  image?: string | null;
+  seller?: string;
+  dday: string;
+};
+
+export function deadlineCard(row: ProjectCardResponse): DeadlineCard {
+  return {
+    id: String(row.projectId),
+    href: projectHref(row),
+    title: row.title,
+    image: row.thumbnailUrl,
+    seller: row.sellerDisplayName || undefined,
+    dday: ddayLabel(row.remainingDays),
   };
 }
 

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import type { FeaturedCard, LiveCard } from "../model/home-cards";
+import type { DeadlineCard, FeaturedCard, LiveCard } from "../model/home-cards";
 import { BuyerHome } from "./buyer-home";
 
-/* 실제 API 섹션(주목받는 프로젝트·실시간 LIVE)의 고정 값. 문구는 Figma 홈 `2315:72822`의 예시이고
+/* 실제 API 섹션(주목받는 프로젝트·실시간 LIVE·마감 임박)의 고정 값. 문구는 Figma 홈 `2315:72822`의 예시이고
    이미지는 저장소의 다른 목업 이미지를 빌려 쓴다. API 응답이 아니다. */
 const featured: FeaturedCard[] = [
   ["피부 본연의 힘을 되찾는 저자극 비건 스킨케어", "악세사리", "프레시맵", "1,520", "e5d64"],
@@ -47,6 +47,21 @@ const lives: LiveCard[] = [
   image: `/images/buyer-live/${image}.png`,
 }));
 
+/* 마감 임박은 Figma `2315:71837`의 문구·D-N·카드 이미지 그대로다. */
+const deadline: DeadlineCard[] = [
+  ["하루의 끝을 편안하게,\n스마트 수면 조명", "라이트온", "D-1"],
+  ["매일 30초, 건강한 한 잔을 만드는 미니 블렌더", "블렌디", "D-3"],
+  ["흩어진 책상을 한 번에 정리하는 모듈 데스크", "모듈랩", "D-1"],
+  ["우리 아이의 식사 시간을 챙겨주는 스마트 급식기", "펫밸런스", "D-4"],
+].map(([title, seller, dday], index) => ({
+  id: `deadline-${index + 1}`,
+  href: `/projects/0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f2${index}`,
+  title,
+  seller,
+  dday,
+  image: `/images/buyer-home/deadline-${index + 1}.jpg`,
+}));
+
 const onRetry = fn();
 
 const meta = {
@@ -67,6 +82,7 @@ const meta = {
   args: {
     featured: { status: "ready", items: featured },
     lives: { status: "ready", items: lives },
+    deadline: { status: "ready", items: deadline },
   },
 } satisfies Meta<typeof BuyerHome>;
 export default meta;
@@ -98,13 +114,16 @@ export const Mobile: Story = {
     expect(liveSection.queryByText("라이브 특가")).not.toBeInTheDocument();
     for (const title of ["지금 주목받는 프로젝트", "마감 임박 프로젝트", "추천 프로젝트"])
       expect(canvas.getByRole("button", { name: `${title} 전체보기 (준비중)` })).toBeDisabled();
-    const deadline = within(canvas.getByRole("list", { name: "마감 임박 프로젝트 목록" }));
-    expect(deadline.getAllByText(/^D-\d$/).map((badge) => badge.textContent)).toEqual([
+    const deadlineList = within(canvas.getByRole("list", { name: "마감 임박 프로젝트 목록" }));
+    expect(deadlineList.getAllByText(/^D-\d$/).map((badge) => badge.textContent)).toEqual([
       "D-1",
       "D-3",
       "D-1",
       "D-4",
     ]);
+    expect(deadlineList.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(
+      deadline.map((card) => card.href),
+    );
     const recommended = within(canvas.getByRole("list", { name: "추천 프로젝트 목록" }));
     expect(recommended.getAllByRole("link")).toHaveLength(8);
     for (const link of recommended.getAllByRole("link"))
@@ -141,6 +160,7 @@ export const ErrorAndEmpty: Story = {
   args: {
     featured: { status: "error", onRetry },
     lives: { status: "ready", items: [] },
+    deadline: { status: "ready", items: [] },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -151,11 +171,20 @@ export const ErrorAndEmpty: Story = {
     expect(onRetry).toHaveBeenCalledOnce();
     const liveSection = within(canvas.getByRole("region", { name: "실시간 LIVE" }));
     expect(liveSection.getByText("지금 진행 중인 LIVE가 없습니다.")).toBeInTheDocument();
+    const deadlineSection = within(canvas.getByRole("region", { name: "마감 임박 프로젝트" }));
+    expect(deadlineSection.getByText("마감 임박 프로젝트가 없습니다.")).toHaveAttribute(
+      "role",
+      "status",
+    );
   },
 };
 
 export const Loading: Story = {
-  args: { featured: { status: "loading" }, lives: { status: "loading" } },
+  args: {
+    featured: { status: "loading" },
+    lives: { status: "loading" },
+    deadline: { status: "loading" },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     expect(canvas.getByText("지금 주목받는 프로젝트를 불러오고 있습니다.")).toHaveAttribute(
@@ -163,5 +192,9 @@ export const Loading: Story = {
       "status",
     );
     expect(canvas.getByText("실시간 LIVE를 불러오고 있습니다.")).toHaveAttribute("role", "status");
+    expect(canvas.getByText("마감 임박 프로젝트를 불러오고 있습니다.")).toHaveAttribute(
+      "role",
+      "status",
+    );
   },
 };
