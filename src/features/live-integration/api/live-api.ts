@@ -80,6 +80,12 @@ export const requestAnswer = (
     { auth: true, method: "POST", body, signal },
   );
 
+/** IVS 채팅 토큰(#470). 만료 필드는 없고 한 번만 쓸 수 있어 다시 연결할 때마다 새로 받는다. */
+export type ChatToken = { token: string; roomArn: string; capabilities: string[] };
+/* 로그인이 필요하다(401). 없거나 DRAFT인 LIVE는 404, 채팅방이 아직 없으면(시작 전) 409, IVS 오류는 503이다. */
+export const createChatToken = (liveId: string) =>
+  apiRequest<ChatToken>(`${livePath(liveId)}/chat/token`, { auth: true, method: "POST" });
+
 /* 좋아요·취소는 갱신된 수를 함께 돌려준다(BE #123 LikeResponse). 둘 다 idempotent다. */
 export type LikeResult = { liked: boolean; likeCount: number };
 export const likeLive = (liveId: string) =>
@@ -98,15 +104,38 @@ export type Highlight = {
   startSec: number;
   endSec: number | null;
   clipUrl: string | null;
+  /** AI 콜백이 채우기 전까지 비어 있다(BE PR #185). */
+  thumbnailUrl?: string | null;
   caption: string | null;
   isPublic: boolean;
   generationStatus: string;
+  createdAt: string;
 };
 
 /* 이 호출이 조회 수로 잡힌다(BE 주석). 구간을 고를 때마다 다시 부르지 않는다. */
 export const getPublicHighlights = (liveId: string, signal?: AbortSignal) =>
   apiRequest<{ markers: Highlight[]; clips: Highlight[] }>(
     `${livePath(liveId)}/highlights/public`,
+    { signal },
+  );
+
+/** 프로젝트의 공개 숏 클립 한 건(BE PR #185). 여러 방송의 클립이 섞여 항목마다 `liveId`가 온다. */
+export type ProjectClip = {
+  liveId: string;
+  highlightId: string;
+  sceneLabel: string;
+  title?: string | null;
+  clipUrl?: string | null;
+  /** AI 콜백이 채우기 전까지 비어 있다. */
+  thumbnailUrl?: string | null;
+  createdAt: string;
+};
+
+/* 구매자 LIVE 체크 탭의 숏 클립. 비인증이고 공개·생성 완료된 클립만 생성 최신순으로 온다. `/public`과 달리
+   조회 수를 올리지 않아 프로젝트 화면을 열 때마다 불러도 된다. 첫 페이지(기본 20건)만 받는다. */
+export const getPublicProjectClips = (projectId: string, signal?: AbortSignal) =>
+  apiRequest<{ content: ProjectClip[]; totalElements: number }>(
+    `/api/v1/lives/highlights?${new URLSearchParams({ projectId })}`,
     { signal },
   );
 

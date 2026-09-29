@@ -31,6 +31,7 @@ const clip = (highlightId, startSec, generationStatus = "COMPLETED") => ({
   caption: null,
   isPublic: false,
   generationStatus,
+  createdAt: "2026-09-15T03:00:00Z",
 });
 
 test("종료된 LIVE를 끝 페이지까지 받고 LIVE마다 판매자 하이라이트를 받아 합친다", async () => {

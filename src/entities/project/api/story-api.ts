@@ -1,4 +1,5 @@
 import { apiRequest, apiStreamRequest } from "../../../shared/api/client";
+import type { ProjectPageSummary } from "./buyer-project-api";
 import type { ProjectApiStatus } from "./seller-project-api";
 
 /* 소유자용 미리보기는 구매자 공개 상세와 같은 ProjectDetailResponse를 돌려준다. 스토리 편집에
@@ -19,6 +20,8 @@ export type StoryPreviewResponse = {
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };
+  /** 저장된 내용 기준 AI 요약(#407). 초안은 요약 대상이 아니라 늘 빠진다. */
+  pageSummary?: ProjectPageSummary | null;
 };
 export function getStoryPreview(projectId: string, signal?: AbortSignal) {
   return apiRequest<StoryPreviewResponse>(`/api/v1/projects/${projectId}/preview`, {

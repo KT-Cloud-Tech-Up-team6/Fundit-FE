@@ -6,8 +6,10 @@ import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/shared/components/ui/badge";
+import type { AiSummaryState } from "../model/ai-summary";
 import { projectDemo, replayDemos, clipDemos, questionDemos } from "../model/project-demo";
 import { Tooltip } from "@/shared/components/ui/tooltip";
+import type { VideoCard } from "../model/live-replay";
 import styles from "./buyer-project-detail.module.css";
 
 const tabs = [
@@ -90,52 +92,184 @@ export function Information({ label, disabled = false }: { label: string; disabl
   );
 }
 
-function VideoList({ clips = false, liveId }: { clips?: boolean; liveId: string }) {
+/* 숏 클립 썸네일은 AI가 채우기 전까지 비어 있어(BE) LIVE 클립 관리처럼 클립 영상의 첫 프레임을 쓴다.
+   둘 다 없으면 빈 면이다. */
+function VideoPoster({ image, video }: Pick<VideoCard, "image" | "video">) {
+  if (image)
+    return (
+      <Image
+        src={image}
+        alt=""
+        fill
+        sizes="163px"
+        className="object-cover"
+        unoptimized={/^https?:\/\//.test(image)}
+      />
+    );
+  if (video)
+    return (
+      <video
+        aria-hidden
+        className="absolute inset-0 size-full object-cover"
+        muted
+        playsInline
+        preload="metadata"
+        src={video}
+      />
+    );
+  return null;
+}
+
+/**
+ * 종료된 라이브·숏 클립 가로 목록(`1541:50498`). `state`를 주면 목록 대신 그 안내(불러오는 중·오류·빈 목록)를
+ * 보인다. 건수는 목록 길이가 아니라 전체 건수라 따로 받고, 모르면(불러오는 중·오류) 적지 않는다.
+ */
+export function VideoList({
+  title,
+  count,
+  videos,
+  state,
+}: {
+  title: string;
+  count?: number;
+  videos: readonly VideoCard[];
+  state?: ReactNode;
+}) {
   const carouselDrag = useHorizontalDrag();
-  const title = clips ? "숏 클립" : "종료된 라이브";
-  const videos = clips ? clipDemos : replayDemos;
   return (
     <section className={styles.videoSection} aria-label={title}>
       <h3>
-        {title} <small>{videos.length}건</small>
+        {title} {count !== undefined && <small>{count}건</small>}
       </h3>
-      <div
-        {...carouselDrag}
-        className={styles.carousel}
-        tabIndex={0}
-        role="region"
-        aria-label={`${title} 목록`}
-      >
-        {videos.map((video, index) => (
-          <article key={index}>
-            <Link
-              href={`/live/${encodeURIComponent(liveId)}?mode=replay${clips ? "&view=clip" : ""}`}
-              aria-label={`${title} ${index + 1} · ${clips ? "[제품명] AI 생성 제목" : video.title} 재생`}
-            >
-              <span className={styles.videoPoster}>
-                <Image
-                  src={clips ? projectDemo.image : projectDemo.poster}
-                  alt=""
-                  fill
-                  sizes="163px"
-                  className="object-cover"
-                />
-                {clips && (
-                  <Badge variant="live" className="relative">
-                    {index === 0 || index === 2 ? "시연 영상" : "하이라이트"}
-                  </Badge>
+      {state ?? (
+        <div
+          {...carouselDrag}
+          className={styles.carousel}
+          tabIndex={0}
+          role="region"
+          aria-label={`${title} 목록`}
+        >
+          {videos.map((video, index) => (
+            <article key={video.id}>
+              <Link href={video.href} aria-label={`${title} ${index + 1} · ${video.title} 재생`}>
+                <span className={styles.videoPoster}>
+                  <VideoPoster image={video.image} video={video.video} />
+                  {video.badge && (
+                    <Badge variant="live" className="relative">
+                      {video.badge}
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-body-s mt-1 line-clamp-2 font-medium">{video.title}</span>
+                {video.date && (
+                  <span className="text-caption-s text-text-secondary block">{video.date}</span>
                 )}
-              </span>
-              <span className="text-body-s mt-1 line-clamp-2 font-medium">
-                {clips ? "[제품명] AI 생성 제목" : video.title}
-              </span>
-              <span className="text-caption-s text-text-secondary block">
-                {clips ? "09.07" : video.date}
-              </span>
-            </Link>
-          </article>
-        ))}
+              </Link>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** "LIVE 다시 보기" 절(`1541:50492`). 건수는 종료된 라이브와 숏 클립을 합친 수이고, 모르면 적지 않는다. */
+export function LiveReplaySection({
+  count,
+  className = "",
+  children,
+}: {
+  count?: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-label="LIVE 다시 보기"
+      className={`${styles.replay} flex min-w-0 flex-col gap-3 ${className}`}
+    >
+      <h2>
+        <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
+        LIVE 다시 보기 {count !== undefined && <small>{count}건</small>}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/* 데모 카드는 Figma 자리표시 그대로다. 라이브 요약은 실제 프로젝트 범위 밖이다(#407). */
+const demoAiSummary = (hasLive: boolean): AiSummaryState => ({
+  status: "ready",
+  items: [
+    { title: "프로젝트 요약", body: "상세 내용" },
+    { title: "프로젝트 요약", body: "상세 내용" },
+    ...(hasLive ? [{ title: "라이브 요약", body: "상세 내용" }] : []),
+  ],
+});
+
+/**
+ * AI 프로젝트 요약 카드(모바일 Figma 1443:44427, 데스크톱 2107:70404). 체크 옆 제목, 그 아래 들여쓴 본문이다.
+ * 생성 중에는 같은 자리에 안내와 로딩 막대를 두어 요약이 도착해도 카드 크기가 크게 바뀌지 않게 한다(자체 판단 135).
+ * 데스크톱 글자·들여쓰기는 모듈의 `.desktop .aiSummary`에서 바꾼다.
+ */
+function AiSummary({ summary, preview }: { summary: AiSummaryState; preview: boolean }) {
+  const generating = summary.status === "generating";
+  return (
+    <section
+      className={`${styles.aiSummary} border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2`}
+      aria-label="AI 프로젝트 요약"
+      aria-busy={generating}
+      /* 생성 중이던 카드가 요약으로 바뀌면 스크린 리더에 새 항목을 읽어 준다. */
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-1">
+        <Image
+          data-summary-icon
+          src="/images/buyer-project/spark.svg"
+          width={14}
+          height={14}
+          alt=""
+        />
+        <h2 className="text-label-l">AI 프로젝트 요약</h2>
+        <Information label="AI 프로젝트 요약 안내" disabled={preview} />
       </div>
+      {generating ? (
+        <>
+          <p data-summary-status className="text-caption-s text-text-secondary">
+            AI가 프로젝트를 요약하고 있어요
+          </p>
+          {["w-2/5", "w-1/3"].map((width) => (
+            <div key={width} aria-hidden className="text-caption-s">
+              <div data-summary-title className="flex h-[1lh] items-center gap-1">
+                <span className={`${styles.aiSummarySkeleton} size-3 rounded-full`} />
+                <span className={`${styles.aiSummarySkeleton} h-2.5 ${width} rounded-xs`} />
+              </div>
+              <div data-summary-body className="flex h-[1lh] items-center pl-4">
+                <span className={`${styles.aiSummarySkeleton} h-2.5 w-4/5 rounded-xs`} />
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        summary.items.map(({ title, body }, index) => (
+          <div key={index} className="text-caption-s">
+            <h3 data-summary-title className="flex items-start gap-1 font-medium break-words">
+              <span className="flex h-[1lh] shrink-0 items-center">
+                <Image
+                  src="/images/buyer-project/summary-check.svg"
+                  width={12}
+                  height={12}
+                  alt=""
+                />
+              </span>
+              <span className="min-w-0">{title}</span>
+            </h3>
+            <p data-summary-body className="pl-4 break-words">
+              {body}
+            </p>
+          </div>
+        ))
+      )}
     </section>
   );
 }
@@ -147,11 +281,13 @@ export function BuyerProjectDetail({
   project = projectDemo,
   liveId = "demo-live",
   hasLive = true,
+  liveCheckTab = true,
   preview = false,
   storyContent,
   rewardSummary,
   rewardSelection,
   server,
+  aiSummary,
   tabContent,
 }: {
   projectId: string;
@@ -160,13 +296,18 @@ export function BuyerProjectDetail({
   project?: typeof projectDemo;
   liveId?: string;
   hasLive?: boolean;
+  /** LIVE 체크 탭을 보일지. IA 소비자 26행은 LIVE를 진행한 프로젝트만 보인다(#456). 데모는 늘 보인다. */
+  liveCheckTab?: boolean;
   preview?: boolean;
   storyContent?: ReactNode;
   rewardSummary?: ReactNode;
   rewardSelection?: ReactNode;
   server?: { remainingDays?: number | null; participantCount: number };
+  /** 실제 프로젝트의 AI 요약(#407). 없으면 카드를 그리지 않는다. 데모(server 없음)는 Figma 자리표시 카드다. */
+  aiSummary?: AiSummaryState | null;
   tabContent?: ReactNode;
 }) {
+  const summary = server ? aiSummary : demoAiSummary(hasLive);
   const Content = preview ? "div" : "main";
   const tabsDrag = useHorizontalDrag();
   const [liked, setLiked] = useState(false);
@@ -337,34 +478,7 @@ export function BuyerProjectDetail({
                 </span>
               </div>
             </div>
-            {!server && (
-              <section
-                className="border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2"
-                aria-label="AI 프로젝트 요약"
-              >
-                <div className="flex items-center gap-1">
-                  <Image src="/images/buyer-project/spark.svg" width={14} height={14} alt="" />
-                  <h2 className="text-label-l">AI 프로젝트 요약</h2>
-                  <Information label="AI 프로젝트 요약 안내" disabled={preview} />
-                </div>
-                {["프로젝트 요약", "프로젝트 요약", ...(hasLive ? ["라이브 요약"] : [])].map(
-                  (title, i) => (
-                    <div className="text-caption-s" key={i}>
-                      <h3 className="flex items-center gap-1 font-medium">
-                        <Image
-                          src="/images/buyer-project/summary-check.svg"
-                          width={12}
-                          height={12}
-                          alt=""
-                        />
-                        {title}
-                      </h3>
-                      <p className="pl-4">상세 내용</p>
-                    </div>
-                  ),
-                )}
-              </section>
-            )}
+            {summary && <AiSummary summary={summary} preview={preview} />}
           </section>
           {!preview && rewardSelection && (
             <div className="hidden min-[1200px]:block">{rewardSelection}</div>
@@ -375,32 +489,34 @@ export function BuyerProjectDetail({
           )}
         </aside>
         <nav {...tabsDrag} className={styles.tabs} aria-label="프로젝트 상세 탭">
-          {tabs.map(([value, label]) =>
-            preview ? (
-              <button
-                key={value}
-                type="button"
-                disabled
-                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
-                aria-current={value === activeTab ? "page" : undefined}
-              >
-                {label}
-                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
-              </button>
-            ) : (
-              <Link
-                scroll={false}
-                className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
-                key={value}
-                ref={value === activeTab ? selectedTab : undefined}
-                href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
-                aria-current={value === activeTab ? "page" : undefined}
-              >
-                {label}
-                {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
-              </Link>
-            ),
-          )}
+          {tabs
+            .filter(([value]) => liveCheckTab || value !== "live-proof")
+            .map(([value, label]) =>
+              preview ? (
+                <button
+                  key={value}
+                  type="button"
+                  disabled
+                  className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                  aria-current={value === activeTab ? "page" : undefined}
+                >
+                  {label}
+                  {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
+                </button>
+              ) : (
+                <Link
+                  scroll={false}
+                  className="text-body-m text-text-disabled border-border-default aria-[current=page]:border-border-primary aria-[current=page]:text-text-default flex h-[46px] shrink-0 items-center gap-2 border-b p-2 whitespace-nowrap aria-[current=page]:border-b-[1.8px] aria-[current=page]:font-medium"
+                  key={value}
+                  ref={value === activeTab ? selectedTab : undefined}
+                  href={`/projects/${encodeURIComponent(projectId)}?tab=${value}`}
+                  aria-current={value === activeTab ? "page" : undefined}
+                >
+                  {label}
+                  {!server && value !== "story" && value !== "refund-policy" && <small>000</small>}
+                </Link>
+              ),
+            )}
         </nav>
         {tabContent ? (
           <section className={styles.story + " relative mx-5 mt-4 mb-8"}>{tabContent}</section>
@@ -419,14 +535,31 @@ export function BuyerProjectDetail({
           </section>
         ) : (
           <div className={styles.liveContent + " flex flex-col gap-6 px-5 pt-4 pb-10"}>
-            <section aria-label="LIVE 다시 보기" className="flex min-w-0 flex-col gap-3">
-              <h2>
-                <DetailIcon name="replay" className="text-text-primary-live size-3.5" />
-                LIVE 다시 보기 <small>{replayDemos.length + clipDemos.length}건</small>
-              </h2>
-              <VideoList liveId={liveId} />
-              <VideoList clips liveId={liveId} />
-            </section>
+            <LiveReplaySection count={replayDemos.length + clipDemos.length}>
+              <VideoList
+                title="종료된 라이브"
+                count={replayDemos.length}
+                videos={replayDemos.map((video, index) => ({
+                  id: `replay-${index}`,
+                  href: `/live/${encodeURIComponent(liveId)}?mode=replay`,
+                  title: video.title,
+                  date: video.date,
+                  image: projectDemo.poster,
+                }))}
+              />
+              <VideoList
+                title="숏 클립"
+                count={clipDemos.length}
+                videos={clipDemos.map((video, index) => ({
+                  id: `clip-${index}`,
+                  href: `/live/${encodeURIComponent(liveId)}?mode=replay&view=clip`,
+                  title: video.title,
+                  date: video.date,
+                  image: projectDemo.image,
+                  badge: index === 0 || index === 2 ? "시연 영상" : "하이라이트",
+                }))}
+              />
+            </LiveReplaySection>
             <section className="flex flex-col gap-6" aria-label="LIVE Q&A">
               <div className="-mb-3 flex items-center gap-1">
                 <h2>

@@ -4,11 +4,13 @@ import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query
 import { getHomeFeed, getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { getPublicLives, type PublicLivesQuery } from "@/entities/live/api/public-live-api";
-import { featuredCard, liveCard, type SectionData } from "../model/home-cards";
+import { deadlineCard, featuredCard, liveCard, type SectionData } from "../model/home-cards";
 import { BuyerHome } from "./buyer-home";
 
 /** PC 5열 격자의 Figma 카드 수(`2315:71635`). 모바일은 같은 목록을 가로로 넘긴다. */
 const HOME_FEED_SIZE = 8;
+/** 마감 임박의 Figma 카드 수(모바일 `2315:71408`, PC `2315:71837` 모두 4장). */
+const DEADLINE_FEED_SIZE = 4;
 
 /* LIVE 메인의 실시간 순위와 같은 조건·키라 두 화면이 캐시를 함께 쓴다. `/home/lives`는 시청자 수가
    항상 비어 있어 쓰지 않는다. */
@@ -28,8 +30,13 @@ function toSectionData<TData, TItem>(
 /** 실제 페이지 전용. Storybook은 BuyerHome에 고정 값을 바로 넘겨 이 조회가 돌지 않는다. */
 export function BuyerHomeApi() {
   const feed = useQuery({
-    queryKey: ["home-feed", HOME_FEED_SIZE],
-    queryFn: ({ signal }) => getHomeFeed(HOME_FEED_SIZE, signal),
+    queryKey: ["home-feed", "POPULAR", HOME_FEED_SIZE],
+    queryFn: ({ signal }) => getHomeFeed("POPULAR", HOME_FEED_SIZE, signal),
+  });
+  /* IA는 "마감 임박 큐레이션"만 적고 기간 기준이 없어, 기간 제한 없이 BE 마감순 앞 4개를 보인다. */
+  const deadline = useQuery({
+    queryKey: ["home-feed", "DEADLINE", DEADLINE_FEED_SIZE],
+    queryFn: ({ signal }) => getHomeFeed("DEADLINE", DEADLINE_FEED_SIZE, signal),
   });
   const lives = useQuery({
     queryKey: ["public-lives", liveQuery],
@@ -66,6 +73,7 @@ export function BuyerHomeApi() {
         ),
       )}
       lives={toSectionData(lives, (data) => data.content.map(liveCard))}
+      deadline={toSectionData(deadline, (data) => data.content.map(deadlineCard))}
     />
   );
 }

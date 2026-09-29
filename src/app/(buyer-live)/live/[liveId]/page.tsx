@@ -11,6 +11,7 @@ import { isPublicUuid } from "@/shared/lib/public-uuid";
 import { LiveViewport } from "./live-viewport";
 import { notFound } from "next/navigation";
 import { RealBuyerLive } from "@/features/live-integration/ui/real-live";
+import { RealLiveChatProvider } from "@/features/live-integration/ui/real-live-chat";
 
 export default async function LivePage({ params, searchParams }: PageProps<"/live/[liveId]">) {
   const { liveId } = await params;
@@ -21,27 +22,30 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
     const replay = query.mode === "replay";
     const clip = replay && query.view === "clip";
     const clipId = typeof query.clip === "string" ? query.clip : undefined;
+    /* 뷰포트 전환으로 RealBuyerLive가 두 번 마운트돼도 채팅 연결은 하나다(#470). */
     return (
-      <LiveViewport
-        desktop={
+      <RealLiveChatProvider liveId={liveId} replay={replay}>
+        <LiveViewport
+          desktop={
+            <RealBuyerLive
+              key={`${liveId}:desktop:${replay}:${clip}`}
+              liveId={liveId}
+              replay={replay}
+              clip={clip}
+              clipId={clipId}
+              desktop
+            />
+          }
+        >
           <RealBuyerLive
-            key={`${liveId}:desktop:${replay}:${clip}`}
+            key={`${liveId}:mobile:${replay}:${clip}`}
             liveId={liveId}
             replay={replay}
             clip={clip}
             clipId={clipId}
-            desktop
           />
-        }
-      >
-        <RealBuyerLive
-          key={`${liveId}:mobile:${replay}:${clip}`}
-          liveId={liveId}
-          replay={replay}
-          clip={clip}
-          clipId={clipId}
-        />
-      </LiveViewport>
+        </LiveViewport>
+      </RealLiveChatProvider>
     );
   }
   const product = connection

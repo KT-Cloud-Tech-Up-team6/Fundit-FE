@@ -17,6 +17,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
 import { desktopMessages, desktopProductDescription } from "../model/desktop-room-demo";
+import { liveChatFailedNotice, type LiveChat, type LiveChatMessage } from "../model/live-chat";
 import type { LiveSeller } from "../model/live-seller";
 import { roomDemo } from "../model/room-demo";
 import styles from "./buyer-live-desktop.module.css";
@@ -85,6 +86,7 @@ export function BuyerLiveDesktop({
   onToggleLike,
   seller,
   replayMessages,
+  liveChat,
 }: {
   liveId: string;
   product?: typeof roomDemo;
@@ -117,6 +119,8 @@ export function BuyerLiveDesktop({
   seller?: LiveSeller;
   /** 다시보기 구간 채팅. 주면 목업 채팅 대신 이 목록을 그린다. */
   replayMessages?: { id: string; author: string; text: string }[];
+  /** 실제 LIVE 채팅. 주면 리워드 없이도 채팅 패널과 입력을 그린다. */
+  liveChat?: LiveChat;
   onRefreshQuestions?: () => void;
 }) {
   const [internalFollowing, setInternalFollowing] = useState(false);
@@ -137,6 +141,11 @@ export function BuyerLiveDesktop({
   const selectedChapter = chapters.filter((chapter) => chapter.progress <= progress).length - 1;
   const [draft, setDraft] = useState(initialMessage);
   const [blocked, setBlocked] = useState(false);
+  /* 실제 채팅: 서버가 메시지 검토에서 거절(IVS 406)했는지, 보낸 메시지를 기다리는 중인지. */
+  const [rejected, setRejected] = useState(false);
+  const [sending, setSending] = useState(false);
+  /* 대기 표시는 다음 렌더에 반영된다. 그 사이 Enter를 두 번 누르면 같은 메시지가 두 번 나간다. */
+  const sendingRef = useRef(false);
   const [messages, setMessages] = useState(() =>
     demoMode ? desktopMessages.map((text, id) => ({ id, text, author: "아이디" })) : [],
   );
@@ -148,8 +157,12 @@ export function BuyerLiveDesktop({
   const input = useRef<HTMLTextAreaElement>(null);
   const mirror = useRef<HTMLDivElement>(null);
   const errorId = useId();
-  // Figma의 두 차단 예시만 재현하며 서버 금칙어 정책이 아니다.
-  const invalid = /바보|멍청이/.test(draft);
+  // Figma의 두 차단 예시만 재현하며 서버 금칙어 정책이 아니다. 실제 채팅은 서버가 거절한다.
+  const invalid = !liveChat && /바보|멍청이/.test(draft);
+  const showBlocked = (blocked && invalid) || rejected;
+  const chatMessages: (
+    LiveChatMessage | { id: number; author: string; text: string; ai?: never }
+  )[] = replayMessages ?? liveChat?.messages ?? messages;
 
   useEffect(
     () => () => {
@@ -159,7 +172,7 @@ export function BuyerLiveDesktop({
   );
   useEffect(() => {
     if (chat.current) chat.current.scrollTop = chat.current.scrollHeight;
-  }, [messages, panel]);
+  }, [chatMessages, panel]);
   useEffect(() => {
     const list = chapterList.current;
     const selected = list?.children[selectedChapter] as HTMLElement | undefined;
@@ -192,8 +205,25 @@ export function BuyerLiveDesktop({
       announce("링크를 복사하지 못했습니다. 주소창의 링크를 복사해주세요.");
     }
   }
+  /* 서버가 같은 메시지를 되돌려줄 때까지 입력을 지우지 않는다. 기다리는 동안 고쳐 쓴 글은 지우지 않는다. */
+  async function sendLiveMessage(live: LiveChat, text: string) {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
+    const result = await live.onSend(text);
+    sendingRef.current = false;
+    setSending(false);
+    if (result === "sent") setDraft((current) => (current.trim() === text ? "" : current));
+    else if (result === "rejected") setRejected(true);
+    else announce(liveChatFailedNotice);
+    input.current?.focus();
+  }
   function send() {
     if (!draft.trim()) return;
+    if (liveChat) {
+      void sendLiveMessage(liveChat, draft.trim());
+      return;
+    }
     if (invalid) {
       setBlocked(true);
       input.current?.focus();
@@ -445,8 +475,11 @@ export function BuyerLiveDesktop({
             </div>
           )}
         </section>
-        {(demoMode || sidePanel) && (
-          <aside className="flex min-w-0 flex-col gap-4" aria-label="리워드와 방송 소통">
+        {(demoMode || sidePanel || liveChat) && (
+          <aside
+            className={`flex min-w-0 flex-col gap-4 ${replay ? "" : "self-stretch"}`}
+            aria-label="리워드와 방송 소통"
+          >
             {rewardSummary}
             {replay && (demoMode || chapters.length > 0) && panel === "chapters" ? (
               <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
@@ -487,9 +520,11 @@ export function BuyerLiveDesktop({
                 </div>
               </div>
             ) : (
+              /* 실시간 채팅은 Figma 1525:43628처럼 영상 아래 끝에 맞춘다(열을 행 높이로 늘린 뒤 아래로 민다).
+                 실제 경로는 위 리워드 카드가 없어도 같다. */
               <section
                 aria-label={replay ? "다시보기 채팅" : "실시간 채팅"}
-                className="bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border"
+                className={`bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border ${replay ? "" : "mt-auto"}`}
               >
                 {demoMode && (
                   <Badge variant="neutral" className="absolute top-3 right-3 z-10">
@@ -506,12 +541,18 @@ export function BuyerLiveDesktop({
                   tabIndex={0}
                   className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
                 >
-                  {(replayMessages ?? messages).map((message) => (
-                    <p key={message.id} className="flex items-start gap-2">
+                  {chatMessages.map((message) => (
+                    /* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
+                    <p
+                      key={message.id}
+                      className={message.ai ? "flex flex-col" : "flex items-start gap-2"}
+                    >
                       <span className="text-label-m text-text-secondary mt-0.5 shrink-0">
                         {message.author}
                       </span>
-                      <span className="min-w-0 wrap-anywhere whitespace-pre-wrap">
+                      <span
+                        className={`min-w-0 wrap-anywhere whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
+                      >
                         {message.text}
                       </span>
                     </p>
@@ -523,7 +564,7 @@ export function BuyerLiveDesktop({
                     </p>
                   )}
                 </div>
-                {demoMode && (
+                {(demoMode || liveChat) && (
                   <form
                     className="border-layer-bg relative flex shrink-0 items-end gap-2 border-t-4 p-2"
                     onSubmit={(event) => {
@@ -531,53 +572,69 @@ export function BuyerLiveDesktop({
                       send();
                     }}
                   >
-                    <div className={styles.inputBox}>
-                      <div aria-hidden ref={mirror} className={styles.mirror}>
-                        {draft.split(/(바보|멍청이)/g).map((part, index) => (
-                          <span
-                            key={index}
-                            className={
-                              /^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined
+                    {liveChat?.onRequireLogin ? (
+                      /* 비로그인은 좋아요·팔로우처럼 로그인으로 보내고 끝나면 이 화면으로 돌아온다. */
+                      <button
+                        type="button"
+                        className={`${styles.inputBox} text-text-secondary text-left text-[14px] leading-5`}
+                        aria-label="로그인하고 메시지 입력"
+                        onClick={liveChat.onRequireLogin}
+                      >
+                        메시지 입력
+                      </button>
+                    ) : (
+                      <div className={styles.inputBox}>
+                        <div aria-hidden ref={mirror} className={styles.mirror}>
+                          {(liveChat ? [draft] : draft.split(/(바보|멍청이)/g)).map(
+                            (part, index) => (
+                              <span
+                                key={index}
+                                className={
+                                  /^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined
+                                }
+                              >
+                                {part}
+                              </span>
+                            ),
+                          )}
+                          {"\n"}
+                        </div>
+                        <textarea
+                          ref={input}
+                          rows={1}
+                          value={draft}
+                          aria-label="메시지 입력"
+                          placeholder="메시지 입력"
+                          maxLength={liveChat?.maxLength}
+                          aria-invalid={showBlocked}
+                          aria-describedby={showBlocked ? errorId : undefined}
+                          onChange={(event) => {
+                            setDraft(event.target.value);
+                            setBlocked(false);
+                            setRejected(false);
+                          }}
+                          onScroll={(event) => {
+                            if (mirror.current)
+                              mirror.current.scrollTop = event.currentTarget.scrollTop;
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" &&
+                              !event.shiftKey &&
+                              !event.nativeEvent.isComposing &&
+                              event.keyCode !== 229
+                            ) {
+                              event.preventDefault();
+                              send();
                             }
-                          >
-                            {part}
-                          </span>
-                        ))}
-                        {"\n"}
+                          }}
+                        />
                       </div>
-                      <textarea
-                        ref={input}
-                        rows={1}
-                        value={draft}
-                        aria-label="메시지 입력"
-                        placeholder="메시지 입력"
-                        aria-invalid={blocked && invalid}
-                        aria-describedby={blocked && invalid ? errorId : undefined}
-                        onChange={(event) => {
-                          setDraft(event.target.value);
-                          setBlocked(false);
-                        }}
-                        onScroll={(event) => {
-                          if (mirror.current)
-                            mirror.current.scrollTop = event.currentTarget.scrollTop;
-                        }}
-                        onKeyDown={(event) => {
-                          if (
-                            event.key === "Enter" &&
-                            !event.shiftKey &&
-                            !event.nativeEvent.isComposing &&
-                            event.keyCode !== 229
-                          ) {
-                            event.preventDefault();
-                            send();
-                          }
-                        }}
-                      />
-                    </div>
+                    )}
                     <button
                       type="submit"
                       aria-label="메시지 전송"
-                      disabled={!draft.trim()}
+                      disabled={!draft.trim() || sending}
                       className="flex size-9 shrink-0 items-center justify-center rounded-xs disabled:opacity-40"
                     >
                       <span
@@ -585,7 +642,7 @@ export function BuyerLiveDesktop({
                         className="size-6 bg-current [mask:url(/icons/buyer-live-room/send.svg)_center/contain_no-repeat]"
                       />
                     </button>
-                    {blocked && invalid && (
+                    {showBlocked && (
                       <p
                         id={errorId}
                         role="alert"

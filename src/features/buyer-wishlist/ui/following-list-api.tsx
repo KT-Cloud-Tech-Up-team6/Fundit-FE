@@ -21,8 +21,12 @@ import {
   displayedFollowings,
   displayedFollowingTotal,
   followingRowSeller,
+  hasMissingShownRow,
+  isUnfollowed,
   liveBadgeBatches,
   liveSellerIds,
+  retainFollowChange,
+  type RetainedFollowings,
 } from "../model/following";
 
 /* 관심 목록 팔로잉 탭(#398, Figma FL_B_LK_LIST_2 1249:24108). 행은 이름·팔로워 수·♥(#427, BE PR #173)·
@@ -31,14 +35,12 @@ import {
    않는다(노션 FE 자체 판단 89·92). */
 export function FollowingListApi({
   memberId,
-  unfollowed,
-  onUnfollowedChange,
+  retained,
+  onRetainedChange,
 }: {
   memberId: string;
-  unfollowed: ReadonlyMap<string, FollowedSeller>;
-  onUnfollowedChange: (
-    change: (previous: ReadonlyMap<string, FollowedSeller>) => Map<string, FollowedSeller>,
-  ) => void;
+  retained: RetainedFollowings;
+  onRetainedChange: (change: (previous: RetainedFollowings) => RetainedFollowings) => void;
 }) {
   const client = useQueryClient();
   const key = ["member-follows", memberId];
@@ -54,12 +56,8 @@ export function FollowingListApi({
     sentinel = useRef<HTMLDivElement>(null);
   const { fetchNextPage, hasNextPage, isFetching } = list;
   const fetched = list.data?.pages.flatMap((page) => page.content) ?? [];
-  const follows = displayedFollowings(fetched, unfollowed);
-  const total = displayedFollowingTotal(
-    list.data?.pages[0]?.totalElements ?? 0,
-    fetched,
-    unfollowed,
-  );
+  const follows = displayedFollowings(fetched, retained);
+  const total = displayedFollowingTotal(list.data?.pages[0]?.totalElements ?? 0, fetched, retained);
   /* 방송 중 여부는 보이는 판매자로 공개 LIVE 목록(`status=LIVE`)을 거른다. 목록을 더 불러오거나 해제로
      행이 바뀌면 다시 묻고, 그동안은 앞선 결과로 배지를 둔다. 조회가 실패하면 배지만 빼고 목록은 그대로다. */
   const sellerIds = follows.map(({ sellerId }) => sellerId);
@@ -95,7 +93,29 @@ export function FollowingListApi({
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetching, list.isFetchNextPageError, list.isRefetchError]);
 
-  /* 해제한 행은 화면 상태로 남기고, LIVE 화면이 쓰는 공용 목록만 갱신한다. */
+  /* 팔로우를 바꾼 뒤 다시 읽어 보이던 행이 다음 페이지로 밀렸으면 스크롤을 기다리지 않고 이어 받아
+     제자리로 돌린다. 이어 받기에 실패하거나 다음 페이지가 없으면 멈춘다. */
+  const missingShownRow = hasMissingShownRow(retained, follows);
+  useEffect(() => {
+    if (
+      !missingShownRow ||
+      !hasNextPage ||
+      isFetching ||
+      list.isFetchNextPageError ||
+      list.isRefetchError
+    )
+      return;
+    void fetchNextPage();
+  }, [
+    missingShownRow,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    list.isFetchNextPageError,
+    list.isRefetchError,
+  ]);
+
+  /* 바꾼 행과 그때의 행 순서는 화면 상태로 남기고, LIVE 화면이 쓰는 공용 목록만 갱신한다. */
   async function change(seller: FollowedSeller, following: boolean) {
     if (saving.current) return;
     saving.current = true;
@@ -104,14 +124,9 @@ export function FollowingListApi({
     try {
       if (following) await followSeller(seller.sellerId);
       else await unfollowSeller(seller.sellerId);
-      onUnfollowedChange((previous) => {
-        const next = new Map(previous);
-        if (following) next.delete(seller.sellerId);
-        else next.set(seller.sellerId, seller);
-        return next;
-      });
+      onRetainedChange((previous) => retainFollowChange(previous, follows, seller, following));
       /* 해제 뒤 서버 페이지 경계가 앞당겨지므로, 이 목록도 다시 읽어 다음 페이지의 항목이
-         건너뛰지 않게 한다. 해제한 행은 unfollowed 상태로 따로 남는다. */
+         건너뛰지 않게 한다. 바꾼 행은 retained 상태로 따로 남는다. */
       await Promise.all([
         client.invalidateQueries({ queryKey: key }),
         client.invalidateQueries({ queryKey: followsQueryKey(memberId) }),
@@ -153,15 +168,15 @@ export function FollowingListApi({
           {follows.length ? (
             <div>
               {follows.map((seller) => {
-                const isUnfollowed = unfollowed.has(seller.sellerId);
+                const unfollowed = isUnfollowed(retained, seller.sellerId);
                 return (
                   <SellerRow
                     key={seller.sellerId}
                     seller={followingRowSeller(seller, liveIds.has(seller.sellerId))}
-                    following={!isUnfollowed}
-                    followLabel={isUnfollowed ? "다시 팔로우" : undefined}
+                    following={!unfollowed}
+                    followLabel={unfollowed ? "다시 팔로우" : undefined}
                     followUnavailable={busy}
-                    onFollow={() => void change(seller, isUnfollowed)}
+                    onFollow={() => void change(seller, unfollowed)}
                   />
                 );
               })}

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ComponentProps } from "react";
 import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import {
   followSeller,
@@ -29,6 +29,8 @@ import {
 } from "../api/live-api";
 import { LivePlayer, type LivePlayerHandle } from "./live-player";
 import { QueryError } from "./query-error";
+import { useLiveChatConnection } from "./real-live-chat";
+import { MAX_CHAT_LENGTH, toChatRows } from "../model/ivs-chat";
 import {
   chapterRange,
   clipBadge,
@@ -36,6 +38,16 @@ import {
   pickClip,
   toChapters,
 } from "../model/vod-chapters";
+
+/* 영상 영역은 늘 검정이다. 공용 오류 안내는 밝은 배경용이라 [다시 시도]가 묻히므로, 이미 정의된 다크 테마
+   토큰으로 보이고 영역 가운데에 둔다(#455). */
+function VideoAreaError(props: ComponentProps<typeof QueryError>) {
+  return (
+    <div data-theme="dark" className="text-text-default grid h-full place-items-center p-6">
+      <QueryError {...props} />
+    </div>
+  );
+}
 
 function answeredByLabel(value: string) {
   return value === "AI" ? "AI 답변" : value === "SELLER" ? "판매자 답변" : "답변자 미확인";
@@ -76,7 +88,7 @@ export function RealBuyerLive({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { state } = useAuth();
-  /* 좋아요·팔로우는 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다. */
+  /* 좋아요·팔로우·채팅 입력은 인증이 필요하다. 비로그인이면 로그인으로 보내고 끝난 뒤 이 화면으로 돌아온다. */
   function goToLogin() {
     const returnTo = window.location.pathname + window.location.search;
     router.push(`/auth/login?${new URLSearchParams({ returnTo })}`);
@@ -265,6 +277,25 @@ export function RealBuyerLive({
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
     retry: false,
   });
+  /* 실시간 채팅은 페이지에 하나인 연결(RealLiveChatProvider)에서 받는다. 비로그인이면 받지 않아 목록이
+     비고, 입력칸을 누르면 로그인으로 보낸다(2026-09-30 결정). 이 트리는 재생 위치로 초마다 다시 그려지므로
+     줄 배열을 메모해 채팅 자동 스크롤이 매번 돌지 않게 한다. */
+  const chatConnection = useLiveChatConnection();
+  const chatEntries = chatConnection?.entries;
+  const sellerId = seller?.sellerId;
+  const chatMessages = useMemo(
+    () => toChatRows(chatEntries ?? [], { memberId, sellerId, answered: questions.data }),
+    [chatEntries, memberId, sellerId, questions.data],
+  );
+  const liveChat =
+    chatConnection && !isVod
+      ? {
+          messages: chatMessages,
+          maxLength: MAX_CHAT_LENGTH,
+          onSend: chatConnection.send,
+          onRequireLogin: state.status === "guest" ? goToLogin : undefined,
+        }
+      : undefined;
   /* 다시보기·데스크톱 쇼츠는 화면이 Figma 재생바를 그리므로 영상의 기본 컨트롤을 끄고 재생 상태·
      위치를 올려받는다. Figma 모바일 쇼츠에는 재생바가 없어 기본 컨트롤을 둔다. */
   const [playing, setPlaying] = useState(false);
@@ -291,7 +322,7 @@ export function RealBuyerLive({
     highlights.isPending ? (
       <p>쇼츠를 불러오는 중입니다.</p>
     ) : highlights.isError ? (
-      <QueryError error={highlights.error} retry={() => void highlights.refetch()} />
+      <VideoAreaError error={highlights.error} retry={() => void highlights.refetch()} />
     ) : shortClip?.clipUrl ? (
       <LivePlayer
         key={shortClip.highlightId}
@@ -318,7 +349,7 @@ export function RealBuyerLive({
   ) : playback.isPending ? (
     <p>영상을 불러오는 중입니다.</p>
   ) : playback.isError ? (
-    <QueryError error={playback.error} retry={() => void playback.refetch()} />
+    <VideoAreaError error={playback.error} retry={() => void playback.refetch()} />
   ) : (
     <LivePlayer
       src={playback.data.playbackUrl}
@@ -369,6 +400,7 @@ export function RealBuyerLive({
         onToggleLike={onToggleLike}
         seller={liveSeller}
         replayMessages={isVod ? vodChatMessages : undefined}
+        liveChat={liveChat}
         /* 다시보기 채팅은 구간별로 불러와 처음에는 비어 있기 쉽다. 빈 패널 대신 구간 탐색부터 연다. */
         initialPanel={isVod ? "chapters" : undefined}
         video={video}
@@ -412,6 +444,7 @@ export function RealBuyerLive({
       likeCount={likeCount}
       onToggleLike={onToggleLike}
       seller={liveSeller}
+      liveChat={liveChat}
     />
   );
 }

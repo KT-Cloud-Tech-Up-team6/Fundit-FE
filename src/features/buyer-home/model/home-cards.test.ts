@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProjectCardResponse } from "@/entities/project/api/buyer-project-api";
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
-import { featuredCard, liveCard } from "./home-cards";
+import { deadlineCard, featuredCard, liveCard } from "./home-cards";
 
 const uuid = "0198f2b1-2c3d-7a1e-9c4f-6a2b1e0d8f01";
 
@@ -38,6 +38,21 @@ test("featured cards without a public UUID never link to the numeric project id"
   for (const projectPublicId of [undefined, null, "", "123", "../admin"]) {
     assert.equal(featuredCard({ ...row, projectPublicId }).href, undefined);
   }
+});
+
+test("deadline cards show the BE remaining days as D-N and open the detail by public UUID", () => {
+  const card = deadlineCard(row);
+  assert.equal(card.href, `/projects/${uuid}`);
+  assert.equal(card.dday, "D-5");
+  assert.equal(card.title, "세상에 없는 프라이팬");
+  assert.equal(card.seller, "프라이팬장인");
+  assert.equal(card.image, row.thumbnailUrl);
+});
+
+test("deadline cards without a public UUID or seller name leave them out", () => {
+  const card = deadlineCard({ ...row, projectPublicId: "123", sellerDisplayName: "" });
+  assert.equal(card.href, undefined);
+  assert.equal(card.seller, undefined);
 });
 
 const live: LiveSummaryResponse = {

@@ -78,9 +78,12 @@ BE에 요청한 필드와 반영 상태는 아래와 같다.
 ## 프로젝트 스토리의 서식 저장 계약 (#234)
 
 - 2026-09-21 BE develop `ae1e032`의 `RichTextSanitizer`를 기준으로 TEXT 블록에 허용 HTML을 저장한다. b/strong/i/em/u/p/br/span/div/ul/ol/li와 제한된 color/text-align/font-weight만 허용한다. 링크·스크립트·이벤트·임의 CSS를 추가로 허용하지 않는다.
+- BE #153(`be36715`, 2026-09-28)부터 section·h2·h3·hr과 style `font-size`(px)·`line-height`(단위 없는 숫자 또는 px)·`border`(0 또는 선)·`border-top`·`border-left`(선: `Npx solid #hex`)·`padding-left`(px)·`margin`(0·px 값 1~4개)도 보존된다. AI Funding Story 하단(예산·일정·팀 소개·신뢰와 안전 섹션, 제목·소제목·구분선)이 이 형식이다(#331). FE는 같은 규칙(`story-content.ts`의 `styleRules`, BE처럼 단위·선 모양의 대소문자를 가림)으로 읽고, 섹션·제목·구분선의 style은 허용 선언만 남긴 문자열로 편집 왕복에 보존한다. 문단·글자는 에디터가 되살릴 수 있는 정렬·색·굵기만 읽는다.
 - 기존 일반 텍스트·줄바꿈은 복원 호환을 유지하며 이미지·영상은 별도 IMAGE/VIDEO_URL 블록으로 유지한다. 서버가 보존하지 못하는 레이아웃·서식은 저장 성공으로 가장하지 않는다.
 - 공개 화면은 허용 태그·스타일만 React 요소로 표시하며 API HTML을 그대로 삽입하지 않는다. 편집 저장·재진입·공개 표시를 함께 검증한다. AI 생성 API 및 실제 BE 배포 확인은 이번 범위와 구분한다.
-- 에디터는 저장 계약에 없는 heading·codeBlock·horizontalRule·code·strike·link를 등록하지 않는다.
+- BE(jsoup)는 돌려줄 때 `<br>` 뒤 글자 앞에 줄바꿈·들여쓰기를 넣는다. FE는 HTML 본문에 줄바꿈 문자를 직접 쓰지 않으므로 이 공백을 버려, 에디터에 빈 줄이 생기지 않게 한다(#331).
+- 공개 화면과 AI 결과 모달은 같은 렌더러(`project-story/ui/story-html.tsx`)로 그린다(#331). 섹션 안 문단은 본문과 같은 간격이고, h2·h3는 Tailwind 기본 스타일이 지운 굵기를 되살려 굵게 보인다. AI 결과가 브라우저 기본 제목 모양을 전제로 만들어졌기 때문이며, 에디터도 같다.
+- 에디터는 저장 계약에 없는 codeBlock·code·strike·link를 등록하지 않는다. heading(h2·h3)·horizontalRule·section은 #331부터 AI 하단을 불러와 고치고 다시 저장하려고 등록하되, 만드는 컨트롤(입력 규칙 "## "·"---", 단축키, 툴바)은 두지 않는다. 다른 곳에서 붙여넣거나 제목 중간에서 Enter로 나눠 생긴 것은 저장할 수 있는 형식이라 그대로 저장된다(허용 규칙 밖 style은 빠진다). 제목 단계는 태그(h2·h3)로만 정하고 붙여넣은 `level` 속성은 읽지 않는다. 섹션 안에 이미지·영상을 넣으면 TEXT 블록 안에 담을 수 없어 저장이 거부된다.
 - 인용구(blockquote)도 등록하지 않고 툴바 컨트롤을 제거했다(#259). 2026-09-22 BE 확인 결과 `RichTextSanitizer`의 허용 태그는 b·strong·i·em·u·p·br·span·div·ul·ol·li이며 blockquote는 보존되지 않는다. 다 작성한 뒤 저장 단계에서야 막히는 대신 만들 수 없게 한다. 저장할 수 없는 노드·마크가 편집기 스키마에 없다는 것은 `story-extensions.test.mjs`가 확인한다.
 - Figma 스토리 본문 화면(`1403:37656`) 툴바에는 `btn_insert_quote`가 남아 있다. 원본과 저장 계약이 어긋난 상태이므로 디자인 확인이 필요하다. BE가 blockquote를 허용하게 되면 툴바 컨트롤과 `blockHtml`·`htmlBlocks` 직렬화를 함께 되돌린다.
 
@@ -490,6 +493,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | 판매자 미리보기  | GET `/api/v1/projects/{projectId}/preview`          | 본인 미공개 프로젝트 조회용. 응답은 공개 상세와 같은 ProjectDetailResponse다.  |
 | 공개 상세        | GET `/api/v1/projects/{projectId}`                  | 미공개 DRAFT는 404.                                                            |
 
+- 상세 응답(공개·미리보기)의 `pageSummary`(BE #169, PR #184)는 상세 페이지 AI 요약이다. `{status, sections: [{role: "WHAT" | "WHY", headline, description}]}`이고, 생성 중이면 `sections` 없이 `GENERATING`, 요약이 없거나 실패하면 키가 빠진다. 공개 프로젝트의 제목·카테고리·리워드·본문이 바뀌면 BE 워커가 다시 만들고 그동안은 `GENERATING`이다. FE 표시는 [BUYER_PROJECT_DETAIL](./BUYER_PROJECT_DETAIL.md)의 #407 절.
+
 명세상 DRAFT를 먼저 생성하고 해당 ID로 개별 작성 API를 호출한다. FE의 현재 /new 화면 저장 목업이 실제 API 호출 순서를 구현한 것은 아니다.
 
 신규 생성은 선택 헤더 `Idempotency-Key`(공백 불가·100자 이하, 어기면 400 `INVALID_INPUT`)를 받는다(BE #145, #213). 키는 판매자 범위이며 같은 키는 새 DRAFT 없이 기존 프로젝트를 200으로, 새 생성은 201로 돌려준다. 같은 키 요청이 동시에 처리 중이면 409 `CONFLICT`다. 키는 프로젝트 행에 저장돼 유효기간이 없고, 삭제된 DRAFT의 키는 다시 쓸 수 있다. FE는 시도마다 UUID 키를 만들어 요청 전에 판매자별 sessionStorage에 남기고, 결과를 모르는 시도는 같은 키로 다시 보내 서버가 만든 프로젝트를 되찾는다. 본문이 없어 같은 키를 다시 보내도 거절되지 않으므로 확정 4xx에서도 키를 버리지 않고, 새 프로젝트 화면으로 떠날 때 시도를 지운다.
@@ -559,10 +564,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 구매자 Q&A(`/chat/answered-questions`)의 `answerText`가 `null`이면 BE가 키를 응답에서 뺀다(non_null). 답변 본문이 없거나 빈 행은 보일 답이 없어 FE가 `getAnsweredQuestions`에서 거른다. 구매자 Q&A·콘솔 집계 Q&A·LIVE 체크 후보가 같은 목록을 쓴다(#405).
 - `aiStatus`는 `PREPARING`(AI 상품정보 색인 전)·`READY`다. 질문이 없을 때 두 상태를 다른 문구로 안내한다(요구사항 6.4.4.4). insights 호출이 BE에 AI 집계를 반영(upsert)하게 하므로 판매자 화면이 주기적으로 부른다.
 - 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
-- `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`를 실제 채팅 게시 완료로 해석하지 않는다. 실제 채팅 게시 책임은 PR 설명과 코드 주석이 달라 별도 합의 대상이다.
+- `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`는 등록 결과이지 채팅 게시 완료가 아니다. BE `develop` `58fe3de` 기준 채팅 게시는 BE가 커밋 뒤 IVS `seller-answer` 이벤트로 따로 한다(게시 실패는 등록을 막지 않는다, 5.12).
 - `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
 - BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. 판매자 콘솔의 갱신 주기는 FE가 정한다(#320, 아래 절).
-- IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
+- IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. 채팅 송수신은 #470에서 연결했다(5.12). HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.
 - 공개 하이라이트 GET `/highlights/public`(#270·#317, BE develop `9a0290bb`): 비인증이며 `{markers: [...], clips: [...]}`다. 항목은 `highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`이고 `kind` 필드는 없다(배열로 구분).
   - 판매자가 공개한 항목(`isPublic=true`, 사실상 완료분)만 온다. 호출할 때마다 공개 항목 조회수가 올라가므로 FE는 화면당 한 번만 부른다.
@@ -621,11 +626,11 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `GET /api/v1/lives/{liveId}`는 소유자 전용 단건 조회다(BE #139). `viewerCount`·`elapsedSeconds`는 `LIVE`일 때만 채워지고 그 밖에는 `null`이다. 큐시트 화면도 #326부터 이 단건 조회를 쓴다(5.7).
 - insights·unanswered·answered-questions·단건은 30초마다 다시 부른다. AI 집계 창(3분)보다 짧게 잡아 새 질문이 늦게 보이지 않게 한다. 제목 옆 갱신 시각을 누르면 바로 다시 받는다.
 - 질문을 고르면 `GENERATE`로 초안을 바로 받는다(IA 44). 이미 답변한 질문은 등록한 답변을 보여 주고 재생성할 때만 받는다. `draftAnswer`가 null이거나 응답에서 빠지면(BE non_null, #386) Figma 추천 답변 불가 화면(`1299:33974`, 카드 `1299:33990`)처럼 경고 카드와 답변 완료 처리만 두고, 초안을 받아 본 질문은 목록에서도 경고 행(`1475:41746`)으로 표시한다.
-- "채팅 보내기"는 `SEND`로 답변을 등록한다. 채팅 게시는 IVS 미연동이라 등록 후 "채팅 게시는 준비 중"을 안내한다(2026-09-23 결정).
+- "채팅 보내기"는 `SEND`로 답변을 등록하고 "답변이 등록되었습니다."를 안내한다. 채팅 게시는 BE가 `seller-answer` 이벤트로 하므로 콘솔이 같은 답을 직접 보내지 않는다(보내면 두 번 보인다, #470·5.12). #470 전에는 IVS 미연동이라 "채팅 게시는 준비 중"을 안내했다(2026-09-23 결정).
 - LIVE 검증 등록은 한 번에 한 건이라 고른 질문을 순서대로 보낸다. 추가하지 못한 건만 선택에 남겨 다시 보낼 수 있다. #351부터 BE #156 기준으로 처리한다. 이미 올린 질문의 409 `LIVE_VERIFICATION_ALREADY_EXISTS`는 상세페이지에 이미 있으므로 추가된 것으로 친다. 404 `LIVE_QUESTION_SUMMARY_NOT_FOUND`는 "질문 요약이 아직 준비되지 않았다"고 따로 안내한다. 그 밖의 실패는 "추가하지 못했다"고 안내한다.
 - 이미 올린 질문은 체크 흐름을 열 때 받는 `live-questions`의 `answered`로 "추가됨" 표시하고 다시 고르지 못하게 한다. 이 목록은 프로젝트 단위(`liveId` 없음)이고 `questionSummaryId`가 `answered-questions`의 `questionId`와 같다(live-service 질문 요약 id). 받기 전이나 조회가 실패해도 흐름을 막지 않는다. 다시 올리면 409라 결과가 같기 때문이다.
 - 송출 모니터링의 주문 칸(Figma `0건 · 0원`)은 #342부터 BE #151의 `GET /api/v1/orders/live-stats`로 채운다. 결제 완료(`paidCount`·`paidAmount`)만 "N건 · N원"으로 적고 결제 전(`pendingCount`·`pendingAmount`, 30분 뒤 만료)은 넣지 않는다(2026-09-24 결정). 금액은 쿠폰 할인 전 리워드 합산(배송비 제외)이고 방송 중 들어온 주문만 센다. 방송 중에만 5초마다 다시 부르고(BE 권장 3~5초), 종료하면 한 번 더 읽고 멈춘다. 처음 받기 전이나 첫 조회가 실패하면 `-`다. 이후 갱신이 잠깐 실패하면 칸이 깜빡이지 않게 마지막 값을 두고, 마지막 성공 뒤 15초(3번) 넘게 실패가 이어지면 멈춘 매출을 지금 값처럼 보이지 않게 `-`로 바꾼다. 소유자가 아니면 403, 세션이 없으면 404, live 조회 실패는 503이다. 대조한 BE는 `develop` `d701b42`이고, 실제 BE 연동(BE #151 배포, 인프라 `LIVE_SERVICE_BASE_URL` 반영)은 확인하지 못했다.
-- 판매자 채팅은 IVS 미연동이라 Figma 자리에 목업으로 둔다. 보내면 "준비 중"을 안내하고 채팅 건수는 `-`다(2026-09-23 결정). 같은 결정으로 목업이던 답변 완료 처리·스트림 상태 확인은 BE #185(요청서 BE-14·16)로 #441에서 연결했다.
+- 판매자 채팅창은 #470부터 IVS 채팅에 연결한다(5.12). 방송 중에만 붙고 판매자 본인 메시지도 "판매자"로 보이며, 채팅 수는 이 화면에서 받은 수(0부터)다. 보내지 못하거나 거절되면 입력을 두고 콘솔 안내 줄에 적는다. 그전(2026-09-23 결정)에는 목업으로 두어 "준비 중"을 안내하고 채팅 건수를 `-`로 적었다. 같은 결정으로 목업이던 답변 완료 처리·스트림 상태 확인은 BE #185(요청서 BE-14·16)로 #441에서 연결했다.
 - "답변 완료 처리"는 `MARK_DONE`을 보낸다(IA 판매자 26행). BE는 고정 문구 "방송 중 답변 완료"만 기록하고(작성자 `SELLER`) AI 등록·채팅 게시는 하지 않는다. 성공하면 질문 목록·집계를 다시 받은 뒤 질문 요약 목록으로 돌아가고, 질문은 "답변 완료"로 옮겨진다. 실패하면 답변 화면에 머물러 다시 시도한다(기다리지 않고 다른 화면으로 옮겨 갔으면 끝나도 그 화면을 바꾸지 않는다). 이미 답변 완료인 질문은 BE가 기존 답변을 덮지 않아 버튼을 끈다. 답변 완료 처리한 질문을 다시 열면 고정 문구를 답변 입력란에 채우지 않는다 — 처리 표시일 뿐 답이 아니고, 그대로 "채팅 보내기"를 누르면 `SEND`로 AI에 등록돼 비슷한 질문에 재사용되기 때문이다(BE가 `MARK_DONE`에서 등록하지 않는 이유와 같다). 실제 답을 써서 보내면 그 답이 표시를 대신한다. 누른 뒤의 흐름은 원본(Figma·IA)에 없어 2026-09-29 사용자 결정으로 정했다.
 - "스트림 상태 확인"은 누를 때만 `stream-status`를 한 번 부르고 결과를 콘솔 안내 줄에 적는다(IA 판매자 25행). Figma에 상태 표시 자리가 없어 배지·주기 조회는 두지 않는다(2026-09-29 사용자 결정). `LIVE`·`HEALTHY` "송출이 정상적으로 들어오고 있습니다.", `LIVE`·`STARVING` "송출은 들어오지만 전송 속도가 부족합니다…", 그 밖의 `LIVE` "송출이 들어오고 있습니다.", `OFFLINE` "송출이 들어오지 않고 있습니다…", 실패(IVS 오류 503 포함) "송출 상태를 확인하지 못했습니다…"다. BE는 방송 중이 아니면 IVS를 부르지 않고 `OFFLINE`을 주며, dev의 IVS stub은 방송 중이면 늘 `LIVE`·`HEALTHY`다.
 - 질문 문구·건수는 BE #156부터 project-service가 방송 종료 이벤트 `live.questions-summarized.v1`을 받아 저장하고 조회할 때 답변과 합친다. 이벤트는 종료 커밋 뒤 AI 최종 집계(상위 100개)를 거쳐 비동기로 발행된다. 그래서 종료 직후, AI 실패로 발행이 없을 때, 상위 100개 밖 질문의 등록은 404다. LIVE 체크는 판매자가 고른 질문만 위 POST로 올린다. 대조한 BE는 `develop` `ee5d5b7`이고, 실제 BE 연동(BE #156 배포, project-service Kafka 구독)은 확인하지 못했다.
@@ -652,9 +657,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 기준은 BE `develop` `d701b42`의 `LiveController.findPublic`·`LiveQueryService.findPublic`이다. 화면 사용은 [BUYER_LIVE_MAIN.md](./BUYER_LIVE_MAIN.md)의 #345 절을 따른다.
 
-| 동작             | Method·Path         | 요청 → 응답                                                                                            |
-| ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| 소비자 LIVE 목록 | GET `/api/v1/lives` | `status`(단일)·`sort`·`sellerId`(여러 값)·`page`·`size`(기본 20) → `PageResponse<LiveSummaryResponse>` |
+| 동작                  | Method·Path                    | 요청 → 응답                                                                                                                                                               |
+| --------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 소비자 LIVE 목록      | GET `/api/v1/lives`            | `status`(단일)·`sort`·`sellerId`(여러 값)·`projectId`·`page`·`size`(기본 20) → `PageResponse<LiveSummaryResponse>`                                                        |
+| 프로젝트 공개 숏 클립 | GET `/api/v1/lives/highlights` | `projectId`(필수)·`page`·`size`(기본 20, 최대 50) → `PageResponse<{liveId, highlightId, sceneLabel, title, startSec, endSec, clipUrl, thumbnailUrl, caption, createdAt}>` |
 
 - 비인증이다. `DRAFT`는 쿼리에서 항상 빠지고, `status`가 없으면 `SCHEDULED`·`LIVE`·`ENDED`·`ERROR`가 모두 온다. 정렬은 `createdAt` 최신순 고정이다.
 - `sort=viewerCount`는 실시간 순위 전용이다. `LIVE`만 IVS 시청자 수 내림차순으로 오고 `status`·`sellerId`는 무시된다. `viewerCount`는 이때만 채워진다.
@@ -662,6 +668,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
 - BE PR #185부터 항목에 판매자 회원 ID `sellerId`가 온다(닉네임 조회가 실패해도 채워진다). 관심 목록 팔로잉 행의 LIVE 배지가 이 값으로 방송 중인 판매자를 맞춘다(#444). 판매자당 채널이 1개라 한 판매자의 동시 `LIVE`는 하나다.
 - 목록 항목에는 프로젝트명·카테고리·달성률이 없어, LIVE 홈 실시간 순위 카드는 프로젝트 상세(`GET /api/v1/projects/{projectId}`)의 `title`·`categoryMajor`·`fundingStatus.achievementRate`를 쓴다(#445).
+- BE PR #185부터 `projectId` 필터(다른 필터·정렬과 함께 쓸 수 있다)와 항목의 실제 방송 시작 시각 `actualStartAt`(시작 전이면 없다)이 있다. 구매자 프로젝트 상세 LIVE 체크 탭은 `status=ENDED&projectId=`의 첫 페이지를 종료된 라이브 목록으로 쓰고 날짜는 `actualStartAt`이다(#319).
+- 프로젝트 공개 숏 클립(BE PR #185)은 비인증이고 공개·생성 완료된 클립만 생성 최신순으로 온다. 마커와 `DRAFT` 방송은 빠진다. 방송 단위 `/{liveId}/highlights/public`과 달리 **조회 수를 올리지 않는다.** `thumbnailUrl`은 AI 콜백이 채우기 전까지 없다. 구매자 LIVE 체크 탭이 첫 페이지를 숏 클립 목록으로 쓴다(#319).
 
 ### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
 
@@ -672,13 +680,38 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 판매자 목록    | GET `/api/v1/lives/{liveId}/highlights`                            | → `{markers: [...], clips: [...]}`(비공개·생성 중·실패 포함) |
 | 공개 여부 변경 | PATCH `/api/v1/lives/{liveId}/highlights/{highlightId}/visibility` | `{isPublic}` → 204                                           |
 
-- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`caption`이 없을 수 있다.
+- 항목은 5.6의 공개 하이라이트와 같다(`highlightId`, `sceneLabel`, `title`, `startSec`, `endSec`, `clipUrl`, `caption`, `isPublic`, `generationStatus`). BE PR #185부터 판매자 목록과 공개 목록(5.6) 모두 항목에 `thumbnailUrl`·`createdAt`이 더 온다. `generationStatus`는 `GENERATING`·`COMPLETED`·`FAILED`이고 배열은 `startSec` 오름차순이다. 클립은 LIVE마다 최대 3개다. live-service는 null 필드를 빼고 보내(`non_null`) `title`·`clipUrl`·`thumbnailUrl`·`caption`이 없을 수 있다.
 - `COMPLETED`가 아닌 항목을 공개하면 409 "생성에 실패한 항목은 공개할 수 없습니다."다. 비공개로 바꾸기는 항상 된다. 다른 판매자의 LIVE·항목은 404다.
 - FE(판매자 LIVE 클립 관리 `?tab=live`)는 프로젝트 단위 목록 API가 없어 `GET /api/v1/lives/mine?status=ENDED&projectId=`를 `hasNext`가 끝날 때까지 받고(서버 최신순), LIVE마다 위 목록을 받아 `clips` 중 `COMPLETED`만 보여 준다. LIVE 순서를 지키고 LIVE 안에서는 `startSec` 순서다. 한 LIVE라도 조회가 실패하면 목록 전체를 오류로 보여 준다.
 - 사이드바 메뉴는 같은 `/lives/mine?status=ENDED&projectId=&size=1`의 `totalElements`가 1 이상일 때만 보인다.
-- 응답에 클립 생성일·썸네일이 없다. FE는 생성일 자리에 원본 LIVE의 `scheduledStartAt`(없으면 `createdAt`) 날짜를, 썸네일 자리에 `clipUrl` 영상의 첫 프레임(실패하면 LIVE `thumbnailUrl`, 그것도 없으면 빈 면)을 쓴다. 길이는 `endSec - startSec`이다. 클립 `createdAt`·썸네일과 프로젝트 단위 클립 목록은 BE 요청 후보다.
+- 카드의 생성일은 클립 `createdAt`의 한국 시간 날짜다. 썸네일은 클립 `thumbnailUrl` → `clipUrl` 영상의 첫 프레임 → 원본 LIVE `thumbnailUrl` 순서로 쓴다. 없는 것은 건너뛰고 불러오지 못하면 다음 것으로 넘어가며, 모두 없으면 빈 면이다. 클립 `thumbnailUrl`은 하이라이트 AI 콜백이 채우기 전까지 없다. 길이는 `endSec - startSec`이다. #366 당시(`f127a6f`) 응답에는 클립 생성일·썸네일이 없어 LIVE 방송 예정일과 첫 프레임으로 대신했고, #462에서 BE `develop` `2271a22`와 대조해 클립 값으로 바꿨다. 비공개 클립도 보여야 해서 프로젝트 공개 숏 클립 목록(5.10)으로 바꿀 수는 없다.
 - [저장]은 서버 값과 달라진 클립만 PATCH로 하나씩 보낸다. 일부가 실패하면 성공분은 반영하고, 실패한 클립은 BE 문구와 함께 안내한 뒤 저장 대기로 남겨 다시 저장할 수 있다. 저장 뒤에는 목록을 다시 받는다.
 - dev에는 하이라이트 시더가 없고 다시보기 녹화·자동 생성이 아직 연결되지 않아 빈 목록이다. 실제 BE 연동은 확인하지 못했고 모의 API로만 검증했다.
+
+### 5.12. LIVE 채팅 (#470)
+
+기준은 BE `develop` `58fe3de`와 [IVS Chat Messaging API](https://docs.aws.amazon.com/ivs/latest/chatmsgapireference/welcome.html)다. dev live-service는 2026-09-30 GitOps #117로 `LIVE_IVS_MODE=aws`가 되어 LIVE를 시작하면 실제 채팅방이 생긴다.
+
+| 동작      | Method·Path                              | 요청 → 응답                                               |
+| --------- | ---------------------------------------- | --------------------------------------------------------- |
+| 채팅 토큰 | POST `/api/v1/lives/{liveId}/chat/token` | 본문 없음, 로그인 필요 → `{token, roomArn, capabilities}` |
+
+- 토큰에는 만료 필드가 없고 한 번만 쓸 수 있다. IVS 기본 세션은 60분이다. 방송 소유자는 `SEND_MESSAGE`·`DELETE_MESSAGE`·`DISCONNECT_USER`, 그 밖의 로그인 사용자는 `SEND_MESSAGE`를 받는다. 비로그인 401, 없거나 `DRAFT`인 LIVE 404, 채팅방이 아직 없으면(시작 전) 409, IVS 오류는 503 `DEPENDENCY_FAILURE`다.
+- 토큰에 사용자 속성이 없어 받은 메시지의 `Sender.UserId`는 회원 UUID이고 `Sender.Attributes`는 비어 있다. 닉네임은 BE 반영 뒤 별도로 붙인다.
+- 연결: `roomArn`(`arn:aws:ivschat:<region>:<account>:room/<id>`)의 리전으로 `wss://edge.ivschat.<region>.amazonaws.com`에 브라우저 WebSocket으로 직접 붙고 토큰은 하위 프로토콜로 넘긴다(SDK를 쓰지 않는다). 보내기는 `{Action: "SEND_MESSAGE", RequestId, Content}`, 받는 프레임의 `Type`은 `MESSAGE`·`EVENT`·`ERROR`다. `ERROR`는 `ErrorCode`(400·413·429 등, 메시지 검토 거절 406)와 보낸 `RequestId`를 준다. 본문은 IVS 기본 500자라 입력칸도 500자로 막는다.
+- BE 이벤트(SendEvent, `Sender` 없음):
+  - `seller-answer` `{questionId, answer}`: 판매자 `SEND` 커밋 뒤 비동기로 올린다. 속성이 4KB를 넘으면 `answer`를 빼고 `questionId`만 보내므로 FE는 `GET /chat/answered-questions`(5.6)에서 본문을 찾는다.
+  - `ai-answer` `{commentId, aiQuestionId, answer}`: 근거를 찾은 AI 답변만 올리고 한도를 넘는 답은 올리지 않는다. `commentId`는 BE DB id라 IVS 메시지와 맞출 수 없어 어느 채팅에 대한 답인지 표시하지 않는다.
+  - 시스템 이벤트 `aws:DELETE_MESSAGE`(`MessageId`, 옛 이름 `MessageID`)를 받으면 그 메시지를 목록에서 뺀다.
+- FE 동작:
+  - 방송 중(구매자는 `/playback` `type=LIVE`, 콘솔은 단건 `status=LIVE`)이고 로그인해 회원 정보가 있을 때만 토큰을 받는다. 구매자 화면은 페이지에 연결이 하나다(모바일·데스크톱 트리가 바뀌어도 토큰은 한 번).
+  - 연결이 끊기면(세션 만료 포함) 새 토큰으로 다시 붙는다. 연속 실패마다 1초에서 두 배씩 30초까지 기다리고, 30초 넘게 열려 있던 연결이 끊기면 1초부터 다시 센다. 토큰 API가 401·404·409면 멈추고, 방송 중이 아니게 되거나 화면을 떠나면 닫는다. 채팅 실패는 영상·Q&A·AI 패널을 막지 않는다.
+  - 작성자는 판매자 "판매자", 본인 "나", 그 밖 "시청자"다(2026-09-30 결정). 콘솔은 로그인한 소유자가 판매자라 본인 메시지도 "판매자"다. `seller-answer`는 "판매자 @everyone 본문"(판매자 Prototype `170:72652`)으로 구매자·콘솔에 같이 보이고, 받으면 answered-questions를 다시 받는다. `ai-answer`는 "AI 매니저" 윗줄 라벨과 초록 본문이다(소비자 Prototype `295:50452`).
+  - 보낸 메시지는 같은 `RequestId`의 `MESSAGE`가 되돌아올 때까지 입력에 두고 다시 보내지 않는다. 406이면 부적절한 단어 안내, 그 밖의 `ERROR`·5초 무응답·연결 없음이면 재시도 안내를 보이고 입력을 둔다.
+  - 비로그인은 토큰을 받지 않아 목록이 비고, 입력칸을 누르면 로그인으로 보낸다.
+  - 한 화면에 최근 300건만 둔다. 콘솔 채팅 수는 이 화면에서 받은 수다.
+- dev 제한: 채팅 로깅 구성이 없어 채팅이 BE에 적재되지 않는다. 그래서 dev에서는 AI 자동답변(`ai-answer`)·실시간 Q&A 집계·다시보기 채팅이 동작하지 않고, 서버 금칙어 필터도 없다(검토 핸들러가 붙으면 406으로 거절된다). dev 실검증(실제 LIVE 시작·송수신)은 AI 담당 파트가 진행하며 FE는 WebSocket 목업으로만 확인했다.
+- 범위 밖: 닉네임 표시, 비로그인 채팅 보기, 서버 금칙어 필터(BE 반영 뒤 별도), 판매자의 메시지 삭제·강퇴(Figma·IA에 없음), 다시보기 채팅 변경.
 
 ## 6. 최신 답변으로 정리한 차이
 
@@ -987,9 +1020,9 @@ BE 08 회신(BE PR #160·#162·#164, `develop` `f127a6f`)과 Figma 섹션 `1143:
 | 409 `RETURN_PERIOD_EXPIRED`     | 반품·교환 — 수령 후 7일 경과                     | 반품·교환 가능 기간이 지났습니다.                                            |
 | 409 `REFUND_ALREADY_REQUESTED`  | 반품·교환 — 진행 중 신청이 이미 있음(주문당 1건) | 이미 접수된 반품·교환 신청이 있습니다. 취소·반품·교환 내역에서 확인해주세요. |
 | 422 `RETURN_FEE_EXCEEDS_AMOUNT` | 반품 — 결제 금액 5,000원 이하                    | 결제 금액이 반품 배송비(5,000원)보다 적어 반품을 신청할 수 없습니다.         |
-| 503 `DEPENDENCY_FAILURE`        | 주문·배송 조회 실패                              | 주문 정보를 확인하지 못해 신청하지 못했습니다. 잠시 후 다시 시도해주세요.    |
+| 503 `DEPENDENCY_FAILURE`        | 반품·교환 — 주문·배송 조회 실패                  | 주문 정보를 확인하지 못해 신청하지 못했습니다. 잠시 후 다시 시도해주세요.    |
 
-그 밖의 실패는 취소면 "처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요."와 주문 재조회, 반품·교환이면 "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요."다. 성공하면 취소는 주문 상세로 교체 이동하고, 반품·교환은 `/my/refunds`로 이동한다.
+취소(참여 취소·발송 지연 취소)의 503 `DEPENDENCY_FAILURE`는 결과를 모르는 실패로 본다(#468). BE #182(PR #191) 뒤로 발송 지연 취소는 토스 응답이 불명확하면(5xx·타임아웃) 503을 돌려주지만 취소는 `PROCESSING`으로 접수돼 대사 배치가 확정한다. 환불 목록에는 "진행 중"으로 보이고 같은 요청을 다시 보내도 이중 취소되지 않는다. 배송 상태 조회 실패도 같은 코드라 둘을 구분하지 않는다. 이 경우와 그 밖의 취소 실패는 "취소가 접수됐는지 확인하지 못했습니다. 취소·반품·교환 내역이나 주문 상태를 확인해주세요."와 주문 재조회다. 반품·교환의 그 밖의 실패는 "신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요."다. 성공하면 취소는 주문 상세로 교체 이동하고, 반품·교환은 `/my/refunds`로 이동한다.
 
 ### 2026-09-27 펀딩 내역 목록·상세 연결 (#359)
 

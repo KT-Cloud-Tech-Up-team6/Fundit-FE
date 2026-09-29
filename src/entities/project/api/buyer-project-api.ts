@@ -53,6 +53,13 @@ export type PublicProject = {
   };
   hasLiveVerification: boolean;
   seller: { sellerId: string; displayName: string };
+  pageSummary?: ProjectPageSummary | null;
+};
+/** 상세 페이지 AI 요약(BE #169, PR #184). 생성 중이면 `sections` 없이 `GENERATING`이고, 요약이 없거나
+    실패하면 BE가 키를 뺀다. `role`은 WHAT(무엇을)·WHY(왜)다. */
+export type ProjectPageSummary = {
+  status: string;
+  sections?: { role: string; headline: string; description: string }[] | null;
 };
 /** BE `RewardConsumerResponse`(sortOrder 순). BE는 null 필드를 JSON에서 빼므로 값이 없을 수
     있는 필드는 선택 키다. */
@@ -97,11 +104,13 @@ export function searchProjects(
   });
 }
 /**
- * 홈 "지금 주목받는 프로젝트"(search-service). 진행 중 프로젝트를 참여자·찜 많은 순으로 준다.
+ * 홈 피드(search-service). `POPULAR`는 "지금 주목받는 프로젝트"(참여자·찜 많은 순), `DEADLINE`은
+ * "마감 임박 프로젝트"(마감이 지나지 않은 진행 중 프로젝트를 마감 가까운 순, BE-19)다.
  * 페이지 없이 `size`개(기본 20, 최대 100)만 오고, 카드 모양은 검색 상품 탭과 같다. 비인증이다.
  */
-export function getHomeFeed(size: number, signal?: AbortSignal) {
-  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?size=${size}`, {
+export function getHomeFeed(sort: "POPULAR" | "DEADLINE", size: number, signal?: AbortSignal) {
+  const params = new URLSearchParams({ sort, size: String(size) });
+  return apiRequest<{ content: ProjectCardResponse[] }>(`/api/v1/home/feed?${params}`, {
     signal,
   });
 }

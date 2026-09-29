@@ -14,13 +14,8 @@ import { SearchField } from "@/shared/components/ui/search-field";
 import { textButtonNavigationClasses } from "@/shared/components/ui/text-button";
 import { setCategoryReturnPath } from "@/shared/lib/category-return-path";
 import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
-import type { FeaturedCard, LiveCard, SectionData } from "../model/home-cards";
-import {
-  deadlineProjects,
-  heroSlides,
-  recommendedProjects,
-  type MockProjectCard,
-} from "../model/home-mock";
+import type { DeadlineCard, FeaturedCard, LiveCard, SectionData } from "../model/home-cards";
+import { heroSlides, recommendedProjects } from "../model/home-mock";
 import { HomeHeroCarousel } from "./home-hero-carousel";
 import styles from "./buyer-home.module.css";
 
@@ -88,8 +83,13 @@ function SectionBody<T>({
         className="py-6"
       />
     );
+  /* 불러오는 중 안내와 같은 자리의 `<p>`라 DOM이 재사용된다. 역할을 유지해야 빈 목록으로 바뀐 것을 알린다. */
   if (data.items.length === 0)
-    return <p className="text-body-s text-text-secondary py-6 text-center">{messages.empty}</p>;
+    return (
+      <p role="status" className="text-body-s text-text-secondary py-6 text-center">
+        {messages.empty}
+      </p>
+    );
   return children(data.items);
 }
 
@@ -219,10 +219,24 @@ function LiveItem({ card }: { card: LiveCard }) {
   );
 }
 
-/* 마감 임박(모바일 `2315:71409` 165×220, PC 186×248)과 추천(모바일 `2315:71445` 169×225, PC 220×293) 목업 카드. */
-function MockItem({ card, sizes }: { card: MockProjectCard; sizes: string }) {
-  return (
-    <Link href={card.href} className="flex flex-col gap-2">
+/* 마감 임박(모바일 `2315:71409` 165×220, PC 186×248, 실제 API)과 추천(모바일 `2315:71445` 169×225,
+   PC 220×293, 목업) 카드. */
+function ProjectItem({
+  card,
+  sizes,
+}: {
+  card: {
+    href?: string;
+    title: string;
+    image?: string | null;
+    seller?: string;
+    dday?: string;
+    reasons?: readonly string[];
+  };
+  sizes: string;
+}) {
+  const content = (
+    <>
       <div className="bg-layer-bg relative aspect-[3/4] overflow-hidden rounded-xs">
         <CardImage src={card.image} sizes={sizes} />
         {card.dday && (
@@ -236,9 +250,11 @@ function MockItem({ card, sizes }: { card: MockProjectCard; sizes: string }) {
           <h3 className="min-[1200px]:text-body-emphasis line-clamp-2 text-[14px] leading-[1.42] font-medium whitespace-pre-line">
             {card.title}
           </h3>
-          <p className="text-text-secondary min-[1200px]:text-caption-m text-[12px] leading-[1.3] font-medium">
-            {card.seller}
-          </p>
+          {card.seller && (
+            <p className="text-text-secondary min-[1200px]:text-caption-m text-[12px] leading-[1.3] font-medium">
+              {card.seller}
+            </p>
+          )}
         </div>
         {card.reasons && (
           <div className="flex flex-wrap gap-2">
@@ -250,7 +266,20 @@ function MockItem({ card, sizes }: { card: MockProjectCard; sizes: string }) {
           </div>
         )}
       </div>
-    </Link>
+    </>
+  );
+  if (card.href)
+    return (
+      <Link href={card.href} className="flex flex-col gap-2">
+        {content}
+      </Link>
+    );
+  /* 공개 UUID가 없는 카드는 숫자 ID로 상세를 열 수 없어 링크로 만들지 않는다(주목받는 프로젝트와 같다). */
+  return (
+    <div className="flex flex-col gap-2">
+      {content}
+      <p className="text-caption-s text-text-secondary">상세 연결 준비 중</p>
+    </div>
   );
 }
 
@@ -318,15 +347,17 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
 }
 
 /**
- * 구매자 홈 `FL_B_HM_HOME`(Figma `2315:72822`). 주목받는 프로젝트와 실시간 LIVE는 실제 API 결과를
- * `SectionData`로 받고, 히어로·마감 임박·추천은 FE 목업(`home-mock.ts`)이다.
+ * 구매자 홈 `FL_B_HM_HOME`(Figma `2315:72822`). 주목받는 프로젝트·실시간 LIVE·마감 임박은 실제 API
+ * 결과를 `SectionData`로 받고, 히어로·추천은 FE 목업(`home-mock.ts`)이다.
  */
 export function BuyerHome({
   featured,
   lives,
+  deadline,
 }: {
   featured: SectionData<FeaturedCard>;
   lives: SectionData<LiveCard>;
+  deadline: SectionData<DeadlineCard>;
 }) {
   return (
     <div
@@ -425,16 +456,27 @@ export function BuyerHome({
             title="마감 임박 프로젝트"
             description="지금이 아니면 만나기 어려운 프로젝트, 서둘러 참여하세요!"
           >
-            <ScrollList
-              label="마감 임박 프로젝트 목록"
-              className="-mx-5 gap-3 px-5 min-[1200px]:mx-0 min-[1200px]:gap-4 min-[1200px]:px-0"
+            <SectionBody
+              data={deadline}
+              messages={{
+                loading: "마감 임박 프로젝트를 불러오고 있습니다.",
+                error: "마감 임박 프로젝트를 불러오지 못했습니다.",
+                empty: "마감 임박 프로젝트가 없습니다.",
+              }}
             >
-              {deadlineProjects.map((card) => (
-                <li key={card.id} className="w-[165px] shrink-0 min-[1200px]:w-[186px]">
-                  <MockItem card={card} sizes="(min-width: 1200px) 186px, 165px" />
-                </li>
-              ))}
-            </ScrollList>
+              {(items) => (
+                <ScrollList
+                  label="마감 임박 프로젝트 목록"
+                  className="-mx-5 gap-3 px-5 min-[1200px]:mx-0 min-[1200px]:gap-4 min-[1200px]:px-0"
+                >
+                  {items.map((card) => (
+                    <li key={card.id} className="w-[165px] shrink-0 min-[1200px]:w-[186px]">
+                      <ProjectItem card={card} sizes="(min-width: 1200px) 186px, 165px" />
+                    </li>
+                  ))}
+                </ScrollList>
+              )}
+            </SectionBody>
           </ProjectSection>
           {/* 모바일 원본의 "추천 라이브"(`2315:71443`)는 IA·PC와 같은 추천 프로젝트로 둔다. */}
           <ProjectSection
@@ -448,7 +490,7 @@ export function BuyerHome({
             >
               {recommendedProjects.map((card) => (
                 <li key={card.id} className="min-w-0">
-                  <MockItem card={card} sizes="(min-width: 1200px) 220px, 44vw" />
+                  <ProjectItem card={card} sizes="(min-width: 1200px) 220px, 44vw" />
                 </li>
               ))}
             </ul>

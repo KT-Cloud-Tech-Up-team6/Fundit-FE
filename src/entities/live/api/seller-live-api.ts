@@ -22,6 +22,8 @@ export type LiveSummaryResponse = {
   sellerNickname?: string | null;
   /** 판매자 회원 ID(BE PR #185). 팔로우 목록의 `sellerId`와 같은 값이다. 배포 전 서버에는 없다. */
   sellerId?: string;
+  /** 실제 방송 시작 시각(BE PR #185). 시작 전이면 null이고 BE가 null 키를 빼기도 한다. */
+  actualStartAt?: string | null;
 };
 
 export type LivePage = {

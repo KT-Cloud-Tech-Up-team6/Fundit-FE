@@ -5,8 +5,12 @@ import {
   displayedFollowingTotal,
   followingName,
   followingRowSeller,
+  hasMissingShownRow,
+  isUnfollowed,
   liveBadgeBatches,
   liveSellerIds,
+  noRetainedFollowings,
+  retainFollowChange,
   uniqueFollowings,
 } from "./following.ts";
 
@@ -33,30 +37,46 @@ test("the infinite list keeps one row when pages overlap", () => {
   );
 });
 
-test("an unfollowed row stays at its fetched position and is kept after a refetch", () => {
+test("unfollowed and refollowed rows keep their place until refresh", () => {
   const seller = (sellerId) => ({ sellerId, sellerName: sellerId, createdAt: "2026-09-28" });
-  const removed = seller("b");
-  const unfollowed = new Map([[removed.sellerId, removed]]);
+  const ids = (rows) => rows.map(({ sellerId }) => sellerId);
+  const [a, b, c, d] = ["a", "b", "c", "d"].map(seller);
 
-  assert.deepEqual(
-    displayedFollowings([seller("a"), removed, seller("c")], unfollowed).map(
-      ({ sellerId }) => sellerId,
-    ),
-    ["a", "b", "c"],
-  );
-  assert.deepEqual(
-    displayedFollowings([seller("a"), seller("c")], unfollowed).map(({ sellerId }) => sellerId),
-    ["a", "c", "b"],
-  );
+  // 해제한 행은 다시 읽은 응답에서 빠져도 제자리에 남고, 처음 받은 행(d)은 뒤에 붙는다.
+  let retained = retainFollowChange(noRetainedFollowings, [a, b, c], b, false);
+  assert.equal(isUnfollowed(retained, "b"), true);
+  assert.deepEqual(ids(displayedFollowings([a, b, c], retained)), ["a", "b", "c"]);
+  assert.deepEqual(ids(displayedFollowings([a, c, d], retained)), ["a", "b", "c", "d"]);
+
+  // 이어서 해제한 행도 제자리다.
+  retained = retainFollowChange(retained, displayedFollowings([a, c, d], retained), c, false);
+  assert.deepEqual(ids(displayedFollowings([a, d], retained)), ["a", "b", "c", "d"]);
+
+  // 다시 팔로우하면 BE가 맨 앞(팔로우 시각 역순)에 주지만 제자리에 두고, 다시 읽기 전에도 행이 남는다.
+  retained = retainFollowChange(retained, displayedFollowings([a, d], retained), b, true);
+  assert.equal(isUnfollowed(retained, "b"), false);
+  assert.deepEqual(ids(displayedFollowings([a, d], retained)), ["a", "b", "c", "d"]);
+  assert.deepEqual(ids(displayedFollowings([b, a, d], retained)), ["a", "b", "c", "d"]);
+});
+
+test("a shown row pushed to the next page is reported as missing", () => {
+  const seller = (sellerId) => ({ sellerId, sellerName: sellerId, createdAt: "2026-09-28" });
+  const [a, b, c] = ["a", "b", "c"].map(seller);
+  const retained = retainFollowChange(noRetainedFollowings, [a, b, c], a, true);
+
+  assert.equal(hasMissingShownRow(retained, displayedFollowings([a, b, c], retained)), false);
+  // 다시 팔로우한 a가 맨 앞에 끼어 c가 받지 않은 다음 페이지로 밀렸다.
+  assert.equal(hasMissingShownRow(retained, displayedFollowings([a, b], retained)), true);
+  assert.equal(hasMissingShownRow(noRetainedFollowings, [a]), false);
 });
 
 test("the displayed total includes rows retained until refresh", () => {
   const seller = (sellerId) => ({ sellerId, sellerName: sellerId, createdAt: "2026-09-28" });
   const removed = seller("a");
-  const unfollowed = new Map([[removed.sellerId, removed]]);
+  const retained = retainFollowChange(noRetainedFollowings, [removed, seller("b")], removed, false);
 
-  assert.equal(displayedFollowingTotal(39, [seller("b")], unfollowed), 40);
-  assert.equal(displayedFollowingTotal(40, [removed, seller("b")], unfollowed), 40);
+  assert.equal(displayedFollowingTotal(39, [seller("b")], retained), 40);
+  assert.equal(displayedFollowingTotal(40, [removed, seller("b")], retained), 40);
 });
 
 test("the following row passes the server counts without my own follow", () => {

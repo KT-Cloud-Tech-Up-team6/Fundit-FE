@@ -156,29 +156,51 @@ export function MonitoringPanel({
 }
 
 /**
- * 판매자 채팅. 입력 상태는 패널이 갖는다. `onSend`가 `false`를 돌려주면 입력을 지우지 않는다
- * (실제 채팅이 연결되지 않아 보내지 못한 경우 쓴 글을 잃지 않게 한다).
+ * 판매자 채팅. 입력 상태는 패널이 갖는다. `onSend`가 `false`를 돌려주면(비동기면 `false`로 끝나면)
+ * 입력을 지우지 않는다 — 보내지 못한 글을 잃지 않게 한다. 비동기 전송을 기다리는 동안은 다시 보내지 않는다.
  */
 export function SellerChatPanel({
   messages,
   countLabel = String(messages.length),
   inactive = false,
   disabled = false,
+  maxLength,
   onSend,
 }: {
-  messages: { id: number | string; author: string; text: string }[];
+  /** `ai`면 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
+  messages: { id: number | string; author: string; text: string; ai?: boolean }[];
   countLabel?: string;
   /** 송출 전처럼 채팅 영역을 흐리게 그린다. */
   inactive?: boolean;
   disabled?: boolean;
-  onSend: (text: string) => boolean | void;
+  maxLength?: number;
+  onSend: (text: string) => boolean | void | Promise<boolean>;
 }) {
   const [chat, setChat] = useState("");
+  const [sending, setSending] = useState(false);
+  /* 대기 표시는 다음 렌더에 반영된다. 그 사이 Enter를 두 번 누르면 같은 메시지가 두 번 나간다. */
+  const sendingRef = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages]);
+  async function submit() {
+    if (disabled || sendingRef.current || !chat.trim()) return;
+    const text = chat;
+    const result = onSend(text);
+    if (!(result instanceof Promise)) {
+      if (result !== false) setChat("");
+      return;
+    }
+    sendingRef.current = true;
+    setSending(true);
+    const sent = await result;
+    sendingRef.current = false;
+    setSending(false);
+    /* 기다리는 동안 고쳐 쓴 글은 지우지 않는다. */
+    if (sent) setChat((current) => (current === text ? "" : current));
+  }
   return (
     <section
       className="border-border-default flex h-[310px] flex-col overflow-hidden rounded-sm border"
@@ -205,11 +227,16 @@ export function SellerChatPanel({
           {messages.length ? (
             <ul className="space-y-1">
               {messages.map((message) => (
-                <li key={message.id} className="flex items-start gap-2 py-1">
+                <li
+                  key={message.id}
+                  className={message.ai ? "flex flex-col py-1" : "flex items-start gap-2 py-1"}
+                >
                   <span className="text-label-m text-text-secondary shrink-0 pt-0.5">
                     {message.author}
                   </span>
-                  <p className="text-body-s min-w-0 break-words whitespace-pre-wrap">
+                  <p
+                    className={`text-body-s min-w-0 break-words whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
+                  >
                     {message.text}
                   </p>
                 </li>
@@ -226,13 +253,13 @@ export function SellerChatPanel({
         className="border-border-default flex shrink-0 items-center gap-2 border-t p-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (disabled || !chat.trim()) return;
-          if (onSend(chat) !== false) setChat("");
+          void submit();
         }}
       >
         <input
           aria-label="판매자 채팅 입력"
           value={chat}
+          maxLength={maxLength}
           onChange={(event) => setChat(event.target.value)}
           disabled={disabled}
           onKeyDown={(event) => {
@@ -244,7 +271,7 @@ export function SellerChatPanel({
         <button
           type="submit"
           aria-label="채팅 전송"
-          disabled={disabled || !chat.trim()}
+          disabled={disabled || sending || !chat.trim()}
           className="disabled:text-text-disabled flex size-9 shrink-0 items-center justify-center"
         >
           <Icon name="send" className="inline-block size-5 shrink-0" />

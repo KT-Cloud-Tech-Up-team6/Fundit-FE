@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createChatToken,
   getAnsweredQuestions,
   getHighlights,
   getInsights,
@@ -8,6 +9,7 @@ import {
   getOriginals,
   getPlayback,
   getPublicHighlights,
+  getPublicProjectClips,
   getUnanswered,
   getVodChat,
   likeLive,
@@ -140,6 +142,31 @@ test("쇼츠 클릭은 비인증 POST로 하이라이트 id를 이스케이프�
   }
 });
 
+test("프로젝트 숏 클립 목록은 비인증 GET으로 projectId를 쿼리로 보낸다(#319)", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    return response({ content: [], totalElements: 0 });
+  };
+  try {
+    authTokenStore.set("live-token");
+    const controller = new AbortController();
+    assert.deepEqual(await getPublicProjectClips("p/1", controller.signal), {
+      content: [],
+      totalElements: 0,
+    });
+    const url = new URL(calls[0][0], "https://example.com");
+    assert.equal(url.pathname, "/api/v1/lives/highlights");
+    assert.equal(url.searchParams.get("projectId"), "p/1");
+    assert.equal(calls[0][1].signal, controller.signal);
+    assert.equal(calls[0][1].headers.get("Authorization"), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
+  }
+});
+
 test("판매자 하이라이트 목록은 인증 GET, 공개 설정은 인증 PATCH로 isPublic만 보낸다", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
@@ -189,5 +216,33 @@ test("답변된 질문 목록은 BE가 뺀 answerText(null)나 빈 답변 행을
     );
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("채팅 토큰은 본문 없는 인증 POST로 받고 응답의 token·roomArn을 그대로 돌려준다(#470)", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  const token = {
+    token: "chat-token",
+    roomArn: "arn:aws:ivschat:ap-northeast-2:123456789012:room/abcd",
+    capabilities: ["SEND_MESSAGE"],
+  };
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push([String(input), init]);
+    return response(token);
+  };
+  try {
+    authTokenStore.set("live-token");
+    assert.deepEqual(await createChatToken("7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87"), token);
+    assert.match(
+      calls[0][0],
+      /\/api\/v1\/lives\/7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87\/chat\/token$/,
+    );
+    assert.equal(calls[0][1].method, "POST");
+    assert.equal(calls[0][1].body, undefined);
+    assert.equal(calls[0][1].headers.get("Authorization"), "Bearer live-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+    authTokenStore.clear();
   }
 });

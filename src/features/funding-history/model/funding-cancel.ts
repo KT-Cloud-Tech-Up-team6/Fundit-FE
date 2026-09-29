@@ -242,11 +242,17 @@ function knownErrorMessage(error: unknown): string | undefined {
   return error instanceof ApiError ? requestErrorMessages[error.code] : undefined;
 }
 
-/** 취소는 결과를 알 수 없는 실패면 주문 상태를 다시 보라고 안내한다. */
+/** 취소는 결과를 알 수 없는 실패면 이미 접수됐을 수 있어 내역과 주문 상태를 보라고 안내한다. */
+const cancelUnknownResultMessage =
+  "취소가 접수됐는지 확인하지 못했습니다. 취소·반품·교환 내역이나 주문 상태를 확인해주세요.";
+
+/* 발송 지연 취소의 503 `DEPENDENCY_FAILURE`는 토스 응답이 불명확해 취소가 처리 중으로 접수된
+   경우일 수 있다(BE #182). 배송 상태 조회 실패도 같은 코드라 둘 다 결과를 모르는 실패로 본다. */
 export function cancelErrorMessage(error: unknown): string {
-  return (
-    knownErrorMessage(error) ?? "처리 결과를 확인하지 못했습니다. 주문 상태를 다시 확인해주세요."
-  );
+  if (error instanceof ApiError && error.code === "DEPENDENCY_FAILURE") {
+    return cancelUnknownResultMessage;
+  }
+  return knownErrorMessage(error) ?? cancelUnknownResultMessage;
 }
 
 export function refundRequestErrorMessage(error: unknown): string {

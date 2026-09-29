@@ -11,6 +11,7 @@ import { Modal } from "@/shared/components/ui/modal";
 import { createStoryState, storyBody, storyQuestions, storyReducer } from "../model/story-demo";
 import type { StoryDemoState } from "../model/story-demo";
 import styles from "./funding-story-modal.module.css";
+import { StoryTextBlock } from "@/features/project-story/ui/story-html";
 import { StoryPreview } from "./story-preview";
 import {
   confirmFundingStorySession,
@@ -466,9 +467,11 @@ export function FundingStoryModal({
                       className="h-auto w-full rounded-xs"
                     />
                   ) : (
-                    <p key={index} className="text-body-m break-words whitespace-pre-wrap">
-                      {block.value}
-                    </p>
+                    /* 하단 TEXT는 섹션·제목·구분선 HTML이다(#331). 글자로 보이지 않게 구매자 상세와
+                       같은 안전 렌더러로 그린다. */
+                    <div key={index} className="text-body-m break-words">
+                      <StoryTextBlock value={block.value} />
+                    </div>
                   ),
                 )}
               </article>

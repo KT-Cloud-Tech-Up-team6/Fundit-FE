@@ -6,7 +6,6 @@ import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWishes, setWish, WISH_PAGE_SIZE, type Wish } from "@/entities/member/api/member-api";
-import type { FollowedSeller } from "@/entities/seller/api/follow-api";
 import { MemberAccess } from "@/features/buyer-mypage/ui/member-access";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { Button } from "@/shared/components/ui/button";
@@ -14,6 +13,7 @@ import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { previousPage } from "@/shared/lib/previous-page";
 import { projectDetailId } from "@/shared/lib/project-detail-id";
+import { noRetainedFollowings, type RetainedFollowings } from "../model/following";
 import { FollowingListApi } from "./following-list-api";
 
 export function BuyerWishlistApi() {
@@ -39,7 +39,7 @@ function Wishlist({ memberId }: { memberId: string }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [removed, setRemoved] = useState<Wish | null>(null),
-    [unfollowed, setUnfollowed] = useState<ReadonlyMap<string, FollowedSeller>>(new Map());
+    [retained, setRetained] = useState<RetainedFollowings>(noRetainedFollowings);
   const saving = useRef(false);
   async function change(item: Wish, wished: boolean) {
     if (saving.current) return;
@@ -91,8 +91,8 @@ function Wishlist({ memberId }: { memberId: string }) {
         {sellers ? (
           <FollowingListApi
             memberId={memberId}
-            unfollowed={unfollowed}
-            onUnfollowedChange={(change) => setUnfollowed(change)}
+            retained={retained}
+            onRetainedChange={(change) => setRetained(change)}
           />
         ) : (
           <>
