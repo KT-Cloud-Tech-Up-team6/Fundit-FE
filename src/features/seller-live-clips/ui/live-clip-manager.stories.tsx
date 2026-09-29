@@ -14,6 +14,7 @@ import { LiveClipIntro, LiveClipManager } from "./live-clip-manager";
 
 const projectTitle = "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기";
 const thumbnail = "/images/funding-status/vacuum-cleaner.png";
+const clipThumbnail = "/images/seller-live/broadcast.png";
 
 function live(liveId: string, scheduledStartAt: string, thumbnailUrl: string | null) {
   return {
@@ -33,14 +34,14 @@ function highlight(
   startSec: number,
   title: string,
   overrides: Partial<Highlight> = {},
-): Highlight {
+): Omit<Highlight, "createdAt"> {
   return {
     highlightId,
     sceneLabel: "PRICE_BENEFIT",
     title,
     startSec,
     endSec: startSec + 32,
-    // 스토리에는 재생할 영상이 없어 LIVE 썸네일로 대신 그린다.
+    // 스토리에는 재생할 영상이 없어 클립 썸네일이 없으면 LIVE 썸네일로 대신 그린다.
     clipUrl: null,
     caption: null,
     isPublic: true,
@@ -49,36 +50,45 @@ function highlight(
   };
 }
 
+/* 클립은 방송이 끝난 뒤 AI가 만든다. 스토리는 클립 생성일을 방송일과 같게 둔다. */
+function endedLive(
+  liveId: string,
+  date: string,
+  thumbnailUrl: string | null,
+  clips: Omit<Highlight, "createdAt">[],
+) {
+  return {
+    live: live(liveId, date, thumbnailUrl),
+    clips: clips.map((clip) => ({ ...clip, createdAt: date })),
+  };
+}
+
 /* LIVE 하나에 클립은 최대 3개다(BE). 최신 LIVE부터, LIVE 안에서는 시작 시각 순서다. */
 const clips = toLiveClips([
-  {
-    live: live("live-3", "2026-09-15T01:00:00Z", thumbnail),
-    clips: [
-      highlight("c1", 30, "[상품명] AI가 자동생성한 제목 길이는 최대 1줄표시 넘어가면 말줄임"),
-      highlight("c2", 120, "흡입력 35,000Pa를 직접 보여 드려요", { sceneLabel: "DEMO" }),
-      highlight("c3", 300, "오늘만 드리는 얼리버드 혜택 정리", { isPublic: false }),
-    ],
-  },
-  {
-    live: live("live-2", "2026-09-12T01:00:00Z", thumbnail),
-    clips: [
-      highlight("c4", 10, "무게 1.2kg, 한 손으로 드는 무선청소기"),
-      highlight("c5", 200, "먼지통 비우는 법 한 번에 보기", { sceneLabel: "SPEC" }),
-      highlight("c6", 420, "배터리 사용 시간 질문에 답했어요", {
-        sceneLabel: "AUDIENCE_REACTION",
-        isPublic: false,
-      }),
-    ],
-  },
-  {
-    // 썸네일이 없는 LIVE의 클립은 빈 면으로 그린다.
-    live: live("live-1", "2026-09-05T01:00:00Z", null),
-    clips: [
-      highlight("c7", 60, "첫 방송 인사와 제품 소개", { sceneLabel: "INTRO" }),
-      highlight("c8", 150, "경쟁 제품과 흡입력 비교", { sceneLabel: "COMPARISON" }),
-      highlight("c9", 240, "마무리 인사", { sceneLabel: "CLOSING", endSec: null }),
-    ],
-  },
+  endedLive("live-3", "2026-09-15T01:00:00Z", thumbnail, [
+    highlight("c1", 30, "[상품명] AI가 자동생성한 제목 길이는 최대 1줄표시 넘어가면 말줄임", {
+      thumbnailUrl: clipThumbnail,
+    }),
+    highlight("c2", 120, "흡입력 35,000Pa를 직접 보여 드려요", {
+      sceneLabel: "DEMO",
+      thumbnailUrl: clipThumbnail,
+    }),
+    highlight("c3", 300, "오늘만 드리는 얼리버드 혜택 정리", { isPublic: false }),
+  ]),
+  endedLive("live-2", "2026-09-12T01:00:00Z", thumbnail, [
+    highlight("c4", 10, "무게 1.2kg, 한 손으로 드는 무선청소기"),
+    highlight("c5", 200, "먼지통 비우는 법 한 번에 보기", { sceneLabel: "SPEC" }),
+    highlight("c6", 420, "배터리 사용 시간 질문에 답했어요", {
+      sceneLabel: "AUDIENCE_REACTION",
+      isPublic: false,
+    }),
+  ]),
+  // 클립 썸네일도 LIVE 썸네일도 없는 클립은 빈 면으로 그린다.
+  endedLive("live-1", "2026-09-05T01:00:00Z", null, [
+    highlight("c7", 60, "첫 방송 인사와 제품 소개", { sceneLabel: "INTRO" }),
+    highlight("c8", 150, "경쟁 제품과 흡입력 비교", { sceneLabel: "COMPARISON" }),
+    highlight("c9", 240, "마무리 인사", { sceneLabel: "CLOSING", endSec: null }),
+  ]),
 ]);
 
 const switchName = (clip: LiveClip) => `${clip.title} 상세페이지에 공개 하기`;

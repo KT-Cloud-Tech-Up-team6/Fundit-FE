@@ -98,9 +98,12 @@ export type Highlight = {
   startSec: number;
   endSec: number | null;
   clipUrl: string | null;
+  /** AI 콜백이 채우기 전까지 비어 있다(BE PR #185). */
+  thumbnailUrl?: string | null;
   caption: string | null;
   isPublic: boolean;
   generationStatus: string;
+  createdAt: string;
 };
 
 /* 이 호출이 조회 수로 잡힌다(BE 주석). 구간을 고를 때마다 다시 부르지 않는다. */

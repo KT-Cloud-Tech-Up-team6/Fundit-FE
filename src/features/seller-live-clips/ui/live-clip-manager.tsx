@@ -178,7 +178,11 @@ function ClipCard({
   return (
     /* Figma 안쪽 선(1px)은 여백 12 안에 겹친다. CSS 테두리는 자리를 차지해 여백을 11로 둔다. */
     <li className="border-w-xs border-border-default bg-layer-surface-default flex h-[148px] min-w-0 gap-3 rounded-xs p-[11px]">
-      <ClipThumbnail clip={clip} />
+      {/* 다시 받은 목록에서 주소가 바뀌면(재생성 등) 앞선 실패를 잊고 클립 썸네일부터 다시 그린다. */}
+      <ClipThumbnail
+        key={[clip.thumbnailUrl, clip.clipUrl, clip.liveThumbnailUrl].join("|")}
+        clip={clip}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <Badge variant="accent" className="self-start">
           {clip.badge}
@@ -211,35 +215,45 @@ function ClipCard({
   );
 }
 
+type ThumbnailSource = { kind: "image" | "video"; src: string };
+
 /**
- * 클립 썸네일은 응답에 없어 클립 영상의 첫 프레임을 쓴다. 영상을 못 그리면 원본 LIVE 썸네일,
- * 그것도 없으면 빈 면으로 둔다.
+ * 클립 썸네일 → 클립 영상의 첫 프레임 → 원본 LIVE 썸네일 순서로 그린다. 없는 것은 건너뛰고
+ * 불러오지 못하면 다음 것으로 넘어간다. 모두 없으면 빈 면이다. 클립 썸네일은 AI가 채우기 전까지 비어 있다.
  */
 function ClipThumbnail({ clip }: { clip: LiveClip }) {
-  const [videoFailed, setVideoFailed] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
-  const image = clip.liveThumbnailUrl;
+  const [failedCount, setFailedCount] = useState(0);
+  const candidates: { kind: ThumbnailSource["kind"]; src: string | null }[] = [
+    { kind: "image", src: clip.thumbnailUrl },
+    { kind: "video", src: clip.clipUrl },
+    { kind: "image", src: clip.liveThumbnailUrl },
+  ];
+  const sources = candidates.filter((source): source is ThumbnailSource => Boolean(source.src));
+  const source = sources[failedCount];
+  const showNext = () => setFailedCount((count) => count + 1);
   return (
     <div className="bg-layer-surface-disabled relative w-[92px] shrink-0 overflow-hidden">
-      {clip.clipUrl && !videoFailed ? (
+      {source?.kind === "video" ? (
         <video
+          key={failedCount}
           aria-hidden
           className="size-full object-cover"
           muted
           playsInline
           preload="metadata"
-          src={clip.clipUrl}
-          onError={() => setVideoFailed(true)}
+          src={source.src}
+          onError={showNext}
         />
-      ) : image && !imageFailed ? (
+      ) : source ? (
         <Image
+          key={failedCount}
           alt=""
           fill
           sizes="92px"
-          src={image}
+          src={source.src}
           className="object-cover"
-          unoptimized={/^https?:\/\//.test(image)}
-          onError={() => setImageFailed(true)}
+          unoptimized={/^https?:\/\//.test(source.src)}
+          onError={showNext}
         />
       ) : null}
     </div>
