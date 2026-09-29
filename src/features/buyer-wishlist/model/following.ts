@@ -53,24 +53,72 @@ export function uniqueFollowings(follows: readonly FollowedSeller[]): FollowedSe
 }
 
 /**
- * 서버가 다시 읽힌 뒤에도 해제 직후 행은 새로고침 전까지 남긴다. 서버 응답을 먼저 두어,
- * 아직 응답에도 있는 행은 원래의 목록 위치를 유지한다.
+ * 새로고침 전까지 남기는 팔로잉 탭 상태(PD-9). 찜 탭을 다녀와도 유지되게 관심 목록 화면이 들고 있다.
+ * `changed`는 이 화면에서 팔로우를 바꾼 판매자와 지금 팔로우 중인지, `order`는 마지막으로 바꿨을 때
+ * 보이던 행 순서다.
+ */
+export type RetainedFollowings = {
+  changed: ReadonlyMap<string, { seller: FollowedSeller; following: boolean }>;
+  order: readonly string[];
+};
+
+export const noRetainedFollowings: RetainedFollowings = { changed: new Map(), order: [] };
+
+/** 팔로우를 바꾼 판매자를 남기고, 그때 보이던 행 순서를 기억한다. */
+export function retainFollowChange(
+  previous: RetainedFollowings,
+  displayed: readonly FollowedSeller[],
+  seller: FollowedSeller,
+  following: boolean,
+): RetainedFollowings {
+  const changed = new Map(previous.changed);
+  changed.set(seller.sellerId, { seller, following });
+  return { changed, order: displayed.map(({ sellerId }) => sellerId) };
+}
+
+export const isUnfollowed = (retained: RetainedFollowings, sellerId: string) =>
+  retained.changed.get(sellerId)?.following === false;
+
+/**
+ * BE는 팔로우한 시각 역순이라, 다시 읽으면 해제한 행은 빠지고 다시 팔로우한 행은 맨 앞에 온다.
+ * 바꾼 행은 응답에 없어도 남기고, 기억한 순서대로 두어 새로고침 전까지 제자리에 있게 한다.
+ * 그 뒤에 처음 받은 행(다음 페이지)은 서버 순서대로 뒤에 붙는다.
  */
 export function displayedFollowings(
   fetched: readonly FollowedSeller[],
-  unfollowed: ReadonlyMap<string, FollowedSeller>,
+  retained: RetainedFollowings,
 ): FollowedSeller[] {
-  return uniqueFollowings([...fetched, ...unfollowed.values()]);
+  const rows = uniqueFollowings([
+    ...fetched,
+    ...[...retained.changed.values()].map(({ seller }) => seller),
+  ]);
+  const position = new Map(retained.order.map((sellerId, index) => [sellerId, index]));
+  const known = rows
+    .filter(({ sellerId }) => position.has(sellerId))
+    .sort((a, b) => position.get(a.sellerId)! - position.get(b.sellerId)!);
+  return [...known, ...rows.filter(({ sellerId }) => !position.has(sellerId))];
+}
+
+/**
+ * 기억한 순서의 행 가운데 지금 목록에 없는 행이 있는지. 다시 팔로우한 행이 BE 목록 맨 앞에 끼거나 해제 뒤
+ * 다시 읽으며 페이지 수가 줄면, 보이던 끝 행이 아직 받지 않은 다음 페이지로 밀린다.
+ */
+export function hasMissingShownRow(
+  retained: RetainedFollowings,
+  displayed: readonly FollowedSeller[],
+): boolean {
+  const shown = new Set(displayed.map(({ sellerId }) => sellerId));
+  return retained.order.some((sellerId) => !shown.has(sellerId));
 }
 
 /** 서버 목록에서 빠진 해제 행까지 포함한 표시용 총계다. */
 export function displayedFollowingTotal(
   serverTotal: number,
   fetched: readonly FollowedSeller[],
-  unfollowed: ReadonlyMap<string, FollowedSeller>,
+  retained: RetainedFollowings,
 ): number {
   const fetchedIds = new Set(fetched.map(({ sellerId }) => sellerId));
-  const retainedCount = [...unfollowed.keys()].filter(
+  const retainedCount = [...retained.changed.keys()].filter(
     (sellerId) => !fetchedIds.has(sellerId),
   ).length;
   return serverTotal + retainedCount;
