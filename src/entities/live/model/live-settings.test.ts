@@ -27,6 +27,22 @@ test("값이 없는 필드는 키 자체를 빼 부분 업데이트로 보낸다
   assert.equal("scheduledStartAt" in body, false);
 });
 
+test("예약을 풀었으면 예약 시각 대신 해제를 보낸다", () => {
+  assert.deepEqual(toLiveSettingsBody({ clearSchedule: true, scheduledStartAt: null }), {
+    clearSchedule: true,
+  });
+  /* BE는 해제와 예약 시각을 같이 받으면 400이라 둘 중 하나만 싣는다. */
+  assert.deepEqual(
+    toLiveSettingsBody({ clearSchedule: true, scheduledStartAt: "2026-07-01T04:05:00.000Z" }),
+    { clearSchedule: true },
+  );
+  assert.deepEqual(
+    toLiveSettingsBody({ clearSchedule: false, scheduledStartAt: "2026-07-01T04:05:00.000Z" }),
+    { scheduledStartAt: "2026-07-01T04:05:00.000Z" },
+  );
+  assert.equal(isEmptyLiveSettingsBody(toLiveSettingsBody({ clearSchedule: true })), false);
+});
+
 test("대분류가 있을 때만 카테고리를 보낸다", () => {
   assert.deepEqual(toLiveSettingsBody({ categoryMajor: "테크·가전", categoryMinor: "청소기" }), {
     category: { major: "테크·가전", minor: "청소기" },

@@ -50,18 +50,22 @@ const statusVariants: Record<LiveStatus, SellerLiveBadgeVariant> = {
 };
 
 /* 상태별로 판매자가 이어서 할 일이 달라 목적지가 갈린다. 실제로 존재하는 라우트에만 보낸다.
-   - DRAFT·SCHEDULED → 큐시트. 방송 준비를 이어가는 화면이다(API 미연결이나 화면은 있다).
+   - DRAFT → 큐시트. 방송 준비를 이어가는 화면이다(API 미연결이나 화면은 있다).
+   - SCHEDULED → 그 프로젝트의 LIVE 생성(`FL_S_LV_CREATE`)에 이 LIVE를 불러와 고친다. IA 판매자 18행
+     "예정 중인 프로젝트 클릭 시 기존 설정값 로드, 수정 모드로 [FL_S_LV_CREATE] 이동"이다(#444).
+     예약을 해제하거나 바꾸는 곳이 이 화면뿐이다.
    - LIVE → 방송 콘솔. 송출 중 조작이 여기 있다.
    - ENDED → LIVE 체크 작성(`FL_S_LV_VERIFY`, IA 판매자 18행). 원본의 이 모달은 콘솔 위에 있어
      콘솔을 열면서 모달을 띄운다(#399).
-   - ERROR → 그 프로젝트의 LIVE 생성(`FL_S_LV_CREATE`)에 이 LIVE를 불러와 다시 시작한다(#400).
-     LIVE 시작 버튼이 이 화면에만 있고, IA 판매자 18행도 예정 LIVE를 같은 화면에 불러오게 한다. */
+   - ERROR → 예약 LIVE와 같은 화면에 불러와 다시 시작한다(#400). LIVE 시작 버튼이 이 화면에만 있다. */
+const resumeInCreate = (id: string, projectId: string) =>
+  `/seller/projects/${projectId}/live/new?liveId=${id}`;
 const manageDestinations: Record<LiveStatus, (id: string, projectId: string) => string> = {
   DRAFT: (id) => `/seller/live/${id}/cue-sheet`,
-  SCHEDULED: (id) => `/seller/live/${id}/cue-sheet`,
+  SCHEDULED: resumeInCreate,
   LIVE: (id) => `/seller/live/${id}/console`,
   ENDED: (id) => `/seller/live/${id}/console?check=open`,
-  ERROR: (id, projectId) => `/seller/projects/${projectId}/live/new?liveId=${id}`,
+  ERROR: resumeInCreate,
 };
 
 export function liveManageHref(status: LiveStatus, liveId: string, projectId: string) {

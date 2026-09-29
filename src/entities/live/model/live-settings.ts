@@ -37,6 +37,8 @@ export type LiveSettingsInput = {
   introText?: string | null;
   /** 이미 ISO-8601로 바꾼 값. 예약하지 않으면 `null`이다. */
   scheduledStartAt?: string | null;
+  /** 판매자가 "방송 예약하기"를 풀었는지. 참이면 `scheduledStartAt` 대신 예약 해제를 보낸다. */
+  clearSchedule?: boolean;
 };
 
 /**
@@ -45,6 +47,10 @@ export type LiveSettingsInput = {
  * 값이 없는 필드는 **키 자체를 뺀다**. `null`을 보내도 BE는 "건드리지 않음"으로 읽지만,
  * 키를 빼는 쪽이 의도를 그대로 드러낸다. 카테고리는 대분류가 있을 때만 보낸다 —
  * 소분류만으로는 BE가 저장할 수 없다.
+ *
+ * <p>예약을 풀었으면 서버에 예약이 있었는지와 관계없이 해제를 보낸다. 예약 시각을 빼기만 하면
+ * 앞서 저장한 예약이 남아 LIVE가 예정(SCHEDULED)으로 남는다(요청서 BE-10). 예약이 없는
+ * 임시저장에 해제를 보내도 BE는 그대로 둔다.
  */
 export function toLiveSettingsBody(input: LiveSettingsInput): LiveSettingsBody {
   const body: LiveSettingsBody = {};
@@ -53,7 +59,8 @@ export function toLiveSettingsBody(input: LiveSettingsInput): LiveSettingsBody {
   }
   const introText = input.introText?.trim();
   if (introText) body.introText = introText.slice(0, LIVE_INTRO_MAX_LENGTH);
-  if (input.scheduledStartAt) body.scheduledStartAt = input.scheduledStartAt;
+  if (input.clearSchedule) body.clearSchedule = true;
+  else if (input.scheduledStartAt) body.scheduledStartAt = input.scheduledStartAt;
   return body;
 }
 

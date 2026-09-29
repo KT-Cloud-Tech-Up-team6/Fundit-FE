@@ -74,7 +74,7 @@ Route Group 이름은 URL에 노출되지 않는다. LIVE, 프로젝트, 펀딩 
 
 ### LIVE 생성과 AI 큐시트 API 연결 (#289)
 
-- `/seller/projects/[projectId]/live/new`도 `LiveCreateApi`가 그립니다. 프로젝트가 주소에 박혀 있어 원본(FL_S_LV_CREATE)의 카테고리·프로젝트 선택 단계는 끝난 상태로 시작하고, 소개 문구·예약 입력과 생성 확인 단계만 그립니다. LIVE 스튜디오의 시작 실패 카드가 `?liveId=`로 다시 시작할 때 씁니다(#400).
+- `/seller/projects/[projectId]/live/new`도 `LiveCreateApi`가 그립니다. 프로젝트가 주소에 박혀 있어 원본(FL_S_LV_CREATE)의 카테고리·프로젝트 선택 단계는 끝난 상태로 시작하고, 소개 문구·예약 입력과 생성 확인 단계만 그립니다. LIVE 스튜디오의 시작 실패 카드가 `?liveId=`로 다시 시작할 때(#400)와 예약 카드가 예약한 LIVE를 고칠 때(IA 판매자 18행, #444) 씁니다.
 - LIVE는 화면 진입이 아니라 **다음·임시저장을 처음 누를 때** `POST /api/v1/lives`로 만듭니다. 이후 같은 `liveId`에 `PATCH /settings`만 덮어써 재시도가 LIVE를 늘리지 않습니다. 연결 프로젝트는 BE가 변경 불가로 정해 설정 본문에 넣지 않습니다.
 - `LiveCueSheetApi`가 `/seller/live/[liveId]/cue-sheet`와 생성 확인 화면의 큐시트 모달을 함께 담당합니다. `LiveCueSheetFlow`의 표현은 그대로 두고 데이터원만 API로 바꿉니다 — `generation`·`onGenerate`를 주면 API 모드, 주지 않으면 기존 데모 모드입니다.
 - 생성은 비동기입니다. `POST /cue-sheet`가 202와 `GENERATING`을 주고 결과는 BE가 AI를 호출해 채우므로, 생성 중일 때만 3초 간격으로 `GET`을 폴링합니다. 생성 중·성공·실패를 각각 다른 화면으로 그립니다. 실패 사유(`failureReason`)는 AI 호출 예외 원문이라 싣지 않고 일반 안내를 보입니다(#403). `COMPLETED`인데 구간이 비어 있으면(스텁 모드) 성공으로 그리지 않습니다.

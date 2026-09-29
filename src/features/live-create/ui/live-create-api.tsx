@@ -57,8 +57,8 @@ const categoryOptions = mainCategories.map((name) => ({ value: name, label: name
  * - `projectId`가 없으면 LIVE 스튜디오의 [LIVE 생성하기](#418)다. 원본대로 모달 안에서 카테고리와
  *   진행 중 프로젝트를 고르고, 닫으면 `onClose`로 스튜디오에 머문다.
  * - `projectId`가 있으면 `/seller/projects/{projectId}/live/new`다. 프로젝트가 주소에 박혀 있어 앞 두
- *   단계가 끝난 상태로 시작한다. LIVE 스튜디오의 시작 실패 카드가 `resumeLiveId`로 다시 시작할 때
- *   쓴다(#400).
+ *   단계가 끝난 상태로 시작한다. LIVE 스튜디오의 시작 실패 카드가 `resumeLiveId`로 다시 시작할 때(#400),
+ *   예약 카드가 예약한 LIVE를 고칠 때(IA 판매자 18행, #444) 쓴다.
  *
  * <p>LIVE는 **다음·임시저장을 처음 누를 때** 만든다. 화면을 여는 것만으로 DRAFT가 쌓이면
  * 판매자가 만들지 않은 LIVE가 스튜디오 목록에 남는다. 만든 뒤에는 같은 liveId에 설정만
@@ -184,6 +184,7 @@ export function LiveCreateApi({
         scheduledStartAt: scheduled
           ? toScheduledStartAt(dateRef.current?.value ?? "", timeRef.current?.value ?? "")
           : null,
+        clearSchedule: !scheduled,
       });
       if (!isEmptyLiveSettingsBody(body)) await updateLiveSettings(id, body);
       return { id, mode };
@@ -254,7 +255,9 @@ export function LiveCreateApi({
       setNotice(
         detail.status === "ERROR"
           ? "시작에 실패한 LIVE를 불러왔습니다. 내용을 확인하고 다시 시작해 주세요."
-          : "임시저장한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다.",
+          : detail.status === "SCHEDULED"
+            ? "예약한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다."
+            : "임시저장한 LIVE를 불러왔습니다. 이어서 작성할 수 있습니다.",
       );
     },
   });

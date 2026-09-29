@@ -48,16 +48,16 @@ Gateway는 `/api/v1/follows/**`를 member-service로 라우팅한다.
 - 판매자 한 명의 팔로우 여부를 묻는 API는 없다. FE는 `src/entities/seller/api/follow-api.ts`의 `getAllFollows`로 목록을 size 100으로 끝까지 읽어 판단하며, 쿼리 키 `followsQueryKey(memberId)`를 LIVE 시청 화면(#343)과 LIVE 메인 "팔로우한 창작자"가 함께 쓴다. LIVE 시청 화면의 판매자 식별자는 공개 프로젝트 상세의 `seller.sellerId`다(`displayName`은 null일 수 있다).
 - 찜 목록(`GET /api/v1/wishes`)과 합치지 않은 이유는 항목 모양이 다르고, 한 엔드포인트에 섞으면 페이지네이션이 하나로 묶여 탭 전환마다 커서가 꼬이기 때문이다. FE도 두 탭의 페이지 상태를 분리한다.
 
-**목록·해제는 연결했고(#384), 표시 필드 일부가 없다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. LIVE 목록 응답에는 `sellerId`가 없어 FE가 방송 중 여부를 판매자별로 나눌 수도 없다. #257에서는 이름 하나만 채울 수 있어 목록 연결을 보류했으나, 2026-09-28 목록·해제는 연결하고 없는 값은 비워 두기로 바꿨다([관심 목록](./BUYER_WISHLIST.md#팔로잉-탭-연결-384)). 같은 날 BE PR #173으로 팔로워 수·♥가 생겨 #427에서 연결했고, 아바타 이미지와 LIVE 배지는 여전히 없다.
+**목록·해제는 연결했고(#384), 표시 필드 일부가 없다.** 원본 `FL_B_LK_LIST_2`(`1249:24108`)의 한 행은 아바타 46px·LIVE 배지·판매자명·"팔로워 151 · ♥ 2,000"·"팔로잉" 버튼으로 구성된다. 판매자 프로필 API `GET /api/v1/sellers/{sellerId}`도 `{sellerId, businessType, pastProjects[]}`라 아바타·팔로워 수·좋아요 수·LIVE 상태를 제공하지 않는다. LIVE 목록 응답에는 `sellerId`가 없어 FE가 방송 중 여부를 판매자별로 나눌 수도 없다. #257에서는 이름 하나만 채울 수 있어 목록 연결을 보류했으나, 2026-09-28 목록·해제는 연결하고 없는 값은 비워 두기로 바꿨다([관심 목록](./BUYER_WISHLIST.md#팔로잉-탭-연결-384)). 같은 날 BE PR #173으로 팔로워 수·♥가 생겨 #427에서 연결했고, LIVE 배지는 BE PR #185의 LIVE 목록 `sellerId`로 #444에서 연결했다. 아바타 이미지는 여전히 없다.
 
 BE에 요청한 필드와 반영 상태는 아래와 같다.
 
-| 필요한 값                    | 쓰임                | 상태(2026-09-28)                                           |
+| 필요한 값                    | 쓰임                | 상태(2026-09-29)                                           |
 | ---------------------------- | ------------------- | ---------------------------------------------------------- |
 | 판매자 프로필 이미지 URL     | 행 좌측 아바타 46px | 필드만 추가, 업로드 경로가 없어 늘 빠짐 → 기본 이미지      |
 | 팔로워 수                    | "팔로워 N"          | `followerCount` 반영(PR #173), #427 연결                   |
 | 좋아요(찜) 수                | 하트 아이콘 옆 수치 | `wishCount` 반영(PR #173), #427 연결                       |
-| 진행 중 LIVE 여부            | 아바타 위 LIVE 배지 | LIVE 목록에 `sellerId` 추가 예정(요청서 BE-17)             |
+| 진행 중 LIVE 여부            | 아바타 위 LIVE 배지 | LIVE 목록 `sellerId` 반영(BE PR #185), #444 연결           |
 | 판매자 상세 경로에 쓸 식별자 | 행 선택 시 이동     | 판매자 상세는 MVP 제외(요청서 PD-9 회신)라 요청하지 않는다 |
 
 - 목록 정렬은 팔로우한 최신순이다(`createdAt desc, sellerId desc`, BE `FollowJpaRepository`).
@@ -581,7 +581,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 동작           | Method·Path                              | 요청 → 응답                                                                                                                                                                                      |
 | -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | LIVE 생성      | POST `/api/v1/lives`                     | `{projectId}` → 201 `{liveId, status}`. 생성 직후는 항상 `DRAFT`다.                                                                                                                              |
-| 기본 설정 저장 | PATCH `/api/v1/lives/{liveId}/settings`  | `{category:{major,minor}?, introText?, thumbnailUrl?, scheduledStartAt?}` → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                                                     |
+| 기본 설정 저장 | PATCH `/api/v1/lives/{liveId}/settings`  | `{category:{major,minor}?, introText?, thumbnailUrl?, scheduledStartAt?, clearSchedule?}` → `{liveId, status, scheduledStartAt, actualStartAt, actualEndAt}`                                     |
 | 큐시트 생성    | POST `/api/v1/lives/{liveId}/cue-sheet`  | `{mode, targetDurationSec, demoAvailable?, emphasisPoints?, tone?, mandatoryPhrases?, productDescription?, motivation?, expectedRisks?, demoDescription?, deliverySchedule?}` → 202 `GENERATING` |
 | 큐시트 조회    | GET `/api/v1/lives/{liveId}/cue-sheet`   | `{status, mode, totalDurationSec, segments, failureReason}`                                                                                                                                      |
 | 큐시트 수정    | PATCH `/api/v1/lives/{liveId}/cue-sheet` | `{segments: [...]}` → 같은 조회 DTO                                                                                                                                                              |
@@ -589,6 +589,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - LIVE 스튜디오에서 만들 때(#418) 연결할 프로젝트는 `GET /api/v1/projects?status=ONGOING&page=0&size=100`으로 받는다. 목록 API에 카테고리 필터가 없어 `categoryMajor`로 화면에서 추리고, `size`는 최대 100(`ProjectController.MAX_PAGE_SIZE`)이라 그보다 많으면 첫 페이지까지만 보인다. BE `LiveCreateService`는 소유만 확인해 진행 중만 고르게 한 것은 FE 결정(2026-09-28)이다.
 - **부분 업데이트다.** `PATCH /settings`에서 보내지 않은 필드는 서버가 건드리지 않는다. 연결 프로젝트는 요청에 없다 — 요구사항정의서 6.2.4.1이 변경 불가로 정했고 바꾸려면 LIVE를 새로 만든다.
 - `introText`는 `@Size(max = 200)`이다. 화면 입력 제한도 같은 값을 쓴다.
+- `scheduledStartAt`을 채우면 `DRAFT`가 `SCHEDULED`로 오른다. 예약 해제는 `clearSchedule: true`다(BE PR #185, 요청서 BE-10) — 필드를 빼는 것은 "변경 없음"이라 해제가 되지 않는다. 해제하면 예정 시각이 지워지고 `SCHEDULED`는 `DRAFT`로 돌아가며, `ERROR`는 상태를 두고 시각만 지운다. `scheduledStartAt`과 같이 보내면 400, `LIVE`·`ENDED`면 409다. FE는 "방송 예약하기"를 푼 채 저장하면 서버에 예약이 있었는지와 관계없이 해제를 보낸다(#444).
 - `mode`는 `SCENARIO`·`SCRIPT`, `targetDurationSec`는 600초 이하다. 넘기면 400이고 이미 생성 중이면 409다.
 - 생성 전 채팅의 답 5개는 질문 순서대로 `productDescription`(제품 설명)·`motivation`(개발 동기·제작 과정)·`expectedRisks`(예상 어려움·리워드)·`demoDescription`(시연 항목)·`deliverySchedule`(발송 일정·캠페인)에 싣는다(BE #185, 요청서 AI-1·BE-25, #419). 전부 선택·문자열·`@Size(max = 1000)`이고 BE는 저장하지 않고 AI로 넘기기만 한다. 건너뛴 답은 빈 문자열로 보내지 않고 필드째 뺀다. 채팅 입력칸은 1000자로 막는다. 다섯 답 뒤의 정정은 마지막 답(`deliverySchedule`) 뒤에 "정정 사항: "으로 붙어 함께 나가므로, 정정칸은 합친 길이가 1000자를 넘지 않게 남은 글자 수만 받는다(별도 안내 없이 더 입력되지 않는다). 넘기면 재시도해도 같은 400이라 빠져나올 수 없어서다(#439 리뷰). 답은 화면 상태에만 있어 새로고침 뒤의 재시도·재생성은 답 없이 나간다(채팅으로 돌아가 다시 답하면 실린다). `demoAvailable`·`emphasisPoints`·`tone`·`mandatoryPhrases`는 화면에 입력 자리가 없어 보내지 않는다.
 - **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이지만 AI 호출 예외 원문이라(AI 주소 등 내부 정보가 섞일 수 있다) 화면에 보이지 않는다(#403).
@@ -643,7 +644,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 - `POST /start`는 `DRAFT`·`SCHEDULED`·`ERROR`에서만 `LIVE`로 바뀐다. 이미 `LIVE`거나 `ENDED`면 409라 화면은 "이미 시작했거나 종료된 LIVE"로 따로 안내한다. 시작은 채팅방 생성과 AI 상품정보 준비까지 포함하고, 채팅방 생성이 실패하면 의존성 오류(5xx)이며 세션이 `ERROR`가 된다.
 - `status`는 `List<LiveStatus>`라 쉼표(`status=DRAFT,SCHEDULED`)와 반복 파라미터 둘 다 받는다. FE는 쉼표로 보낸다. 준비중 탭의 "전체를 받아 화면에서 거르던" #283 우회는 여기서 걷었다.
-- 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled + error`). 시작에 실패한 `ERROR`는 #400부터 준비중 탭에 "시작 실패"로 보이고(요청서 PM-9 회신), 누르면 그 프로젝트의 LIVE 생성(`/seller/projects/{projectId}/live/new?liveId=`)에 불러와 다시 시작한다. 서버는 `ERROR`에서 설정 저장과 `POST /start`를 모두 받는다.
+- 탭 건수는 `status-counts`를 탭 매핑대로 더한다(준비중 = `draft + scheduled + error`). 시작에 실패한 `ERROR`는 #400부터 준비중 탭에 "시작 실패"로 보이고(요청서 PM-9 회신), 누르면 그 프로젝트의 LIVE 생성(`/seller/projects/{projectId}/live/new?liveId=`)에 불러와 다시 시작한다. 서버는 `ERROR`에서 설정 저장과 `POST /start`를 모두 받는다. 예약(`SCHEDULED`) 카드도 #444부터 IA 판매자 18행대로 같은 화면에 불러와 고친다(예약 변경·해제 포함).
 - 검색은 `q`다. URL에는 판매자 프로젝트 목록과 같이 `?search=`로 남긴다.
 - 송출 정보는 #344부터 BE #147의 `GET /stream-info`로 생성 확인 화면에 보여 준다. Figma 판매자 LIVE 흐름(`1230:15609`)과 와이어프레임에는 이 자리가 없어, 원래 "스트림 키 미제공" 안내가 있던 LIVE 시작 버튼 아래에 둔다. 송출 주소와 스트림 키는 각각 복사할 수 있고, 키는 기본으로 가렸다가 보기를 눌러야 드러난다. 모달 높이가 고정이라 값은 한 줄로 두고 길면 말줄임한다(전체 값은 복사로 쓴다). 응답에 `Cache-Control`이 없어 FE가 `cache: "no-store"`로 받아 키가 브라우저 캐시에 남지 않게 한다. BE는 키를 저장하지 않고 요청할 때마다 IVS에서 읽으며, dev는 IVS 스텁이라 가짜 값이 온다. 불러오지 못하면 다시 시도를 두고 LIVE 시작은 막지 않는다. 송출 정보는 BE #147(`ea3a30c`)로 추가돼 이 절의 기준 커밋(`47bee6ed`)에는 없고, `develop` `d701b42`와 대조했다.
 
@@ -659,6 +660,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - `sort=viewerCount`는 실시간 순위 전용이다. `LIVE`만 IVS 시청자 수 내림차순으로 오고 `status`·`sellerId`는 무시된다. `viewerCount`는 이때만 채워진다.
 - `sellerId`는 팔로우한 판매자 필터다. `List<UUID>`라 쉼표와 반복 파라미터를 둘 다 받고 FE는 쉼표로 보낸다. 값은 팔로우 목록(`GET /api/v1/follows`)의 `sellerId`다.
 - 항목에 판매자·카테고리·달성률이 없고 제목 대신 `introText`를 쓴다. BE가 null 필드를 빼고 보내 `introText`·`thumbnailUrl`·`scheduledStartAt`이 없을 수 있다.
+- BE PR #185부터 항목에 판매자 회원 ID `sellerId`가 온다(닉네임 조회가 실패해도 채워진다). 관심 목록 팔로잉 행의 LIVE 배지가 이 값으로 방송 중인 판매자를 맞춘다(#444). 판매자당 채널이 1개라 한 판매자의 동시 `LIVE`는 하나다.
 
 ### 5.11. 판매자 LIVE 클립 공개 설정 (#366)
 
