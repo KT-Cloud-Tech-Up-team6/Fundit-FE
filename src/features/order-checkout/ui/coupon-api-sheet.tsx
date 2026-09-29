@@ -12,7 +12,7 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorState } from "@/shared/components/ui/error-state";
 import { CouponRadio } from "./coupon-sheet";
 import { couponPreviewError } from "../model/coupon-preview";
-import { couponConditions } from "../model/coupon-conditions";
+import { couponCardConditions } from "../model/coupon-conditions";
 import {
   couponCodes,
   hasConflictingCouponIssuer,
@@ -114,7 +114,7 @@ export function CouponApiSheet({
                 setDuplicateIssuerWarning(false);
               }}
               disabled={coupon.status !== "AVAILABLE" || coupon.issuerType === null}
-              {...couponConditions(coupon, body.projectId)}
+              {...couponCardConditions(coupon, body.projectId)}
             />
           ))
         )}
