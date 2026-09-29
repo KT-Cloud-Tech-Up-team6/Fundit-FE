@@ -190,6 +190,7 @@ export const ServerAiSummaryGenerating: Story = {
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region", { name: "AI 프로젝트 요약" });
     expect(region).toHaveAttribute("aria-busy", "true");
+    expect(region).toHaveAttribute("aria-live", "polite");
     expect(within(region).getByText("AI가 프로젝트를 요약하고 있어요")).toBeVisible();
     expect(within(region).queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
   },

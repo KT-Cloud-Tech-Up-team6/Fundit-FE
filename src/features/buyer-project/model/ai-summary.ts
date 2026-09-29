@@ -29,5 +29,6 @@ export function aiSummaryState(
     const body = section?.description?.trim();
     return title && body ? [{ title, body }] : [];
   });
-  return items.length ? { status: "ready", items } : null;
+  /* BE도 WHAT·WHY가 모두 없으면 실패로 닫는다. 한쪽만 온 응답은 완료로 보지 않는다. */
+  return items.length === ROLE_ORDER.length ? { status: "ready", items } : null;
 }

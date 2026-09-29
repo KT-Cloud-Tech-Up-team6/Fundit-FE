@@ -219,6 +219,8 @@ function AiSummary({ summary, preview }: { summary: AiSummaryState; preview: boo
       className={`${styles.aiSummary} border-border-default mt-3 flex flex-col gap-2 rounded-xs border px-3 py-2`}
       aria-label="AI 프로젝트 요약"
       aria-busy={generating}
+      /* 생성 중이던 카드가 요약으로 바뀌면 스크린 리더에 새 항목을 읽어 준다. */
+      aria-live="polite"
     >
       <div className="flex items-center gap-1">
         <Image

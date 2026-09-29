@@ -48,8 +48,8 @@ test("생성 중이면 자리만 잡고, 요약이 없거나 비었으면 카드
   assert.equal(aiSummaryState(null), null);
   assert.equal(aiSummaryState({ status: "FAILED" }), null);
   assert.equal(aiSummaryState({ status: "SUCCEEDED", sections: [] }), null);
-  // 제목이나 본문이 비면 그 항목은 빼고, 모르는 role은 무시한다.
-  assert.deepEqual(
+  // WHAT·WHY 중 하나라도 제목이나 본문이 비면 완료로 보지 않고, 모르는 role로 채우지 않는다.
+  assert.equal(
     aiSummaryState({
       status: "SUCCEEDED",
       sections: [
@@ -58,6 +58,6 @@ test("생성 중이면 자리만 잡고, 요약이 없거나 비었으면 카드
         section("WHY", "왜", "이유"),
       ],
     }),
-    { status: "ready", items: [{ title: "왜", body: "이유" }] },
+    null,
   );
 });
