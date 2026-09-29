@@ -49,8 +49,8 @@ const FontWeight = Extension.create({
 
 /* AI Funding Story 하단(#331)의 섹션·제목(h2)·소제목(h3)·구분선. 강조선·간격이 style에 있어
    허용 선언만 문자열로 보존한다. StarterKit의 heading·horizontalRule 대신 직접 정의해
-   "## "·"---" 입력 규칙과 단축키를 두지 않는다 — 툴바에 없는 서식을 새로 만들게 하지 않고,
-   AI 결과를 불러와 고치고 다시 저장할 수만 있게 한다. */
+   "## "·"---" 입력 규칙과 단축키를 두지 않는다. 만드는 컨트롤은 없고, 붙여넣기나 제목 중간 Enter로
+   생긴 것은 저장할 수 있는 형식이라 그대로 둔다. */
 const blockStyleAttribute = {
   style: {
     default: null,
@@ -75,12 +75,22 @@ const StoryHeading = Node.create({
   group: "block",
   content: "inline*",
   defining: true,
-  addAttributes: () => ({ level: { default: 2, rendered: false }, ...blockStyleAttribute }),
-  parseHTML: () => [
-    { tag: "h2", attrs: { level: 2 } },
-    { tag: "h3", attrs: { level: 3 } },
+  /* 단계는 붙여넣은 HTML의 level 속성이 아니라 태그로만 정하고, 그릴 때도 h2·h3만 쓴다.
+     속성 값이 태그 이름에 들어가면 "…xhtml script" 같은 값으로 script 요소가 만들어진다(#464 리뷰). */
+  addAttributes: () => ({
+    level: {
+      default: 2,
+      rendered: false,
+      parseHTML: (element: HTMLElement) => (element.tagName === "H3" ? 3 : 2),
+    },
+    ...blockStyleAttribute,
+  }),
+  parseHTML: () => [{ tag: "h2" }, { tag: "h3" }],
+  renderHTML: ({ node, HTMLAttributes }) => [
+    node.attrs.level === 3 ? "h3" : "h2",
+    HTMLAttributes,
+    0,
   ],
-  renderHTML: ({ node, HTMLAttributes }) => [`h${node.attrs.level}`, HTMLAttributes, 0],
 });
 
 const StoryHorizontalRule = Node.create({

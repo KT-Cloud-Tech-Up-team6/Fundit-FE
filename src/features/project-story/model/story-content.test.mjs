@@ -413,3 +413,38 @@ test("h2·h3가 아닌 제목 단계는 저장하지 않는다", () => {
     /현재 서식은 서버에서 보존되지 않습니다/,
   );
 });
+
+test("BE처럼 border의 단위·선 모양 대소문자를 가려, 저장 뒤 선이 말없이 사라지지 않게 한다", () => {
+  assert.deepEqual(
+    safeStoryHtml(
+      '<hr style="border-top:1PX SOLID #EEE;border-left:3px Solid #202124;border-top:1px solid #EEE">',
+    ),
+    [{ tag: "hr", style: { borderTop: "1px solid #EEE" }, children: [] }],
+  );
+});
+
+test("BE가 <br> 뒤에 넣는 줄바꿈·들여쓰기는 에디터 빈 줄이 되지 않는다", () => {
+  const value = "<p>10월 제작 착수<br>\n  11월 발송<br>\n </p>";
+  assert.deepEqual(fromIntroContent([{ type: "TEXT", value }]).content, [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "10월 제작 착수" },
+        { type: "hardBreak" },
+        { type: "text", text: "11월 발송" },
+        { type: "hardBreak" },
+      ],
+    },
+  ]);
+  assert.deepEqual(safeStoryHtml(value), [
+    {
+      tag: "p",
+      children: [
+        "10월 제작 착수",
+        { tag: "br", children: [] },
+        "11월 발송",
+        { tag: "br", children: [] },
+      ],
+    },
+  ]);
+});

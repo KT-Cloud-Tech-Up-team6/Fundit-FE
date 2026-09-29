@@ -40,7 +40,8 @@ const voidTags = new Set(["br", "hr"]);
 const blockStyleTags = new Set(["section", "h2", "h3", "hr"]);
 
 const PX = "\\d{1,3}px";
-const LINE = `\\d{1,2}px\\s+solid\\s+#[\\da-f]{3,6}`;
+/* BE 정규식은 대소문자를 가린다. 단위·선 모양이 대문자면 BE가 버려 저장 뒤 선이 사라지므로 FE도 받지 않는다. */
+const LINE = `\\d{1,2}px\\s+solid\\s+#[\\da-fA-F]{3,6}`;
 /* BE RichTextSanitizer(#153, `be36715`)와 같은 선언 규칙이다. 어긋나면 저장 뒤 서식이 말없이 빠진다. */
 const styleRules: Record<string, { key: keyof TextStyle; pattern: RegExp }> = {
   color: { key: "color", pattern: /^#[\da-f]{3,6}$/i },
@@ -48,9 +49,9 @@ const styleRules: Record<string, { key: keyof TextStyle; pattern: RegExp }> = {
   "font-weight": { key: "fontWeight", pattern: /^(bold|normal|[1-9]00)$/ },
   "font-size": { key: "fontSize", pattern: new RegExp(`^${PX}$`) },
   "line-height": { key: "lineHeight", pattern: new RegExp(`^(\\d(\\.\\d{1,2})?|${PX})$`) },
-  border: { key: "border", pattern: new RegExp(`^(0|${LINE})$`, "i") },
-  "border-top": { key: "borderTop", pattern: new RegExp(`^${LINE}$`, "i") },
-  "border-left": { key: "borderLeft", pattern: new RegExp(`^${LINE}$`, "i") },
+  border: { key: "border", pattern: new RegExp(`^(0|${LINE})$`) },
+  "border-top": { key: "borderTop", pattern: new RegExp(`^${LINE}$`) },
+  "border-left": { key: "borderLeft", pattern: new RegExp(`^${LINE}$`) },
   "padding-left": { key: "paddingLeft", pattern: new RegExp(`^${PX}$`) },
   margin: { key: "margin", pattern: new RegExp(`^(0|${PX})(\\s+(0|${PX})){0,3}$`) },
 };
@@ -127,8 +128,11 @@ function parseHtml(html: string): SafeStoryHtmlNode[] {
   const append = (node: SafeStoryHtmlNode) => stack.at(-1)?.children.push(node);
   const tokens = html.match(/<!--[\s\S]*?-->|<[^>]*>|[^<]+/g) ?? [];
   let ignoredDepth = 0;
+  let afterBreak = false;
   for (const token of tokens) {
     if (token.startsWith("<!--")) continue;
+    const followsBreak = afterBreak;
+    afterBreak = false;
     if (token.startsWith("</")) {
       const tag = token.slice(2, -1).trim().toLowerCase();
       if (["script", "style"].includes(tag) && ignoredDepth) ignoredDepth--;
@@ -156,10 +160,15 @@ function parseHtml(html: string): SafeStoryHtmlNode[] {
       const style = sanitizeStyle(styleMatch?.[1] ?? styleMatch?.[2] ?? styleMatch?.[3], tag);
       if (style) node.style = style;
       append(node);
+      afterBreak = tag === "br";
       if (!voidTags.has(tag) && !/\/\s*>$/.test(token)) stack.push(node);
       continue;
     }
-    if (!ignoredDepth) append(decodeEntities(token));
+    if (ignoredDepth) continue;
+    /* BE(jsoup)는 <br> 뒤 글자 앞에 줄바꿈과 들여쓰기를 넣어 돌려준다. 에디터는 공백을 그대로 보여 빈 줄이
+       생기므로 버린다. FE는 HTML 본문에 줄바꿈 문자를 직접 쓰지 않는다(줄바꿈은 <br>이다). */
+    const text = followsBreak ? token.replace(/^\r?\n[ \t]*/, "") : token;
+    if (text) append(decodeEntities(text));
   }
   return root.children;
 }

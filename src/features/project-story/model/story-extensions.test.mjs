@@ -48,3 +48,20 @@ test("AI 하단을 불러온 문서는 편집기 스키마에 맞는다", () => 
   assert.equal(node.child(0).child(0).attrs.style, style);
   assert.equal(node.child(0).child(1).attrs.level, 3);
 });
+
+/* 붙여넣은 HTML의 level 값이 태그 이름으로 쓰이면 "…xhtml script" 같은 값으로 script 요소가 만들어졌다(#464 리뷰). */
+test("제목 단계는 태그로만 정하고 그릴 때도 h2·h3만 쓴다", () => {
+  const heading = getSchema(storyExtensions).nodes.heading;
+  const pasted = (tagName) => ({
+    tagName,
+    getAttribute: (name) => (name === "level" ? "ttp://www.w3.org/1999/xhtml script" : null),
+  });
+  const [h2Rule, h3Rule] = heading.spec.parseDOM;
+  assert.equal(h2Rule.getAttrs(pasted("H2")).level, 2);
+  assert.equal(h3Rule.getAttrs(pasted("H3")).level, 3);
+  assert.equal(
+    heading.spec.toDOM(heading.create({ level: "http://www.w3.org/1999/xhtml script" }))[0],
+    "h2",
+  );
+  assert.equal(heading.spec.toDOM(heading.create({ level: 3 }))[0], "h3");
+});
