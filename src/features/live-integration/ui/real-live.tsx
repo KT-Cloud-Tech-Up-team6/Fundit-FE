@@ -30,7 +30,7 @@ import {
 import { LivePlayer, type LivePlayerHandle } from "./live-player";
 import { QueryError } from "./query-error";
 import { useLiveChatConnection } from "./real-live-chat";
-import { MAX_CHAT_LENGTH, toChatRows } from "../model/ivs-chat";
+import { displayNickname, MAX_CHAT_LENGTH, toChatRows } from "../model/ivs-chat";
 import {
   chapterRange,
   clipBadge,
@@ -263,12 +263,12 @@ export function RealBuyerLive({
   });
   /* 렌더마다 새 배열을 만들면 이 트리가 초당 한 번(timeupdate) 다시 그려질 때 다시보기
      화면의 채팅 자동 스크롤이 매번 다시 돌아 사용자가 위로 올려 둔 위치가 풀린다.
-     작성자는 닉네임이고, 닉네임을 받지 못한 줄은 "시청자"다(#488). */
+     작성자는 닉네임이고, 닉네임을 받지 못했거나 라벨과 같은 줄은 "시청자"다(#488). */
   const vodChatMessages = useMemo(
     () =>
       (vodChat.data ?? []).map((message) => ({
         id: message.messageId,
-        author: message.nickname?.trim() ? message.nickname : "시청자",
+        author: displayNickname(message.nickname),
         text: message.content,
       })),
     [vodChat.data],

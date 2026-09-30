@@ -5,6 +5,7 @@ import {
   STABLE_CONNECTION_MS,
   appendEntry,
   chatEndpoint,
+  displayNickname,
   historyEntries,
   mergeHistory,
   nextReconnect,
@@ -328,6 +329,17 @@ test("닉네임이 작성자 라벨과 같으면 판매자·본인으로 오해�
     rows.map((row) => row.author),
     ["시청자", "시청자", "시청자", "시청자", "판매자님"],
   );
+});
+
+test("다시보기 채팅도 같은 규칙으로 닉네임을 쓴다", () => {
+  assert.deepEqual([undefined, null, " ", "판매자", " 나", "펀딧러버"].map(displayNickname), [
+    "시청자",
+    "시청자",
+    "시청자",
+    "시청자",
+    "시청자",
+    "펀딧러버",
+  ]);
 });
 
 test("토큰 API가 401·404·409면 재연결을 멈추고 503·네트워크 오류는 다시 시도한다", () => {

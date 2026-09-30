@@ -111,6 +111,15 @@ export function sendResultOf(errorCode: number): SendResult {
 const RESERVED_AUTHOR_LABELS = new Set(["판매자", "나", "AI 매니저", "시청자"]);
 
 /**
+ * 작성자 자리에 쓸 닉네임. 없거나 비었거나 라벨과 같으면(앞뒤 공백 제외) 판매자·본인으로 오해하지 않게
+ * "시청자"다(#488 독립 리뷰, 사용자 결정). 실시간 채팅과 다시보기 채팅이 같이 쓴다.
+ */
+export function displayNickname(nickname: string | null | undefined) {
+  const name = nickname?.trim();
+  return name && !RESERVED_AUTHOR_LABELS.has(name) ? nickname! : "시청자";
+}
+
+/**
  * 작성자 라벨(2026-09-30 사용자 결정). 판매자 "판매자", 본인 "나"(소비자 Prototype 295:50208), 그 밖은
  * 아이디 자리(Figma 1408:42073)에 닉네임이고 닉네임이 없으면 "시청자"다. 판매자를 먼저 본다 — 콘솔에서는
  * 로그인한 판매자 자신의 메시지도 "판매자"로 보여야 한다. 닉네임이 라벨과 같으면(앞뒤 공백 제외) 판매자·본인으로
@@ -123,7 +132,7 @@ export function authorLabel(
 ) {
   if (viewer.sellerId && senderId === viewer.sellerId) return "판매자";
   if (viewer.memberId && senderId === viewer.memberId) return "나";
-  return nickname && !RESERVED_AUTHOR_LABELS.has(nickname.trim()) ? nickname : "시청자";
+  return displayNickname(nickname);
 }
 
 /**

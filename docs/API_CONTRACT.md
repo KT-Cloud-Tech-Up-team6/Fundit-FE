@@ -579,7 +579,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 쇼츠 클릭 POST `/highlights/{highlightId}/click`(#333, BE develop `47bee6ed`): 비인증, 204. 전환 동선 추적용이며 조회 수(`/public`)와 따로 판매자 성과 통계(`/highlights/stats`)의 클릭 수로 쌓인다. BE는 하이라이트가 그 LIVE의 공개 항목인지 확인한다.
   - FE는 쇼츠 화면이 쇼츠를 띄울 때 그 하이라이트로 한 번 보낸다. 조회 수와 같은 이유로 `signal`을 넘기지 않고 `staleTime: Infinity` 쿼리로 두어, 뷰포트 전환·재렌더에 다시 보내지 않는다. 기록 실패는 재생을 막지 않고 화면에 드러내지 않는다.
 - 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{messageId, senderId, nickname, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다. BE #197(PR #199)부터 `messageId`(IVS 메시지 `Id`와 같은 값)와 `nickname`이 오고, 닉네임 조회 실패·탈퇴 회원이면 `nickname`이 빠진다. LIVE 중에도 동작한다.
-  - FE는 다시보기 채팅 작성자를 닉네임으로, 닉네임이 없으면 "시청자"로 보인다(#488). LIVE 입장 전 채팅 채우기는 5.12에 적는다.
+  - FE는 다시보기 채팅 작성자를 닉네임으로, 닉네임이 없거나 "판매자"·"나"·"AI 매니저"·"시청자"와 같으면 "시청자"로 보인다(#488, 실시간 채팅과 같은 규칙). LIVE 입장 전 채팅 채우기는 5.12에 적는다.
 
 ### 5.7. 판매자 LIVE 생성·설정·AI 큐시트 (#289)
 
