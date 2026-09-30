@@ -177,14 +177,15 @@ export function BuyerSearch({
               <>
                 <section className="py-3" aria-label="최근 검색어">
                   <h2 className="text-body-emphasis mb-1">최근</h2>
-                  <div
+                  <ol
+                    role="list"
                     className={`${styles.track} flex gap-2 py-2`}
                     {...recentDrag}
                     tabIndex={0}
                     aria-label="최근 검색어 가로 목록"
                   >
                     {recent.map((word) => (
-                      <div
+                      <li
                         key={word}
                         className="border-border-primary text-label-l flex h-9 shrink-0 items-center gap-2 rounded-full border px-3"
                       >
@@ -203,9 +204,9 @@ export function BuyerSearch({
                         >
                           <Icon name="closeSmall" className="block size-4" />
                         </button>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                   {server?.recent.state}
                   {!recent.length && !server?.recent.state && (
                     <p className="text-caption-m text-text-disabled">최근 검색어가 없습니다.</p>
@@ -214,6 +215,7 @@ export function BuyerSearch({
                 <section className="py-3" aria-label="인기 검색어">
                   <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
                   <ol
+                    role="list"
                     className={`${styles.track} flex gap-2 py-2`}
                     {...popularDrag}
                     tabIndex={0}
