@@ -67,6 +67,18 @@ function passwordCategoryCount(value: string) {
   return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
 }
 
+/* BE `ReservedNickname`(BE PR #208)처럼 NFKC로 맞추고 공백·폭 없는 문자를 뺀 소문자 값이 예약어와 같은지 본다. */
+const reservedNicknames = new Set(["판매자", "나", "ai매니저", "시청자"]);
+
+function isReservedNickname(value: string) {
+  return reservedNicknames.has(
+    value
+      .normalize("NFKC")
+      .replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "")
+      .toLowerCase(),
+  );
+}
+
 export const authHandlers = [
   http.get("*/api/v1/terms", async ({ request }) => {
     const scenario = new URL(request.url).searchParams.get("scenario");
@@ -115,6 +127,10 @@ export const authHandlers = [
     };
     const email = body.email ?? "";
     const verificationToken = body.verificationToken ?? "";
+    // BE처럼 가입 처리 맨 앞에서 거절해 본인인증 토큰을 쓰지 않는다.
+    if (isReservedNickname(body.nickname ?? "")) {
+      return error(400, "RESERVED_NICKNAME", "사용할 수 없는 닉네임입니다.");
+    }
     if (email.startsWith("timeout@")) return delay("infinite");
     if (email.startsWith("taken@")) {
       return error(409, "EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.");
@@ -240,8 +256,12 @@ export const authHandlers = [
           }[authorizationCode],
         });
       case "mock-link":
+      case "mock-link-forbidden":
+      case "mock-link-expired":
+      case "mock-link-locked":
+      case "mock-link-unavailable":
         return HttpResponse.json({
-          linkToken: "mock-link-token",
+          linkToken: `mock-link-token-${authorizationCode.replace("mock-link", "").replace(/^$/, "ok")}`,
           needsLink: true,
           needsSignup: false,
           provider,
@@ -257,11 +277,42 @@ export const authHandlers = [
     }
   }),
 
+  /* social/link은 linkToken을 검증 전에 소비하는 현재 BE 계약을 따른다. E2E에서는 토큰 접미사로
+     각 사용자 안내를 재현한다. */
+  http.post("*/api/v1/auth/social/link", async ({ request }) => {
+    const body = (await request.json()) as { linkToken?: string; verificationToken?: string };
+    if (!body.verificationToken)
+      return error(401, "TOKEN_INVALID", "본인인증 결과가 만료되었습니다.");
+    if (body.linkToken?.endsWith("-forbidden"))
+      return error(403, "IDENTITY_MISMATCH", "기존 계정의 본인 확인 정보와 일치하지 않습니다.");
+    if (body.linkToken?.endsWith("-expired"))
+      return error(401, "TOKEN_INVALID", "연동 토큰이 만료되었습니다.");
+    if (body.linkToken?.endsWith("-locked"))
+      return error(423, "ACCOUNT_LOCKED", "계정이 잠겨 있습니다.");
+    if (body.linkToken?.endsWith("-unavailable"))
+      return error(503, "DEPENDENCY_FAILURE", "연동 서비스를 이용할 수 없습니다.");
+    if (body.linkToken !== "mock-link-token-ok")
+      return error(401, "TOKEN_INVALID", "연동 토큰이 유효하지 않습니다.");
+    return HttpResponse.json(
+      { accessToken: `access-${crypto.randomUUID()}` },
+      {
+        headers: {
+          "Set-Cookie":
+            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
+        },
+      },
+    );
+  }),
+
   /* 소셜 가입 목업. BE처럼 토큰을 검증보다 먼저 소비하고, member-service 실패(필수 약관 누락 등)는
      원인을 구분할 수 없는 503으로 내려 준다. 본인인증은 없다. */
   http.post("*/api/v1/auth/signup/social", async ({ request }) => {
     const body = (await request.json()) as Partial<SocialSignupRequest>;
     const token = body.signupToken;
+    // 예약어 닉네임은 BE처럼 토큰을 쓰기 전에 거절한다. 같은 토큰으로 닉네임만 고쳐 다시 보낼 수 있다.
+    if (isReservedNickname(body.nickname ?? "")) {
+      return error(400, "RESERVED_NICKNAME", "사용할 수 없는 닉네임입니다.");
+    }
     if (
       !token?.startsWith("mock-") ||
       token === "mock-expired-token" ||

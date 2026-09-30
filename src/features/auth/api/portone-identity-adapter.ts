@@ -20,7 +20,7 @@ function isNarrowViewport() {
 }
 
 export async function requestIdentityVerification(
-  draft: Omit<IdentityDraft, "birthDate"> & { birthDate?: string },
+  draft: Partial<IdentityDraft>,
   options?: RequestOptions,
 ): Promise<IdentityVerificationResult> {
   const identityVerificationId = options?.identityVerificationId ?? crypto.randomUUID();
@@ -45,12 +45,14 @@ export async function requestIdentityVerification(
   const [birthYear, birthMonth, birthDay] = draft.birthDate?.split("-") ?? [];
   const response = await PortOne.requestIdentityVerification({
     channelKey,
+    /* 소셜 연동은 linkToken과 서버 검증으로 계정 소유자를 대조하므로, 가입처럼 이름·전화번호를
+       다시 입력받지 않는다. 값이 있는 흐름만 PortOne prefill로 넘긴다. */
     customer: {
-      birthDay,
-      birthMonth,
-      birthYear,
-      fullName: draft.name,
-      phoneNumber: draft.phoneNumber,
+      ...(birthDay ? { birthDay } : {}),
+      ...(birthMonth ? { birthMonth } : {}),
+      ...(birthYear ? { birthYear } : {}),
+      ...(draft.name ? { fullName: draft.name } : {}),
+      ...(draft.phoneNumber ? { phoneNumber: draft.phoneNumber } : {}),
     },
     identityVerificationId,
     redirectUrl: options?.redirectUrl,

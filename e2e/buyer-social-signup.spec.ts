@@ -122,6 +122,38 @@ test("카카오는 닉네임 칸에 name을 채우고 이메일이 없으면 직
   });
 });
 
+test("예약어 닉네임이면 폼을 그대로 두고 안내하며, 고치면 같은 가입 정보로 가입을 마친다", async ({
+  page,
+}) => {
+  const requests = trackSignupRequests(page);
+  await openCallback(page, "mock-signup", {
+    agreedTerms: ALL_REQUIRED_TERMS,
+    entry: "signup",
+    provider: "GOOGLE",
+  });
+
+  await expect(page).toHaveURL(/\/auth\/signup\/social$/);
+  const nickname = page.getByLabel("닉네임", { exact: true });
+  const submit = page.getByRole("button", { name: "가입하기" });
+  await nickname.fill("판매자");
+  await page.getByLabel("휴대폰 번호", { exact: true }).fill("01012345678");
+  await submit.click();
+
+  // 실패 화면으로 가지 않고 입력한 내용이 남는다. 같은 닉네임으로는 다시 보낼 수 없다.
+  await expect(page.getByText("사용할 수 없는 닉네임입니다.")).toBeVisible();
+  await expect(page.getByLabel("휴대폰 번호", { exact: true })).toHaveValue("01012345678");
+  await expect(submit).toBeDisabled();
+
+  await nickname.fill("펀딧러");
+  await expect(page.getByText("사용할 수 없는 닉네임입니다.")).toHaveCount(0);
+  await Promise.all([page.waitForURL(/\/auth\/signup\/complete$/), submit.click()]);
+  // 거절된 요청은 토큰을 쓰지 않았으므로 두 번째 요청이 같은 signupToken으로 가입을 마친다.
+  expect(requests.map((request) => [request.nickname, request.signupToken])).toEqual([
+    ["판매자", "mock-signup-token"],
+    ["펀딧러", "mock-signup-token"],
+  ]);
+});
+
 test("로그인 화면에서 진입한 미가입 계정은 안내를 본 뒤 약관에 동의해야 폼이 보인다", async ({
   page,
 }) => {

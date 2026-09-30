@@ -12,6 +12,7 @@ import {
   isValidPhone,
   nicknameSchema,
   normalizePhoneInput,
+  reservedNicknameMessage,
 } from "@/features/auth/model/auth-input";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
@@ -36,7 +37,8 @@ type Failure =
   | { kind: "social-exists"; provider: SocialProvider };
 
 /* BE는 signupToken을 검증보다 먼저 소비하고, member-service 실패까지 503으로 바꿔 내려 원인을 구분할 수
-   없다. 그래서 401(만료)과 503 등은 모두 "처음부터 다시"로 안내한다. 이메일 충돌만 원인이 분명하다. */
+   없다. 그래서 401(만료)과 503 등은 모두 "처음부터 다시"로 안내한다. 이메일 충돌만 원인이 분명하다.
+   예약어 닉네임(`RESERVED_NICKNAME`)은 토큰을 쓰기 전에 거절하므로 여기로 오지 않고 폼에서 고친다. */
 function failureFrom(error: unknown, provider: SocialProvider): Failure {
   if (isApiError(error)) {
     if (error.code === "SOCIAL_ACCOUNT_EXISTS")
@@ -102,6 +104,8 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string>();
+  /* 서버가 예약어로 거절한 닉네임. 같은 값이면 안내를 두고 가입하기를 막는다. */
+  const [reservedNickname, setReservedNickname] = useState<string>();
   const [agreedTerms, setAgreedTerms] = useState(session.agreedTerms);
   const [termsOpen, setTermsOpen] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -119,10 +123,12 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
   }, []);
 
   const needsEmail = session.email === null;
+  const nicknameReserved = nickname.trim() === reservedNickname;
   const valid =
     agreedTerms.length > 0 &&
     name.trim().length > 0 &&
     nicknameSchema.safeParse(nickname).success &&
+    !nicknameReserved &&
     isValidPhone(phone) &&
     (!needsEmail || isValidEmail(email.trim()));
   const startHref = session.entry === "signup" ? "/auth/signup" : "/auth/login";
@@ -188,6 +194,12 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
       // 요청을 보낸 뒤 사용자가 화면을 떠났다면 계정은 이미 만들어졌으니 인증까지만 하고 그 이동을 덮어쓰지 않는다.
       if (activeRef.current) router.push("/auth/signup/complete");
     } catch (error) {
+      /* BE는 예약어 닉네임을 signupToken을 쓰기 전에 거절한다(BE PR #208). 저장소는 이미 비웠지만
+         이 화면이 든 토큰은 아직 유효해, 닉네임만 고쳐 다시 보내게 한다. */
+      if (isApiError(error) && error.code === "RESERVED_NICKNAME") {
+        setReservedNickname(nickname.trim());
+        return;
+      }
       setFailure(failureFrom(error, session.provider));
     } finally {
       submittingRef.current = false;
@@ -326,7 +338,13 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
               aria-label="닉네임"
               autoComplete="nickname"
               disabled={submitting}
-              errorMessage={nickname.trim().length > 50 ? "50자 이하로 입력해 주세요." : undefined}
+              errorMessage={
+                nicknameReserved
+                  ? reservedNicknameMessage
+                  : nickname.trim().length > 50
+                    ? "50자 이하로 입력해 주세요."
+                    : undefined
+              }
               id={`${fieldId}-nickname`}
               onChange={(event) => setNickname(event.target.value)}
               onClear={() => setNickname("")}
