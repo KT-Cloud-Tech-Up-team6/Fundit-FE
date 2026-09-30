@@ -14,6 +14,7 @@ export function LivePlayer({
   controls = true,
   onPlayingChange,
   live = false,
+  coverPortrait = false,
 }: {
   src: string;
   title: string;
@@ -28,8 +29,14 @@ export function LivePlayer({
    * IVS에서 동작하지 않는다") 공식 IVS 플레이어 SDK로 재생한다(#494). 다시보기·쇼츠는 지금 방식 그대로다.
    */
   live?: boolean;
+  /**
+   * 세로 원본이면 영역을 빈칸 없이 채운다(양옆이 조금 잘림). 가로 원본은 크게 잘리므로 그대로 맞춤이다.
+   * 세로 영상 칸에 담는 화면만 켠다(#494).
+   */
+  coverPortrait?: boolean;
 }) {
   const video = useRef<HTMLVideoElement>(null);
+  const [portrait, setPortrait] = useState(false);
   const ivsPlayer = useRef<MediaPlayer | null>(null);
   useImperativeHandle(handleRef, () => ({
     seek(sec) {
@@ -61,6 +68,11 @@ export function LivePlayer({
     const element = video.current;
     if (!element) return;
     onProgress?.(element.currentTime, Number.isFinite(element.duration) ? element.duration : 0);
+  }
+  /* 원본 크기는 불러온 뒤와 화질이 바뀔 때(resize) 알 수 있다. */
+  function readOrientation() {
+    const element = video.current;
+    if (element?.videoWidth) setPortrait(element.videoHeight > element.videoWidth);
   }
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"loading" | "playing" | "ended">("loading");
@@ -162,12 +174,16 @@ export function LivePlayer({
     <div className="bg-layer-surface-disabled relative aspect-video overflow-hidden rounded-sm">
       <video
         ref={video}
-        className="h-full w-full"
+        className={`h-full w-full ${coverPortrait && portrait ? "object-cover" : ""}`}
         controls={controls}
         playsInline
         aria-label={`${title} 영상`}
         onError={() => setError("영상 재생에 실패했습니다. 다시 시도해 주세요.")}
-        onLoadedMetadata={reportProgress}
+        onLoadedMetadata={() => {
+          reportProgress();
+          readOrientation();
+        }}
+        onResize={readOrientation}
         onTimeUpdate={reportProgress}
         onSeeked={reportProgress}
         onCanPlay={() => setStatus("playing")}
