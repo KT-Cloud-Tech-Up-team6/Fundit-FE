@@ -144,3 +144,32 @@ test("연락처가 BE와 같은 휴대폰 형식이 아니면 저장할 수 없�
   for (const phone of ["01011112222", "010-1111-2222", "010-11112222"])
     assert.equal(isShippingAddressComplete({ ...filled, phone }), true, phone);
 });
+
+test("받는 사람이 공백·보이지 않는 문자뿐이면 저장할 수 없다(QA-064)", () => {
+  const filled = {
+    recipientName: "홍길동",
+    phone: "010-1111-2222",
+    zipCode: "06099",
+    baseAddress: "서울 강남구 학동로 343",
+    detailAddress: "3층",
+  };
+  for (const recipientName of [
+    "",
+    "   ",
+    "\u3164",
+    "  \u3164 ",
+    "\u200B",
+    "\u2800",
+    "\u3000\uFEFF",
+    "\u0085",
+    "\u0001",
+  ])
+    assert.equal(
+      isShippingAddressComplete({ ...filled, recipientName }),
+      false,
+      JSON.stringify(recipientName),
+    );
+  // 이름 사이 공백이나 폭 없는 문자가 섞여도 보이는 글자가 있으면 통과한다
+  for (const recipientName of ["홍 길동", "홍\u200D길동", "Kim"])
+    assert.equal(isShippingAddressComplete({ ...filled, recipientName }), true, recipientName);
+});
