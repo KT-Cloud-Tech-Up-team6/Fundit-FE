@@ -135,18 +135,27 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Push Docker image
+        id: push-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
+          set -euo pipefail
           image_uri="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$image_uri"
-          docker push "$image_uri"
+          push_log="$RUNNER_TEMP/fundit-frontend-push.log"
+          docker push "$image_uri" | tee "$push_log"
+          image_digest="$(sed -nE 's/.*digest: (sha256:[0-9a-f]{64}).*/\1/p' "$push_log" | tail -n 1)"
+          if [[ ! "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo '::error::Could not read the pushed image digest.'
+            exit 1
+          fi
+          printf 'image_digest=%s\n' "$image_digest" >> "$GITHUB_OUTPUT"
           printf 'Image: `%s`\nPlatform: `linux/amd64`\nCommit: `%s`\n' "$image_uri" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Dispatch GitOps image update
         env:
           GH_TOKEN: ${{ secrets.FUNDIT_GITOPS_TOKEN }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_DIGEST: ${{ steps.push-image.outputs.image_digest }}
         run: |
           set -euo pipefail
           if [[ -z "$GH_TOKEN" ]]; then
@@ -154,11 +163,8 @@ jobs:
             exit 1
           fi
 
-          image_uri="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          image_digest="$(docker buildx imagetools inspect "$image_uri" \
-            --format '{{json .Manifest}}' | jq -r '.digest // empty')"
-          if [[ ! "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            echo '::error::Could not read the pushed image digest.'
+          if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo '::error::Missing valid digest from the Docker push step.'
             exit 1
           fi
 
@@ -166,8 +172,8 @@ jobs:
             --repo KT-Cloud-Tech-Up-team6/Fundit-GitOps \
             --ref main \
             -f image_tag="$IMAGE_TAG" \
-            -f image_digest="$image_digest" \
+            -f image_digest="$IMAGE_DIGEST" \
             -f source_sha="$GITHUB_SHA"
 
           printf 'GitOps image update requested for `%s` (`%s`).\n' \
-            "$IMAGE_TAG" "$image_digest" >> "$GITHUB_STEP_SUMMARY"
+            "$IMAGE_TAG" "$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
