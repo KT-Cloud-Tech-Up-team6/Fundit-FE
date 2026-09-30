@@ -10,9 +10,11 @@ import { Badge } from "@/shared/components/ui/badge";
 import { ErrorState } from "@/shared/components/ui/error-state";
 import { Icon } from "@/shared/components/ui/icon";
 import { PendingDestination } from "@/shared/components/ui/pending-destination";
+import { ScrollFade } from "@/shared/components/ui/scroll-fade";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { textButtonNavigationClasses } from "@/shared/components/ui/text-button";
 import { setCategoryReturnPath } from "@/shared/lib/category-return-path";
+import { thumbnailZoomClasses } from "@/shared/lib/thumbnail-zoom";
 import { useHorizontalDrag } from "@/shared/lib/use-horizontal-drag";
 import type { DeadlineCard, FeaturedCard, LiveCard, SectionData } from "../model/home-cards";
 import { heroSlides, recommendedProjects } from "../model/home-mock";
@@ -28,7 +30,7 @@ function CardImage({ src, sizes }: { src?: string | null; sizes: string }) {
       alt=""
       fill
       sizes={sizes}
-      className="object-cover"
+      className={`object-cover ${thumbnailZoomClasses}`}
       unoptimized={/^https?:\/\//.test(src)}
     />
   );
@@ -38,23 +40,28 @@ function CardImage({ src, sizes }: { src?: string | null; sizes: string }) {
 function ScrollList({
   label,
   desktopScroll = false,
+  bleed = false,
   className,
   children,
 }: {
   label?: string;
   desktopScroll?: boolean;
+  /** 모바일에서 화면 가장자리까지 넘치게(-mx-5) 둔다. 흰 그라데이션도 그 가장자리에 붙는다. */
+  bleed?: boolean;
   className: string;
   children: ReactNode;
 }) {
   const drag = useHorizontalDrag();
   return (
-    <ul
-      {...drag}
-      aria-label={label}
-      className={`${desktopScroll ? styles.scroller : styles.mobileScroller} flex overflow-x-auto ${className}`}
-    >
-      {children}
-    </ul>
+    <ScrollFade className={bleed ? "-mx-5 min-[1200px]:mx-0" : ""}>
+      <ul
+        {...drag}
+        aria-label={label}
+        className={`${desktopScroll ? styles.scroller : styles.mobileScroller} flex overflow-x-auto ${className}`}
+      >
+        {children}
+      </ul>
+    </ScrollFade>
   );
 }
 
@@ -168,7 +175,7 @@ function FeaturedItem({ card }: { card: FeaturedCard }) {
   );
   if (card.href)
     return (
-      <Link href={card.href} className="block">
+      <Link href={card.href} className="group block">
         {content}
       </Link>
     );
@@ -184,7 +191,7 @@ function FeaturedItem({ card }: { card: FeaturedCard }) {
 /* 모바일 `2315:71352`(164×164)와 PC `2315:71752`(224×224). "라이브 특가"는 BE에 값이 없어 두지 않는다. */
 function LiveItem({ card }: { card: LiveCard }) {
   return (
-    <Link href={card.href} className="flex flex-col gap-2">
+    <Link href={card.href} className="group flex flex-col gap-2">
       <div className="bg-layer-bg relative aspect-square overflow-hidden rounded-xs">
         <CardImage src={card.image} sizes="(min-width: 1200px) 224px, 164px" />
         {card.viewers && (
@@ -270,7 +277,7 @@ function ProjectItem({
   );
   if (card.href)
     return (
-      <Link href={card.href} className="flex flex-col gap-2">
+      <Link href={card.href} className="group flex flex-col gap-2">
         {content}
       </Link>
     );
@@ -311,7 +318,7 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
           </div>
           <Link
             href="/live"
-            className="border-border-primary-live text-text-primary-live text-label-l flex w-fit items-center gap-2 rounded-full border px-4 py-2"
+            className="border-border-primary-live text-text-primary-live text-label-l hover:bg-layer-surface-primary-live hover:text-text-static-white flex w-fit items-center gap-2 rounded-full border px-4 py-2 transition-colors"
           >
             라이브 전체보기
             <Icon name="next" className="size-3" />
@@ -330,7 +337,8 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
               <ScrollList
                 label="실시간 LIVE 목록"
                 desktopScroll
-                className="-mx-5 gap-3 px-5 min-[1200px]:mx-0 min-[1200px]:px-0"
+                bleed
+                className="gap-3 px-5 min-[1200px]:px-0"
               >
                 {items.map((card) => (
                   <li key={card.id} className="w-41 shrink-0 min-[1200px]:w-56">
@@ -406,7 +414,7 @@ export function BuyerHome({
                   onClick={() =>
                     setCategoryReturnPath(window.location.pathname + window.location.search)
                   }
-                  className="min-[1200px]:border-border-default flex items-center gap-1 py-2 text-[13px] leading-[1.4] font-medium whitespace-nowrap min-[1200px]:h-13 min-[1200px]:min-w-[116px] min-[1200px]:justify-center min-[1200px]:gap-2 min-[1200px]:border-b-[1.5px] min-[1200px]:pr-2 min-[1200px]:pl-1 min-[1200px]:text-[18px] min-[1200px]:leading-[1.42]"
+                  className="min-[1200px]:border-border-default hover:text-text-primary-live flex items-center gap-1 py-2 text-[13px] leading-[1.4] font-medium whitespace-nowrap transition-colors min-[1200px]:h-13 min-[1200px]:min-w-[116px] min-[1200px]:justify-center min-[1200px]:gap-2 min-[1200px]:border-b-[1.5px] min-[1200px]:pr-2 min-[1200px]:pl-1 min-[1200px]:text-[18px] min-[1200px]:leading-[1.42]"
                 >
                   <span
                     aria-hidden
@@ -440,7 +448,8 @@ export function BuyerHome({
               {(items) => (
                 <ScrollList
                   label="지금 주목받는 프로젝트 목록"
-                  className="-mx-5 gap-3 px-5 min-[1200px]:mx-0 min-[1200px]:grid min-[1200px]:grid-cols-5 min-[1200px]:gap-x-6 min-[1200px]:gap-y-8 min-[1200px]:px-0"
+                  bleed
+                  className="gap-3 px-5 min-[1200px]:grid min-[1200px]:grid-cols-5 min-[1200px]:gap-x-6 min-[1200px]:gap-y-8 min-[1200px]:px-0"
                 >
                   {items.map((card) => (
                     <li key={card.id} className="w-36 shrink-0 min-[1200px]:w-auto">
@@ -467,7 +476,8 @@ export function BuyerHome({
               {(items) => (
                 <ScrollList
                   label="마감 임박 프로젝트 목록"
-                  className="-mx-5 gap-3 px-5 min-[1200px]:mx-0 min-[1200px]:gap-4 min-[1200px]:px-0"
+                  bleed
+                  className="gap-3 px-5 min-[1200px]:gap-4 min-[1200px]:px-0"
                 >
                   {items.map((card) => (
                     <li key={card.id} className="w-[165px] shrink-0 min-[1200px]:w-[186px]">
