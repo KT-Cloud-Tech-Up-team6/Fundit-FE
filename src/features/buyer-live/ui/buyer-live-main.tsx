@@ -202,11 +202,7 @@ function LiveCardView({
     <article
       className={`${compact ? "w-41 min-w-0 shrink-0 min-[1200px]:w-[226px]" : "min-w-0"} ${desktopOnly ? "hidden min-[1200px]:block" : ""}`}
     >
-      <Link
-        href={card.href}
-        className="flex flex-col gap-2"
-        aria-label={card.title + " 라이브 보기"}
-      >
+      <Link href={card.href} className="flex flex-col gap-2">
         <div
           className={
             "bg-layer-bg relative overflow-hidden rounded-xs " +
@@ -578,7 +574,7 @@ export function BuyerLiveMain({
         size="md"
         shape={variant === "card" ? "default" : "pill"}
         variant={enabled ? "primary" : "secondary"}
-        aria-label={`${title} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림 받기") : "시작 알림"}`}
+        aria-label={`${title} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림받기") : "시작 알림"}`}
         aria-pressed={enabled}
         onClick={() => {
           if (variant === "subscription")
@@ -637,7 +633,8 @@ export function BuyerLiveMain({
       <article className="flex gap-3">
         <Link
           href={card.href}
-          aria-label={`${rank}번째 예정 라이브 보기`}
+          aria-hidden
+          tabIndex={-1}
           className="w-[150px] max-w-[44%] shrink-0 min-[1200px]:w-[186px]"
         >
           <ScheduleMedia schedule={card.schedule} className="aspect-[3/4]" large />
@@ -837,7 +834,8 @@ export function BuyerLiveMain({
                   <article key={id} className="flex gap-3">
                     <Link
                       href={getUpcomingProjectHref(id)}
-                      aria-label={`${scheduledTitle(id)} 라이브 보기`}
+                      aria-hidden
+                      tabIndex={-1}
                       className="w-[104px] shrink-0"
                     >
                       <ScheduleMedia schedule={demoSchedule(id)} className="h-full min-h-[104px]" />

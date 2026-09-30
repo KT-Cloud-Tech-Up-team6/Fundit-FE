@@ -23,7 +23,7 @@ export const SubscriptionKeyboard: Story = {
     for (const article of subscriptions.getAllByRole("article")) {
       const card = within(article);
       const title = card.getByRole("heading").textContent;
-      expect(card.getAllByRole("link")[0]).toHaveAccessibleName(`${title} 라이브 보기`);
+      expect(card.getByRole("link")).toHaveAccessibleName(new RegExp(title ?? ""));
       expect(card.getByRole("button")).toHaveAccessibleName(`${title} 시작 알림`);
     }
     alarms()[1].focus();
@@ -102,9 +102,9 @@ export const NotificationToggle: Story = {
     const followCards = within(
       canvas.getByRole("region", { name: "팔로우한 창작자 예정 라이브 목록" }),
     ).getAllByRole("article");
-    const button = within(followCards[1]).getByRole("button", { name: /알림 받기$/ });
+    const button = within(followCards[1]).getByRole("button", { name: /알림받기$/ });
     const title = within(followCards[1]).getByRole("heading").textContent;
-    expect(button).toHaveAccessibleName(`${title} 알림 받기`);
+    expect(button).toHaveAccessibleName(`${title} 알림받기`);
     expect(button).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
