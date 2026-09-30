@@ -21,7 +21,7 @@ function Caret({ direction }: { direction: "prev" | "next" }) {
 }
 
 const stepClasses =
-  "text-body-s text-text-default aria-disabled:text-text-disabled focus-visible:outline-border-primary flex h-8 items-center gap-3 leading-[1.42] whitespace-nowrap focus-visible:outline-2";
+  "text-body-s text-text-default hover:text-text-info aria-disabled:text-text-disabled aria-disabled:hover:text-text-disabled focus-visible:outline-border-primary flex h-8 items-center gap-3 leading-[1.42] whitespace-nowrap transition-colors focus-visible:outline-2";
 
 export function Pagination({
   currentPage,
@@ -80,7 +80,7 @@ export function Pagination({
                 href={buildHref(number)}
                 aria-label={`${number}페이지`}
                 aria-current={number === page ? "page" : undefined}
-                className="text-body-s text-text-disabled aria-[current=page]:text-text-default focus-visible:outline-border-primary flex h-8 w-4 items-center justify-center leading-[1.42] focus-visible:outline-2"
+                className="text-body-s text-text-disabled hover:text-text-default aria-[current=page]:text-text-default focus-visible:outline-border-primary flex h-8 w-4 items-center justify-center leading-[1.42] focus-visible:outline-2"
               >
                 {number}
               </Link>

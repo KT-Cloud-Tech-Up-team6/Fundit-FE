@@ -40,7 +40,11 @@ export function BuyerShell({ children }: { children: ReactNode }) {
         nav={
           <nav aria-label="구매자 주요 메뉴" className="flex items-center gap-5">
             {buyerNavigation.map((item) => (
-              <Link key={item.href} href={item.href} className="text-label-l hover:underline">
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-label-l hover:text-text-info transition-colors"
+              >
                 {item.label}
               </Link>
             ))}

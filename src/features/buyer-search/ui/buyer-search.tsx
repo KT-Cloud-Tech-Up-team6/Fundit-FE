@@ -15,6 +15,7 @@ import { ProjectRow } from "@/entities/project/ui/project-row";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Icon } from "@/shared/components/ui/icon";
 import { Tab, TabList } from "@/shared/components/ui/tab";
+import { thumbnailZoomClasses } from "@/shared/lib/thumbnail-zoom";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { BuyerDesktopHeader } from "@/shared/components/layout/buyer-desktop-header";
 
@@ -430,6 +431,7 @@ export function BuyerSearch({
                   {results.lives.map((live) => (
                     <article key={live.id}>
                       <Link
+                        className="group"
                         href={
                           live.status === "live"
                             ? `/live/${live.id}`
@@ -444,7 +446,7 @@ export function BuyerSearch({
                             alt=""
                             fill
                             sizes="(min-width: 1200px) 226px, 169px"
-                            className="object-cover"
+                            className={`object-cover ${thumbnailZoomClasses}`}
                           />
                           {live.status === "live" ? (
                             <span className="text-text-primary-live text-label-m absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--blue-100)] px-2 py-1">

@@ -5,7 +5,7 @@ import { Icon } from "./icon";
 type TextButtonVariant = "underline" | "plain";
 
 export const textButtonNavigationClasses =
-  "text-body-s text-text-secondary inline-flex h-10 shrink-0 items-center justify-center gap-1 px-2 py-1 text-center whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary";
+  "text-body-s text-text-secondary inline-flex h-10 shrink-0 items-center justify-center gap-1 px-2 py-1 text-center whitespace-nowrap transition-colors not-disabled:hover:text-text-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary";
 
 export function TextLink({ className, ...props }: ComponentPropsWithRef<typeof Link>) {
   return (
@@ -34,10 +34,10 @@ export function TextButton({
     <button
       type={type}
       className={[
-        "focus-visible:outline-border-primary inline-flex items-center gap-1 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2",
+        "focus-visible:outline-border-primary inline-flex items-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
         isUnderline
-          ? "text-caption-s text-text-secondary font-medium underline"
-          : "text-body-s text-text-default",
+          ? "text-caption-s text-text-secondary enabled:hover:text-text-default font-medium underline"
+          : "text-body-s text-text-default enabled:hover:text-text-info",
         className,
       ]
         .filter(Boolean)

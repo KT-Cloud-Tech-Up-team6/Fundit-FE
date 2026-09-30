@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { thumbnailZoomClasses } from "@/shared/lib/thumbnail-zoom";
 
 function ProjectLink({
   unavailable,
@@ -47,12 +48,15 @@ export function ProjectRow({
   unavailable?: boolean;
 }) {
   return (
-    <article aria-label={project.title} className="flex items-start gap-3">
+    <article
+      aria-label={project.title}
+      className="flex items-start gap-3 has-[.project-detail-link:hover]:[&_img]:scale-105 motion-reduce:has-[.project-detail-link:hover]:[&_img]:scale-100"
+    >
       <ProjectLink
         unavailable={unavailable}
         href={`/projects/${project.detailId ?? project.id}`}
         aria-label={`${project.title} 상세 보기`}
-        className={`bg-layer-surface-default relative flex aspect-[4/3] shrink-0 items-center justify-center overflow-hidden rounded-xs ${thumbnailClassName}`}
+        className={`project-detail-link bg-layer-surface-default relative flex aspect-[4/3] shrink-0 items-center justify-center overflow-hidden rounded-xs ${thumbnailClassName}`}
       >
         {project.image && (
           <Image
@@ -61,7 +65,7 @@ export function ProjectRow({
             fill
             unoptimized
             sizes="144px"
-            className={`object-cover ${project.closed ? "opacity-30" : ""}`}
+            className={`object-cover ${thumbnailZoomClasses} ${project.closed ? "opacity-30" : ""}`}
           />
         )}
         {project.closed && (
@@ -74,7 +78,7 @@ export function ProjectRow({
         <ProjectLink
           unavailable={unavailable}
           href={`/projects/${project.detailId ?? project.id}`}
-          className={`block ${project.closed ? "text-text-disabled" : ""}`}
+          className={`project-detail-link block ${project.closed ? "text-text-disabled" : ""}`}
         >
           <p className="text-label-m text-text-disabled mb-1">{project.seller}</p>
           <h2 className="line-clamp-2 min-h-10 text-[0.875rem] leading-5 font-medium">

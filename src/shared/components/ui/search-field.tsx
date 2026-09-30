@@ -96,7 +96,7 @@ export function SearchField({
       {currentValue && !disabled ? (
         <button
           type="button"
-          className={`focus-visible:outline-border-primary flex ${slotSizeClasses[size]} shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-[-2px]`}
+          className={`focus-visible:outline-border-primary hover:bg-layer-surface-disabled flex ${slotSizeClasses[size]} shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px]`}
           aria-label={clearLabel}
           onClick={handleClear}
         >

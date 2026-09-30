@@ -61,12 +61,12 @@ function stateClasses(size: TabSize, variant: TabVariant, active: boolean, disab
       ? `relative ${activeTextClasses[variant]} ${indicatorClasses[variant]} after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-full`
       : disabled
         ? "text-text-disabled"
-        : "text-text-secondary";
+        : "text-text-secondary hover:text-text-default";
   }
 
   return active
     ? `${activeTextClasses[variant]} ${activeBorderClasses[variant]} ${size === "md" ? "border-b-[1.5px]" : "border-b-[1.8px]"}`
-    : `border-border-default border-b ${disabled ? "text-text-disabled" : "text-text-secondary"}`;
+    : `border-border-default border-b ${disabled ? "text-text-disabled" : "text-text-secondary hover:text-text-default"}`;
 }
 
 export function Tab({
@@ -80,7 +80,7 @@ export function Tab({
   const disabled = "disabled" in props ? props.disabled : false;
   const active = selected && !disabled;
   const classes = [
-    "flex items-center justify-center gap-1 whitespace-nowrap",
+    "flex items-center justify-center gap-1 whitespace-nowrap transition-colors",
     "focus-visible:outline-border-primary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
     stateClasses(size, variant, active, Boolean(disabled)),
     sizeClasses[size],

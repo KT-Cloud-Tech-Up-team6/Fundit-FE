@@ -108,9 +108,9 @@ function deriveActiveHref(pathname: string): BuyerBottomNavigationProps["activeH
 
 function itemClass(name: NavigationName, compact: boolean, flat: boolean, active: boolean) {
   return [
-    "relative flex flex-col items-center gap-2 text-[11px] font-medium leading-[1.3] focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+    "relative flex flex-col items-center gap-2 text-[11px] font-medium leading-[1.3] transition-colors focus-visible:outline-border-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
     name === "categories" ? "w-[39px]" : "w-[38px]",
-    compact && !active && "text-text-disabled",
+    compact && !active && "text-text-disabled hover:text-text-default",
     compact && active && "text-text-default",
     !compact &&
       !flat &&

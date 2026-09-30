@@ -33,8 +33,10 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
 import { Icon } from "@/shared/components/ui/icon";
+import { ScrollFade } from "@/shared/components/ui/scroll-fade";
 import { SearchField } from "@/shared/components/ui/search-field";
 import { Tab, TabList } from "@/shared/components/ui/tab";
+import { thumbnailZoomClasses } from "@/shared/lib/thumbnail-zoom";
 import styles from "./buyer-live-main.module.css";
 import { PendingDestination } from "@/shared/components/ui/pending-destination";
 
@@ -59,7 +61,7 @@ function Thumbnail({ src, sizes }: { src?: string | null; sizes: string }) {
       alt=""
       fill
       sizes={sizes}
-      className="object-cover"
+      className={`object-cover ${thumbnailZoomClasses}`}
       unoptimized={/^https?:\/\//.test(src)}
     />
   );
@@ -203,7 +205,7 @@ function LiveCardView({
     <article
       className={`${compact ? "w-41 min-w-0 shrink-0 min-[1200px]:w-[226px]" : "min-w-0"} ${desktopOnly ? "hidden min-[1200px]:block" : ""}`}
     >
-      <Link href={card.href} className="flex flex-col gap-2">
+      <Link href={card.href} className="group flex flex-col gap-2">
         <div
           className={
             "bg-layer-bg relative overflow-hidden rounded-xs " +
@@ -364,7 +366,7 @@ type RankingView = {
 
 function RankingCard({ rank, card }: { rank: number; card: RankingView }) {
   return (
-    <Link href={card.href} className="flex gap-3">
+    <Link href={card.href} className="group flex gap-3">
       <div className="bg-layer-bg relative aspect-[3/4] w-[150px] max-w-[44%] shrink-0 overflow-hidden rounded-xs px-2 py-1 min-[1200px]:w-[186px]">
         <Thumbnail src={card.image} sizes="150px" />
         <div className="relative flex items-start justify-between gap-1">
@@ -607,7 +609,7 @@ export function BuyerLiveMain({
         key={card.id}
         className={`flex min-w-0 flex-col gap-2 ${compact ? "w-[153px] shrink-0 min-[1200px]:w-[226px]" : ""} ${desktopOnly ? "hidden min-[1200px]:flex" : ""}`}
       >
-        <Link href={card.href} className="flex flex-col gap-2">
+        <Link href={card.href} className="group flex flex-col gap-2">
           <ScheduleMedia
             schedule={card.schedule}
             className={compact ? "aspect-square" : "aspect-square min-[1200px]:aspect-[3/4]"}
@@ -631,17 +633,17 @@ export function BuyerLiveMain({
 
   function scheduledRow(card: ScheduledView) {
     return (
-      <article className="flex gap-3">
+      <article className="flex gap-3 has-[.scheduled-detail-link:hover]:[&_img]:scale-105 motion-reduce:has-[.scheduled-detail-link:hover]:[&_img]:scale-100">
         <Link
           href={card.href}
           aria-hidden
           tabIndex={-1}
-          className="w-[150px] max-w-[44%] shrink-0 min-[1200px]:w-[186px]"
+          className="scheduled-detail-link w-[150px] max-w-[44%] shrink-0 min-[1200px]:w-[186px]"
         >
           <ScheduleMedia schedule={card.schedule} className="aspect-[3/4]" large />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col justify-between">
-          <Link href={card.href} className="flex flex-col gap-1">
+          <Link href={card.href} className="scheduled-detail-link flex flex-col gap-1">
             {card.category && (
               <span className="text-label-m text-text-secondary">{card.category}</span>
             )}
@@ -715,38 +717,42 @@ export function BuyerLiveMain({
               title={upcoming ? "팔로우한 창작자" : "신규 오픈"}
               pending
             >
-              <div
-                role="region"
-                aria-label={upcoming ? "팔로우한 창작자 예정 라이브 목록" : "신규 오픈 라이브 목록"}
-                tabIndex={0}
-                className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
-                {...carouselDrag}
-              >
-                {Array.from({ length: carouselCards }, (_, i) => i + 1).map((n) => {
-                  const live = upcoming ? followingSlots[n - 1] : newOpenSlots[n - 1];
-                  if (upcoming)
-                    return scheduledCard(
-                      live ? realScheduled(live) : demoScheduled(`follow-${n}`),
-                      true,
-                      n > mobileCarouselCards,
+              <ScrollFade>
+                <div
+                  role="region"
+                  aria-label={
+                    upcoming ? "팔로우한 창작자 예정 라이브 목록" : "신규 오픈 라이브 목록"
+                  }
+                  tabIndex={0}
+                  className={`${styles.carousel} flex overflow-x-auto ${upcoming ? "gap-4" : "gap-3"}`}
+                  {...carouselDrag}
+                >
+                  {Array.from({ length: carouselCards }, (_, i) => i + 1).map((n) => {
+                    const live = upcoming ? followingSlots[n - 1] : newOpenSlots[n - 1];
+                    if (upcoming)
+                      return scheduledCard(
+                        live ? realScheduled(live) : demoScheduled(`follow-${n}`),
+                        true,
+                        n > mobileCarouselCards,
+                      );
+                    return live ? (
+                      <RealLiveCard
+                        key={live.liveId}
+                        live={live}
+                        compact
+                        desktopOnly={n > mobileCarouselCards}
+                      />
+                    ) : (
+                      <LiveCard
+                        key={n}
+                        id={`new-${n}`}
+                        compact
+                        desktopOnly={n > mobileCarouselCards}
+                      />
                     );
-                  return live ? (
-                    <RealLiveCard
-                      key={live.liveId}
-                      live={live}
-                      compact
-                      desktopOnly={n > mobileCarouselCards}
-                    />
-                  ) : (
-                    <LiveCard
-                      key={n}
-                      id={`new-${n}`}
-                      compact
-                      desktopOnly={n > mobileCarouselCards}
-                    />
-                  );
-                })}
-              </div>
+                  })}
+                </div>
+              </ScrollFade>
             </Section>
           )}
           <Section
@@ -811,22 +817,24 @@ export function BuyerLiveMain({
               title="팔로우한 창작자"
               viewAllHref="/my/wishlist?tab=sellers"
             >
-              <div
-                {...followingDrag}
-                tabIndex={0}
-                role="region"
-                aria-label="팔로우한 창작자 라이브 목록"
-                className={`${styles.carousel} grid grid-cols-2 gap-3 min-[1200px]:flex min-[1200px]:overflow-x-auto min-[1200px]:[&>article]:w-[226px] min-[1200px]:[&>article]:shrink-0`}
-              >
-                {Array.from({ length: liveFollowingCards }, (_, i) => i + 1).map((n) => {
-                  const live = followingSlots[n - 1];
-                  return live ? (
-                    <RealLiveCard key={live.liveId} live={live} />
-                  ) : (
-                    <LiveCard key={n} id={`follow-${n}`} />
-                  );
-                })}
-              </div>
+              <ScrollFade>
+                <div
+                  {...followingDrag}
+                  tabIndex={0}
+                  role="region"
+                  aria-label="팔로우한 창작자 라이브 목록"
+                  className={`${styles.carousel} grid grid-cols-2 gap-3 min-[1200px]:flex min-[1200px]:overflow-x-auto min-[1200px]:[&>article]:w-[226px] min-[1200px]:[&>article]:shrink-0`}
+                >
+                  {Array.from({ length: liveFollowingCards }, (_, i) => i + 1).map((n) => {
+                    const live = followingSlots[n - 1];
+                    return live ? (
+                      <RealLiveCard key={live.liveId} live={live} />
+                    ) : (
+                      <LiveCard key={n} id={`follow-${n}`} />
+                    );
+                  })}
+                </div>
+              </ScrollFade>
             </Section>
           )}
           {upcoming && (
@@ -836,17 +844,23 @@ export function BuyerLiveMain({
                 className="flex flex-col gap-3 min-[1200px]:grid min-[1200px]:grid-cols-3 min-[1200px]:gap-6"
               >
                 {subscriptionIds.map((id) => (
-                  <article key={id} className="flex gap-3">
+                  <article
+                    className="flex gap-3 has-[.scheduled-detail-link:hover]:[&_img]:scale-105 motion-reduce:has-[.scheduled-detail-link:hover]:[&_img]:scale-100"
+                    key={id}
+                  >
                     <Link
                       href={getUpcomingProjectHref(id)}
                       aria-hidden
                       tabIndex={-1}
-                      className="w-[104px] shrink-0"
+                      className="scheduled-detail-link w-[104px] shrink-0"
                     >
                       <ScheduleMedia schedule={demoSchedule(id)} className="h-full min-h-[104px]" />
                     </Link>
                     <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-                      <Link href={getUpcomingProjectHref(id)} className="flex flex-col gap-1">
+                      <Link
+                        href={getUpcomingProjectHref(id)}
+                        className="scheduled-detail-link flex flex-col gap-1"
+                      >
                         <Seller data={getLiveDemo(id, true)} />
                         <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
                           {scheduledTitle(id)}

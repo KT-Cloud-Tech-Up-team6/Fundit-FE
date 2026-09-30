@@ -12,6 +12,7 @@ import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { Tab, TabList } from "@/shared/components/ui/tab";
 import { previousPage } from "@/shared/lib/previous-page";
+import { thumbnailZoomClasses } from "@/shared/lib/thumbnail-zoom";
 import { projectDetailId } from "@/shared/lib/project-detail-id";
 import { noRetainedFollowings, type RetainedFollowings } from "../model/following";
 import { FollowingListApi } from "./following-list-api";
@@ -131,7 +132,10 @@ function Wishlist({ memberId }: { memberId: string }) {
                 {list.data.content.map((item) => {
                   const detailId = projectDetailId(item.projectPublicId);
                   return (
-                    <article key={item.projectId} className="flex items-center gap-3">
+                    <article
+                      key={item.projectId}
+                      className="flex items-center gap-3 has-[.project-detail-link:hover]:[&_img]:scale-105 motion-reduce:has-[.project-detail-link:hover]:[&_img]:scale-100"
+                    >
                       <div className="bg-layer-bg relative aspect-[144/106] w-[41.14%] shrink-0 overflow-hidden rounded-xs">
                         {item.projectThumbnailUrl && (
                           <Image
@@ -140,21 +144,21 @@ function Wishlist({ memberId }: { memberId: string }) {
                             sizes="144px"
                             src={item.projectThumbnailUrl}
                             alt=""
-                            className="object-cover"
+                            className={`object-cover ${thumbnailZoomClasses}`}
                           />
                         )}
                         {detailId && (
                           <Link
                             href={`/projects/${detailId}`}
                             aria-label={`${item.projectTitle || "프로젝트"} 상세 보기`}
-                            className="focus-visible:outline-border-primary absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                            className="project-detail-link focus-visible:outline-border-primary absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-2"
                           />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <h2 className="text-body-m line-clamp-2">
                           {detailId ? (
-                            <Link href={`/projects/${detailId}`}>
+                            <Link href={`/projects/${detailId}`} className="project-detail-link">
                               {item.projectTitle || "프로젝트"}
                             </Link>
                           ) : (
