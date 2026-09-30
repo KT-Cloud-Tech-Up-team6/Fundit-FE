@@ -103,8 +103,12 @@ test("로그인하면 검색어가 최근 검색어에 남고 삭제할 수 있�
   await expect(page).toHaveURL(/\/search$/);
   const recent = page.getByRole("region", { name: "최근 검색어" });
   await expect(recent.getByRole("button", { name: "무드등", exact: true })).toBeVisible();
+  // 이름 붙은 목록 의미(aria-prohibited-attr 회귀 방지)와 항목이 없을 때 빈 목록이 남지 않는지 잠근다.
+  const track = recent.getByRole("list", { name: "최근 검색어 가로 목록" });
+  await expect(track.getByRole("listitem")).toHaveCount(1);
 
   await recent.getByRole("button", { name: "무드등 최근 검색어 삭제" }).click();
 
   await expect(recent.getByText("최근 검색어가 없습니다.")).toBeVisible();
+  await expect(track).toHaveCount(0);
 });
