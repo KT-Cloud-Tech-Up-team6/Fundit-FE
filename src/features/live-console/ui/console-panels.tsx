@@ -231,7 +231,8 @@ export function SellerChatPanel({
                   key={message.id}
                   className={message.ai ? "flex flex-col py-1" : "flex items-start gap-2 py-1"}
                 >
-                  <span className="text-label-m text-text-secondary shrink-0 pt-0.5">
+                  {/* 작성자 닉네임이 길면 줄의 절반에서 말줄임한다(#488). */}
+                  <span className="text-label-m text-text-secondary max-w-1/2 shrink-0 truncate pt-0.5">
                     {message.author}
                   </span>
                   <p

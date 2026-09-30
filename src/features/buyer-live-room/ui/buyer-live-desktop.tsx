@@ -542,12 +542,13 @@ export function BuyerLiveDesktop({
                   className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
                 >
                   {chatMessages.map((message) => (
-                    /* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
+                    /* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). 작성자
+                       닉네임이 길면 줄의 절반에서 말줄임한다(#488). */
                     <p
                       key={message.id}
                       className={message.ai ? "flex flex-col" : "flex items-start gap-2"}
                     >
-                      <span className="text-label-m text-text-secondary mt-0.5 shrink-0">
+                      <span className="text-label-m text-text-secondary mt-0.5 max-w-1/2 shrink-0 truncate">
                         {message.author}
                       </span>
                       <span
