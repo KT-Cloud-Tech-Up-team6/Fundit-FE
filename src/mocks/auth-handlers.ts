@@ -1,6 +1,10 @@
 import { delay, http, HttpResponse } from "msw";
 
-import type { SignupRequest, SignupTerm } from "@/features/auth/api/auth-types";
+import type {
+  SignupRequest,
+  SignupTerm,
+  SocialSignupRequest,
+} from "@/features/auth/api/auth-types";
 
 import { E2E_LOGIN } from "./fixtures";
 
@@ -55,6 +59,9 @@ const error = (status: number, code: string, message: string, detail?: unknown) 
   HttpResponse.json({ code, detail, message }, { status });
 
 const requiredTermCodes = terms.filter((term) => term.required).map((term) => term.code);
+
+/* 소셜 가입에서 이미 쓴 signupToken. 목업 워커가 살아 있는 동안(페이지를 새로 열기 전까지) 유지된다. */
+const consumedSignupTokens = new Set<string>();
 
 function passwordCategoryCount(value: string) {
   return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
@@ -212,13 +219,25 @@ export const authHandlers = [
           },
         );
       case "mock-signup":
+      // 카카오는 이메일 동의가 선택이라 email이 없을 수 있다. name은 카카오에서는 닉네임이다.
+      case "mock-signup-no-email":
+      // 가입 요청 단계의 실패 갈래(만료, 서버 실패, 이메일 충돌)를 고르기 위한 토큰이다.
+      case "mock-signup-expired":
+      case "mock-signup-broken":
+      case "mock-signup-conflict":
         return HttpResponse.json({
-          email: "social@fundit.test",
-          name: "소셜 사용자",
+          ...(authorizationCode === "mock-signup-no-email" ? {} : { email: "social@fundit.test" }),
+          name: authorizationCode === "mock-signup-no-email" ? "카카오유저" : "소셜 사용자",
           needsLink: false,
           needsSignup: true,
           provider,
-          signupToken: "mock-signup-token",
+          signupToken: {
+            "mock-signup": "mock-signup-token",
+            "mock-signup-broken": "mock-broken-token",
+            "mock-signup-conflict": "mock-conflict-token",
+            "mock-signup-expired": "mock-expired-token",
+            "mock-signup-no-email": "mock-signup-token",
+          }[authorizationCode],
         });
       case "mock-link":
         return HttpResponse.json({
@@ -236,6 +255,51 @@ export const authHandlers = [
       default:
         return error(503, "DEPENDENCY_FAILURE", "외부 서비스 호출에 실패했습니다.");
     }
+  }),
+
+  /* 소셜 가입 목업. BE처럼 토큰을 검증보다 먼저 소비하고, member-service 실패(필수 약관 누락 등)는
+     원인을 구분할 수 없는 503으로 내려 준다. 본인인증은 없다. */
+  http.post("*/api/v1/auth/signup/social", async ({ request }) => {
+    const body = (await request.json()) as Partial<SocialSignupRequest>;
+    const token = body.signupToken;
+    if (
+      !token?.startsWith("mock-") ||
+      token === "mock-expired-token" ||
+      consumedSignupTokens.has(token)
+    ) {
+      return error(401, "TOKEN_EXPIRED", "Access Token 만료");
+    }
+    // BE처럼 이후 검증에서 실패해도 토큰은 이미 소비된 것으로 본다. 같은 토큰으로 다시 보내면 401이다.
+    consumedSignupTokens.add(token);
+    if (!body.name?.trim() || !body.nickname?.trim() || !body.phoneNumber?.trim()) {
+      return error(400, "INVALID_INPUT", "필수 항목이 비어 있습니다.");
+    }
+    if (!body.agreedTerms?.length) {
+      return error(400, "INVALID_INPUT", "필수 항목이 비어 있습니다.");
+    }
+    if (body.signupToken === "mock-broken-token") {
+      return error(503, "DEPENDENCY_FAILURE", "외부 서비스(Auth, Redis 등) 호출 실패");
+    }
+    if (body.signupToken === "mock-conflict-token" || body.email?.startsWith("taken@")) {
+      return error(409, "EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.");
+    }
+    if (!requiredTermCodes.every((code) => body.agreedTerms?.includes(code))) {
+      return error(503, "DEPENDENCY_FAILURE", "외부 서비스(Auth, Redis 등) 호출 실패");
+    }
+    currentUser = { ...currentUser, name: body.name.trim(), nickname: body.nickname.trim() };
+    return HttpResponse.json(
+      {
+        accessToken: `access-${crypto.randomUUID()}`,
+        accountId: crypto.randomUUID(),
+        memberId: crypto.randomUUID(),
+      },
+      {
+        headers: {
+          "Set-Cookie":
+            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
+        },
+      },
+    );
   }),
 
   http.post("*/api/v1/auth/token/refresh", ({ cookies }) => {

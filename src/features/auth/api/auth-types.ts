@@ -71,6 +71,8 @@ export type SocialLoginResult =
 /* 소셜 가입은 본인인증을 받지 않는다(BE PR #158). name·phoneNumber는 사용자가 입력한 값이다. */
 export type SocialSignupRequest = {
   agreedTerms: string[];
+  /* 제공자가 이메일을 주지 않은 경우(카카오 미동의)에만 보낸다. 제공자 값이 있으면 BE가 그쪽을 쓴다. */
+  email?: string;
   name: string;
   nickname: string;
   phoneNumber: string;
