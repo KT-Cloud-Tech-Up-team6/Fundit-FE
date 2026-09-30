@@ -56,7 +56,7 @@ export function Textarea({
             ? "text-text-disabled cursor-not-allowed"
             : error
               ? "text-text-warning placeholder:text-text-warning"
-              : "text-text-default placeholder:text-text-disabled",
+              : "text-text-default placeholder:text-text-placeholder disabled:placeholder:text-text-disabled",
         ].join(" ")}
         defaultValue={defaultValue}
         disabled={disabled}

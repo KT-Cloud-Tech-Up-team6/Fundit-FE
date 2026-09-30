@@ -382,7 +382,7 @@ Tailwind에 border-width 네임스페이스가 없어 `@utility`로 직접 정�
 
 ### 확정 값
 
-Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모드에서 값이 같은 토큰(`text-secondary`, `text-warning/success/error/info`, `border-accent-*`, `static-*`, `layer-overlay`)은 재정의하지 않는다 — `:root`에 한 번만 있으면 두 모드에 다 적용된다.
+Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모드에서 값이 같은 토큰(`text-warning/success/error/info`, `border-accent-*`, `static-*`, `layer-overlay`)은 재정의하지 않는다 — `:root`에 한 번만 있으면 두 모드에 다 적용된다.
 
 | 토큰                               | Light              | Dark                  |
 | ---------------------------------- | ------------------ | --------------------- |
@@ -396,7 +396,10 @@ Primitive는 그대로, Semantic만 모드에 따라 값이 바뀐다. 두 모�
 | `layer-surface-primary-live-hover` | `blue-700`         | 동일                  |
 | `text-title`                       | `grey-black`       | `grey-white`          |
 | `text-default`                     | `charcoal-900`     | `charcoal-100`        |
+| `text-secondary`                   | `charcoal-700`     | `charcoal-500`        |
 | `text-disabled`                    | `charcoal-600`     | `charcoal-500`        |
+| `text-placeholder`                 | `#737587`          | `charcoal-500`        |
+| `text-placeholder-strong`          | `charcoal-700`     | `charcoal-200`        |
 | `text-inverse`                     | `grey-white`       | `charcoal-900`        |
 | `text-primary-live`                | `blue-500`         | `blue-200`            |
 | `border-default`                   | `charcoal-200`     | `charcoal-700`        |
@@ -524,18 +527,17 @@ pnpm storybook
 
 ### 디자인 확인 필요
 
-| 우선순위 | 항목                                  | 내용                                                                                                                                                                                                                                                          |
-| -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | `text-disabled`/`text-secondary` 대비 | 둘 다 charcoal-600 `#7a7c8a`, white 대비 4.14:1로 WCAG 4.5:1 미달. 실사용 최악 조합은 `layer-bg`(pearl-white) 위 **3.86:1** — page-placeholder 히어로 설명문. 2026-08-27 export로 Figma 공식값임이 확정됐다. 두 토큰이 같은 값을 쓰는 것도 의도인지 확인 필요 |
-| P0       | Status 명명                           | `Status/warning`이 bright-red, `Status/error`가 bright-orange다. Text·Border 그룹도 동일 패턴 — warning↔red, error↔orange가 두 모드에 걸쳐 일관되게 반대로 매핑돼 있다. 표준 관례(warning=주황/error=빨강)와 반대인 게 의도인지 확인 필요                     |
-| P1       | 변수명 오타                           | `Layer/surface_disbaled` → `disabled`, `Text/disable` → `disabled`                                                                                                                                                                                            |
-| P1       | 타이포 체계                           | Foundations Type(24종, `body_m` 방식)과 실제 변수(9종, `Body/Regular_16` 방식)가 별개로 존재한다                                                                                                                                                              |
-| P1       | `Body/Semibold_16`                    | 이름은 Semibold(600)인데 실제 값은 Medium(500)이다. `Body/Medium_16`과 값이 완전히 같다                                                                                                                                                                       |
-| P1       | 미정의 Semantic                       | `text_tertiary`, `border_focus`, `icon_default`, `icon_subtle`, `icon_primary` — 6.6 참고. Component `Icon/*`은 확인됐으나 "subtle"에 대응하는 상태가 없다                                                                                                    |
-| P2       | `Navigation` 컴포넌트                 | Figma에 아직 색이 없다. 변수명이 `"아직 안 정함"`으로 디자인팀이 직접 표시해뒀다 — 확정되면 재조회한다                                                                                                                                                        |
-| P2       | Charcoal vs Grey                      | 두 계열의 사용 구분 기준. `#7a7c8a` 값이 중복된다                                                                                                                                                                                                             |
-| P2       | Heading 중복                          | Foundations에서 `Heading XL`이 32/130과 28/130 두 개로 표기돼 있다                                                                                                                                                                                            |
-| P2       | 폰트                                  | Pretendard 자체 호스팅 여부와 서브셋 범위. `Heading/Heading 2`만 Noto Sans에 바인딩된 것이 의도인지                                                                                                                                                           |
+| 우선순위 | 항목                  | 내용                                                                                                                                                                                                                                      |
+| -------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | Status 명명           | `Status/warning`이 bright-red, `Status/error`가 bright-orange다. Text·Border 그룹도 동일 패턴 — warning↔red, error↔orange가 두 모드에 걸쳐 일관되게 반대로 매핑돼 있다. 표준 관례(warning=주황/error=빨강)와 반대인 게 의도인지 확인 필요 |
+| P1       | 변수명 오타           | `Layer/surface_disbaled` → `disabled`, `Text/disable` → `disabled`                                                                                                                                                                        |
+| P1       | 타이포 체계           | Foundations Type(24종, `body_m` 방식)과 실제 변수(9종, `Body/Regular_16` 방식)가 별개로 존재한다                                                                                                                                          |
+| P1       | `Body/Semibold_16`    | 이름은 Semibold(600)인데 실제 값은 Medium(500)이다. `Body/Medium_16`과 값이 완전히 같다                                                                                                                                                   |
+| P1       | 미정의 Semantic       | `text_tertiary`, `border_focus`, `icon_default`, `icon_subtle`, `icon_primary` — 6.6 참고. Component `Icon/*`은 확인됐으나 "subtle"에 대응하는 상태가 없다                                                                                |
+| P2       | `Navigation` 컴포넌트 | Figma에 아직 색이 없다. 변수명이 `"아직 안 정함"`으로 디자인팀이 직접 표시해뒀다 — 확정되면 재조회한다                                                                                                                                    |
+| P2       | Charcoal vs Grey      | 두 계열의 사용 구분 기준. `#7a7c8a` 값이 중복된다                                                                                                                                                                                         |
+| P2       | Heading 중복          | Foundations에서 `Heading XL`이 32/130과 28/130 두 개로 표기돼 있다                                                                                                                                                                        |
+| P2       | 폰트                  | Pretendard 자체 호스팅 여부와 서브셋 범위. `Heading/Heading 2`만 Noto Sans에 바인딩된 것이 의도인지                                                                                                                                       |
 
 ## 11. 접근성 실측 결과
 
@@ -549,6 +551,13 @@ WCAG 2.1 기준(일반 텍스트 4.5:1, Large Text 및 UI Component 3:1)으로 �
 | **charcoal-600 on white**                       | **4.14:1** | **FAIL** |
 | **charcoal-600 on pearl-white**                 | **3.86:1** | **FAIL** |
 | charcoal-500 on white                           | 2.70:1     | FAIL     |
+| `#737587`(placeholder) on white                 | 4.54:1     | PASS     |
+| `#737587` on pearl-white                        | 4.24:1     | FAIL     |
+| `#737587` on charcoal-100(회색 면)              | 3.95:1     | FAIL     |
+| charcoal-700 on charcoal-100 (`-strong`)        | 5.59:1     | PASS     |
+| dark: charcoal-500 on midnight-grey             | 4.66:1     | PASS     |
+| dark: charcoal-500 on charcoal-700(회색 면)     | 2.39:1     | FAIL     |
+| dark: charcoal-200 on charcoal-700 (`-strong`)  | 4.79:1     | PASS     |
 | blue-500 on white                               | 6.72:1     | PASS     |
 | white on `Button/primary` (charcoal-900)        | 16.08:1    | PASS     |
 | white on `Button/primary_live` (blue-500)       | 6.72:1     | PASS     |
@@ -564,6 +573,9 @@ WCAG 2.1 기준(일반 텍스트 4.5:1, Large Text 및 UI Component 3:1)으로 �
 이 표를 처음 만들 때 "다크에서도 blue-500이 유지된다"고 가정하고 1.87:1 실패로 기록했었다. 2026-08-27 export로 확인해 보니 그 가정이 틀렸다 — 실제로는 Dark에서 blue-200으로 바뀌어 있었고(6.11:1 PASS), Dark 모드 조합은 7장에 전부 재계산해 정리했다. 아래 판정에서도 해당 문장을 지웠다.
 
 ### 판정
+
+- 활성 입력의 placeholder는 WCAG 1.4.3 대상이다(비활성 컨트롤 예외 아님). `text-secondary`(라이트 charcoal-700, 다크 charcoal-500)는 4.5:1을 넘고, placeholder는 `text-placeholder`(라이트 `#737587`)를 쓴다. 이 값은 흰 면 위에서만 통과하므로, 회색 면(`layer-surface-disabled`) 위 입력창(`SearchField`의 `sm`·`filled`, 썸네일 업로드)은 `text-placeholder-strong`을 쓴다. 회색 면 위 예외 값은 디자인팀 확인 전 임시다.
+- 실제 disabled 컨트롤의 텍스트·placeholder는 `text-disabled`를 유지하며 WCAG 1.4.3 비활성 예외를 적용한다.
 
 - Status Base 색(green, red, orange)은 **텍스트에 사용하지 않는다.** 아이콘과 인디케이터 전용이다. 상태 텍스트는 Bright 배경 + Dark 전경 조합을 쓴다. 이 조합은 9.3:1 안팎으로 안전하다.
 - 다크 모드 값은 Figma가 실제로 blue-200/blue-300으로 적절히 밝혀둬서(7장 참고) 별도 교체가 필요 없었다.

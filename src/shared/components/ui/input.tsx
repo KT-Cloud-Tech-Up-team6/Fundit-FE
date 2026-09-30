@@ -67,11 +67,11 @@ export function Input({
       ) : null}
       <input
         className={[
-          "disabled:text-text-disabled min-w-0 flex-1 bg-transparent outline-none",
+          "disabled:text-text-disabled disabled:placeholder:text-text-disabled min-w-0 flex-1 bg-transparent outline-none",
           textClasses[size],
           error
             ? "text-text-warning placeholder:text-text-warning"
-            : "text-text-default placeholder:text-text-disabled",
+            : "text-text-default placeholder:text-text-placeholder",
         ].join(" ")}
         aria-invalid={error || undefined}
         disabled={disabled}

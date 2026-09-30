@@ -85,7 +85,7 @@ export function RecordComposer({
           </button>
           <textarea
             aria-label="진행 내용"
-            className="text-body-s placeholder:text-text-disabled [field-sizing:content] min-w-0 flex-1 resize-none bg-transparent outline-none"
+            className="text-body-s placeholder:text-text-placeholder [field-sizing:content] min-w-0 flex-1 resize-none bg-transparent outline-none"
             onChange={(event) => setText(event.target.value)}
             placeholder="업데이트될 진행 사항을 입력해주세요"
             ref={textRef}

@@ -112,10 +112,12 @@ http://scripts.sil.org/OFL
 
   --text-title: var(--grey-black);
   --text-default: var(--charcoal-900);
-  /* Figma 확정값. white 대비 4.14:1로 WCAG 4.5:1 미달.
-     docs/DESIGN_TOKENS.md 10장 P1 — 디자인 확인 필요. */
-  --text-secondary: var(--charcoal-600);
+  --text-secondary: var(--charcoal-700);
   --text-disabled: var(--charcoal-600);
+  /* placeholder는 활성 입력의 텍스트라 disabled 예외가 아니다. 흰 면 위 4.54:1.
+     회색 면(layer-surface-disabled, charcoal-100) 위에서는 3.95:1이라 -strong을 쓴다. */
+  --text-placeholder: #737587;
+  --text-placeholder-strong: var(--charcoal-700);
   --text-inverse: var(--grey-white);
   --text-primary-live: var(--blue-500);
   --text-warning: var(--red);
@@ -164,7 +166,11 @@ http://scripts.sil.org/OFL
 
   --text-title: var(--grey-white);
   --text-default: var(--charcoal-100);
+  --text-secondary: var(--charcoal-500);
   --text-disabled: var(--charcoal-500);
+  /* 다크 회색 면(charcoal-700) 위에서는 charcoal-500이 2.39:1이라 -strong은 charcoal-200(4.79:1). */
+  --text-placeholder: var(--charcoal-500);
+  --text-placeholder-strong: var(--charcoal-200);
   --text-inverse: var(--charcoal-900);
   --text-primary-live: var(--blue-200);
   --text-info: #aeb0be;
@@ -203,6 +209,8 @@ http://scripts.sil.org/OFL
   --color-text-default: var(--text-default);
   --color-text-secondary: var(--text-secondary);
   --color-text-disabled: var(--text-disabled);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-text-placeholder-strong: var(--text-placeholder-strong);
   --color-text-inverse: var(--text-inverse);
   --color-text-primary-live: var(--text-primary-live);
   --color-text-warning: var(--text-warning);
@@ -435,7 +443,7 @@ html::-webkit-scrollbar {
    토큰 색만 여기서 지정한다 (project-story-form의 스토리 에디터). */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: var(--text-disabled);
+  color: var(--text-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
