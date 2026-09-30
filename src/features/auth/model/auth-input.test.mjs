@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatPhone, passwordSchema, safeReturnTo, validRecoveryIdentity } from "./auth-input.ts";
+import {
+  formatPhone,
+  isValidPhone,
+  nicknameSchema,
+  normalizePhoneInput,
+  passwordSchema,
+  safeReturnTo,
+  validRecoveryIdentity,
+} from "./auth-input.ts";
 import { consumeEmailRecoverySession, saveEmailRecoverySession } from "./email-recovery-session.ts";
 
 test("login returns only to allowed internal routes and preserves checkout/search queries", () => {
@@ -69,4 +77,31 @@ test("email recovery callback requires a matching, unexpired, single-use session
   const now = Date.now();
   t.mock.method(Date, "now", () => now + 600001);
   assert.equal(consumeEmailRecoverySession("request-1"), null);
+});
+
+test("phone input keeps digits only, at most 11, and validates domestic mobile numbers", () => {
+  assert.equal(normalizePhoneInput("010-1234-5678"), "01012345678");
+  assert.equal(normalizePhoneInput("0101234567890123"), "01012345678");
+  assert.equal(normalizePhoneInput("abc"), "");
+  for (const valid of ["01012345678", "0111234567"]) assert.equal(isValidPhone(valid), true);
+  for (const invalid of [
+    "",
+    "1012345678",
+    "010123456",
+    "010-1234-5678",
+    "02012345678",
+    "010123456789",
+  ])
+    assert.equal(isValidPhone(invalid), false);
+  // 복구 화면은 하이픈을 허용하는 기존 동작을 그대로 유지한다.
+  assert.equal(validRecoveryIdentity("홍길동", "010-1234-5678"), true);
+  assert.equal(validRecoveryIdentity(" ", "01012345678"), false);
+});
+
+test("nickname is trimmed and limited to 1 to 50 characters", () => {
+  assert.equal(nicknameSchema.parse("  펀딧러  "), "펀딧러");
+  assert.equal(nicknameSchema.safeParse("   ").success, false);
+  assert.equal(nicknameSchema.safeParse("").success, false);
+  assert.equal(nicknameSchema.safeParse("가".repeat(50)).success, true);
+  assert.equal(nicknameSchema.safeParse("가".repeat(51)).success, false);
 });
