@@ -113,8 +113,9 @@ const connectedArgs = {
   progress: 0,
   video: <div data-testid="player">영상 자리</div>,
   replayMessages: [
-    { id: "0:0", author: "시청자", text: "구간 채팅입니다" },
-    { id: "10:1", author: "시청자", text: "두 번째 메시지" },
+    { id: "m-1", author: "펀딧러버", text: "구간 채팅입니다" },
+    { id: "m-2", author: "청소가제일쉬운무선청소기러버입니다", text: "두 번째 메시지" },
+    { id: "m-3", author: "시청자", text: "닉네임을 받지 못한 줄" },
   ],
 };
 

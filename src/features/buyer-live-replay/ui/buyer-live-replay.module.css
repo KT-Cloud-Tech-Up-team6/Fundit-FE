@@ -167,7 +167,12 @@
 }
 .chat b {
   color: #dedede;
-  flex: 0 0 32px;
+  /* 아이디는 내용 폭이다(Figma 1408:42073 hug). 닉네임이 길면 줄의 절반에서 말줄임한다(#488). */
+  flex: 0 0 auto;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 500;
 }

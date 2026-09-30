@@ -120,9 +120,10 @@ export const Clip: Story = {
 };
 
 /* 아래는 실제 LIVE 채팅(#470) 표시다. 실제 경로는 리워드가 없어도 오른쪽 열에 채팅 패널과 입력을 그린다.
-   작성자는 시청자·나·판매자, 판매자 답변은 @everyone, AI 답변은 "AI 매니저" 윗줄 라벨과 초록 본문이다. */
+   작성자는 닉네임(없으면 시청자)·나·판매자이고 긴 닉네임은 줄의 절반에서 말줄임한다(#488). 판매자 답변은
+   @everyone, AI 답변은 "AI 매니저" 윗줄 라벨과 초록 본문이다. */
 const liveChatRows: LiveChatMessage[] = [
-  { id: "1", author: "시청자", text: "f25 흡입력이랑 물걸레 동시 작동할 때 소음은 어떤가요?" },
+  { id: "1", author: "펀딧러버", text: "f25 흡입력이랑 물걸레 동시 작동할 때 소음은 어떤가요?" },
   { id: "2", author: "판매자", text: "오늘 방송 시작합니다!" },
   { id: "3", author: "나", text: "물걸레 건조 모드가 있나요?" },
   { id: "4", author: "판매자", text: "@everyone 네, 물걸레 건조 모드를 지원합니다." },
@@ -132,6 +133,8 @@ const liveChatRows: LiveChatMessage[] = [
     text: "미세 거품을 분사해 찌든 때를 불려 쉽게 닦아내는 기능입니다.",
     ai: true,
   },
+  { id: "6", author: "청소가제일쉬운무선청소기러버입니다", text: "저도 궁금했어요" },
+  { id: "7", author: "시청자", text: "닉네임을 받지 못한 시청자" },
 ];
 const liveArgs = {
   demoMode: false,
@@ -171,8 +174,13 @@ export const LiveChat: Story = {
     const canvas = within(canvasElement);
     const panel = canvas.getByRole("region", { name: "실시간 채팅" });
     const log = within(panel).getByRole("log", { name: "채팅 메시지" });
+    expect(log).toHaveTextContent("펀딧러버f25 흡입력이랑");
     expect(log).toHaveTextContent("판매자@everyone 네, 물걸레 건조 모드를 지원합니다.");
     expect(within(log).getByText(/미세 거품을/)).toHaveClass("text-text-success");
+    // 긴 닉네임은 줄의 절반에서 말줄임한다(#488).
+    const longName = within(log).getByText("청소가제일쉬운무선청소기러버입니다");
+    expect(getComputedStyle(longName).textOverflow).toBe("ellipsis");
+    expect(longName.clientWidth).toBeLessThanOrEqual(longName.parentElement!.clientWidth / 2 + 1);
     // 실제 경로는 채팅 수 배지를 그리지 않는다.
     expect(within(panel).queryByText("53")).not.toBeInTheDocument();
     const input = within(panel).getByRole("textbox", { name: "메시지 입력" });
@@ -185,11 +193,15 @@ export const LiveChat: Story = {
 export const LiveChatGuest: Story = {
   args: {
     ...liveArgs,
-    liveChat: { messages: [], maxLength: 500, onSend: fn(), onRequireLogin: fn() },
+    liveChat: { messages: liveChatRows, maxLength: 500, onSend: fn(), onRequireLogin: fn() },
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     expect(canvas.queryByRole("textbox", { name: "메시지 입력" })).not.toBeInTheDocument();
+    // 비로그인도 보기 전용으로 채팅을 본다(#488).
+    expect(canvas.getByRole("log", { name: "채팅 메시지" })).toHaveTextContent(
+      "펀딧러버f25 흡입력이랑",
+    );
     await userEvent.click(canvas.getByRole("button", { name: "로그인하고 메시지 입력" }));
     expect(args.liveChat?.onRequireLogin).toHaveBeenCalledTimes(1);
   },
