@@ -787,14 +787,14 @@ export function BuyerLiveMain({
             </ol>
             {upcoming ? (
               <PendingDestination
-                label="예정된 라이브 전체보기"
+                label="예정된 라이브 더 보러 가기"
                 className={textButtonNavigationClasses + " mx-auto"}
               >
                 더 보러 가기
               </PendingDestination>
             ) : (
               <PendingDestination
-                label="실시간 순위 전체보기"
+                label="실시간 순위 더 보러 가기"
                 className={textButtonNavigationClasses + " mx-auto"}
               >
                 더 보러 가기

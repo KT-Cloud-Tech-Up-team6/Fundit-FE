@@ -38,7 +38,9 @@ export const SubscriptionKeyboard: Story = {
     await waitFor(() =>
       expect(subscriptions.getByText("알림 신청한 라이브가 없습니다.")).toHaveFocus(),
     );
-    expect(canvas.getByRole("button", { name: "예정된 라이브 전체보기 (준비중)" })).toBeDisabled();
+    expect(
+      canvas.getByRole("button", { name: "예정된 라이브 더 보러 가기 (준비중)" }),
+    ).toBeDisabled();
   },
 };
 
@@ -148,6 +150,8 @@ export const SearchAndNavigation: Story = {
     expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
     expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
     expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
-    expect(canvas.getByRole("button", { name: "실시간 순위 전체보기 (준비중)" })).toBeDisabled();
+    expect(
+      canvas.getByRole("button", { name: "실시간 순위 더 보러 가기 (준비중)" }),
+    ).toBeDisabled();
   },
 };
