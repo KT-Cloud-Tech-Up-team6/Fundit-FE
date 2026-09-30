@@ -62,18 +62,21 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
   const startedRef = useRef(false);
   const sessionRef = useRef<SocialAuthSession | null>(null);
   const restrictedSession = useRef<{ generation: string | null } | null>(null);
+  /* 요청이 끝나기 전에 사용자가 화면을 벗어났는지 본다. StrictMode의 가짜 unmount는 effect가 다시 true로 돌린다. */
+  const mountedRef = useRef(false);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       if (
         restrictedSession.current &&
         restrictedSession.current.generation === authTokenStore.getSessionGeneration()
       ) {
         authTokenStore.changeSession();
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   useEffect(() => {
     /* 인가 코드는 1회용이다. StrictMode가 effect를 두 번 실행해도 한 번만 보낸다. */
@@ -83,6 +86,8 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
     const code = searchParams.get("code");
     const state = searchParams.get("state");
     const providerError = searchParams.get("error");
+    // 1회용 인가 코드와 state가 주소창·히스토리에 남지 않게 콜백 주소에서 쿼리를 바로 뗀다.
+    window.history.replaceState(window.history.state, "", window.location.pathname);
 
     async function run() {
       const session = consumeSocialAuthSession();
@@ -106,12 +111,18 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
         if (result.needsSignup) return setView({ kind: "needs-signup" });
         if (result.needsLink) return setView({ kind: "needs-link" });
         if (result.mustChangePassword) {
+          if (!mountedRef.current) {
+            // 응답을 기다리는 사이 화면을 벗어났다. 정리할 cleanup이 이미 지나갔으므로 여기서 세션을 비운다.
+            authTokenStore.changeSession();
+            return;
+          }
           // 세션 요청은 일반 인증 상태를 비운다. 변경 API에만 토큰을 사용하고 승격은 완료 후 한다.
           restrictedSession.current = { generation: authTokenStore.getSessionGeneration() };
           return setView({ kind: "must-change-password" });
         }
         await authenticate(result.accessToken);
-        router.replace(session.returnTo);
+        // 그 사이 사용자가 다른 화면으로 이동했다면 그 이동을 덮어쓰지 않는다.
+        if (mountedRef.current) router.replace(session.returnTo);
       } catch (cause) {
         setView(failureView(cause));
       }

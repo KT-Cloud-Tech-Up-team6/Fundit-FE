@@ -1,5 +1,7 @@
 import type { SocialProvider } from "../api/auth-types";
 
+import { safeReturnTo } from "./auth-input";
+
 const STORAGE_KEY = "fundit-auth-social";
 const TTL_MS = 10 * 60 * 1000;
 
@@ -52,7 +54,8 @@ export function consumeSocialAuthSession(): SocialAuthSession | null {
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isSocialAuthSession(parsed) || parsed.expiresAt < Date.now()) return null;
-    return parsed;
+    // 저장 때 걸러도 저장소 값은 신뢰하지 않는다. 읽을 때 한 번 더 허용 경로로 좁힌다.
+    return { ...parsed, returnTo: safeReturnTo(parsed.returnTo) };
   } catch {
     return null;
   }

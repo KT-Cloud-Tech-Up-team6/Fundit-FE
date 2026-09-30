@@ -122,6 +122,8 @@ test("아직 가입되지 않은 소셜 계정은 준비 중 안내와 일반 �
   await page.goto(`/oauth/kakao?code=mock-signup&state=${STATE}`);
 
   await expect(page.getByText(/아직 가입되지 않은/)).toBeVisible();
+  // 1회용 인가 코드와 state가 주소창에 남지 않는다.
+  expect(new URL(page.url()).search).toBe("");
   await page.getByRole("button", { name: "일반 회원가입" }).click();
   await expect(page).toHaveURL(/\/auth\/signup$/);
 });

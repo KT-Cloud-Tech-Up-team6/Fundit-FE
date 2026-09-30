@@ -84,3 +84,17 @@ test("saving reports failure when session storage is unavailable", (t) => {
 
   assert.equal(saveSocialAuthSession(payload), false);
 });
+
+test("a stored returnTo outside the allowed paths is narrowed to home on read", (t) => {
+  const data = stubSessionStorage(t);
+  const valid = { ...payload, expiresAt: Date.now() + 60_000 };
+  for (const [stored, expected] of [
+    ["https://evil.example/steal", "/"],
+    ["//evil.example", "/"],
+    ["/auth/login", "/"],
+    ["/my/fundings?tab=refund", "/my/fundings?tab=refund"],
+  ]) {
+    data.set("fundit-auth-social", JSON.stringify({ ...valid, returnTo: stored }));
+    assert.equal(consumeSocialAuthSession()?.returnTo, expected);
+  }
+});

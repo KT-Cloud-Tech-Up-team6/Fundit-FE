@@ -145,7 +145,7 @@ export function LoginFlow({
             tone="google"
           />
           {requestError && (
-            <p role="alert" className="text-body-s">
+            <p role="alert" className="text-body-s text-text-default">
               {requestError}
             </p>
           )}

@@ -82,7 +82,10 @@ export function SignupFlow({ initialSheetOpen = false }: SignupFlowProps) {
           });
           if (!started) setSocialError("소셜 가입을 시작하지 못했습니다. 다시 시도해 주세요.");
         }}
-        onClose={() => setSheetOpen(false)}
+        onClose={() => {
+          setSheetOpen(false);
+          setSocialProvider(null);
+        }}
         open={sheetOpen}
       />
     </AuthScreen>
