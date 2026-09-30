@@ -28,6 +28,29 @@ async function seedSession(
   );
 }
 
+async function seedLinkSession(
+  page: Page,
+  overrides: Partial<{
+    identityVerificationId: string;
+    linkToken: string;
+    provider: string;
+    returnTo: string;
+  }> = {},
+) {
+  await page.goto("/auth/login");
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  await page.evaluate(
+    (session) => sessionStorage.setItem("fundit-auth-social-link", JSON.stringify(session)),
+    {
+      expiresAt: Date.now() + 60_000,
+      linkToken: "mock-link-token-ok",
+      provider: "KAKAO",
+      returnTo: "/my/fundings",
+      ...overrides,
+    },
+  );
+}
+
 function trackSocialRequests(page: Page) {
   const requests: string[] = [];
   page.on("request", (request) => {
@@ -128,14 +151,70 @@ test("아직 가입되지 않은 소셜 계정은 준비 중 안내와 일반 �
   await expect(page).toHaveURL(/\/auth\/signup$/);
 });
 
-test("이메일로 가입된 계정이 있으면 이메일 로그인을 안내한다", async ({ page }) => {
+test("이메일로 가입된 계정은 본인인증 소셜 연동 화면으로 이동한다", async ({ page }) => {
   await seedSession(page);
   await page.goto(`/oauth/kakao?code=mock-link&state=${STATE}`);
 
-  await expect(page.getByText(/이미 이메일로 가입된/)).toBeVisible();
-  await page.getByRole("button", { name: "이메일로 로그인" }).click();
-  await expect(page).toHaveURL(/\/auth\/login$/);
+  await expect(page).toHaveURL(/\/auth\/social\/link$/);
+  await expect(page.getByRole("heading", { name: "휴대폰 본인인증" })).toBeVisible();
+  // linkToken은 주소에 절대 노출하지 않는다.
+  expect(new URL(page.url()).search).toBe("");
 });
+
+test("데스크톱에서 본인인증 후 소셜 계정을 연동하고 원래 화면으로 돌아간다", async ({ page }) => {
+  await seedLinkSession(page);
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/auth/social/link")) requests.push(request.url());
+  });
+  await page.goto("/auth/social/link");
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/my/fundings"),
+    page.getByRole("button", { name: "본인인증 시작" }).click(),
+  ]);
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).not.toContain("mock-link-token-ok");
+});
+
+test("모바일 PortOne 리다이렉트 뒤에도 sessionStorage의 연동 정보를 복구한다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedLinkSession(page, { returnTo: "/my/fundings" });
+  await page.goto("/auth/social/link");
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/my/fundings"),
+    page.getByRole("button", { name: "본인인증 시작" }).click(),
+  ]);
+});
+
+test("예상하지 않은 PortOne 콜백 ID는 검증·연동 요청 없이 거절한다", async ({ page }) => {
+  await seedLinkSession(page, { identityVerificationId: "expected-portone-id" });
+  const verificationRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/auth/identity-verifications")) {
+      verificationRequests.push(request.url());
+    }
+  });
+  await page.goto("/auth/social/link?identityVerificationId=stale-portone-id");
+  await expect(page.getByText("본인인증 결과를 확인할 수 없어요")).toBeVisible();
+  expect(verificationRequests).toHaveLength(0);
+});
+
+for (const [suffix, message] of [
+  ["forbidden", "본인 확인 정보가 기존 계정과 일치하지 않습니다."],
+  ["expired", "연동 정보가 만료되었거나 유효하지 않습니다."],
+  ["locked", "계정이 일시적으로 잠겼습니다. 잠시 후 다시 시도해 주세요."],
+  ["unavailable", "연동 서비스를 일시적으로 이용할 수 없습니다."],
+]) {
+  test(`연동 ${suffix} 오류는 OAuth부터 다시 시작하도록 안내한다`, async ({ page }) => {
+    await seedLinkSession(page, { linkToken: `mock-link-token-${suffix}` });
+    await page.goto("/auth/social/link");
+    await page.getByRole("button", { name: "본인인증 시작" }).click();
+    await expect(page.getByText(message)).toBeVisible();
+    await expect(
+      page.getByText("보안을 위해 소셜 로그인을 처음부터 다시 시작해 주세요."),
+    ).toBeVisible();
+  });
+}
 
 test("다른 제공자로 가입된 이메일이면 그 제공자로 로그인하는 버튼을 보여 준다", async ({
   page,
