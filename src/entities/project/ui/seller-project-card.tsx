@@ -15,7 +15,10 @@ const fundingHref = (id: string) => `/seller/projects/${encodeURIComponent(id)}?
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
-export function SellerProjectCard(project: SellerProject) {
+export function SellerProjectCard({
+  onDelete,
+  ...project
+}: SellerProject & { onDelete?: () => void }) {
   return (
     <article
       className={`border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:flex-row md:items-start md:justify-between md:gap-6 ${project.status === "draft" ? "md:h-[136px]" : "md:h-[148px]"}`}
@@ -79,14 +82,26 @@ export function SellerProjectCard(project: SellerProject) {
             </Badge>
           ))}
         </div>
-        <Button
-          href={fundingHref(project.id)}
-          variant="secondary"
-          size="md"
-          className="text-caption-m! h-9! w-28 shrink-0 font-medium! md:w-full"
-        >
-          관리
-        </Button>
+        <div className="flex shrink-0 gap-2 md:w-full md:flex-col">
+          {project.status === "draft" && onDelete && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="text-caption-m! w-20 shrink-0 font-medium! md:w-full"
+              onClick={onDelete}
+            >
+              삭제
+            </Button>
+          )}
+          <Button
+            href={fundingHref(project.id)}
+            variant="secondary"
+            size="md"
+            className="text-caption-m! h-9! w-28 shrink-0 font-medium! md:w-full"
+          >
+            관리
+          </Button>
+        </div>
       </div>
     </article>
   );
