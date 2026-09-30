@@ -59,7 +59,9 @@ function stateClasses(size: TabSize, variant: TabVariant, active: boolean, disab
   if (size === "sm") {
     return active
       ? `relative ${activeTextClasses[variant]} ${indicatorClasses[variant]} after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-full`
-      : "text-text-secondary";
+      : disabled
+        ? "text-text-disabled"
+        : "text-text-secondary";
   }
 
   return active
