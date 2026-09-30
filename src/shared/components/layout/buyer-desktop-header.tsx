@@ -22,12 +22,15 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
           <Link
             href="/categories/tech-appliances"
             onClick={() => setCategoryReturnPath(window.location.pathname + window.location.search)}
-            className="flex items-center gap-2 px-2"
+            className="hover:bg-layer-surface-disabled flex items-center gap-2 rounded-xs px-2 py-1 transition-colors"
           >
             <Image src="/icons/buyer-desktop/category.svg" width={20} height={20} alt="" />
             카테고리
           </Link>
-          <Link href="/live" className="flex items-center gap-2 px-2">
+          <Link
+            href="/live"
+            className="hover:bg-layer-surface-disabled flex items-center gap-2 rounded-xs px-2 py-1 transition-colors"
+          >
             <Image src="/images/buyer-live/c4001.svg" width={20} height={20} alt="" />
             라이브
           </Link>
@@ -39,7 +42,7 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
           <Link
             href="/my/wishlist"
             aria-label="관심 목록"
-            className="flex size-9 items-center justify-center"
+            className="hover:bg-layer-surface-disabled flex size-9 items-center justify-center rounded-full transition-colors"
           >
             <Image src="/icons/buyer-live-room/heart.svg" width={24} height={24} alt="" />
           </Link>
@@ -49,13 +52,13 @@ export function BuyerDesktopHeader({ exitHref }: { exitHref?: string }) {
           <Link
             href="/my"
             aria-label="마이페이지"
-            className="flex size-9 items-center justify-center"
+            className="hover:bg-layer-surface-disabled flex size-9 items-center justify-center rounded-full transition-colors"
           >
             <Icon name="profile" className="size-6" />
           </Link>
           <Link
             href={exitHref ?? "/seller/projects"}
-            className="bg-layer-surface-disabled text-body-s text-text-default ml-3 flex h-10 items-center gap-2 rounded-xs px-3"
+            className="bg-layer-surface-disabled hover:bg-layer-surface-disabled-hover text-body-s text-text-default ml-3 flex h-10 items-center gap-2 rounded-xs px-3 transition-colors"
           >
             {exitHref ? "나가기" : "창작자 전환"}
             <Icon name={exitHref ? "close" : "swap"} className="size-4" />

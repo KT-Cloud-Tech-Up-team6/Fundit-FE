@@ -43,7 +43,7 @@ export function InputChat({
             onClick={onAttach}
             disabled={disabled || attachDisabled}
             aria-label={attachLabel}
-            className="text-text-default focus-visible:outline-border-primary disabled:text-text-disabled flex size-7 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 disabled:cursor-not-allowed"
+            className="text-text-default enabled:hover:bg-layer-surface-disabled focus-visible:outline-border-primary disabled:text-text-disabled flex size-7 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 disabled:cursor-not-allowed"
           >
             <span
               aria-hidden
@@ -73,7 +73,7 @@ export function InputChat({
         onClick={send}
         disabled={!canSend}
         aria-label={sendLabel}
-        className="bg-layer-surface-primary text-text-inverse focus-visible:outline-border-primary disabled:bg-layer-surface-disabled disabled:text-text-disabled flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
+        className="bg-layer-surface-primary text-text-inverse enabled:hover:bg-layer-surface-primary-hover focus-visible:outline-border-primary disabled:bg-layer-surface-disabled disabled:text-text-disabled flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed"
       >
         <span
           aria-hidden
