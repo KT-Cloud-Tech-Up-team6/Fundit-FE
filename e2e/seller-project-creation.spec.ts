@@ -31,7 +31,25 @@ test("판매자가 프로젝트 기본정보를 등록하고 리워드를 추가
   await page.getByRole("button", { name: "리워드 추가" }).click();
   const rewardModal = page.getByRole("dialog", { name: "리워드 추가" });
   await expect(rewardModal).toBeVisible();
-  await rewardModal.getByRole("textbox", { name: "리워드 명" }).fill("테스트 리워드");
+  const rewardName = rewardModal.getByRole("textbox", { name: "리워드 명" });
+  await rewardName.fill("테스트 리워드");
+
+  // 창 안에서 누른 채 배경으로 끌어 떼거나 그 반대로 끌어도 닫히지 않고 입력이 남는다(#506).
+  const nameBox = (await rewardName.boundingBox())!;
+  const modalBox = (await rewardModal.boundingBox())!;
+  const inside = { x: nameBox.x + nameBox.width / 2, y: nameBox.y + nameBox.height / 2 };
+  const backdrop = { x: modalBox.x - 40, y: modalBox.y + 40 };
+  for (const [from, to] of [
+    [inside, backdrop],
+    [backdrop, inside],
+  ]) {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 5 });
+    await page.mouse.up();
+    await expect(rewardName).toHaveValue("테스트 리워드");
+  }
+
   await rewardModal
     .getByPlaceholder("리워드 설명을 입력해주세요")
     .fill("E2E 테스트용 리워드입니다.");
@@ -39,4 +57,10 @@ test("판매자가 프로젝트 기본정보를 등록하고 리워드를 추가
   await rewardModal.getByRole("button", { name: /^등록$/ }).click();
 
   await expect(page.getByText("테스트 리워드")).toBeVisible();
+
+  // 배경을 누르고 그 자리에서 떼면 지금처럼 닫힌다. 리워드가 생기면 여는 버튼 이름은 "추가"다.
+  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await expect(rewardModal).toBeVisible();
+  await page.mouse.click(backdrop.x, backdrop.y);
+  await expect(rewardModal).toBeHidden();
 });

@@ -180,4 +180,5 @@ src/shared/components/
 - `Breadcrumb`은 텍스트 경로를 표시하고 마지막 항목에 `aria-current="page"`를 지정합니다.
 - `BottomSheet`는 `title`을 주면 제목과 닫기 버튼을 표시하며 `onBack`으로 뒤로가기를 추가합니다. 헤더가 없으면 `aria-label` 또는 `aria-labelledby`를 제공합니다. 제목·하단 영역은 고정하고 본문만 스크롤합니다.
 - `Modal`의 `size="m"`은 588px, `size="l"`은 996px이며 작은 화면에서는 좌우 여백을 남기도록 제한합니다.
+- `Modal`·`BottomSheet`(공통 `DialogBase`)는 ESC·닫기 버튼·배경 클릭으로 닫힙니다. 배경 클릭은 누른 곳과 뗀 곳이 모두 배경일 때만 닫혀, 창 안에서 누른 채 배경으로 끌어 떼거나 그 반대로 끌어도 닫히지 않습니다(#506).
 - Navigation의 outline/filled 아이콘 전환과 Calendar 실제 화면 연동은 #90의 제외 범위입니다.
