@@ -567,6 +567,7 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - 미답변 목록 항목은 `questionId`, `representativeText`, `count`다. `pending`은 답변 대기, `answered`는 판매자가 답변한 질문이다. 초안·등록 응답은 `{draftAnswer, referenceChunks, sent}`이며 `draftAnswer`는 `null`일 수 있다. `referenceChunks`는 판매자 참고자료이지 답변이 검증됐다는 보증이 아니다.
 - `GENERATE`는 초안 조회이며 저장하지 않는다. `SEND`는 AI에 판매자 답변을 등록한 뒤 BE에 기록한다. `sent=true`는 등록 결과이지 채팅 게시 완료가 아니다. BE `develop` `58fe3de` 기준 채팅 게시는 BE가 커밋 뒤 IVS `seller-answer` 이벤트로 따로 한다(게시 실패는 등록을 막지 않는다, 5.12).
 - `/playback`은 종료된 방송의 VOD를 반환할 수 있다. 아직 VOD가 없으면 409, 진행 중이 아닌 방송 등은 404를 반환한다. 미준비·오류를 성공한 재생으로 표시하지 않는다.
+- 방송 중(`type=LIVE`)의 `playbackUrl`은 IVS 채널 주소다. BE는 채널을 `latencyMode` 없이 만들어 IVS 기본값인 저지연(LOW) 채널이고, 저지연 채널은 일반 hls.js로 재생되지 않는다(IVS 플레이어 README "타사 플레이어는 IVS에서 동작하지 않는다"). 그래서 FE는 방송 중 영상을 AWS 공식 IVS 플레이어 SDK(`amazon-ivs-player`)로 재생하고, 다시보기·쇼츠는 hls.js·브라우저 기본 재생을 그대로 쓴다(#494, 2026-09-30 팀 결정). 채널을 따로 켜지 않은 IVS 주소는 404이고 SDK는 이를 `ErrorNotAvailable`로 알린다.
 - BE의 댓글 배치 간격은 FE 갱신 SLA가 아니다. 판매자 콘솔의 갱신 주기는 FE가 정한다(#320, 아래 절).
 - IVS 구축, 채팅 송수신·게시, 큐시트·하이라이트 생성, 방송 시작·종료 변경은 #227 범위 밖이다. 채팅 송수신은 #470에서 연결했다(5.12). HTTP AI 모드의 큐시트·하이라이트 요청은 이 BE 커밋에서 미구현이다.
 - 실제 BE 배포·IVS 송출 검증과 모의 API·테스트 영상 검증은 구분한다. 테스트 환경이 준비되지 않아도 이 공개 계약을 기준으로 FE 구현을 진행할 수 있다.

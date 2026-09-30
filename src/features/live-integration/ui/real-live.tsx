@@ -359,6 +359,7 @@ export function RealBuyerLive({
       onProgress={trackProgress}
       controls={!isVod}
       onPlayingChange={setPlaying}
+      live={!isVod}
     />
   );
   const questionData =
