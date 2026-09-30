@@ -227,9 +227,7 @@ export function LiveCueSheetFlow({
     if (complete) {
       setAnswers(
         answers.map((answer, index) =>
-          index === correctionTargetIndex
-            ? `${answer}${CORRECTION_PREFIX}${draft.trim()}`
-            : answer,
+          index === correctionTargetIndex ? `${answer}${CORRECTION_PREFIX}${draft.trim()}` : answer,
         ),
       );
       setCorrectingIndex(null);
@@ -471,10 +469,12 @@ export function LiveCueSheetFlow({
                                   disabled={!complete}
                                   aria-pressed={correctingIndex === index}
                                   aria-label={
-                                    complete ? `${question.label} 답변 — 눌러서 정정 대상으로 선택` : undefined
+                                    complete
+                                      ? `${question.label} 답변 — 눌러서 정정 대상으로 선택`
+                                      : undefined
                                   }
                                   onClick={complete ? () => setCorrectingIndex(index) : undefined}
-                                  className={`bg-layer-surface-primary text-text-inverse text-body-s ml-auto block w-fit max-w-[85%] rounded-[16px] rounded-br-none p-4 whitespace-pre-wrap text-left ${
+                                  className={`bg-layer-surface-primary text-text-inverse text-body-s ml-auto block w-fit max-w-[85%] rounded-[16px] rounded-br-none p-4 text-left whitespace-pre-wrap ${
                                     complete ? "cursor-pointer" : "cursor-default"
                                   } ${
                                     correctingIndex === index
