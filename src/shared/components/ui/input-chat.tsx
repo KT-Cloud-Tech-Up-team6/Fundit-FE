@@ -56,7 +56,7 @@ export function InputChat({
           value={value}
           disabled={disabled}
           rows={props.rows ?? 1}
-          className={`text-text-default placeholder:text-text-disabled disabled:text-text-disabled min-h-7 min-w-0 flex-1 resize-none bg-transparent outline-none placeholder:text-[14px] placeholder:leading-[1.42] ${appearance === "story" ? "text-body-s py-0 leading-[1.42]" : "text-body-m py-0.5"}`}
+          className={`text-text-default placeholder:text-text-placeholder disabled:text-text-disabled disabled:placeholder:text-text-disabled min-h-7 min-w-0 flex-1 resize-none bg-transparent outline-none placeholder:text-[14px] placeholder:leading-[1.42] ${appearance === "story" ? "text-body-s py-0 leading-[1.42]" : "text-body-m py-0.5"}`}
           onKeyDown={(event) => {
             onKeyDown?.(event);
             if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229)

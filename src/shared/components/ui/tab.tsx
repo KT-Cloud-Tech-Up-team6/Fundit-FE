@@ -55,16 +55,18 @@ const activeBorderClasses: Record<TabVariant, string> = {
   primaryLive: "border-border-primary-live",
 };
 
-function stateClasses(size: TabSize, variant: TabVariant, active: boolean) {
+function stateClasses(size: TabSize, variant: TabVariant, active: boolean, disabled: boolean) {
   if (size === "sm") {
     return active
       ? `relative ${activeTextClasses[variant]} ${indicatorClasses[variant]} after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-full`
-      : "text-text-secondary";
+      : disabled
+        ? "text-text-disabled"
+        : "text-text-secondary";
   }
 
   return active
     ? `${activeTextClasses[variant]} ${activeBorderClasses[variant]} ${size === "md" ? "border-b-[1.5px]" : "border-b-[1.8px]"}`
-    : "border-border-default text-text-disabled border-b";
+    : `border-border-default border-b ${disabled ? "text-text-disabled" : "text-text-secondary"}`;
 }
 
 export function Tab({
@@ -80,7 +82,7 @@ export function Tab({
   const classes = [
     "flex items-center justify-center gap-1 whitespace-nowrap",
     "focus-visible:outline-border-primary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
-    stateClasses(size, variant, active),
+    stateClasses(size, variant, active, Boolean(disabled)),
     sizeClasses[size],
     className,
   ]

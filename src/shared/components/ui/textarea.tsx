@@ -53,10 +53,10 @@ export function Textarea({
         className={[
           "text-body-s min-h-0 flex-1 resize-none bg-transparent outline-none",
           disabled
-            ? "text-text-disabled cursor-not-allowed"
+            ? "text-text-disabled placeholder:text-text-disabled cursor-not-allowed"
             : error
               ? "text-text-warning placeholder:text-text-warning"
-              : "text-text-default placeholder:text-text-disabled",
+              : "text-text-default placeholder:text-text-placeholder",
         ].join(" ")}
         defaultValue={defaultValue}
         disabled={disabled}

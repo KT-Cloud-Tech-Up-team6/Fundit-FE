@@ -25,7 +25,7 @@ export function ThumbnailUpload({
           placeholder: "썸네일 이미지를 첨부해주세요",
           shape: "compact",
           className:
-            "bg-layer-surface-disabled border-transparent [&_input]:text-body-s [&_input]:leading-[1.42] [&_input]:text-text-secondary [&_input]:placeholder:text-body-s",
+            "bg-layer-surface-disabled border-transparent [&_input]:text-body-s [&_input]:leading-[1.42] [&_input]:text-text-secondary [&_input]:placeholder:text-body-s [&_input]:placeholder:text-text-placeholder-strong",
         }}
         button={
           <Button

@@ -47,6 +47,8 @@ export function SearchField({
   const [internalValue, setInternalValue] = useState(() => String(defaultValue ?? ""));
   const isControlled = value !== undefined;
   const currentValue = isControlled ? String(value ?? "") : internalValue;
+  // 회색 면(layer-surface-disabled) 위라 기본 placeholder 색은 4.5:1에 못 미친다.
+  const onGrayFace = appearance === "filled" || size === "sm";
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     if (!isControlled) setInternalValue(event.target.value);
@@ -85,7 +87,7 @@ export function SearchField({
       </span>
       <input
         ref={inputRef}
-        className={`${textSizeClasses[size]} text-text-default placeholder:text-text-disabled disabled:text-text-disabled min-w-0 flex-1 bg-transparent outline-none`}
+        className={`${textSizeClasses[size]} text-text-default ${onGrayFace ? "placeholder:text-text-placeholder-strong" : "placeholder:text-text-placeholder"} disabled:text-text-disabled disabled:placeholder:text-text-disabled min-w-0 flex-1 bg-transparent outline-none`}
         disabled={disabled}
         onChange={handleChange}
         value={currentValue}
