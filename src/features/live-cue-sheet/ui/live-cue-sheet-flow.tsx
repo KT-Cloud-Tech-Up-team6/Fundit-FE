@@ -11,6 +11,7 @@ import {
   demoAnswers,
   demoProject,
   demoQuestions,
+  isSkipIntent,
   type CueScene,
   type CueSheetType,
   type CueSheetProject,
@@ -22,7 +23,7 @@ import styles from "./cue-sheet.module.css";
 type Step =
   "closed" | "chat" | "summary" | "options" | "generating" | "ready" | "editor" | "failed";
 
-/** 다섯 답을 받은 뒤의 정정은 새 답이 아니라 마지막 답 뒤에 이 머리말로 붙는다. */
+/** 다섯 답을 받은 뒤의 정정은 새 답이 아니라 골라둔 답(기본 마지막 답) 뒤에 이 머리말로 붙는다. */
 const CORRECTION_PREFIX = "\n정정 사항: ";
 
 /**
@@ -120,6 +121,9 @@ export function LiveCueSheetFlow({
   const [step, setStep] = useState<Step>(initialStep);
   const [answers, setAnswers] = useState(initialSavedCueSheet?.answers ?? initialAnswers);
   const [draft, setDraft] = useState("");
+  /* 정정 대상 — 완료 후 답변 말풍선을 탭해서 고른다. 안 고르면(null) 기존처럼
+     마지막 답을 고친다(하위호환 기본값). */
+  const [correctingIndex, setCorrectingIndex] = useState<number | null>(null);
   const [type, setType] = useState<CueSheetType | null>(
     initialType ?? initialSavedCueSheet?.type ?? (initialStep === "editor" ? "script" : null),
   );
@@ -144,12 +148,16 @@ export function LiveCueSheetFlow({
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const open = step !== "closed";
   const complete = answers.length === demoQuestions.length;
-  /* 답 하나가 생성 요청 필드 하나다(BE `@Size(max = 1000)`). 정정은 마지막 답에 붙어 함께
+  /* 정정 대상 인덱스 — 사용자가 답변 말풍선을 탭해서 고르면 그걸, 안 고르면 마지막 답. */
+  const correctionTargetIndex = correctingIndex ?? answers.length - 1;
+  /* 답 하나가 생성 요청 필드 하나다(BE `@Size(max = 1000)`). 정정은 대상 답에 붙어 함께
      나가므로 합친 길이가 한도를 넘지 않게 남은 만큼만 받는다 — 넘기면 재시도해도 같은 400이다. */
   const draftMaxLength = complete
     ? Math.max(
         0,
-        CUE_SHEET_BRIEF_MAX_LENGTH - answers[answers.length - 1].length - CORRECTION_PREFIX.length,
+        CUE_SHEET_BRIEF_MAX_LENGTH -
+          answers[correctionTargetIndex].length -
+          CORRECTION_PREFIX.length,
       )
     : CUE_SHEET_BRIEF_MAX_LENGTH;
   const apiMode = Boolean(onGenerate);
@@ -219,9 +227,15 @@ export function LiveCueSheetFlow({
     if (complete) {
       setAnswers(
         answers.map((answer, index) =>
-          index === answers.length - 1 ? `${answer}${CORRECTION_PREFIX}${draft.trim()}` : answer,
+          index === correctionTargetIndex
+            ? `${answer}${CORRECTION_PREFIX}${draft.trim()}`
+            : answer,
         ),
       );
+      setCorrectingIndex(null);
+    } else if (isSkipIntent(draft)) {
+      // 건너뛰기 버튼과 동일하게 처리 — "스킵할게요" 같은 문장이 그대로 답변으로 저장되지 않게.
+      setAnswers([...answers, ""]);
     } else {
       setAnswers([...answers, draft.trim()]);
     }
@@ -452,16 +466,31 @@ export function LiveCueSheetFlow({
                                 </div>
                               </div>
                               {index < answers.length && (
-                                <p className="bg-layer-surface-primary text-text-inverse text-body-s ml-auto w-fit max-w-[85%] rounded-[16px] rounded-br-none p-4 whitespace-pre-wrap">
+                                <button
+                                  type="button"
+                                  disabled={!complete}
+                                  aria-pressed={correctingIndex === index}
+                                  aria-label={
+                                    complete ? `${question.label} 답변 — 눌러서 정정 대상으로 선택` : undefined
+                                  }
+                                  onClick={complete ? () => setCorrectingIndex(index) : undefined}
+                                  className={`bg-layer-surface-primary text-text-inverse text-body-s ml-auto block w-fit max-w-[85%] rounded-[16px] rounded-br-none p-4 whitespace-pre-wrap text-left ${
+                                    complete ? "cursor-pointer" : "cursor-default"
+                                  } ${
+                                    correctingIndex === index
+                                      ? "ring-border-primary-live ring-2 ring-offset-2"
+                                      : ""
+                                  }`}
+                                >
                                   {answers[index] || "건너뛰었습니다."}
-                                </p>
+                                </button>
                               )}
                             </div>
                           ))}
                         {complete && (
                           <p className="bg-layer-surface-default border-border-default text-body-s rounded-[16px] rounded-tl-none border p-4">
-                            필수 항목 입력을 완료했어요. 다음으로 이동하거나 정정할 내용을
-                            입력해주세요.
+                            필수 항목 입력을 완료했어요. 다음으로 이동하거나, 고칠 답변을 탭하고
+                            정정할 내용을 입력해주세요(안 고르면 마지막 답이 고쳐져요).
                           </p>
                         )}
                       </div>
@@ -476,7 +505,9 @@ export function LiveCueSheetFlow({
                           aria-label="AI에게 답변"
                           className="bg-layer-surface-default border-border-default text-body-s min-w-0 flex-1 rounded-full border px-4 py-3"
                           placeholder={
-                            complete ? "정정할 내용을 작성해주세요" : "답변을 작성해주세요"
+                            complete
+                              ? `"${demoQuestions[correctionTargetIndex].label}" 정정 내용을 작성해주세요`
+                              : "답변을 작성해주세요"
                           }
                           maxLength={draftMaxLength}
                           value={draft}

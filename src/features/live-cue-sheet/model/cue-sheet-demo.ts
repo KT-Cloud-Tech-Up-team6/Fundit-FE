@@ -117,6 +117,20 @@ export function createDemoScenes(
   });
 }
 
+/**
+ * "스킵할게요"처럼 건너뛰기 의도로 타이핑한 문장을 건너뛰기 버튼과 똑같이 처리하기 위한
+ * 판별. 이 채팅은 자유 문장을 이해하는 AI가 아니라 고정 순서 폼이라, 매칭 안 된 문장은
+ * 전부 그대로 답변 내용으로 저장된다 — "스킵해주세요" 같은 문장이 그대로 개발 동기 답변이
+ * 돼버리는 걸 막는 최소한의 안전장치다. 짧은 문장 전체가 일치할 때만 스킵으로 보고, 일부만
+ * 일치해도 스킵 처리하지 않는다(긴 실제 답변 중 이 단어가 섞여 있어도 오판하지 않기 위함).
+ */
+const SKIP_INTENT_PATTERN =
+  /^(스킵(할게요|해주세요|이요)?|건너뛰기|건너뛰어요|건너뛰어\s*주세요|건너뛰겠습니다|건너뛸게요|패스(할게요|요)?|생략(할게요|해주세요)?|모르겠어요|모름|몰라요|없어요|skip)[.!~\s]*$/i;
+
+export function isSkipIntent(text: string) {
+  return SKIP_INTENT_PATTERN.test(text.trim());
+}
+
 export function formatCueTime(seconds: number) {
   return `${Math.floor(seconds / 60)
     .toString()

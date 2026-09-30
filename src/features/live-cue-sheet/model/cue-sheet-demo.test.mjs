@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createDemoScenes, demoProject } from "./cue-sheet-demo.ts";
+import { createDemoScenes, demoProject, isSkipIntent } from "./cue-sheet-demo.ts";
 
 const project = {
   title: "친환경 데일리 백",
@@ -45,4 +45,41 @@ test("전용 URL의 기본 데모와 명시적인 리워드도 지원한다", ()
     scenes.reduce((sum, scene) => sum + scene.duration, 0),
     60,
   );
+});
+
+test("건너뛰기 의도 문장을 전부 인식한다", () => {
+  for (const text of [
+    "스킵",
+    "스킵할게요",
+    "스킵해주세요",
+    "건너뛰기",
+    "건너뛸게요",
+    "건너뛰어주세요",
+    "패스",
+    "패스요",
+    "생략할게요",
+    "모르겠어요",
+    "몰라요",
+    "없어요",
+    "skip",
+    "SKIP",
+    "  스킵할게요  ",
+    "스킵할게요.",
+    "스킵할게요!",
+  ]) {
+    assert.ok(isSkipIntent(text), `"${text}"는 건너뛰기 의도로 인식돼야 함`);
+  }
+});
+
+test("건너뛰기와 무관한 실제 답변은 건너뛰기로 오판하지 않는다", () => {
+  for (const text of [
+    "물걸레 청소랑 진공청소가 한번에 되는 무선청소기예요.",
+    "가격은 69만9천원이고 없어요라는 말은 안 썼어요",
+    "패스트푸드점에서 파일럿 테스트를 진행했습니다",
+    "이 제품은 스킵 기능이 있는 리모컨을 포함합니다",
+    "",
+    "   ",
+  ]) {
+    assert.equal(isSkipIntent(text), false, `"${text}"는 건너뛰기 의도가 아니어야 함`);
+  }
 });
