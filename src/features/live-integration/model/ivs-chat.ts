@@ -107,10 +107,14 @@ export function sendResultOf(errorCode: number): SendResult {
   return errorCode === 406 ? "rejected" : "failed";
 }
 
+/** 화면이 쓰는 작성자 라벨. BE가 닉네임에 예약어를 막지 않아, 이 이름을 닉네임으로 쓴 시청자는 "시청자"로 보인다. */
+const RESERVED_AUTHOR_LABELS = new Set(["판매자", "나", "AI 매니저", "시청자"]);
+
 /**
  * 작성자 라벨(2026-09-30 사용자 결정). 판매자 "판매자", 본인 "나"(소비자 Prototype 295:50208), 그 밖은
  * 아이디 자리(Figma 1408:42073)에 닉네임이고 닉네임이 없으면 "시청자"다. 판매자를 먼저 본다 — 콘솔에서는
- * 로그인한 판매자 자신의 메시지도 "판매자"로 보여야 한다.
+ * 로그인한 판매자 자신의 메시지도 "판매자"로 보여야 한다. 닉네임이 라벨과 같으면(앞뒤 공백 제외) 판매자·본인으로
+ * 오해하지 않게 "시청자"로 둔다(#488 독립 리뷰, 사용자 결정).
  */
 export function authorLabel(
   senderId: string,
@@ -119,7 +123,7 @@ export function authorLabel(
 ) {
   if (viewer.sellerId && senderId === viewer.sellerId) return "판매자";
   if (viewer.memberId && senderId === viewer.memberId) return "나";
-  return nickname ?? "시청자";
+  return nickname && !RESERVED_AUTHOR_LABELS.has(nickname.trim()) ? nickname : "시청자";
 }
 
 /**
@@ -155,8 +159,12 @@ export function toChatRows(
   return rows;
 }
 
-/** 받은 채팅을 덧붙인다. 한도를 넘으면 오래된 것부터 버린다. */
+/**
+ * 받은 채팅을 덧붙인다. 한도를 넘으면 오래된 것부터 버린다. 입장 전 채팅 조회가 소켓보다 먼저 준 메시지가
+ * 뒤늦게 소켓으로 오면 이미 있는 id라 그대로 둔다(같은 배열을 돌려준다).
+ */
 export function appendEntry(entries: ChatEntry[], entry: ChatEntry) {
+  if (entries.some((item) => item.id === entry.id)) return entries;
   const next = [...entries, entry];
   return next.length > MAX_CHAT_ENTRIES ? next.slice(-MAX_CHAT_ENTRIES) : next;
 }
@@ -168,8 +176,9 @@ export function removeEntry(entries: ChatEntry[], messageId: string) {
 }
 
 /**
- * 입장 전 채팅을 받을 구간(초). BE 구간 상한(600초)이 방송 길이 상한(요구사항 6.2.3, 10분)과 같아 한 번에
- * 방송 전체를 읽는다. 구매자가 방송 시작 시각을 받을 단건 API가 없어 경과 초 대신 상한을 쓴다.
+ * 입장 전 채팅을 받을 구간(초). BE 구간 상한(600초)이 방송 길이 상한(요구사항 6.2.3, 10분)과 같다. 구매자가
+ * 방송 시작 시각을 받을 단건 API가 없어 경과 초 대신 상한을 쓴다. BE가 10분에 방송을 끝내지는 않아, 10분이
+ * 넘은 방송은 첫 10분 채팅만 채운다.
  */
 export const HISTORY_RANGE_SEC = 600;
 
@@ -187,17 +196,29 @@ export function historyEntries(
 }
 
 /**
- * 입장 전 채팅을 앞에 채운다. IVS는 새로 연결한 클라이언트에 지난 메시지를 주지 않는다. 연결이 열린 뒤
- * 조회하므로 그사이 받은 메시지와 겹칠 수 있어 메시지 id로 거른다. 겹치지 않는 줄은 모두 연결 전에 온
- * 것이라 받은 줄보다 앞에 둔다. 한도를 넘으면 오래된 것부터 버린다. `added`는 새로 채운 줄 수다.
+ * 입장 전 채팅을 받은 줄과 합친다. IVS는 새로 연결한 클라이언트에 지난 메시지를 주지 않는다. 연결이 열린 뒤
+ * 조회하므로 그사이 소켓으로 받은 메시지가 조회 결과에도 있을 수 있고, 반대로 조회 결과가 소켓보다 먼저 줄
+ * 수도 있다. 조회 결과(시간순)와 겹치는 받은 줄을 기준점으로 삼는다 — 첫 기준점 앞의 조회 줄은 맨 앞에,
+ * 기준점 뒤의 조회 줄은 그 기준점 바로 뒤에 둔다. 겹치는 줄이 없으면 조회 결과 전체를 앞에 둔다. 받은 줄에
+ * 있는 id는 다시 넣지 않고, 한도를 넘으면 오래된 것부터 버린다. `added`는 새로 채운 줄 수다.
  */
-export function prependHistory(entries: ChatEntry[], history: ChatEntry[]) {
+export function mergeHistory(entries: ChatEntry[], history: ChatEntry[]) {
   const received = new Set(entries.map((entry) => entry.id));
-  const earlier = history.filter((entry) => !received.has(entry.id));
-  const next = [...earlier, ...entries];
+  const position = new Map(history.map((entry, index) => [entry.id, index]));
+  const firstAnchor = history.findIndex((entry) => received.has(entry.id));
+  const next = firstAnchor === -1 ? [...history] : history.slice(0, firstAnchor);
+  for (const entry of entries) {
+    next.push(entry);
+    const index = position.get(entry.id);
+    if (index === undefined) continue;
+    for (let after = index + 1; after < history.length; after += 1) {
+      if (received.has(history[after].id)) break;
+      next.push(history[after]);
+    }
+  }
   return {
     entries: next.length > MAX_CHAT_ENTRIES ? next.slice(-MAX_CHAT_ENTRIES) : next,
-    added: earlier.length,
+    added: history.filter((entry) => !received.has(entry.id)).length,
   };
 }
 

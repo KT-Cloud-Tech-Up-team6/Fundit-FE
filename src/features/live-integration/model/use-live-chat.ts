@@ -9,9 +9,9 @@ import {
   chatEndpoint,
   HISTORY_RANGE_SEC,
   historyEntries,
+  mergeHistory,
   nextReconnect,
   parseChatFrame,
-  prependHistory,
   removeEntry,
   sendMessageFrame,
   sendResultOf,
@@ -40,14 +40,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
   if (action.type === "delete")
     return { ...current, entries: removeEntry(current.entries, action.messageId) };
   if (action.type === "history") {
-    const filled = prependHistory(current.entries, action.entries);
+    const filled = mergeHistory(current.entries, action.entries);
     return { ...current, entries: filled.entries, received: current.received + filled.added };
   }
-  return {
-    ...current,
-    entries: appendEntry(current.entries, action.entry),
-    received: current.received + 1,
-  };
+  const entries = appendEntry(current.entries, action.entry);
+  /* 입장 전 채팅으로 이미 채운 메시지가 소켓으로 다시 오면 세지 않는다. */
+  if (entries === current.entries) return current;
+  return { ...current, entries, received: current.received + 1 };
 }
 
 const emptyState: ChatState = { memberId: undefined, entries: [], received: 0 };

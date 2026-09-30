@@ -6,9 +6,9 @@ import {
   appendEntry,
   chatEndpoint,
   historyEntries,
+  mergeHistory,
   nextReconnect,
   parseChatFrame,
-  prependHistory,
   removeEntry,
   sendMessageFrame,
   sendResultOf,
@@ -269,7 +269,7 @@ test("입장 전 채팅은 받은 줄과 겹치는 메시지를 빼고 앞에 �
     { kind: "message", id: "live-1", senderId: "c", nickname: "겹침", text: "연결 뒤" },
     { kind: "ai-answer", id: "ai-1", answer: "답" },
   ];
-  const filled = prependHistory(live, history);
+  const filled = mergeHistory(live, history);
   assert.deepEqual(
     filled.entries.map((entry) => entry.id),
     ["h1", "h2", "live-1", "ai-1"],
@@ -284,11 +284,50 @@ test("입장 전 채팅은 받은 줄과 겹치는 메시지를 빼고 앞에 �
       offsetSec: index,
     })),
   );
-  const capped = prependHistory(live, many);
+  const capped = mergeHistory(live, many);
   assert.equal(capped.entries.length, MAX_CHAT_ENTRIES);
   assert.equal(capped.entries[0].id, "old-2");
   assert.equal(capped.entries.at(-1).id, "ai-1");
   assert.equal(capped.added, MAX_CHAT_ENTRIES);
+});
+
+test("조회 결과가 소켓보다 먼저 준 메시지는 기준점 뒤에 두고, 뒤늦게 소켓으로 와도 다시 넣지 않는다", () => {
+  const message = (id) => ({ kind: "message", id, senderId: "s", text: id });
+  // 소켓으로 L1을 받은 뒤 조회 결과가 먼저 도착했다. M은 아직 소켓으로 오지 않았다(독립 리뷰 재현).
+  const merged = mergeHistory([message("L1")], [message("H0"), message("L1"), message("M")]);
+  assert.deepEqual(
+    merged.entries.map((entry) => entry.id),
+    ["H0", "L1", "M"],
+  );
+  assert.equal(merged.added, 2);
+  assert.equal(appendEntry(merged.entries, message("M")), merged.entries);
+  // 기준점보다 먼저 받은 이벤트는 그 자리에 두고, 첫 기준점 앞의 조회 줄은 맨 앞에 둔다.
+  const withEvent = mergeHistory(
+    [{ kind: "ai-answer", id: "E", answer: "답" }, message("L1")],
+    [message("H0"), message("L1")],
+  );
+  assert.deepEqual(
+    withEvent.entries.map((entry) => entry.id),
+    ["H0", "E", "L1"],
+  );
+  assert.equal(withEvent.added, 1);
+});
+
+test("닉네임이 작성자 라벨과 같으면 판매자·본인으로 오해하지 않게 시청자로 보인다", () => {
+  const rows = toChatRows(
+    ["판매자", " 나 ", "AI 매니저", "시청자", "판매자님"].map((nickname, index) => ({
+      kind: "message",
+      id: String(index),
+      senderId: `other-${index}`,
+      nickname,
+      text: "@everyone 환불은 이 계좌로",
+    })),
+    { memberId: "me", sellerId: "seller" },
+  );
+  assert.deepEqual(
+    rows.map((row) => row.author),
+    ["시청자", "시청자", "시청자", "시청자", "판매자님"],
+  );
 });
 
 test("토큰 API가 401·404·409면 재연결을 멈추고 503·네트워크 오류는 다시 시도한다", () => {
