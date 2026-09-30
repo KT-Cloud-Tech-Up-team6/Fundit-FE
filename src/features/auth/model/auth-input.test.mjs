@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatPhone,
+  isValidEmail,
   isValidPhone,
   nicknameSchema,
   normalizePhoneInput,
@@ -104,4 +105,10 @@ test("nickname is trimmed and limited to 1 to 50 characters", () => {
   assert.equal(nicknameSchema.safeParse("").success, false);
   assert.equal(nicknameSchema.safeParse("가".repeat(50)).success, true);
   assert.equal(nicknameSchema.safeParse("가".repeat(51)).success, false);
+});
+
+test("email accepts a full address and rejects spaces or a missing domain", () => {
+  for (const valid of ["a@b.co", "kakao.user@example.com"]) assert.equal(isValidEmail(valid), true);
+  for (const invalid of ["", "a", "a@b", "a@ b.co", "@b.co", "a@@b.co", "a b@c.co"])
+    assert.equal(isValidEmail(invalid), false);
 });

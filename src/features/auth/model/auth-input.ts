@@ -31,6 +31,11 @@ export function isValidPhone(phone: string) {
   return /^01\d{8,9}$/.test(phone);
 }
 
+/* 제공자가 이메일을 주지 않은 소셜 가입에서 직접 받는 전체 이메일. 중복은 checkEmail이 따로 본다. */
+export function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export function validRecoveryIdentity(name: string, phone: string) {
   return Boolean(name.trim()) && isValidPhone(phone.replace(/-/g, ""));
 }
