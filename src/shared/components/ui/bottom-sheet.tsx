@@ -5,7 +5,7 @@ import type { ComponentPropsWithoutRef, PointerEvent, ReactNode } from "react";
 import { DialogBase, dialogHeaderButtonClasses } from "./dialog-base";
 import { Icon } from "./icon";
 
-/* 이만큼 움직여야 끌기로 본다. 그 전에는 탭이라 헤더 버튼의 클릭이 그대로 간다(LIVE 질문 시트와 같은 값). */
+/* 이만큼 움직여야 끌기로 본다(LIVE 질문 시트와 같은 값). */
 const DRAG_SLOP_PX = 5;
 /* 시트 높이의 1/4(최대 120px) 넘게 끌어 내리고 놓으면 닫는다. 덜 끌면 제자리로 돌아간다(#508). */
 const CLOSE_RATIO = 0.25;
@@ -69,6 +69,9 @@ export function BottomSheet({
      1200px 이상에서 가운데 창이 되는 시트는 핸들을 숨기고 끌기도 받지 않는다. */
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || !event.isPrimary) return;
+    /* 닫기·뒤로가기 버튼에서 시작한 누름은 끌기로 받지 않는다. 버튼 클릭이 그대로 가야 하고, 끌기로 받으면
+       시트를 따라 내려간 뒤 놓는 순간 버튼이 눌린다(#509 리뷰). */
+    if (event.target instanceof Element && event.target.closest("button")) return;
     if (desktopModal && window.matchMedia(DESKTOP_MODAL_QUERY).matches) return;
     const sheet = event.currentTarget.closest("dialog");
     if (!sheet) return;
@@ -79,9 +82,8 @@ export function BottomSheet({
       moved: false,
     };
     /* 끌기 영역은 28px 남짓이라 첫 이동부터 영역을 벗어나기 쉬워, 누르는 순간 포인터를 잡는다.
-       닫기·뒤로가기 버튼을 누른 경우는 잡지 않는다. 잡으면 click이 이 영역으로 가 버튼이 눌리지 않는다. */
-    if (!(event.target instanceof Element && event.target.closest("button")))
-      event.currentTarget.setPointerCapture(event.pointerId);
+       잡아 두면 영역 밖에서 놓아도 pointerup이 와서 끌기 상태가 남지 않는다. */
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function moveDrag(event: PointerEvent<HTMLDivElement>) {
