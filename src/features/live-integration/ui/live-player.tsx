@@ -15,6 +15,7 @@ export function LivePlayer({
   onPlayingChange,
   live = false,
   coverPortrait = false,
+  playButton = false,
 }: {
   src: string;
   title: string;
@@ -31,13 +32,37 @@ export function LivePlayer({
   live?: boolean;
   /**
    * 세로 원본이면 영역을 빈칸 없이 채운다(양옆이 조금 잘림). 가로 원본은 크게 잘리므로 그대로 맞춤이다.
-   * 세로 영상 칸에 담는 화면만 켠다(#494).
+   * 세로 영상 칸(데스크톱 #494)이나 화면 전체(모바일 #497)에 담는 화면만 켠다.
    */
   coverPortrait?: boolean;
+  /**
+   * 기본 컨트롤 대신 멈춰 있을 때만 가운데에 Figma 재생 버튼(play_btn 1408:43055)을 보이고, 영상을 누르면
+   * 재생·일시정지한다. 화면 전체에 영상을 까는 모바일 LIVE가 쓴다(#497). 켜면 controls는 끈다.
+   */
+  playButton?: boolean;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [portrait, setPortrait] = useState(false);
+  /* 사용자가 멈췄거나 아직 재생하지 않은 상태. 가운데 재생 버튼(playButton)을 보일지 정한다. */
+  const [paused, setPaused] = useState(true);
   const ivsPlayer = useRef<MediaPlayer | null>(null);
+  function togglePlay() {
+    const player = ivsPlayer.current;
+    if (player) {
+      /* SDK는 영상을 받은 뒤에야 요소를 재생해 그 사이에는 요소 이벤트가 없다. 누른 즉시 버튼·준비 안내에 반영한다. */
+      const resume = player.isPaused();
+      if (resume) player.play();
+      else player.pause();
+      setPaused(!resume);
+      return;
+    }
+    const element = video.current;
+    /* 방송 중 영상을 SDK를 불러오기 전(소스 없음)에 요소만 재생하면 SDK가 알지 못해 준비 안내에서 멈춘다. 그동안의
+       누르기는 받지 않는다 — 재생 버튼이 그대로 남아 다시 누를 수 있다. */
+    if (!element || (live && !element.src)) return;
+    if (element.paused) void element.play().catch(() => {});
+    else element.pause();
+  }
   useImperativeHandle(handleRef, () => ({
     seek(sec) {
       const player = ivsPlayer.current;
@@ -51,18 +76,7 @@ export function LivePlayer({
       element.currentTime = sec;
       void element.play().catch(() => {});
     },
-    togglePlay() {
-      const player = ivsPlayer.current;
-      if (player) {
-        if (player.isPaused()) player.play();
-        else player.pause();
-        return;
-      }
-      const element = video.current;
-      if (!element) return;
-      if (element.paused) void element.play().catch(() => {});
-      else element.pause();
-    },
+    togglePlay,
   }));
   function reportProgress() {
     const element = video.current;
@@ -170,14 +184,23 @@ export function LivePlayer({
     };
   }, [src, attempt, live]);
 
+  /* 가운데 재생 버튼과 영상 누르기(playButton)를 받는 때. 표시 조건은 여기 한곳에 모은다 — 종료·실패 안내가
+     떠 있으면 그 안내를 가리지 않게 받지 않는다. */
+  const playControl = playButton && !error && status !== "ended";
+  /* IVS SDK는 재생을 누르기 전에는 영상을 받지 않아 준비 완료(canplay)가 오지 않는다. 멈춰 있는 동안 준비 안내를
+     띄우면 재생 버튼이 영영 가려지므로 그동안은 버튼을 보이고, 누른 뒤 영상이 올 때까지만 준비 안내를 보인다. */
+  const loading = !error && status === "loading" && !(playControl && paused);
+
   return (
     <div className="bg-layer-surface-disabled relative aspect-video overflow-hidden rounded-sm">
       <video
         ref={video}
         className={`h-full w-full ${coverPortrait && portrait ? "object-cover" : ""}`}
-        controls={controls}
+        controls={controls && !playButton}
         playsInline
         aria-label={`${title} 영상`}
+        /* 재생 중 영상의 빈 곳을 누르면 멈춘다(멈춰 있으면 재생). 영상 위에 겹친 버튼·채팅은 이 영상에 닿지 않는다. */
+        onClick={playControl ? togglePlay : undefined}
         onError={() => setError("영상 재생에 실패했습니다. 다시 시도해 주세요.")}
         onLoadedMetadata={() => {
           reportProgress();
@@ -189,10 +212,40 @@ export function LivePlayer({
         onCanPlay={() => setStatus("playing")}
         onPlaying={() => setStatus("playing")}
         onEnded={() => setStatus("ended")}
-        onPlay={() => onPlayingChange?.(true)}
-        onPause={() => onPlayingChange?.(false)}
+        onPlay={() => {
+          setPaused(false);
+          onPlayingChange?.(true);
+        }}
+        onPause={() => {
+          /* SDK는 다시 버퍼링하는 동안 요소를 멈췄다가 스스로 다시 재생한다. SDK가 재생 중으로 아는 이 멈춤에는
+             재생 버튼을 보이지 않는다. */
+          setPaused(ivsPlayer.current?.isPaused() ?? true);
+          onPlayingChange?.(false);
+        }}
       />
-      {!error && status === "loading" && (
+      {playControl && (
+        /* Figma play_btn은 배경 없이 흰 20px 아이콘이다. 누르기 쉽게 44px 영역에 두고 영상 위 다른 아이콘처럼 옅은
+           그림자를 준다. 재생 중에는 Figma처럼 보이지 않지만 키보드·보조기기로 멈출 수 있게 남기고, 키보드
+           포커스일 때만 일시정지 아이콘을 보인다. */
+        <button
+          type="button"
+          aria-label={paused ? "재생" : "일시정지"}
+          className={`text-text-static-white absolute inset-0 m-auto grid size-11 place-items-center drop-shadow-[0_0_2px_rgba(0,0,0,0.3)] ${paused ? "" : "opacity-0 focus-visible:opacity-100"}`}
+          onClick={togglePlay}
+        >
+          <span
+            aria-hidden
+            className="size-5 bg-current"
+            style={{
+              maskImage: `url(/images/buyer-live-replay/${paused ? "play" : "pause"}.svg)`,
+              maskSize: "contain",
+              maskPosition: "center",
+              maskRepeat: "no-repeat",
+            }}
+          />
+        </button>
+      )}
+      {loading && (
         <p className="text-text-static-white pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.5)]">
           영상을 준비하는 중입니다.
         </p>
@@ -211,7 +264,11 @@ export function LivePlayer({
           <button
             type="button"
             className="bg-layer-surface-default text-text-default rounded px-3 py-2"
-            onClick={() => setAttempt((value) => value + 1)}
+            onClick={() => {
+              /* 새로 불러온 재생기는 재생 전이다(요소를 다시 불러와도 pause 이벤트는 오지 않는다). */
+              setPaused(true);
+              setAttempt((value) => value + 1);
+            }}
           >
             영상 다시 시도
           </button>
