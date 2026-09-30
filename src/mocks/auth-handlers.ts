@@ -187,6 +187,57 @@ export const authHandlers = [
     );
   }),
 
+  /* 소셜 로그인 목업. 인가 코드로 BE의 세 갈래 응답(로그인·가입 필요·연동 필요)과 오류를 고른다.
+     실제 제공자·client ID 없이 콜백 화면을 확인하기 위한 것이다. */
+  http.post("*/api/v1/auth/login/social", async ({ request }) => {
+    const { authorizationCode, provider } = (await request.json()) as {
+      authorizationCode?: string;
+      provider?: string;
+    };
+    switch (authorizationCode) {
+      case "mock-existing":
+      case "mock-must-change-password":
+        return HttpResponse.json(
+          {
+            accessToken: `access-${crypto.randomUUID()}`,
+            mustChangePassword: authorizationCode === "mock-must-change-password",
+            needsLink: false,
+            needsSignup: false,
+          },
+          {
+            headers: {
+              "Set-Cookie":
+                "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
+            },
+          },
+        );
+      case "mock-signup":
+        return HttpResponse.json({
+          email: "social@fundit.test",
+          name: "소셜 사용자",
+          needsLink: false,
+          needsSignup: true,
+          provider,
+          signupToken: "mock-signup-token",
+        });
+      case "mock-link":
+        return HttpResponse.json({
+          linkToken: "mock-link-token",
+          needsLink: true,
+          needsSignup: false,
+          provider,
+        });
+      case "mock-exists":
+        return error(409, "SOCIAL_ACCOUNT_EXISTS", "이미 KAKAO 소셜 로그인 계정이 존재합니다.", {
+          provider: "KAKAO",
+        });
+      case "mock-locked":
+        return error(423, "ACCOUNT_LOCKED", "계정이 잠겨 있습니다.");
+      default:
+        return error(503, "DEPENDENCY_FAILURE", "외부 서비스 호출에 실패했습니다.");
+    }
+  }),
+
   http.post("*/api/v1/auth/token/refresh", ({ cookies }) => {
     if (!cookies.refreshToken) {
       return error(401, "TOKEN_INVALID", "로그인 세션이 없습니다.");

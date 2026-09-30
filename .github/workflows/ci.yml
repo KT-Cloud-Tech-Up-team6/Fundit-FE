@@ -91,6 +91,9 @@ jobs:
       NEXT_PUBLIC_PORTONE_STORE_ID: ${{ vars.NEXT_PUBLIC_PORTONE_STORE_ID }}
       NEXT_PUBLIC_PORTONE_CHANNEL_KEY: ${{ vars.NEXT_PUBLIC_PORTONE_CHANNEL_KEY }}
       NEXT_PUBLIC_TOSS_CLIENT_KEY: ${{ vars.NEXT_PUBLIC_TOSS_CLIENT_KEY }}
+      # 소셜 로그인 client ID는 비어 있어도 배포된다(버튼이 비활성). 필수 변수 검사에 넣지 않는다.
+      NEXT_PUBLIC_KAKAO_CLIENT_ID: ${{ vars.NEXT_PUBLIC_KAKAO_CLIENT_ID }}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -110,6 +113,8 @@ jobs:
             --build-arg NEXT_PUBLIC_PORTONE_STORE_ID \
             --build-arg NEXT_PUBLIC_PORTONE_CHANNEL_KEY \
             --build-arg NEXT_PUBLIC_TOSS_CLIENT_KEY \
+            --build-arg NEXT_PUBLIC_KAKAO_CLIENT_ID \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID \
             --tag "$ECR_REPOSITORY:$IMAGE_TAG" .
 
       - name: Verify container
