@@ -122,11 +122,20 @@ test("카카오는 닉네임 칸에 name을 채우고 이메일이 없으면 직
   });
 });
 
-test("로그인 화면에서 진입한 미가입 계정은 폼에서 약관을 받는다", async ({ page }) => {
+test("로그인 화면에서 진입한 미가입 계정은 안내를 본 뒤 약관에 동의해야 폼이 보인다", async ({
+  page,
+}) => {
   const requests = trackSignupRequests(page);
   await openCallback(page, "mock-signup", { entry: "login", provider: "GOOGLE" });
 
   await expect(page).toHaveURL(/\/auth\/signup\/social$/);
+  // 로그인을 눌렀는데 가입 폼이 바로 나오지 않는다. 미가입 계정이라는 안내가 먼저고 폼은 보이지 않는다.
+  await expect(page.getByText("아직 가입되지 않은")).toBeVisible();
+  await expect(page.getByText(/약관에 동의하면 구글 계정으로/)).toBeVisible();
+  await expect(page.getByLabel("휴대폰 번호", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "약관 보고 계속하기" }).click();
   const sheet = page.getByRole("dialog", { name: "약관 동의" });
   await expect(sheet).toBeVisible();
 
@@ -150,13 +159,20 @@ test("로그인 화면에서 진입한 미가입 계정은 폼에서 약관을 �
   expect(requests[0]).toMatchObject({ agreedTerms: expect.arrayContaining(ALL_REQUIRED_TERMS) });
 });
 
-test("약관 시트를 동의 없이 닫으면 가입 정보를 지우고 시작한 화면으로 돌아간다", async ({
+test("약관 시트를 동의 없이 닫아도 안내 화면에 남고, 돌아가기를 누르면 가입 정보를 지운다", async ({
   page,
 }) => {
   await openCallback(page, "mock-signup", { entry: "login", provider: "GOOGLE" });
   await expect(page).toHaveURL(/\/auth\/signup\/social$/);
 
+  await page.getByRole("button", { name: "약관 보고 계속하기" }).click();
   await page.getByRole("button", { name: "약관 동의 닫기" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // 시트만 닫힐 뿐 화면을 떠나지 않는다. 다시 열 수 있다.
+  await expect(page).toHaveURL(/\/auth\/signup\/social$/);
+  await expect(page.getByRole("button", { name: "약관 보고 계속하기" })).toBeVisible();
+
+  await page.getByRole("button", { name: "로그인으로 돌아가기" }).click();
   await expect(page).toHaveURL(/\/auth\/login/);
   // signupToken이 남아 있으면 다시 열었을 때 폼이 살아난다. 남기지 않는다.
   // 로딩 문구("가입 정보를 확인하고 있어요")에도 걸리지 않게 "가입 정보 없음" 안내로 확인한다.

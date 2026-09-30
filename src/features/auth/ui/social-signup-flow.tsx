@@ -103,6 +103,7 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string>();
   const [agreedTerms, setAgreedTerms] = useState(session.agreedTerms);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -240,6 +241,36 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
     );
   }
 
+  /* 로그인 화면에서 진입해 미가입으로 판정됐다면 약관을 아직 받지 못했다(가입 화면 진입은 OAuth 앞에서 받았다).
+     로그인을 눌렀는데 가입 폼이 바로 나오면 당황스러우니, 미가입 계정이라는 것부터 알리고 약관에 동의한 뒤에만 폼을 보인다. */
+  if (agreedTerms.length === 0) {
+    return (
+      <AuthScreen withHeader={false}>
+        <AuthTitle>{"아직 가입되지 않은\n계정이에요"}</AuthTitle>
+        <p className="text-body-m text-text-secondary mt-4 whitespace-pre-line">
+          {`약관에 동의하면 ${providerLabel[session.provider]} 계정으로\n가입을 이어갈 수 있어요.`}
+        </p>
+        <AuthBottomAction>
+          <div className="mb-3 flex justify-center">
+            <TextButton className="h-10 px-2 py-1" onClick={leave} showIcon={false}>
+              {session.entry === "signup" ? "회원가입으로 돌아가기" : "로그인으로 돌아가기"}
+            </TextButton>
+          </div>
+          <AuthButton onClick={() => setTermsOpen(true)}>약관 보고 계속하기</AuthButton>
+        </AuthBottomAction>
+        <SignupTermsSheet
+          onAgree={(codes) => {
+            setTermsOpen(false);
+            setAgreedTerms(codes);
+            saveSocialSignupAgreedTerms(codes);
+          }}
+          onClose={() => setTermsOpen(false)}
+          open={termsOpen}
+        />
+      </AuthScreen>
+    );
+  }
+
   return (
     <AuthScreen onBack={leave}>
       <AuthTitle>{`${providerLabel[session.provider]} 계정으로\n가입을 마무리해요`}</AuthTitle>
@@ -324,16 +355,6 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
           </AuthButton>
         </AuthBottomAction>
       </form>
-
-      {/* 로그인 화면에서 진입해 미가입으로 판정됐다면 약관을 아직 받지 못했다. 가입 화면 진입은 OAuth 앞에서 받았다. */}
-      <SignupTermsSheet
-        onAgree={(codes) => {
-          setAgreedTerms(codes);
-          saveSocialSignupAgreedTerms(codes);
-        }}
-        onClose={leave}
-        open={agreedTerms.length === 0}
-      />
     </AuthScreen>
   );
 }

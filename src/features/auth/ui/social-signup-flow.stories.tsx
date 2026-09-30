@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import { SocialSignupFlow } from "./social-signup-flow";
 
@@ -65,8 +66,8 @@ export const KakaoWithoutEmail: Story = {
   ],
 };
 
-/* 로그인 화면에서 진입해 미가입으로 판정됐다. 약관을 아직 받지 못해 폼 위에 약관 시트가 뜬다. */
-export const TermsSheetAfterLoginEntry: Story = {
+/* 로그인 화면에서 진입해 미가입으로 판정됐다. 약관을 아직 받지 못해 가입 폼 대신 안내 화면이 먼저 나온다. */
+export const IntroAfterLoginEntry: Story = {
   loaders: [
     seedSession({
       agreedTerms: [],
@@ -76,6 +77,15 @@ export const TermsSheetAfterLoginEntry: Story = {
       provider: "GOOGLE",
     }),
   ],
+};
+
+/* 안내 화면에서 "약관 보고 계속하기"를 누른 상태. 동의해야 가입 폼이 보인다. */
+export const TermsSheetAfterLoginEntry: Story = {
+  ...IntroAfterLoginEntry,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "약관 보고 계속하기" }));
+  },
 };
 
 /* 가입 정보가 없거나 만료됐다. 직접 열었거나 새로고침으로 토큰이 사라진 경우다. */
