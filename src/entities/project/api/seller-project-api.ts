@@ -91,6 +91,15 @@ export function createProject(idempotencyKey: string) {
   });
 }
 
+/** 준비 중(DRAFT) 프로젝트만 삭제할 수 있다. 그 외 상태는 BE가 422
+ * `PROJECT_NOT_DELETABLE`로 거절한다. */
+export function deleteProject(projectId: string) {
+  return apiRequest<void>(`/api/v1/projects/${encodeURIComponent(projectId)}`, {
+    auth: true,
+    method: "DELETE",
+  });
+}
+
 export function saveProjectBasicInfo(projectId: string, body: BasicInfoRequest) {
   return apiRequest<BasicInfoResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/basic-info`,
