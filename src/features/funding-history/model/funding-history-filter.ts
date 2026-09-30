@@ -49,18 +49,17 @@ export const fundingCategoryOptions: readonly { value: FundingCategory; label: s
 
 /**
  * 분류마다 서버에 보낼 주문 상태(`status`, 여러 개면 합집합)와 화면이 거를 진행 단계.
- * 서버는 진행 단계로 거르지 못하므로, 목표 달성 주문의 네 단계(제작 중·발송 지연·배송 중·배송 완료)는
- * `GOAL_ACHIEVED`를 모두 받아 `progressStage`로 거른다. 펀딩 성공은 PM 정의(목표 금액 달성·목표 날짜 경과)대로
- * 목표 달성 주문 전체다. 제작 중은 BE가 `FUNDING_SUCCEEDED`를 판매자 첫 진행 기록 전후로 나눠 `IN_PRODUCTION`을
- * 더하기로 해(09-29 BE 회신, 미반영) 두 값을 함께 거른다. BE 반영 뒤 기록 없는 `FUNDING_SUCCEEDED`는 "펀딩 성공"으로 옮긴다.
+ * 서버는 진행 단계로 거르지 못하므로, 목표 달성 주문의 다섯 단계(펀딩 성공·제작 중·발송 지연·배송 중·
+ * 배송 완료)는 `GOAL_ACHIEVED`를 모두 받아 `progressStage`로 거른다. 분류는 배지와 같은 단계다 — 펀딩 성공은
+ * 판매자 첫 진행 기록 전(`FUNDING_SUCCEEDED`), 제작 중은 그 뒤(`IN_PRODUCTION`)만이다(2026-09-30 사용자 결정, #489).
  */
 const categoryRules: Record<
   Exclude<FundingCategory, "all">,
   { status: string[]; stages?: readonly string[] }
 > = {
   in_progress: { status: ["PENDING", "FUNDING_IN_PROGRESS"] },
-  succeeded: { status: ["GOAL_ACHIEVED"] },
-  producing: { status: ["GOAL_ACHIEVED"], stages: ["FUNDING_SUCCEEDED", "IN_PRODUCTION"] },
+  succeeded: { status: ["GOAL_ACHIEVED"], stages: ["FUNDING_SUCCEEDED"] },
+  producing: { status: ["GOAL_ACHIEVED"], stages: ["IN_PRODUCTION"] },
   delayed: { status: ["GOAL_ACHIEVED"], stages: ["SHIPPING_DELAYED"] },
   shipping: { status: ["GOAL_ACHIEVED"], stages: ["SHIPPING"] },
   delivered: { status: ["GOAL_ACHIEVED"], stages: ["DELIVERED"] },

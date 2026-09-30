@@ -13,7 +13,7 @@ const demoStages: Record<
     availableActions: ["CANCEL"],
   },
   completed: { status: "GOAL_ACHIEVED", progressStage: "FUNDING_SUCCEEDED", availableActions: [] },
-  production: { status: "GOAL_ACHIEVED", progressStage: "FUNDING_SUCCEEDED", availableActions: [] },
+  production: { status: "GOAL_ACHIEVED", progressStage: "IN_PRODUCTION", availableActions: [] },
   shipping: { status: "GOAL_ACHIEVED", progressStage: "SHIPPING", availableActions: [] },
   delivered: {
     status: "GOAL_ACHIEVED",
