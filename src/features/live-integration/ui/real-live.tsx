@@ -359,6 +359,9 @@ export function RealBuyerLive({
       onProgress={trackProgress}
       controls={!isVod}
       onPlayingChange={setPlaying}
+      live={!isVod}
+      /* 데스크톱 영상 칸은 세로라 세로 송출이 빈칸 없이 채운다. 모바일 배치는 #497. */
+      coverPortrait={desktop && !isVod}
     />
   );
   const questionData =

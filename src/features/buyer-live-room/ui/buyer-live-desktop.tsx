@@ -323,11 +323,10 @@ export function BuyerLiveDesktop({
           className={`text-text-static-white relative h-[725px] overflow-hidden rounded-sm bg-[black] ${demoMode || clip ? "" : "col-start-2"}`}
         >
           {video ? (
-            /* 다시보기·쇼츠는 Figma처럼 16:9 재생 틀 대신 영역 높이를 채운다(가로 VOD·번인 자막이
-               잘리지 않게 contain). 남는 여백은 흰 배지가 읽히도록 영역과 같은 검정으로 채운다. */
-            <div
-              className={`relative h-full w-full ${replay ? "[&>*]:aspect-auto [&>*]:h-full [&>*]:bg-[black]!" : ""}`}
-            >
+            /* Figma 세로 영상 칸처럼 16:9 재생 틀 대신 영역 높이를 채운다. 실제 라이브의 세로 송출은 재생기가
+               빈칸 없이 채우고(coverPortrait), 가로 방송·VOD·번인 자막은 잘리지 않게 contain이다(#494). 남는
+               여백은 흰 배지가 읽히도록 영역과 같은 검정으로 채운다. */
+            <div className="relative h-full w-full [&>*]:aspect-auto [&>*]:h-full [&>*]:bg-[black]!">
               {video}
             </div>
           ) : (
@@ -364,8 +363,10 @@ export function BuyerLiveDesktop({
               </p>
             </>
           )}
+          {/* 다시보기는 Figma 재생바 위에 둔다. 실제 라이브는 영상이 칸을 채워 브라우저 기본 컨트롤이 칸 아래에
+              오므로, 컨트롤의 전체 화면·메뉴 버튼과 겹치지 않게 그 위로 올린다(#494). */}
           <div
-            className={`absolute right-3 z-20 flex w-[58px] flex-col gap-3 ${replay ? "bottom-[106px]" : "bottom-8"}`}
+            className={`absolute right-3 z-20 flex w-[58px] flex-col gap-3 ${replay ? "bottom-[106px]" : video ? "bottom-[72px]" : "bottom-8"}`}
           >
             <button
               type="button"
