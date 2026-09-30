@@ -12,6 +12,7 @@ import { loginRedirectHref } from "@/shared/lib/login-redirect-href";
 
 import { startSocialAuth } from "../model/oauth-authorize";
 import { existingProvider, providerLabel } from "../model/social-auth-error";
+import { saveSocialLinkSession } from "../model/social-link-session";
 import { consumeSocialAuthSession } from "../model/social-auth-session";
 import type { SocialAuthSession } from "../model/social-auth-session";
 import { saveSocialSignupSession } from "../model/social-signup-session";
@@ -23,7 +24,7 @@ import { PasswordUpdateFlow } from "./password-update-flow";
 type View =
   | { kind: "processing" }
   | { kind: "invalid" }
-  | { kind: "needs-link" }
+  | { kind: "needs-signup" }
   | { kind: "exists"; provider: SocialProvider | null }
   | { kind: "failed"; message: string }
   | { kind: "must-change-password" };
@@ -119,7 +120,23 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
           router.replace("/auth/signup/social");
           return;
         }
-        if (result.needsLink) return setView({ kind: "needs-link" });
+        if (result.needsLink) {
+          if (
+            !saveSocialLinkSession({
+              linkToken: result.linkToken,
+              provider: result.provider,
+              returnTo: session.returnTo,
+            })
+          ) {
+            return setView({
+              kind: "failed",
+              message:
+                "소셜 계정 연동 정보를 저장하지 못했습니다. 소셜 로그인을 다시 시작해 주세요.",
+            });
+          }
+          if (mountedRef.current) router.replace("/auth/social/link");
+          return;
+        }
         if (result.mustChangePassword) {
           if (!mountedRef.current) {
             // 응답을 기다리는 사이 화면을 벗어났다. 정리할 cleanup이 이미 지나갔으므로 여기서 세션을 비운다.
@@ -190,15 +207,15 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
       </AuthScreen>
     );
 
-  /* needsLink는 소셜 연동(#487)이 붙기 전까지 임시 안내다. */
+  /* needsSignup은 소셜 신규 가입(#486) 범위라 아직 임시 안내를 유지한다. */
   const notice =
-    view.kind === "needs-link"
+    view.kind === "needs-signup"
       ? {
           action: (
-            <AuthButton onClick={() => router.replace("/auth/login")}>이메일로 로그인</AuthButton>
+            <AuthButton onClick={() => router.replace("/auth/signup")}>일반 회원가입</AuthButton>
           ),
-          message: "소셜 계정 연동은 준비 중이에요.\n이메일로 로그인해 주세요.",
-          title: "이미 이메일로 가입된\n계정이 있어요",
+          message: "소셜 계정으로 가입하는 기능은 준비 중이에요.\n이메일로 가입해 주세요.",
+          title: "아직 가입되지 않은\n계정이에요",
         }
       : view.kind === "exists"
         ? {

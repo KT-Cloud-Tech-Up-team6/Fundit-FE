@@ -240,8 +240,12 @@ export const authHandlers = [
           }[authorizationCode],
         });
       case "mock-link":
+      case "mock-link-forbidden":
+      case "mock-link-expired":
+      case "mock-link-locked":
+      case "mock-link-unavailable":
         return HttpResponse.json({
-          linkToken: "mock-link-token",
+          linkToken: `mock-link-token-${authorizationCode.replace("mock-link", "").replace(/^$/, "ok")}`,
           needsLink: true,
           needsSignup: false,
           provider,
@@ -255,6 +259,33 @@ export const authHandlers = [
       default:
         return error(503, "DEPENDENCY_FAILURE", "외부 서비스 호출에 실패했습니다.");
     }
+  }),
+
+  /* social/link은 linkToken을 검증 전에 소비하는 현재 BE 계약을 따른다. E2E에서는 토큰 접미사로
+     각 사용자 안내를 재현한다. */
+  http.post("*/api/v1/auth/social/link", async ({ request }) => {
+    const body = (await request.json()) as { linkToken?: string; verificationToken?: string };
+    if (!body.verificationToken)
+      return error(401, "TOKEN_INVALID", "본인인증 결과가 만료되었습니다.");
+    if (body.linkToken?.endsWith("-forbidden"))
+      return error(403, "IDENTITY_MISMATCH", "기존 계정의 본인 확인 정보와 일치하지 않습니다.");
+    if (body.linkToken?.endsWith("-expired"))
+      return error(401, "TOKEN_INVALID", "연동 토큰이 만료되었습니다.");
+    if (body.linkToken?.endsWith("-locked"))
+      return error(423, "ACCOUNT_LOCKED", "계정이 잠겨 있습니다.");
+    if (body.linkToken?.endsWith("-unavailable"))
+      return error(503, "DEPENDENCY_FAILURE", "연동 서비스를 이용할 수 없습니다.");
+    if (body.linkToken !== "mock-link-token-ok")
+      return error(401, "TOKEN_INVALID", "연동 토큰이 유효하지 않습니다.");
+    return HttpResponse.json(
+      { accessToken: `access-${crypto.randomUUID()}` },
+      {
+        headers: {
+          "Set-Cookie":
+            "refreshToken=mock-refresh-token; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=1209600",
+        },
+      },
+    );
   }),
 
   /* 소셜 가입 목업. BE처럼 토큰을 검증보다 먼저 소비하고, member-service 실패(필수 약관 누락 등)는
