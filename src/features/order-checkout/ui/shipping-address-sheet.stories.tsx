@@ -68,3 +68,41 @@ export const PostcodeFound: Story = {
     );
   },
 };
+
+/** 연락처 형식 오류(QA-061~063) — 다른 칸이 모두 차 있어도 형식이 틀리면 안내가 보이고 저장이 꺼진다. */
+export const InvalidPhone: Story = {
+  args: {
+    initial: {
+      recipientName: "홍길동",
+      phone: "010123",
+      zipCode: "06099",
+      baseAddress: "서울 강남구 학동로 343",
+      detailAddress: "3층 301호",
+      deliveryMemo: "",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
+    const save = canvas.getByRole("button", { name: "저장" });
+
+    await expect(canvas.getByRole("alert")).toHaveTextContent("휴대폰 번호 형식을 확인해 주세요.");
+    await expect(save).toBeDisabled();
+
+    const phone = canvas.getByLabelText("연락처");
+    await userEvent.clear(phone);
+    await userEvent.type(phone, "010");
+    // 입력 중에는 안내하지 않고, 칸을 벗어난 뒤에 보인다
+    await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+    await userEvent.tab();
+    await expect(canvas.getByRole("alert")).toBeInTheDocument();
+    await userEvent.clear(phone);
+    // 숫자가 아닌 글자는 입력되지 않고, 하이픈 번호는 숫자만 남는다
+    await userEvent.type(phone, "abc");
+    await expect(phone).toHaveValue("");
+    await userEvent.type(phone, "010-1111-2222");
+    await expect(phone).toHaveValue("01011112222");
+    await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+    await expect(save).toBeEnabled();
+  },
+};

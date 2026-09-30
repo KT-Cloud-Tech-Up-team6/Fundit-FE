@@ -129,3 +129,18 @@ test("배송지는 배송 요청 사항 외 필수 항목이 모두 채워져야
   // 우편번호 찾기 전이면 미완성
   assert.equal(isShippingAddressComplete({ ...filled, zipCode: "", baseAddress: "" }), false);
 });
+
+test("연락처가 BE와 같은 휴대폰 형식이 아니면 저장할 수 없다(QA-061~063)", () => {
+  const filled = {
+    recipientName: "홍길동",
+    phone: "010-1111-2222",
+    zipCode: "06099",
+    baseAddress: "서울 강남구 학동로 343",
+    detailAddress: "3층",
+  };
+  for (const phone of ["abc", "010123", "00000000000", "0121234567", " 01011112222"])
+    assert.equal(isShippingAddressComplete({ ...filled, phone }), false, phone);
+  // 하이픈은 있어도 없어도, BE가 받는 섞어 쓴 형태도 통과한다
+  for (const phone of ["01011112222", "010-1111-2222", "010-11112222"])
+    assert.equal(isShippingAddressComplete({ ...filled, phone }), true, phone);
+});

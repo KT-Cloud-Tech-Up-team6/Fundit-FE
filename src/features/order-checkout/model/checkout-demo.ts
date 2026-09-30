@@ -4,6 +4,7 @@
    쿠폰·적립금·리워드 할인은 현재 선택값으로 계산한다. */
 
 import type { ShippingAddress, OrderReceipt } from "@/entities/order/model/order-session";
+import { isKoreanMobilePhone } from "@/shared/lib/korean-mobile-phone";
 export type { ShippingAddress, OrderReceipt } from "@/entities/order/model/order-session";
 
 /** 배송지 섹션 표시 상태.
@@ -122,15 +123,16 @@ export function emptyShippingAddress(): ShippingAddress {
   };
 }
 
-/** 배송지 저장 가능 여부: 배송 요청 사항(선택) 외 필수 항목이 모두 채워졌는지 (FL_B_PY_ADDR interaction_spec). */
+/** 배송지 저장 가능 여부: 배송 요청 사항(선택) 외 필수 항목이 모두 채워졌는지 (FL_B_PY_ADDR interaction_spec).
+   연락처는 BE와 같은 휴대폰 형식이어야 한다(QA-061~063). */
 export function isShippingAddressComplete(address: ShippingAddress): boolean {
-  return [
-    address.recipientName,
-    address.phone,
-    address.zipCode,
-    address.baseAddress,
-    address.detailAddress,
-  ].every((value) => value.trim().length > 0);
+  return (
+    address.recipientName.trim().length > 0 &&
+    isKoreanMobilePhone(address.phone) &&
+    [address.zipCode, address.baseAddress, address.detailAddress].every(
+      (value) => value.trim().length > 0,
+    )
+  );
 }
 
 export function demoOrderItem(): OrderItem {

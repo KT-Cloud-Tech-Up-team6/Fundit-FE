@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isKoreanMobilePhone } from "@/shared/lib/korean-mobile-phone";
 
 export function passwordCategoryCount(value: string) {
   return [/\p{Uppercase}/u, /\p{Lowercase}/u, /\p{Nd}/u, /[^\p{L}\p{Nd}]/u].filter((pattern) =>
@@ -26,9 +27,10 @@ export function normalizePhoneInput(value: string) {
   return value.replace(/\D/g, "").slice(0, 11);
 }
 
-/* 하이픈 없는 국내 휴대폰 번호. BE는 전화번호 형식을 검사하지 않으므로 FE가 막는다. */
+/* 국내 휴대폰 번호. BE는 최상위 전화번호 형식을 검사하지 않으므로 FE가 막는다.
+   가입 배송지의 address.phoneNumber는 BE가 같은 형식으로 검사한다(BE PR #210). */
 export function isValidPhone(phone: string) {
-  return /^01\d{8,9}$/.test(phone);
+  return isKoreanMobilePhone(phone);
 }
 
 /* 제공자가 이메일을 주지 않은 소셜 가입에서 직접 받는 전체 이메일. 중복은 checkEmail이 따로 본다. */
@@ -36,8 +38,9 @@ export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/* 복구는 BE가 전화번호 형식을 검사하지 않으므로 기존처럼 넓게 받는다(012~015 등 옛 번호도 찾을 수 있게). */
 export function validRecoveryIdentity(name: string, phone: string) {
-  return Boolean(name.trim()) && isValidPhone(phone.replace(/-/g, ""));
+  return Boolean(name.trim()) && /^01\d{8,9}$/.test(phone.replace(/-/g, ""));
 }
 
 /* 닉네임은 공백을 뗀 1~50자다(BE `@Size(max = 50)`). 일반 가입과 소셜 가입이 같이 쓴다. */

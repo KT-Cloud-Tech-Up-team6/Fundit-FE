@@ -84,19 +84,23 @@ test("phone input keeps digits only, at most 11, and validates domestic mobile n
   assert.equal(normalizePhoneInput("010-1234-5678"), "01012345678");
   assert.equal(normalizePhoneInput("0101234567890123"), "01012345678");
   assert.equal(normalizePhoneInput("abc"), "");
-  for (const valid of ["01012345678", "0111234567"]) assert.equal(isValidPhone(valid), true);
+  // 하이픈은 BE와 같이 있어도 없어도 통과한다
+  for (const valid of ["01012345678", "0111234567", "010-1234-5678"])
+    assert.equal(isValidPhone(valid), true);
   for (const invalid of [
     "",
     "1012345678",
     "010123456",
-    "010-1234-5678",
     "02012345678",
     "010123456789",
+    // BE가 거절하는 번호(두 번째 자리가 016789가 아님)
+    "0121234567",
   ])
     assert.equal(isValidPhone(invalid), false);
   // 복구 화면은 하이픈을 허용하는 기존 동작을 그대로 유지한다.
   assert.equal(validRecoveryIdentity("홍길동", "010-1234-5678"), true);
   assert.equal(validRecoveryIdentity(" ", "01012345678"), false);
+  assert.equal(validRecoveryIdentity("홍길동", "012-123-4567"), true);
 });
 
 test("nickname is trimmed and limited to 1 to 50 characters", () => {

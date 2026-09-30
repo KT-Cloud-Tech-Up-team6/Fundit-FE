@@ -16,6 +16,8 @@ import {
 } from "@/entities/order/api/order-api";
 import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { MemberAccess } from "@/providers/member-access";
+import { isApiError } from "@/shared/api/api-error";
+import { isKoreanMobilePhone } from "@/shared/lib/korean-mobile-phone";
 import { Button } from "@/shared/components/ui/button";
 import { ErrorState } from "@/shared/components/ui/error-state";
 import { Modal } from "@/shared/components/ui/modal";
@@ -181,6 +183,15 @@ function Checkout({
     queryFn: () => previewOrder(body),
     enabled: valid && Boolean(address),
   });
+  /* 저장 배송지의 연락처가 예전에 비정형으로 저장됐으면 시트를 거치지 않고 골라도 BE가 400으로 거절한다(#209).
+     다시 시도해도 같은 결과라 배송지를 바꾸도록 안내한다. 옵션·쿠폰 때문의 INVALID_INPUT은 연락처 탓이 아니므로
+     연락처가 실제로 틀렸을 때만 이 안내를 쓴다. */
+  const addressRejected =
+    preview.isError &&
+    isApiError(preview.error) &&
+    preview.error.code === "INVALID_INPUT" &&
+    address !== null &&
+    !isKoreanMobilePhone(address.phoneNumber);
   const couponError = preview.data ? couponPreviewError(preview.data, selectedCouponCodes) : "";
   const amount = valid && address && preview.data ? preview.data : null;
   const items = rewards.data ? checkoutLineItems(lines, toRewards(rewards.data)) : [];
@@ -328,8 +339,19 @@ function Checkout({
             ) : preview.isError ? (
               <ErrorState
                 variant="section"
-                description="결제 금액 조회를 실패하였습니다"
-                action={{ onClick: () => void preview.refetch() }}
+                description={
+                  addressRejected
+                    ? "배송지의 연락처 형식을 확인해 주세요"
+                    : "결제 금액 조회를 실패하였습니다"
+                }
+                action={
+                  addressRejected
+                    ? {
+                        label: "배송지 변경",
+                        onClick: () => setAddressSheet(addresses.data?.length ? "list" : "form"),
+                      }
+                    : { onClick: () => void preview.refetch() }
+                }
               />
             ) : (
               <p role="status" className="text-body-s">
