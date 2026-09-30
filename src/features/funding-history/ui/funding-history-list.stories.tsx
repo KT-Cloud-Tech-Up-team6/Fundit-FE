@@ -12,7 +12,7 @@ const today = "2026-09-29";
 const defaultFilter = { q: "", category: "all" as const, ...relativePeriodRange("1m", today) };
 
 /* 실제 화면은 조건이 바뀌면 URL을 바꿔 거른 목록을 다시 받는다. 스토리에서는 이 부모가 그 역할을
-   대신해 조건을 들고, 검색어와 진행 단계 분류(제작 중·발송 지연·배송 중·배송 완료)로 args.cards를 거른다.
+   대신해 조건을 들고, 검색어와 진행 단계 분류(펀딩 성공·제작 중·발송 지연·배송 중·배송 완료)로 args.cards를 거른다.
    기간과 주문 상태 분류는 카드에 값이 없어 거르지 않는다. */
 function ServerFilteredList(args: ComponentProps<typeof FundingHistoryList>) {
   const [filter, setFilter] = useState(args.filter);
@@ -120,7 +120,7 @@ function card(canvasElement: HTMLElement, title: string, index = 0) {
   return within(canvasElement).getAllByRole("heading", { name: title })[index].closest("article")!;
 }
 
-/** Figma FUND_1의 검색창·기간·분류 드롭다운과 네 카드. 성립 후 제작 준비 단계 배지는 "제작 중"이다. */
+/** Figma FUND_1의 검색창·기간·분류 드롭다운과 네 카드. 판매자 첫 진행 기록 전의 성립 주문 배지는 "펀딩 성공"이다(#489). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -130,8 +130,8 @@ export const Default: Story = {
     await expect(canvas.getByPlaceholderText("검색어를 입력하세요")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "기간 필터" })).toHaveTextContent("최근 한 달");
     await expect(canvas.getByRole("button", { name: "분류 필터" })).toHaveTextContent("전체");
-    await expect(canvas.getByText("제작 중")).toBeVisible();
-    await expect(canvas.queryByText("펀딩 성공")).toBeNull();
+    await expect(canvas.getByText("펀딩 성공")).toBeVisible();
+    await expect(canvas.queryByText("제작 중")).toBeNull();
 
     const inProgress = within(card(canvasElement, figmaCards[0].projectTitle));
     await expect(inProgress.getByText("2026.09.15")).toBeVisible();
@@ -370,7 +370,8 @@ export const CustomPeriodApplied: Story = {
   },
 };
 
-/** FUND_3(2323:52651): 분류를 열어 제작 중을 고르면 성립 후 제작 준비 단계 카드만 남는다. */
+/** FUND_3(2323:52651): 분류는 배지와 같은 단계다. 펀딩 성공을 고르면 첫 진행 기록 전 카드만 남고, FUND_1 카드에는
+    제작 중(첫 기록 뒤)이 없어 제작 중을 고르면 빈 목록이다(#489). */
 export const ChooseCategory: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
@@ -389,13 +390,17 @@ export const ChooseCategory: Story = {
       "결제 기한 만료",
       "환불 완료",
     ]);
-    await userEvent.click(canvas.getByRole("option", { name: "제작 중" }));
-    await expect(args.onCategoryChange).toHaveBeenLastCalledWith("producing");
-    await expect(trigger).toHaveTextContent("제작 중");
+    await userEvent.click(canvas.getByRole("option", { name: "펀딩 성공" }));
+    await expect(args.onCategoryChange).toHaveBeenLastCalledWith("succeeded");
+    await expect(trigger).toHaveTextContent("펀딩 성공");
     await expect(canvas.getByText("총 1개")).toBeVisible();
     const articles = canvas.getAllByRole("article");
     await expect(articles).toHaveLength(1);
-    await expect(within(articles[0]).getByText("제작 중")).toBeVisible();
+    await expect(within(articles[0]).getByText("펀딩 성공")).toBeVisible();
+    await userEvent.click(trigger);
+    await userEvent.click(canvas.getByRole("option", { name: "제작 중" }));
+    await expect(args.onCategoryChange).toHaveBeenLastCalledWith("producing");
+    await expect(canvas.getByText("조건에 맞는 참여 내역이 없습니다.")).toBeVisible();
   },
 };
 
