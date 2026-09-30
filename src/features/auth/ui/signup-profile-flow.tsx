@@ -10,7 +10,11 @@ import { z } from "zod";
 import { checkEmail, signup } from "@/features/auth/api/auth-api";
 import type { SignupAddress } from "@/features/auth/api/auth-types";
 import { useAuthFlow } from "@/features/auth/model/auth-flow-context";
-import { passwordCategoryCount, passwordSchema } from "@/features/auth/model/auth-input";
+import {
+  nicknameSchema,
+  passwordCategoryCount,
+  passwordSchema,
+} from "@/features/auth/model/auth-input";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
 import { DaumPostcodeButton } from "@/shared/components/ui/daum-postcode-button";
@@ -40,11 +44,7 @@ const profileSchema = z
     customDomain: z.string(),
     domain: z.string().min(1, "이메일 도메인을 선택해 주세요."),
     emailLocal: z.string().min(1, "이메일을 입력해 주세요."),
-    nickname: z
-      .string()
-      .trim()
-      .min(1, "닉네임을 입력해 주세요.")
-      .max(50, "50자 이하로 입력해 주세요."),
+    nickname: nicknameSchema,
     password: passwordSchema,
     passwordConfirm: z.string(),
   })

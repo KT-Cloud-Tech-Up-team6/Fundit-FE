@@ -202,4 +202,4 @@ Web Locks 미지원 환경에서는 기존 탭 내부 refresh 중복 방지만 �
 
 회원가입의 주소 포함 제출과 건너뛰기는 같은 useRef 잠금을 사용해 렌더링 전 연속 제출을 막고 성공·실패·조기 반환 모두 finally에서 잠금을 해제한다.
 
-소셜 로그인 응답 타입은 BE `SocialLoginResponse`의 `needsSignup`·`needsLink` 판별값을 사용한다. `status` 필드를 가정하지 않는다. 소셜 로그인은 OAuth로 페이지가 바뀌므로 진입 맥락(`state`·`provider`·`returnTo`·진입 화면·가입 화면에서 동의한 약관 코드)을 `sessionStorage`(`fundit-auth-social`, 10분 만료, 콜백에서 읽는 즉시 삭제)에 잠깐 두고, 토큰은 저장하지 않는다. 콜백의 `state` 불일치·없음·만료는 API를 호출하지 않는다.
+소셜 로그인 응답 타입은 BE `SocialLoginResponse`의 `needsSignup`·`needsLink` 판별값을 사용한다. `status` 필드를 가정하지 않는다. 소셜 로그인은 OAuth로 페이지가 바뀌므로 진입 맥락(`state`·`provider`·`returnTo`·진입 화면·가입 화면에서 동의한 약관 코드)을 `sessionStorage`(`fundit-auth-social`, 10분 만료, 콜백에서 읽는 즉시 삭제)에 잠깐 두고, 액세스 토큰은 저장하지 않는다. 콜백의 `state` 불일치·없음·만료는 API를 호출하지 않는다. 미가입으로 판정되면 콜백이 BE의 1회용 `signupToken`과 제공자 이메일·이름, 진입 화면, 동의한 약관 코드를 별도 `sessionStorage`(`fundit-auth-social-signup`, 10분 만료)에 넘기고 `/auth/signup/social`이 이어받는다. `signupToken`은 URL에 싣지 않고, 새로고침해도 폼이 이어지도록 읽기만 하다가 가입 요청 직전에 지운다. BE가 요청과 동시에 토큰을 소비하므로 실패하면 다시 제출하지 않고 소셜 인증부터 다시 시작한다.

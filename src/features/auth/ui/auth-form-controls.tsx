@@ -54,6 +54,14 @@ export function AuthInput({
   );
 }
 
+export function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
+  return (
+    <label className="text-label-l text-text-default mb-2 block" htmlFor={htmlFor}>
+      {children}
+    </label>
+  );
+}
+
 type AuthButtonProps = ComponentPropsWithoutRef<typeof Button>;
 
 export function AuthButton({ className, ...props }: AuthButtonProps) {
