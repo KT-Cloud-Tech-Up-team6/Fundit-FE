@@ -287,6 +287,7 @@ export function BuyerProjectDetail({
   rewardSummary,
   rewardSelection,
   server,
+  wish,
   aiSummary,
   tabContent,
 }: {
@@ -303,6 +304,14 @@ export function BuyerProjectDetail({
   rewardSummary?: ReactNode;
   rewardSelection?: ReactNode;
   server?: { remainingDays?: number | null; participantCount: number };
+  /** 실제 프로젝트의 찜. 없으면 데모·프리뷰처럼 화면 안에서만 토글한다. */
+  wish?: {
+    wished: boolean;
+    failed: boolean;
+    disabled: boolean;
+    retry: () => void;
+    toggle: () => Promise<unknown>;
+  };
   /** 실제 프로젝트의 AI 요약(#407). 없으면 카드를 그리지 않는다. 데모(server 없음)는 Figma 자리표시 카드다. */
   aiSummary?: AiSummaryState | null;
   tabContent?: ReactNode;
@@ -351,12 +360,20 @@ export function BuyerProjectDetail({
     <footer className={`${styles.footer} border-border-default border-t`}>
       <button
         type="button"
-        aria-label="프로젝트 찜"
-        aria-pressed={liked}
-        disabled={preview || Boolean(server)}
-        onClick={() => setLiked(!liked)}
+        aria-label={wish?.failed ? "찜 상태를 불러오지 못했습니다. 다시 시도" : "프로젝트 찜"}
+        aria-pressed={wish?.failed ? undefined : wish ? wish.wished : liked}
+        aria-busy={wish && !wish.failed && wish.disabled ? true : undefined}
+        disabled={preview || (wish ? wish.disabled : Boolean(server))}
+        onClick={() =>
+          wish?.failed
+            ? wish.retry()
+            : wish
+              ? wish.toggle().catch(() => announce("찜 변경에 실패했습니다. 다시 시도해주세요."))
+              : setLiked(!liked)
+        }
       >
         <DetailIcon name="heart" className="size-6" />
+        {wish?.failed && <span className="text-caption-s">다시 시도</span>}
         {!server && <span className={preview ? "" : "min-[1200px]:hidden"}>9999+</span>}
         {!preview && !server && <span className="hidden min-[1200px]:inline">2.4천+</span>}
       </button>

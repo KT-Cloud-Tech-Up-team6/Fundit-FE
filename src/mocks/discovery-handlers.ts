@@ -106,6 +106,10 @@ const allWishes = new Map<number, Wish>([
   ],
 ]);
 const wished = new Set([1, 2]);
+const projectIdOfPublicId = (publicId: string) =>
+  projects.find((project) => project.projectPublicId === publicId)?.projectId;
+const projectNotFound = () =>
+  HttpResponse.json({ code: "NOT_FOUND", message: "프로젝트 없음" }, { status: 404 });
 
 const follows = new Map<string, FollowedSeller>([
   [
@@ -168,6 +172,29 @@ export const discoveryHandlers = [
     const projectId = Number(params.projectId);
     wished.delete(projectId);
     return HttpResponse.json({ projectId, wished: false });
+  }),
+
+  /* 프로젝트 상세는 공개 UUID로 찜한다(BE `WishController`). 숫자 id 찜과 같은 `wished`를 공유하고,
+     BE가 프로젝트 스냅샷 없는 공개 id를 404로 막는 것처럼 목록에 없는 UUID는 404다. */
+  http.get("*/api/v1/wishes/projects/:projectPublicId", ({ params }) => {
+    const publicId = String(params.projectPublicId),
+      projectId = projectIdOfPublicId(publicId);
+    if (projectId === undefined) return projectNotFound();
+    return HttpResponse.json({ projectPublicId: publicId, wished: wished.has(projectId) });
+  }),
+  http.put("*/api/v1/wishes/projects/:projectPublicId", ({ params }) => {
+    const publicId = String(params.projectPublicId),
+      projectId = projectIdOfPublicId(publicId);
+    if (projectId === undefined) return projectNotFound();
+    wished.add(projectId);
+    return HttpResponse.json({ projectPublicId: publicId, wished: true });
+  }),
+  /* BE는 해제에 204 빈 본문을 준다. */
+  http.delete("*/api/v1/wishes/projects/:projectPublicId", ({ params }) => {
+    const projectId = projectIdOfPublicId(String(params.projectPublicId));
+    if (projectId === undefined) return projectNotFound();
+    wished.delete(projectId);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get("*/api/v1/follows", () => {
