@@ -334,6 +334,7 @@ function ConsoleBody({
             elapsedAt={detail.dataUpdatedAt}
             orders={orderStatsLabel(orderStats, ORDER_STATS_STALE_MS)}
             live={live}
+            ended={detail.data?.status === "ENDED"}
             onCheckStream={() => {
               if (!streamStatus.isPending) streamStatus.mutate();
             }}
@@ -420,6 +421,7 @@ function Monitoring({
   elapsedAt,
   orders,
   live,
+  ended,
   onCheckStream,
 }: {
   playbackUrl?: string;
@@ -431,6 +433,7 @@ function Monitoring({
   /** 결제 완료 주문 "N건 · N원". 모르면 `-`다. */
   orders: string;
   live: boolean;
+  ended: boolean;
   onCheckStream: () => void;
 }) {
   const now = useNow(live && elapsedSeconds != null ? 1000 : null);
@@ -444,7 +447,14 @@ function Monitoring({
         playbackState === "ready" && playbackUrl ? (
           /* 송출 화면 전체가 보이도록 영역을 채우되 영상은 맞춤(contain)으로 두고 남는 여백은 검정이다. */
           <div className="absolute inset-0 [&>*]:aspect-auto [&>*]:h-full [&>*]:rounded-none [&>*]:bg-[black]!">
-            <LivePlayer src={playbackUrl} title="판매자 모니터링" />
+            <LivePlayer
+              src={playbackUrl}
+              title="판매자 모니터링"
+              live
+              waitingMessage="송출을 기다리는 중입니다. 송출 프로그램에서 송출을 시작해 주세요."
+              muted
+              ended={ended}
+            />
           </div>
         ) : (
           <div className="text-caption-s text-text-secondary absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">

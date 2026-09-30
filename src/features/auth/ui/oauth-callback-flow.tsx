@@ -11,21 +11,20 @@ import { authTokenStore } from "@/shared/api/auth-token-store";
 import { loginRedirectHref } from "@/shared/lib/login-redirect-href";
 
 import { startSocialAuth } from "../model/oauth-authorize";
+import { existingProvider, providerLabel } from "../model/social-auth-error";
 import { saveSocialLinkSession } from "../model/social-link-session";
 import { consumeSocialAuthSession } from "../model/social-auth-session";
 import type { SocialAuthSession } from "../model/social-auth-session";
+import { saveSocialSignupSession } from "../model/social-signup-session";
 
 import { AuthButton } from "./auth-form-controls";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
 import { PasswordUpdateFlow } from "./password-update-flow";
 
-const providerLabel: Record<SocialProvider, string> = { GOOGLE: "구글", KAKAO: "카카오" };
-
 type View =
   | { kind: "processing" }
   | { kind: "invalid" }
   | { kind: "needs-signup" }
-  | { kind: "needs-link" }
   | { kind: "exists"; provider: SocialProvider | null }
   | { kind: "failed"; message: string }
   | { kind: "must-change-password" };
@@ -33,11 +32,6 @@ type View =
 function entryHref(session: SocialAuthSession) {
   if (session.entry === "signup") return "/auth/signup";
   return session.returnTo === "/" ? "/auth/login" : loginRedirectHref(session.returnTo);
-}
-
-function existingProvider(detail: unknown): SocialProvider | null {
-  if (typeof detail !== "object" || detail === null || !("provider" in detail)) return null;
-  return detail.provider === "KAKAO" || detail.provider === "GOOGLE" ? detail.provider : null;
 }
 
 function failureView(cause: unknown): View {
@@ -109,7 +103,23 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
       }
       try {
         const result = await loginSocial({ authorizationCode: code, provider });
-        if (result.needsSignup) return setView({ kind: "needs-signup" });
+        if (result.needsSignup) {
+          // 응답을 기다리는 사이 화면을 벗어났다면 가입 정보를 남기지 않는다. 남기면 나중에 가입 화면을 열 때 되살아난다.
+          if (!mountedRef.current) return;
+          // signupToken은 URL이 아니라 세션 스토리지로 가입 화면에 넘긴다. 가입 화면 진입이면 약관은 이미 받았다.
+          const saved = saveSocialSignupSession({
+            agreedTerms: session.entry === "signup" ? session.agreedTerms : [],
+            email: result.email ?? null,
+            entry: session.entry,
+            name: result.name ?? null,
+            provider,
+            signupToken: result.signupToken,
+          });
+          if (!saved)
+            return setView({ kind: "failed", message: "소셜 가입을 시작하지 못했습니다." });
+          router.replace("/auth/signup/social");
+          return;
+        }
         if (result.needsLink) {
           if (
             !saveSocialLinkSession({
@@ -207,40 +217,31 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
           message: "소셜 계정으로 가입하는 기능은 준비 중이에요.\n이메일로 가입해 주세요.",
           title: "아직 가입되지 않은\n계정이에요",
         }
-      : view.kind === "needs-link"
+      : view.kind === "exists"
         ? {
             action: (
-              <AuthButton onClick={() => router.replace("/auth/login")}>로그인으로 가기</AuthButton>
+              <AuthButton onClick={() => retry(view.provider ?? provider)}>
+                {providerLabel[view.provider ?? provider]}로 로그인
+              </AuthButton>
             ),
-            message:
-              "소셜 계정 연동 정보를 확인하지 못했습니다.\n소셜 로그인을 다시 시작해 주세요.",
-            title: "연동 정보를\n확인하지 못했어요",
+            message: `이미 ${providerLabel[view.provider ?? provider]} 계정으로 가입된 이메일이에요.`,
+            title: "이미 가입된\n계정이에요",
           }
-        : view.kind === "exists"
+        : view.kind === "failed"
           ? {
+              action: <AuthButton onClick={() => retry()}>다시 시도</AuthButton>,
+              message: view.message,
+              title: "로그인하지\n못했어요",
+            }
+          : {
               action: (
-                <AuthButton onClick={() => retry(view.provider ?? provider)}>
-                  {providerLabel[view.provider ?? provider]}로 로그인
+                <AuthButton onClick={() => router.replace("/auth/login")}>
+                  로그인으로 가기
                 </AuthButton>
               ),
-              message: `이미 ${providerLabel[view.provider ?? provider]} 계정으로 가입된 이메일이에요.`,
-              title: "이미 가입된\n계정이에요",
-            }
-          : view.kind === "failed"
-            ? {
-                action: <AuthButton onClick={() => retry()}>다시 시도</AuthButton>,
-                message: view.message,
-                title: "로그인하지\n못했어요",
-              }
-            : {
-                action: (
-                  <AuthButton onClick={() => router.replace("/auth/login")}>
-                    로그인으로 가기
-                  </AuthButton>
-                ),
-                message: "로그인 요청을 확인하지 못했습니다.\n처음부터 다시 시도해 주세요.",
-                title: "로그인 정보를\n확인하지 못했어요",
-              };
+              message: "로그인 요청을 확인하지 못했습니다.\n처음부터 다시 시도해 주세요.",
+              title: "로그인 정보를\n확인하지 못했어요",
+            };
 
   return (
     <AuthScreen withHeader={false}>

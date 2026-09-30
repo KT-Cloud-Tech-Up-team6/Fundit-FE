@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { requestIdentityVerification } from "@/features/auth/api/portone-identity-adapter";
@@ -14,9 +14,10 @@ import {
   clearIdentityRecoverySessionIfCurrent,
   saveIdentityRecoverySession,
 } from "@/features/auth/model/auth-flow-session";
+import { isValidPhone, normalizePhoneInput } from "@/features/auth/model/auth-input";
 import { isApiError } from "@/shared/api/api-error";
 
-import { AuthButton, AuthInput } from "./auth-form-controls";
+import { AuthButton, AuthFieldLabel, AuthInput } from "./auth-form-controls";
 import { AuthIdentityVerification } from "./auth-identity-verification";
 import type { IdentityStatus } from "./auth-identity-verification";
 import { AuthBottomAction, AuthScreen, AuthTitle } from "./auth-screen";
@@ -38,14 +39,6 @@ const descriptionByStatus: Record<Exclude<IdentityStatus, "ready">, string> = {
 /* aria-label이 label 요소보다 우선하므로 두 값이 갈라지지 않게 한 곳에서만 정의한다.
    aria-label은 AuthInput이 지우기 버튼 이름을 만드는 데도 쓴다. */
 const fieldLabels = { birthDate: "생년월일", name: "이름", phoneNumber: "휴대폰 번호" } as const;
-
-function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: string }) {
-  return (
-    <label className="text-label-l text-text-default mb-2 block" htmlFor={htmlFor}>
-      {children}
-    </label>
-  );
-}
 
 type SignupVerifyFlowProps = {
   initialView?: SignupVerifyView;
@@ -131,7 +124,7 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
     const valid =
       draft.name.trim().length > 0 &&
       /^\d{4}-\d{2}-\d{2}$/.test(draft.birthDate) &&
-      /^01\d{8,9}$/.test(draft.phoneNumber);
+      isValidPhone(draft.phoneNumber);
 
     function submitInformation(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
@@ -187,7 +180,7 @@ export function SignupVerifyFlow({ initialView = "information" }: SignupVerifyFl
                 onChange={(event) =>
                   setDraft((value) => ({
                     ...value,
-                    phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 11),
+                    phoneNumber: normalizePhoneInput(event.target.value),
                   }))
                 }
                 onClear={() => setDraft((value) => ({ ...value, phoneNumber: "" }))}

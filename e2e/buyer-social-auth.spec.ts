@@ -138,17 +138,13 @@ test("동의 화면에서 취소하면 시작한 화면으로 돌아간다", asy
   await expect(page).toHaveURL(/\/auth\/signup$/);
 });
 
-test("아직 가입되지 않은 소셜 계정은 준비 중 안내와 일반 회원가입 진입을 보여 준다", async ({
-  page,
-}) => {
+test("아직 가입되지 않은 소셜 계정은 소셜 가입 화면으로 이어진다", async ({ page }) => {
   await seedSession(page);
   await page.goto(`/oauth/kakao?code=mock-signup&state=${STATE}`);
 
-  await expect(page.getByText(/아직 가입되지 않은/)).toBeVisible();
-  // 1회용 인가 코드와 state가 주소창에 남지 않는다.
+  // 가입 폼은 buyer-social-signup.spec.ts에서 자세히 확인한다. signupToken은 주소에 실리지 않는다.
+  await expect(page).toHaveURL(/\/auth\/signup\/social$/);
   expect(new URL(page.url()).search).toBe("");
-  await page.getByRole("button", { name: "일반 회원가입" }).click();
-  await expect(page).toHaveURL(/\/auth\/signup$/);
 });
 
 test("이메일로 가입된 계정은 본인인증 소셜 연동 화면으로 이동한다", async ({ page }) => {

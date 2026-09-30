@@ -212,6 +212,13 @@ export function BuyerLiveRoom({
           <Icon name="close" className="inline-block size-5" />
         </Link>
       </header>
+      {video && (
+        /* Figma 방송 화면(1408:42074)처럼 실제 영상도 목업 포스터 자리인 방 전체 뒤에 깔고 헤더·판매자·채팅을
+           그 위에 겹친다(#497). */
+        <section aria-label="라이브 영상" className={styles.videoLayer}>
+          {video}
+        </section>
+      )}
       <main className={styles.main}>
         <section aria-label="판매자와 라이브 현황" className={styles.seller}>
           {(demoMode || seller) && (
@@ -252,13 +259,12 @@ export function BuyerLiveRoom({
             </div>
           )}
         </section>
+        {/* 실제 영상이 있으면 이 칸은 뒤에 깐 영상이 드러나는 빈 곳이다. */}
         <div
           className={styles.video}
           role={video ? undefined : "img"}
-          aria-label={video ? "라이브 영상" : "라이브 영상 영역 · 실제 송출 미연결"}
-        >
-          {video}
-        </div>
+          aria-label={video ? undefined : "라이브 영상 영역 · 실제 송출 미연결"}
+        />
         <div
           className={styles.controls}
           style={{ visibility: questions === "closed" ? "visible" : "hidden" }}
