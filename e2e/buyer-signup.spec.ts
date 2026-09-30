@@ -55,6 +55,38 @@ test("이미 가입된 이메일이면 안내하고 다음 단계로 넘어가�
   await expect(page.getByLabel("비밀번호", { exact: true })).not.toBeVisible();
 });
 
+test("예약어 닉네임이면 닉네임 단계로 돌아가 안내하고, 고치면 본인인증 없이 가입을 마친다", async ({
+  page,
+}) => {
+  await agreeAndVerify(page);
+
+  await page.getByLabel("이메일 아이디").fill("reserved");
+  // 목업은 BE처럼 공백을 빼고 예약어와 비교한다.
+  await page.getByLabel("닉네임").fill("AI 매니저");
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByLabel("비밀번호", { exact: true }).fill("Passw0rd!1");
+  await page.getByLabel("비밀번호 확인").fill("Passw0rd!1");
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음에 설정할게요" }).click();
+
+  const nickname = page.getByLabel("닉네임");
+  await expect(page.getByText("사용할 수 없는 닉네임입니다.")).toBeVisible();
+  await expect(nickname).toHaveValue("AI 매니저");
+  // 같은 닉네임으로는 다음 단계로 넘어가지 않는다.
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await expect(page.getByLabel("비밀번호", { exact: true })).not.toBeVisible();
+
+  await nickname.fill("응원왕");
+  await expect(page.getByText("사용할 수 없는 닉네임입니다.")).toHaveCount(0);
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  // 앞에서 입력한 비밀번호가 남아 있어 그대로 넘어간다.
+  await expect(page.getByLabel("비밀번호", { exact: true })).toHaveValue("Passw0rd!1");
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음에 설정할게요" }).click();
+
+  await expect(page).toHaveURL(/\/auth\/signup\/complete/);
+});
+
 test("본인인증 정보로 이미 만들어진 계정이 있으면 로그인·이메일 찾기를 안내한다", async ({
   page,
 }) => {

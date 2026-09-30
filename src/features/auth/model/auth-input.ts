@@ -47,6 +47,9 @@ export const nicknameSchema = z
   .min(1, "닉네임을 입력해 주세요.")
   .max(50, "50자 이하로 입력해 주세요.");
 
+/* 가입 요청이 400 `RESERVED_NICKNAME`이면 닉네임 칸에 보이는 안내. 예약어 판정은 BE만 한다(#504). */
+export const reservedNicknameMessage = "사용할 수 없는 닉네임입니다.";
+
 // 앱의 진입 경로만 허용한다. 이중 인코딩·역슬래시·auth 복귀 루프는 거부한다.
 export function safeReturnTo(value: unknown) {
   if (

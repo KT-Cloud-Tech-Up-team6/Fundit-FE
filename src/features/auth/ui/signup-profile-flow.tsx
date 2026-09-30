@@ -14,6 +14,7 @@ import {
   nicknameSchema,
   passwordCategoryCount,
   passwordSchema,
+  reservedNicknameMessage,
 } from "@/features/auth/model/auth-input";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
@@ -92,6 +93,8 @@ export function SignupProfileFlow({
   const [baseAddress, setBaseAddress] = useState("");
   const [detailAddress, setDetailAddress] = useState("");
   const [emailTaken, setEmailTaken] = useState(initialEmailTaken);
+  /* 서버가 예약어로 거절한 닉네임. 같은 값이면 안내를 두고 다음 단계로 넘기지 않는다. */
+  const [reservedNickname, setReservedNickname] = useState<string>();
   const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState<string>();
   const initialEmailParts = profileDraft?.email.split("@");
@@ -108,11 +111,12 @@ export function SignupProfileFlow({
     mode: "onChange",
     resolver: zodResolver(profileSchema),
   });
-  const [domain, password, passwordConfirm] = useWatch({
+  const [domain, nickname, password, passwordConfirm] = useWatch({
     control: form.control,
-    name: ["domain", "password", "passwordConfirm"],
+    name: ["domain", "nickname", "password", "passwordConfirm"],
   });
   const usesCustomDomain = domain === CUSTOM_DOMAIN;
+  const nicknameReserved = nickname.trim() === reservedNickname;
   /* onChange을 감싸 쓰는 자리라 register()를 한 번만 호출해 재사용한다
      (매 입력마다 새 registration을 만들지 않는다). */
   const emailLocalField = form.register("emailLocal");
@@ -133,7 +137,7 @@ export function SignupProfileFlow({
     setEmailTaken(false);
     form.clearErrors("emailLocal");
     const valid = await form.trigger(["emailLocal", "domain", "customDomain", "nickname"]);
-    if (!valid) return;
+    if (!valid || nicknameReserved) return;
 
     try {
       const result = await emailMutation.mutateAsync(resolveEmail(form.getValues()));
@@ -208,6 +212,13 @@ export function SignupProfileFlow({
     } catch (error) {
       if (isApiError(error) && error.code === "EMAIL_ALREADY_EXISTS") {
         setEmailTaken(true);
+        setView("email");
+        return;
+      }
+      /* BE는 예약어 닉네임을 본인인증 토큰을 쓰기 전에 거절한다(BE PR #208). 닉네임 단계로 돌아가
+         닉네임만 고쳐 같은 본인인증으로 다시 보내게 한다. */
+      if (isApiError(error) && error.code === "RESERVED_NICKNAME") {
+        setReservedNickname(values.nickname.trim());
         setView("email");
         return;
       }
@@ -433,7 +444,9 @@ export function SignupProfileFlow({
           aria-label="닉네임"
           autoComplete="nickname"
           disabled={emailMutation.isPending}
-          errorMessage={form.formState.errors.nickname?.message}
+          errorMessage={
+            nicknameReserved ? reservedNicknameMessage : form.formState.errors.nickname?.message
+          }
           maxLength={50}
           placeholder="닉네임 (최대 50자)"
           {...form.register("nickname")}
