@@ -134,6 +134,7 @@ function StatusBadge({
       className={live ? styles.liveBadge : ranking ? styles.rankingBadge : styles.viewerBadge}
     >
       <LiveAsset name={scheduled ? "alarm" : live ? "live-navigation" : "viewers"} />
+      {!scheduled && !live && <span className="sr-only">시청자</span>}
       <span>{scheduled ? "예정됨" : live ? "LIVE" : viewers}</span>
     </Badge>
   );
@@ -202,11 +203,7 @@ function LiveCardView({
     <article
       className={`${compact ? "w-41 min-w-0 shrink-0 min-[1200px]:w-[226px]" : "min-w-0"} ${desktopOnly ? "hidden min-[1200px]:block" : ""}`}
     >
-      <Link
-        href={card.href}
-        className="flex flex-col gap-2"
-        aria-label={card.title + " 라이브 보기"}
-      >
+      <Link href={card.href} className="flex flex-col gap-2">
         <div
           className={
             "bg-layer-bg relative overflow-hidden rounded-xs " +
@@ -578,7 +575,7 @@ export function BuyerLiveMain({
         size="md"
         shape={variant === "card" ? "default" : "pill"}
         variant={enabled ? "primary" : "secondary"}
-        aria-label={`${title} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림 받기") : "시작 알림"}`}
+        aria-label={`${title} ${variant === "card" ? (enabled ? "알림 설정됨" : "알림받기") : "시작 알림"}`}
         aria-pressed={enabled}
         onClick={() => {
           if (variant === "subscription")
@@ -632,12 +629,13 @@ export function BuyerLiveMain({
     );
   }
 
-  function scheduledRow(rank: number, card: ScheduledView) {
+  function scheduledRow(card: ScheduledView) {
     return (
       <article className="flex gap-3">
         <Link
           href={card.href}
-          aria-label={`${rank}번째 예정 라이브 보기`}
+          aria-hidden
+          tabIndex={-1}
           className="w-[150px] max-w-[44%] shrink-0 min-[1200px]:w-[186px]"
         >
           <ScheduleMedia schedule={card.schedule} className="aspect-[3/4]" large />
@@ -650,6 +648,11 @@ export function BuyerLiveMain({
             <h3 className="min-[1200px]:text-title-m line-clamp-3 text-[16px] leading-6 font-semibold">
               {card.title}
             </h3>
+            {card.schedule.date && (
+              <span className="sr-only">
+                {card.schedule.date} {card.schedule.time}
+              </span>
+            )}
             {card.seller && (
               <span className="text-label-m text-text-secondary mt-1">{card.seller.seller}</span>
             )}
@@ -765,7 +768,6 @@ export function BuyerLiveMain({
                     >
                       {upcoming ? (
                         scheduledRow(
-                          rank,
                           live ? realScheduled(live) : demoScheduled(`scheduled-${rank}`),
                         )
                       ) : (
@@ -787,14 +789,14 @@ export function BuyerLiveMain({
             </ol>
             {upcoming ? (
               <PendingDestination
-                label="예정된 라이브 전체보기"
+                label="예정된 라이브 더 보러 가기"
                 className={textButtonNavigationClasses + " mx-auto"}
               >
                 더 보러 가기
               </PendingDestination>
             ) : (
               <PendingDestination
-                label="실시간 순위 전체보기"
+                label="실시간 순위 더 보러 가기"
                 className={textButtonNavigationClasses + " mx-auto"}
               >
                 더 보러 가기
@@ -837,7 +839,8 @@ export function BuyerLiveMain({
                   <article key={id} className="flex gap-3">
                     <Link
                       href={getUpcomingProjectHref(id)}
-                      aria-label={`${scheduledTitle(id)} 라이브 보기`}
+                      aria-hidden
+                      tabIndex={-1}
                       className="w-[104px] shrink-0"
                     >
                       <ScheduleMedia schedule={demoSchedule(id)} className="h-full min-h-[104px]" />
@@ -848,6 +851,9 @@ export function BuyerLiveMain({
                         <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
                           {scheduledTitle(id)}
                         </h3>
+                        <span className="sr-only">
+                          {demoSchedule(id).date} {demoSchedule(id).time}
+                        </span>
                       </Link>
                       <div className="flex items-center gap-1">
                         <p className="text-text-primary-live min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
