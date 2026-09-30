@@ -188,6 +188,9 @@ export const projectHandlers = [
 
   http.delete("*/api/v1/projects/:id", ({ params }) => {
     const projectId = String(params.id);
+    /* 실제 BE처럼 DRAFT가 아닌 진행 중 fixture는 존재 여부와 별개로 삭제를 거절한다. */
+    if (projectId === FIXTURE_SELLER_PROJECT_ID)
+      return HttpResponse.json({ code: "PROJECT_NOT_DELETABLE" }, { status: 422 });
     if (!sellerProjects.delete(projectId))
       return HttpResponse.json({ code: "NOT_FOUND", message: "프로젝트 없음" }, { status: 404 });
     return new HttpResponse(null, { status: 204 });
