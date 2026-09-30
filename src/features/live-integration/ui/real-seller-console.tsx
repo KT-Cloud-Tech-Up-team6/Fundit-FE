@@ -355,8 +355,8 @@ function ConsoleBody({
                 }
               />
             )}
-            {/* 채팅 수는 이 화면에서 받은 채팅 수다(Figma 1299:32829의 0부터). 답변은 "채팅 보내기"로 BE가
-                게시하므로 여기서는 판매자가 직접 쓴 메시지만 보낸다. */}
+            {/* 채팅 수는 이 화면에서 받은 채팅 수다(Figma 1299:32829의 0부터, 입장 전 채팅으로 채운 줄 포함
+                #488). 답변은 "채팅 보내기"로 BE가 게시하므로 여기서는 판매자가 직접 쓴 메시지만 보낸다. */}
             <SellerChatPanel
               messages={chatMessages}
               countLabel={String(liveChat.received)}

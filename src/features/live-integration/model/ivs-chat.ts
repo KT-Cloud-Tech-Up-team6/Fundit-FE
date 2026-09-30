@@ -6,7 +6,8 @@
 
 /** 받은 채팅 한 건. 공급자와 무관한 형태다. */
 export type ChatEntry =
-  | { kind: "message"; id: string; senderId: string; text: string }
+  /** `nickname`은 BE가 토큰 속성으로 싣는다. 조회 실패·탈퇴 회원이면 없다(BE #197). */
+  | { kind: "message"; id: string; senderId: string; nickname?: string; text: string }
   /** BE가 판매자 답변 등록 뒤 올리는 이벤트. 속성 한도(4KB)를 넘으면 `answer` 없이 온다. */
   | { kind: "seller-answer"; id: string; questionId: string; answer?: string }
   /** BE가 근거를 찾은 AI 답변을 올리는 이벤트. `commentId`는 BE DB id라 IVS 메시지와 맞출 수 없다. */
@@ -65,8 +66,20 @@ export function parseChatFrame(data: string): ChatFrame | null {
   if (frame.Type === "MESSAGE") {
     const content = text(frame.Content);
     if (content === undefined) return null;
-    const senderId = isRecord(frame.Sender) ? (text(frame.Sender.UserId) ?? "") : "";
-    return { type: "entry", requestId, entry: { kind: "message", id, senderId, text: content } };
+    const sender = isRecord(frame.Sender) ? frame.Sender : {};
+    const senderId = text(sender.UserId) ?? "";
+    const nickname = isRecord(sender.Attributes) ? text(sender.Attributes.nickname) : undefined;
+    return {
+      type: "entry",
+      requestId,
+      entry: {
+        kind: "message",
+        id,
+        senderId,
+        ...(nickname?.trim() ? { nickname } : {}),
+        text: content,
+      },
+    };
   }
   if (frame.Type !== "EVENT") return null;
   const attributes = isRecord(frame.Attributes) ? frame.Attributes : {};
@@ -95,13 +108,18 @@ export function sendResultOf(errorCode: number): SendResult {
 }
 
 /**
- * 작성자 라벨(2026-09-30 사용자 결정). BE 토큰에 닉네임이 없어 회원 UUID로만 가른다. 판매자를 먼저 본다 —
- * 콘솔에서는 로그인한 판매자 자신의 메시지도 "판매자"로 보여야 한다.
+ * 작성자 라벨(2026-09-30 사용자 결정). 판매자 "판매자", 본인 "나"(소비자 Prototype 295:50208), 그 밖은
+ * 아이디 자리(Figma 1408:42073)에 닉네임이고 닉네임이 없으면 "시청자"다. 판매자를 먼저 본다 — 콘솔에서는
+ * 로그인한 판매자 자신의 메시지도 "판매자"로 보여야 한다.
  */
-export function authorLabel(senderId: string, viewer: { memberId?: string; sellerId?: string }) {
+export function authorLabel(
+  senderId: string,
+  nickname: string | undefined,
+  viewer: { memberId?: string; sellerId?: string },
+) {
   if (viewer.sellerId && senderId === viewer.sellerId) return "판매자";
   if (viewer.memberId && senderId === viewer.memberId) return "나";
-  return "시청자";
+  return nickname ?? "시청자";
 }
 
 /**
@@ -120,7 +138,11 @@ export function toChatRows(
   const rows: ChatRow[] = [];
   for (const entry of entries) {
     if (entry.kind === "message")
-      rows.push({ id: entry.id, author: authorLabel(entry.senderId, viewer), text: entry.text });
+      rows.push({
+        id: entry.id,
+        author: authorLabel(entry.senderId, entry.nickname, viewer),
+        text: entry.text,
+      });
     else if (entry.kind === "ai-answer")
       rows.push({ id: entry.id, author: "AI 매니저", text: entry.answer, ai: true });
     else {
@@ -146,8 +168,42 @@ export function removeEntry(entries: ChatEntry[], messageId: string) {
 }
 
 /**
- * 토큰 API 오류 중 다시 받아도 같은 결과라 재연결을 멈출 것. 401(로그인 만료, 갱신도 실패),
- * 404(없거나 DRAFT인 LIVE), 409(채팅방 없음 — 시작 전)다. 503 등은 잠시 뒤 다시 시도한다.
+ * 입장 전 채팅을 받을 구간(초). BE 구간 상한(600초)이 방송 길이 상한(요구사항 6.2.3, 10분)과 같아 한 번에
+ * 방송 전체를 읽는다. 구매자가 방송 시작 시각을 받을 단건 API가 없어 경과 초 대신 상한을 쓴다.
+ */
+export const HISTORY_RANGE_SEC = 600;
+
+/** BE 구간 채팅(`vod/chat`) 한 줄 → 받은 채팅. `messageId`는 IVS 메시지 `Id`와 같은 값이다(BE #197). */
+export function historyEntries(
+  messages: { messageId: string; senderId: string; nickname?: string | null; content: string }[],
+): ChatEntry[] {
+  return messages.map(({ messageId, senderId, nickname, content }) => ({
+    kind: "message",
+    id: messageId,
+    senderId,
+    ...(nickname?.trim() ? { nickname } : {}),
+    text: content,
+  }));
+}
+
+/**
+ * 입장 전 채팅을 앞에 채운다. IVS는 새로 연결한 클라이언트에 지난 메시지를 주지 않는다. 연결이 열린 뒤
+ * 조회하므로 그사이 받은 메시지와 겹칠 수 있어 메시지 id로 거른다. 겹치지 않는 줄은 모두 연결 전에 온
+ * 것이라 받은 줄보다 앞에 둔다. 한도를 넘으면 오래된 것부터 버린다. `added`는 새로 채운 줄 수다.
+ */
+export function prependHistory(entries: ChatEntry[], history: ChatEntry[]) {
+  const received = new Set(entries.map((entry) => entry.id));
+  const earlier = history.filter((entry) => !received.has(entry.id));
+  const next = [...earlier, ...entries];
+  return {
+    entries: next.length > MAX_CHAT_ENTRIES ? next.slice(-MAX_CHAT_ENTRIES) : next,
+    added: earlier.length,
+  };
+}
+
+/**
+ * 토큰 API 오류 중 다시 받아도 같은 결과라 재연결을 멈출 것. 401(회원의 로그인 만료, 갱신도 실패),
+ * 404(없거나 DRAFT인 LIVE), 409(방송 중이 아님 — 시작 전·종료)다. 503 등은 잠시 뒤 다시 시도한다.
  */
 export function stopsReconnect(status: number | undefined) {
   return status === 401 || status === 404 || status === 409;

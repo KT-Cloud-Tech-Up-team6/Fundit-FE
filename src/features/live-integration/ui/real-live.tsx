@@ -262,12 +262,13 @@ export function RealBuyerLive({
     retry: false,
   });
   /* 렌더마다 새 배열을 만들면 이 트리가 초당 한 번(timeupdate) 다시 그려질 때 다시보기
-     화면의 채팅 자동 스크롤이 매번 다시 돌아 사용자가 위로 올려 둔 위치가 풀린다. */
+     화면의 채팅 자동 스크롤이 매번 다시 돌아 사용자가 위로 올려 둔 위치가 풀린다.
+     작성자는 닉네임이고, 닉네임을 받지 못한 줄은 "시청자"다(#488). */
   const vodChatMessages = useMemo(
     () =>
-      (vodChat.data ?? []).map((message, index) => ({
-        id: `${message.offsetSec}:${index}`,
-        author: "시청자",
+      (vodChat.data ?? []).map((message) => ({
+        id: message.messageId,
+        author: message.nickname?.trim() ? message.nickname : "시청자",
         text: message.content,
       })),
     [vodChat.data],
@@ -277,8 +278,8 @@ export function RealBuyerLive({
     queryFn: ({ signal }) => getAnsweredQuestions(liveId, signal),
     retry: false,
   });
-  /* 실시간 채팅은 페이지에 하나인 연결(RealLiveChatProvider)에서 받는다. 비로그인이면 받지 않아 목록이
-     비고, 입력칸을 누르면 로그인으로 보낸다(2026-09-30 결정). 이 트리는 재생 위치로 초마다 다시 그려지므로
+  /* 실시간 채팅은 페이지에 하나인 연결(RealLiveChatProvider)에서 받는다. 비로그인은 보기 전용으로 받고,
+     입력칸을 누르면 로그인으로 보낸다(2026-09-30 결정, #488). 이 트리는 재생 위치로 초마다 다시 그려지므로
      줄 배열을 메모해 채팅 자동 스크롤이 매번 돌지 않게 한다. */
   const chatConnection = useLiveChatConnection();
   const chatEntries = chatConnection?.entries;

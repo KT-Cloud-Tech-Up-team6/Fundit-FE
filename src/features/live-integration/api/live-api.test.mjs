@@ -219,7 +219,7 @@ test("답변된 질문 목록은 BE가 뺀 answerText(null)나 빈 답변 행을
   }
 });
 
-test("채팅 토큰은 본문 없는 인증 POST로 받고 응답의 token·roomArn을 그대로 돌려준다(#470)", async () => {
+test("채팅 토큰은 본문 없는 POST로 받아 token·roomArn을 그대로 돌려주고, 비로그인은 인증 헤더 없이 받는다(#470·#488)", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   const token = {
@@ -241,6 +241,10 @@ test("채팅 토큰은 본문 없는 인증 POST로 받고 응답의 token·room
     assert.equal(calls[0][1].method, "POST");
     assert.equal(calls[0][1].body, undefined);
     assert.equal(calls[0][1].headers.get("Authorization"), "Bearer live-token");
+    // 비로그인은 로그인 토큰이 남아 있어도 인증 헤더 없이 보기 전용 토큰을 받는다(#488).
+    await createChatToken("7b3f0d3e-4bdf-4f7a-8e05-3046ec739d87", { guest: true });
+    assert.equal(calls[1][1].method, "POST");
+    assert.equal(calls[1][1].headers.get("Authorization"), null);
   } finally {
     globalThis.fetch = originalFetch;
     authTokenStore.clear();

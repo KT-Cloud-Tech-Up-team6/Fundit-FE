@@ -137,10 +137,11 @@ export const BlockedMessage: Story = {
   },
 };
 
-/* 아래는 실제 LIVE 채팅(#470) 표시다. 작성자는 시청자·나·판매자, 판매자 답변은 @everyone, AI 답변은
-   "AI 매니저" 윗줄 라벨과 초록 본문(Figma 295:50452)이다. 전송 결과는 서버 응답을 흉내 낸다. */
+/* 아래는 실제 LIVE 채팅(#470) 표시다. 작성자는 닉네임(없으면 시청자)·나·판매자이고 긴 닉네임은 줄의
+   절반에서 말줄임한다(#488). 판매자 답변은 @everyone, AI 답변은 "AI 매니저" 윗줄 라벨과 초록
+   본문(Figma 295:50452)이다. 전송 결과는 서버 응답을 흉내 낸다. */
 const liveChatRows: LiveChatMessage[] = [
-  { id: "1", author: "시청자", text: "배송은 언제 시작되나요?" },
+  { id: "1", author: "펀딧러버", text: "배송은 언제 시작되나요?" },
   { id: "2", author: "판매자", text: "오늘 방송 시작합니다!" },
   { id: "3", author: "나", text: "물걸레 건조 모드가 있나요?" },
   { id: "4", author: "판매자", text: "@everyone 네, 물걸레 건조 모드를 지원합니다." },
@@ -150,6 +151,8 @@ const liveChatRows: LiveChatMessage[] = [
     text: "미세 거품을 분사해 찌든 때를 불려 쉽게 닦아내는 기능입니다.",
     ai: true,
   },
+  { id: "6", author: "청소가제일쉬운무선청소기러버입니다", text: "저도 궁금했어요" },
+  { id: "7", author: "시청자", text: "닉네임을 받지 못한 시청자" },
 ];
 
 function LiveChatRoom({
@@ -182,8 +185,12 @@ export const LiveChat: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const log = canvas.getByRole("log", { name: "라이브 채팅 메시지" });
-    expect(log).toHaveTextContent("시청자배송은 언제 시작되나요?");
+    expect(log).toHaveTextContent("펀딧러버배송은 언제 시작되나요?");
     expect(log).toHaveTextContent("판매자@everyone 네, 물걸레 건조 모드를 지원합니다.");
+    // 긴 닉네임은 줄의 절반에서 말줄임한다(#488).
+    const longName = within(log).getByText("청소가제일쉬운무선청소기러버입니다");
+    expect(getComputedStyle(longName).textOverflow).toBe("ellipsis");
+    expect(longName.clientWidth).toBeLessThanOrEqual(longName.parentElement!.clientWidth / 2 + 1);
     const ai = within(log).getByText("AI 매니저").parentElement;
     expect(ai).toHaveAttribute("data-ai", "true");
     const input = canvas.getByRole("textbox", { name: "메시지 입력" });
@@ -199,12 +206,15 @@ export const LiveChat: Story = {
 export const LiveChatGuest: Story = {
   args: {
     demoMode: false,
-    liveChat: { messages: [], maxLength: 500, onSend: fn(), onRequireLogin: fn() },
+    liveChat: { messages: liveChatRows, maxLength: 500, onSend: fn(), onRequireLogin: fn() },
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     expect(canvas.queryByRole("textbox", { name: "메시지 입력" })).not.toBeInTheDocument();
-    expect(canvas.getByRole("log", { name: "라이브 채팅 메시지" })).toBeEmptyDOMElement();
+    // 비로그인도 보기 전용으로 채팅을 본다(#488).
+    expect(canvas.getByRole("log", { name: "라이브 채팅 메시지" })).toHaveTextContent(
+      "펀딧러버배송은 언제 시작되나요?",
+    );
     await userEvent.click(canvas.getByRole("button", { name: "로그인하고 메시지 입력" }));
     expect(args.liveChat?.onRequireLogin).toHaveBeenCalledTimes(1);
     expect(canvas.getByRole("button", { name: "메시지 전송" })).toBeDisabled();

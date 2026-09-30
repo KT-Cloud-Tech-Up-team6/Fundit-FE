@@ -82,9 +82,10 @@ export const requestAnswer = (
 
 /** IVS 채팅 토큰(#470). 만료 필드는 없고 한 번만 쓸 수 있어 다시 연결할 때마다 새로 받는다. */
 export type ChatToken = { token: string; roomArn: string; capabilities: string[] };
-/* 로그인이 필요하다(401). 없거나 DRAFT인 LIVE는 404, 채팅방이 아직 없으면(시작 전) 409, IVS 오류는 503이다. */
-export const createChatToken = (liveId: string) =>
-  apiRequest<ChatToken>(`${livePath(liveId)}/chat/token`, { auth: true, method: "POST" });
+/* 회원은 보내기 권한을, 비로그인(`guest`, 인증 헤더 없이 호출)은 `capabilities: []`인 보기 전용 토큰을 받는다
+   (BE #197). 없거나 DRAFT인 LIVE는 404, 방송 중이 아니면(시작 전·종료) 409, IVS 오류는 503이다. */
+export const createChatToken = (liveId: string, { guest = false }: { guest?: boolean } = {}) =>
+  apiRequest<ChatToken>(`${livePath(liveId)}/chat/token`, { auth: !guest, method: "POST" });
 
 /* 좋아요·취소는 갱신된 수를 함께 돌려준다(BE #123 LikeResponse). 둘 다 idempotent다. */
 export type LikeResult = { liked: boolean; likeCount: number };
@@ -160,9 +161,17 @@ export const recordHighlightClick = (liveId: string, highlightId: string) =>
     method: "POST",
   });
 
-export type VodChatMessage = { senderId: string; content: string; offsetSec: number };
+/* `messageId`는 IVS 메시지 `Id`와 같다. 닉네임 조회가 실패하거나 탈퇴 회원이면 BE가 `nickname`을 뺀다(BE #197). */
+export type VodChatMessage = {
+  messageId: string;
+  senderId: string;
+  nickname?: string | null;
+  content: string;
+  offsetSec: number;
+};
 
-/* 시점이 아니라 구간으로 받는다 — 시점마다 왕복하면 요청 수가 방송 길이만큼 늘어난다. */
+/* 시점이 아니라 구간으로 받는다 — 시점마다 왕복하면 요청 수가 방송 길이만큼 늘어난다. LIVE 중에도 동작해
+   방송 중간에 들어온 시청자의 입장 전 채팅을 채울 때도 쓴다. */
 export const getVodChat = (liveId: string, fromSec: number, toSec: number, signal?: AbortSignal) =>
   apiRequest<VodChatMessage[]>(`${livePath(liveId)}/vod/chat?fromSec=${fromSec}&toSec=${toSec}`, {
     signal,

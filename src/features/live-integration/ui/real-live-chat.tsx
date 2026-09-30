@@ -11,7 +11,8 @@ const LiveChatContext = createContext<LiveChatConnection | null>(null);
 /**
  * 구매자 LIVE 화면의 채팅 연결(#470). `LiveViewport`는 모바일 트리를 먼저 그린 뒤 넓은 화면이면 데스크톱
  * 트리로 바꾸므로 `RealBuyerLive`가 두 번 마운트된다. 연결을 그 위에 두어 토큰 요청과 소켓을 한 번만 연다.
- * 방송 중(LIVE)이고 로그인해 회원 정보가 있을 때만 붙는다. 다시보기 주소면 부르지 않는다.
+ * 방송 중(LIVE)일 때 붙는다. 회원은 회원 정보가 온 뒤, 비로그인은 보기 전용으로 붙고(#488) 로그인 확인
+ * 중에는 기다린다. 다시보기 주소면 부르지 않는다.
  */
 export function RealLiveChatProvider({
   liveId,
@@ -23,7 +24,12 @@ export function RealLiveChatProvider({
   children: ReactNode;
 }) {
   const { state } = useAuth();
-  const memberId = state.status === "authenticated" ? state.user?.memberId : undefined;
+  const memberId =
+    state.status === "authenticated"
+      ? state.user?.memberId
+      : state.status === "guest"
+        ? null
+        : undefined;
   /* RealBuyerLive와 같은 키·조회라 요청은 한 번이고 캐시를 함께 쓴다. */
   const playback = useQuery({
     queryKey: ["live", liveId, "playback"],

@@ -578,7 +578,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
   - AI 하이라이트 `title`은 선택값이라 없으면 BE가 키를 응답에서 뺀다(non_null). 제목이 없는 챕터는 장면 유형으로 "시연 구간"처럼 적는다(#405). 숏 클립은 "숏 클립"(구매자)·"제목 없음"(판매자 LIVE 클립 관리)으로 적는다.
 - 쇼츠 클릭 POST `/highlights/{highlightId}/click`(#333, BE develop `47bee6ed`): 비인증, 204. 전환 동선 추적용이며 조회 수(`/public`)와 따로 판매자 성과 통계(`/highlights/stats`)의 클릭 수로 쌓인다. BE는 하이라이트가 그 LIVE의 공개 항목인지 확인한다.
   - FE는 쇼츠 화면이 쇼츠를 띄울 때 그 하이라이트로 한 번 보낸다. 조회 수와 같은 이유로 `signal`을 넘기지 않고 `staleTime: Infinity` 쿼리로 두어, 뷰포트 전환·재렌더에 다시 보내지 않는다. 기록 실패는 재생을 막지 않고 화면에 드러내지 않는다.
-- 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{senderId, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다.
+- 구간 채팅 GET `/vod/chat?fromSec&toSec`(#270): 비인증, `{messageId, senderId, nickname, content, offsetSec}[]`. 구간이 600초를 넘거나 역전되면 400이다. BE #197(PR #199)부터 `messageId`(IVS 메시지 `Id`와 같은 값)와 `nickname`이 오고, 닉네임 조회 실패·탈퇴 회원이면 `nickname`이 빠진다. LIVE 중에도 동작한다.
+  - FE는 다시보기 채팅 작성자를 닉네임으로, 닉네임이 없으면 "시청자"로 보인다(#488). LIVE 입장 전 채팅 채우기는 5.12에 적는다.
 
 ### 5.7. 판매자 LIVE 생성·설정·AI 큐시트 (#289)
 
@@ -691,28 +692,29 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 
 ### 5.12. LIVE 채팅 (#470)
 
-기준은 BE `develop` `58fe3de`와 [IVS Chat Messaging API](https://docs.aws.amazon.com/ivs/latest/chatmsgapireference/welcome.html)다. dev live-service는 2026-09-30 GitOps #117로 `LIVE_IVS_MODE=aws`가 되어 LIVE를 시작하면 실제 채팅방이 생긴다.
+기준은 BE `develop` `788594f`(BE #197·PR #199 병합)와 [IVS Chat Messaging API](https://docs.aws.amazon.com/ivs/latest/chatmsgapireference/welcome.html)다. dev live-service는 2026-09-30 GitOps #117로 `LIVE_IVS_MODE=aws`가 되어 LIVE를 시작하면 실제 채팅방이 생긴다.
 
 | 동작      | Method·Path                              | 요청 → 응답                                               |
 | --------- | ---------------------------------------- | --------------------------------------------------------- |
-| 채팅 토큰 | POST `/api/v1/lives/{liveId}/chat/token` | 본문 없음, 로그인 필요 → `{token, roomArn, capabilities}` |
+| 채팅 토큰 | POST `/api/v1/lives/{liveId}/chat/token` | 본문 없음, 로그인 선택 → `{token, roomArn, capabilities}` |
 
-- 토큰에는 만료 필드가 없고 한 번만 쓸 수 있다. IVS 기본 세션은 60분이다. 방송 소유자는 `SEND_MESSAGE`·`DELETE_MESSAGE`·`DISCONNECT_USER`, 그 밖의 로그인 사용자는 `SEND_MESSAGE`를 받는다. 비로그인 401, 없거나 `DRAFT`인 LIVE 404, 채팅방이 아직 없으면(시작 전) 409, IVS 오류는 503 `DEPENDENCY_FAILURE`다.
-- 토큰에 사용자 속성이 없어 받은 메시지의 `Sender.UserId`는 회원 UUID이고 `Sender.Attributes`는 비어 있다. 닉네임은 BE 반영 뒤 별도로 붙인다.
+- 토큰에는 만료 필드가 없고 한 번만 쓸 수 있다. IVS 기본 세션은 60분이다. 방송 소유자는 `SEND_MESSAGE`·`DELETE_MESSAGE`·`DISCONNECT_USER`, 그 밖의 로그인 사용자는 `SEND_MESSAGE`, 비로그인(인증 헤더 없이 호출)은 빈 `capabilities`(보기 전용, IVS 사용자 `guest-…`)를 받는다. 회원의 로그인 만료(갱신 실패) 401, 없거나 `DRAFT`인 LIVE 404, 방송이 `LIVE`가 아니면(시작 전·종료) 409, IVS 오류는 503 `DEPENDENCY_FAILURE`다.
+- 받은 메시지의 `Sender.UserId`는 회원 UUID다. 회원 토큰에는 BE가 조회한 닉네임이 `attributes.nickname`으로 실려 `Sender.Attributes.nickname`으로 온다. 조회 실패·탈퇴 회원이면 속성 없이 발급된다(BE #197).
 - 연결: `roomArn`(`arn:aws:ivschat:<region>:<account>:room/<id>`)의 리전으로 `wss://edge.ivschat.<region>.amazonaws.com`에 브라우저 WebSocket으로 직접 붙고 토큰은 하위 프로토콜로 넘긴다(SDK를 쓰지 않는다). 보내기는 `{Action: "SEND_MESSAGE", RequestId, Content}`, 받는 프레임의 `Type`은 `MESSAGE`·`EVENT`·`ERROR`다. `ERROR`는 `ErrorCode`(400·413·429 등, 메시지 검토 거절 406)와 보낸 `RequestId`를 준다. 본문은 IVS 기본 500자라 입력칸도 500자로 막는다.
 - BE 이벤트(SendEvent, `Sender` 없음):
   - `seller-answer` `{questionId, answer}`: 판매자 `SEND` 커밋 뒤 비동기로 올린다. 속성이 4KB를 넘으면 `answer`를 빼고 `questionId`만 보내므로 FE는 `GET /chat/answered-questions`(5.6)에서 본문을 찾는다.
   - `ai-answer` `{commentId, aiQuestionId, answer}`: 근거를 찾은 AI 답변만 올리고 한도를 넘는 답은 올리지 않는다. `commentId`는 BE DB id라 IVS 메시지와 맞출 수 없어 어느 채팅에 대한 답인지 표시하지 않는다.
   - 시스템 이벤트 `aws:DELETE_MESSAGE`(`MessageId`, 옛 이름 `MessageID`)를 받으면 그 메시지를 목록에서 뺀다.
 - FE 동작:
-  - 방송 중(구매자는 `/playback` `type=LIVE`, 콘솔은 단건 `status=LIVE`)이고 로그인해 회원 정보가 있을 때만 토큰을 받는다. 구매자 화면은 페이지에 연결이 하나다(모바일·데스크톱 트리가 바뀌어도 토큰은 한 번).
+  - 방송 중(구매자는 `/playback` `type=LIVE`, 콘솔은 단건 `status=LIVE`)일 때 토큰을 받는다. 회원은 회원 정보가 온 뒤, 비로그인은 보기 전용으로 받고(#488), 로그인 확인 중에는 기다린다. 구매자 화면은 페이지에 연결이 하나다(모바일·데스크톱 트리가 바뀌어도 토큰은 한 번).
+  - 처음 연결이 열리면 입장 전 채팅을 `GET /vod/chat?fromSec=0&toSec=600`으로 한 번 채운다(#488). IVS는 새 연결에 지난 메시지를 주지 않는다. 연결을 연 뒤 조회해 그사이 받은 메시지와 겹치는 줄은 `messageId`로 거르고, 나머지는 받은 줄 앞에 둔다. 구간을 600초로 두는 이유는 BE 구간 상한이 방송 길이 상한(10분, FE 큐시트 입력도 1~10분)과 같고 구매자가 방송 시작 시각을 받을 단건 API가 없기 때문이다. 재연결 사이의 공백은 채우지 않고(조회 결과에 답변 이벤트가 없어 이미 받은 답변 줄과 순서를 맞출 수 없다), 조회가 실패해도 실시간 채팅은 그대로 쓴다. 콘솔도 같은 연결이라 채운다.
   - 연결이 끊기면(세션 만료 포함) 새 토큰으로 다시 붙는다. 연속 실패마다 1초에서 두 배씩 30초까지 기다리고, 30초 넘게 열려 있던 연결이 끊기면 1초부터 다시 센다. 토큰 API가 401·404·409면 멈추고, 방송 중이 아니게 되거나 화면을 떠나면 닫는다. 채팅 실패는 영상·Q&A·AI 패널을 막지 않는다.
-  - 작성자는 판매자 "판매자", 본인 "나", 그 밖 "시청자"다(2026-09-30 결정). 콘솔은 로그인한 소유자가 판매자라 본인 메시지도 "판매자"다. `seller-answer`는 "판매자 @everyone 본문"(판매자 Prototype `170:72652`)으로 구매자·콘솔에 같이 보이고, 받으면 answered-questions를 다시 받는다. `ai-answer`는 "AI 매니저" 윗줄 라벨과 초록 본문이다(소비자 Prototype `295:50452`).
+  - 작성자는 판매자 "판매자", 본인 "나", 그 밖은 닉네임(Figma 아이디 자리 `1408:42073`)이고 닉네임이 없으면 "시청자"다(2026-09-30 결정, #488). 콘솔은 로그인한 소유자가 판매자라 본인 메시지도 "판매자"다. `seller-answer`는 "판매자 @everyone 본문"(판매자 Prototype `170:72652`)으로 구매자·콘솔에 같이 보이고, 받으면 answered-questions를 다시 받는다. `ai-answer`는 "AI 매니저" 윗줄 라벨과 초록 본문이다(소비자 Prototype `295:50452`).
   - 보낸 메시지는 같은 `RequestId`의 `MESSAGE`가 되돌아올 때까지 입력에 두고 다시 보내지 않는다. 406이면 부적절한 단어 안내, 그 밖의 `ERROR`·5초 무응답·연결 없음이면 재시도 안내를 보이고 입력을 둔다.
-  - 비로그인은 토큰을 받지 않아 목록이 비고, 입력칸을 누르면 로그인으로 보낸다.
-  - 한 화면에 최근 300건만 둔다. 콘솔 채팅 수는 이 화면에서 받은 수다.
-- dev 제한: 채팅 로깅 구성이 없어 채팅이 BE에 적재되지 않는다. 그래서 dev에서는 AI 자동답변(`ai-answer`)·실시간 Q&A 집계·다시보기 채팅이 동작하지 않고, 서버 금칙어 필터도 없다(검토 핸들러가 붙으면 406으로 거절된다). dev 실검증(실제 LIVE 시작·송수신)은 AI 담당 파트가 진행하며 FE는 WebSocket 목업으로만 확인했다.
-- 범위 밖: 닉네임 표시, 비로그인 채팅 보기, 서버 금칙어 필터(BE 반영 뒤 별도), 판매자의 메시지 삭제·강퇴(Figma·IA에 없음), 다시보기 채팅 변경.
+  - 비로그인은 보기 전용 토큰으로 목록을 받고, 입력칸을 누르면 로그인으로 보낸다(#488).
+  - 한 화면에 최근 300건만 둔다. 콘솔 채팅 수는 이 화면에서 받은 수이고 입장 전 채팅으로 채운 줄도 센다.
+- 적재·금칙어: BE #197부터 채팅 로깅 대신 live-service가 방송 중인 채팅방을 보기 전용 토큰으로 구독해 참가자 메시지(`MESSAGE`)를 적재한다(인프라 구성 불필요). 금칙어 필터는 BE가 채팅방 생성 때 검토 핸들러를 붙이는 설정까지 했고, Lambda는 인프라 작업이다(붙으면 406으로 거절된다). 2026-09-30 기준 dev live 이미지는 BE #197 이전 커밋이라, BE 배포 전에는 dev에서 적재·닉네임·비로그인 토큰·AI 자동답변·실시간 Q&A 집계·다시보기 채팅이 동작하지 않는다. dev 실검증(실제 LIVE 시작·송수신)은 AI 담당 파트가 진행하며 FE는 WebSocket 목업으로만 확인했다.
+- 범위 밖: 서버 금칙어 필터 Lambda(인프라), 판매자의 메시지 삭제·강퇴(Figma·IA에 없음), 재연결 사이에 놓친 메시지 채우기.
 
 ## 6. 최신 답변으로 정리한 차이
 
