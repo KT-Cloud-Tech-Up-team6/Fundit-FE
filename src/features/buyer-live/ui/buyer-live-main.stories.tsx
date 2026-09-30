@@ -23,7 +23,10 @@ export const SubscriptionKeyboard: Story = {
     for (const article of subscriptions.getAllByRole("article")) {
       const card = within(article);
       const title = card.getByRole("heading").textContent;
-      expect(card.getByRole("link")).toHaveAccessibleName(new RegExp(title ?? ""));
+      const escaped = (title ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      expect(card.getByRole("link")).toHaveAccessibleName(
+        new RegExp(`${escaped}.*09\\.18 오후 3:40`),
+      );
       expect(card.getByRole("button")).toHaveAccessibleName(`${title} 시작 알림`);
     }
     alarms()[1].focus();

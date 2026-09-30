@@ -647,6 +647,9 @@ export function BuyerLiveMain({
             <h3 className="min-[1200px]:text-title-m line-clamp-3 text-[16px] leading-6 font-semibold">
               {card.title}
             </h3>
+            <span className="sr-only">
+              {card.schedule.date} {card.schedule.time}
+            </span>
             {card.seller && (
               <span className="text-label-m text-text-secondary mt-1">{card.seller.seller}</span>
             )}
@@ -846,6 +849,9 @@ export function BuyerLiveMain({
                         <h3 className="text-body-s min-[1200px]:text-body-m line-clamp-2 leading-[1.42] font-medium">
                           {scheduledTitle(id)}
                         </h3>
+                        <span className="sr-only">
+                          {demoSchedule(id).date} {demoSchedule(id).time}
+                        </span>
                       </Link>
                       <div className="flex items-center gap-1">
                         <p className="text-text-primary-live min-w-0 flex-1 truncate text-[16px] leading-6 font-semibold">
