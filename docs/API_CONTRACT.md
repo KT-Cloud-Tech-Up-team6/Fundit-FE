@@ -482,6 +482,7 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
 | 목록             | GET `/api/v1/projects`                              | 판매자 본인 목록, 선택 status와 page/size. status 미지정은 전체.               |
 | 신규 생성        | POST `/api/v1/projects`                             | 본문 없음 → projectId(UUID v7), status=DRAFT.                                  |
+| 삭제             | DELETE `/api/v1/projects/{projectId}`               | DRAFT만 삭제 가능. 성공은 204, 그 외 상태는 422 `PROJECT_NOT_DELETABLE`.       |
 | 기본정보         | PATCH `/api/v1/projects/{projectId}/basic-info`     | businessType, categoryMajor, categoryMinor, title, goalAmount 부분 갱신.       |
 | 개인정보 동의    | POST `/api/v1/projects/{projectId}/privacy-consent` | agreed. 프로젝트 약관 코드 목록과 별개. false는 422 PRIVACY_CONSENT_REQUIRED.  |
 | 소개             | PATCH `/api/v1/projects/{projectId}/story`          | title, coverImageUrl, introContent.                                            |
