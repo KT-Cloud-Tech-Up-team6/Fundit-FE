@@ -48,9 +48,11 @@
   height: min(698px, 90dvh);
 }
 
-.sheet > div > div:first-child {
+/* BottomSheet 첫 영역(핸들·제목)의 제목 줄. 디자인 시스템 사용 예시 "리워드 선택"(556:1810)처럼
+   핸들 바로 아래 40px이다(#508). */
+.sheet > div > div:first-child > div:last-child {
   position: relative;
-  height: 56px;
+  height: 40px;
   padding: 8px 20px;
 }
 
@@ -60,13 +62,13 @@
   line-height: 1.42;
 }
 
-.sheet > div > div:first-child > button {
+.sheet > div > div:first-child > div:last-child > button {
   position: absolute;
   right: 8px;
   opacity: 0;
 }
 
-.sheet > div > div:first-child > button:focus-visible {
+.sheet > div > div:first-child > div:last-child > button:focus-visible {
   opacity: 1;
 }
 
