@@ -14,7 +14,8 @@ import { AuthButton } from "./auth-form-controls";
 type SignupTermsSheetProps = {
   initialCheckedIds?: string[];
   initialDetailId?: string;
-  onAgree: () => void;
+  /* 동의한 약관 코드를 넘긴다. 소셜 가입은 OAuth로 페이지가 바뀌기 전에 이 값을 보관해야 한다. */
+  onAgree: (agreedCodes: string[]) => void;
   onClose: () => void;
   open: boolean;
 };
@@ -150,7 +151,7 @@ export function SignupTermsSheet({
         disabled={!requiredChecked}
         onClick={() => {
           setSelectedTermCodes(checkedCodes);
-          onAgree();
+          onAgree(checkedCodes);
         }}
       >
         회원가입
