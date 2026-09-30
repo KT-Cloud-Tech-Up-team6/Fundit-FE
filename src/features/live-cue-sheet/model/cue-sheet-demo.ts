@@ -117,6 +117,66 @@ export function createDemoScenes(
   });
 }
 
+/**
+ * "스킵할게요"처럼 건너뛰기 의도로 타이핑한 문장을 건너뛰기 버튼과 똑같이 처리하기 위한
+ * 판별. 이 채팅은 자유 문장을 이해하는 AI가 아니라 고정 순서 폼이라, 매칭 안 된 문장은
+ * 전부 그대로 답변 내용으로 저장된다 — "스킵해주세요" 같은 문장이 그대로 개발 동기 답변이
+ * 돼버리는 걸 막는 최소한의 안전장치다. **진짜 의미 이해가 아니라 미리 정해둔 문구와
+ * 정확히 일치하는지만 본다** — 목록에 없는 표현(예: "이 질문은 넘길래요")은 여전히
+ * 못 잡는다. 공백·마침표를 지우고 통째로 비교해서, 일부만 일치해도(긴 실제 답변 속에
+ * 이 단어가 섞여 있어도) 오판하지 않는다.
+ */
+const SKIP_INTENT_PHRASES = [
+  "스킵",
+  "스킵할게요",
+  "스킵해주세요",
+  "스킵이요",
+  "건너뛰기",
+  "건너뛰어요",
+  "건너뛰어주세요",
+  "건너뛰겠습니다",
+  "건너뛸게요",
+  "패스",
+  "패스요",
+  "패스할게요",
+  "생략",
+  "생략할게요",
+  "생략해주세요",
+  "생략하고싶어요",
+  "생략할래요",
+  "모르겠어요",
+  "모름",
+  "몰라요",
+  "없어요",
+  "다음으로",
+  "다음으로넘어갈게요",
+  "다음으로넘어갈래요",
+  "다음질문으로",
+  "다음질문으로넘어갈게요",
+  "이건답안할래요",
+  "이질문엔답안할래요",
+  "답안할래요",
+  "답안할게요",
+  "답하지않을게요",
+  "노코멘트",
+  "skip",
+  "nocomment",
+];
+
+function normalizeForSkipCheck(text: string) {
+  return text
+    .trim()
+    .replace(/[.!~?]+$/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+const NORMALIZED_SKIP_SET = new Set(SKIP_INTENT_PHRASES.map(normalizeForSkipCheck));
+
+export function isSkipIntent(text: string) {
+  return NORMALIZED_SKIP_SET.has(normalizeForSkipCheck(text));
+}
+
 export function formatCueTime(seconds: number) {
   return `${Math.floor(seconds / 60)
     .toString()
