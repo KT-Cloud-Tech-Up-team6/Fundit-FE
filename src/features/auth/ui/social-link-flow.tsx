@@ -208,7 +208,7 @@ export function SocialLinkFlow({ initialView }: SocialLinkFlowProps) {
   if (view === "missing") {
     return (
       <AuthScreen withHeader={false}>
-        <AuthTitle>연동 정보를\n확인하지 못했어요</AuthTitle>
+        <AuthTitle>{"연동 정보를\n확인하지 못했어요"}</AuthTitle>
         <p className="text-body-m text-text-secondary mt-4 whitespace-pre-line" role="alert">
           {
             "연동 정보가 만료되었거나 유효하지 않습니다.\n소셜 로그인을 처음부터 다시 시작해 주세요."
@@ -224,7 +224,7 @@ export function SocialLinkFlow({ initialView }: SocialLinkFlowProps) {
   if (view === "link-failed") {
     return (
       <AuthScreen withHeader={false}>
-        <AuthTitle>소셜 계정을\n연동하지 못했어요</AuthTitle>
+        <AuthTitle>{"소셜 계정을\n연동하지 못했어요"}</AuthTitle>
         <p className="text-body-m text-text-secondary mt-4 whitespace-pre-line" role="alert">
           {`${linkFailureMessage(linkError)}\n보안을 위해 소셜 로그인을 처음부터 다시 시작해 주세요.`}
         </p>
