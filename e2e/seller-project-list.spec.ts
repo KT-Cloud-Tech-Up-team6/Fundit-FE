@@ -8,8 +8,14 @@ test("프로젝트 목록에서 신규 생성하기를 누르면 기본정보 �
   await loginAsFixtureUser(page);
   await page.goto("/seller/projects");
 
-  await expect(page.getByRole("heading", { name: "내 프로젝트" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "E2E 제작·배송 프로젝트" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "내 프로젝트", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "내 프로젝트 목록", level: 2 })).toBeVisible();
+  const projectHeading = page.getByRole("heading", {
+    name: "E2E 제작·배송 프로젝트",
+    level: 3,
+  });
+  await expect(projectHeading).toBeVisible();
+  await expect(projectHeading.getByRole("link", { name: "E2E 제작·배송 프로젝트" })).toBeVisible();
   await expect(page.getByRole("link", { name: /진행중/ })).toContainText("1");
 
   await page.getByRole("link", { name: "신규 생성하기" }).click();
