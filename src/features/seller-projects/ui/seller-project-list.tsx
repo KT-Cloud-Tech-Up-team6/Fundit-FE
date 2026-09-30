@@ -113,11 +113,16 @@ export function SellerProjectList({
       ) : (
         projects.data &&
         (projects.data.content.length ? (
-          <div className="mt-6 grid gap-x-6 gap-y-6 lg:grid-cols-2">
-            {projects.data.content.map((item) => (
-              <SellerProjectCard key={item.projectId} {...toSellerProject(item)} />
-            ))}
-          </div>
+          <section aria-labelledby="seller-project-list-heading" className="mt-6">
+            <h2 id="seller-project-list-heading" className="sr-only">
+              내 프로젝트 목록
+            </h2>
+            <div className="grid gap-x-6 gap-y-6 lg:grid-cols-2">
+              {projects.data.content.map((item) => (
+                <SellerProjectCard key={item.projectId} {...toSellerProject(item)} />
+              ))}
+            </div>
+          </section>
         ) : (
           <p className="text-body-m text-text-secondary mt-6 py-16 text-center">
             해당 상태의 프로젝트가 없습니다.
