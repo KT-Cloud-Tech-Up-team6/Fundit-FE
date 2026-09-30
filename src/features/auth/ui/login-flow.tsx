@@ -8,6 +8,8 @@ import type { FormEvent } from "react";
 
 import { login } from "@/features/auth/api/auth-api";
 import { safeReturnTo } from "@/features/auth/model/auth-input";
+import { isSocialAuthAvailable, startSocialAuth } from "@/features/auth/model/oauth-authorize";
+import type { SocialProvider } from "@/features/auth/api/auth-types";
 import { useAuth } from "@/providers/auth-provider";
 import { isApiError } from "@/shared/api/api-error";
 import { authTokenStore } from "@/shared/api/auth-token-store";
@@ -63,6 +65,20 @@ export function LoginFlow({
     [],
   );
 
+  function socialClick(provider: SocialProvider) {
+    if (!isSocialAuthAvailable(provider)) return undefined;
+    return () => {
+      setRequestError("");
+      const started = startSocialAuth({
+        agreedTerms: [],
+        entry: "login",
+        provider,
+        returnTo,
+      });
+      if (!started) setRequestError("소셜 로그인을 시작하지 못했습니다. 다시 시도해 주세요.");
+    };
+  }
+
   function showMethodSelection() {
     requestRef.current?.abort();
     requestRef.current = null;
@@ -115,9 +131,24 @@ export function LoginFlow({
           width={132}
         />
         <div className="mt-24 flex flex-col gap-3">
-          {/* 소셜 로그인도 OAuth 연동 전까지는 진입할 수 없다(회원가입과 동일). */}
-          <AuthSocialButton icon="/images/auth/kakao-logo.svg" label="카카오 로그인" tone="kakao" />
-          <AuthSocialButton icon="/images/auth/google-logo.svg" label="구글 로그인" tone="google" />
+          {/* client ID가 없으면 onClick을 주지 않아 버튼이 비활성("준비 중")이다. */}
+          <AuthSocialButton
+            icon="/images/auth/kakao-logo.svg"
+            label="카카오 로그인"
+            onClick={socialClick("KAKAO")}
+            tone="kakao"
+          />
+          <AuthSocialButton
+            icon="/images/auth/google-logo.svg"
+            label="구글 로그인"
+            onClick={socialClick("GOOGLE")}
+            tone="google"
+          />
+          {requestError && (
+            <p role="alert" className="text-body-s text-text-default">
+              {requestError}
+            </p>
+          )}
           <AuthButton onClick={() => setView("form")}>이메일로 로그인</AuthButton>
         </div>
         <div className="mt-12 text-center">

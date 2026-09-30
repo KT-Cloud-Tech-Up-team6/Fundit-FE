@@ -23,6 +23,9 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_MSW_ENABLED: "true",
       NEXT_PUBLIC_TOSS_CLIENT_KEY: "",
+      // .env.local의 실제 client ID가 e2e를 실제 제공자로 보내지 않게 비운다(목업 인가 코드를 쓴다).
+      NEXT_PUBLIC_KAKAO_CLIENT_ID: "",
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "",
     },
   },
 });

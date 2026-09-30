@@ -67,26 +67,29 @@ export function AuthButton({ className, ...props }: AuthButtonProps) {
   );
 }
 
-/* 소셜 로그인·가입 버튼은 OAuth 연동 전까지 두 화면 모두 비활성 상태로 둔다(같은 디자인). */
+/* 소셜 로그인·가입 버튼. client ID가 없으면 호출자가 onClick을 주지 않아 비활성("준비 중")이 된다. */
 export function AuthSocialButton({
   icon,
   label,
+  onClick,
   tone,
 }: {
   icon: string;
   label: string;
+  onClick?: () => void;
   tone: "google" | "kakao";
 }) {
   return (
     <button
-      aria-label={`${label} (준비 중)`}
+      aria-label={onClick ? undefined : `${label} (준비 중)`}
       className={[
         "text-body-emphasis relative flex h-13 w-full items-center justify-center rounded-xs px-4",
         tone === "kakao"
           ? "text-text-static-black shadow-light-s bg-[#fee500]"
           : "border-w-xs border-border-default bg-layer-surface-default text-text-secondary",
       ].join(" ")}
-      disabled
+      disabled={!onClick}
+      onClick={onClick}
       type="button"
     >
       <Image
