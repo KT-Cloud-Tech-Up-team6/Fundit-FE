@@ -102,3 +102,31 @@ test("본인인증 정보로 이미 만들어진 계정이 있으면 로그인·
 
   await expect(page.getByRole("heading", { name: "이미 가입된 계정이 있습니다" })).toBeVisible();
 });
+
+test("약관 시트는 핸들을 조금 끌면 제자리로 돌아오고, 충분히 끌어 놓으면 닫힌다", async ({
+  page,
+}) => {
+  await page.goto("/auth/signup");
+  await page.getByRole("button", { name: "일반 회원가입" }).click();
+  const sheet = page.getByRole("dialog", { name: "약관 동의" });
+  await expect(sheet).toBeVisible();
+  const box = (await sheet.boundingBox())!;
+  // 핸들은 시트 맨 위 28px(위아래 12px 여백 + 4px 막대) 가운데에 있다(#508).
+  const handle = { x: box.x + box.width / 2, y: box.y + 14 };
+  async function dragDown(distance: number) {
+    await page.mouse.move(handle.x, handle.y);
+    await page.mouse.down();
+    await page.mouse.move(handle.x, handle.y + distance, { steps: 8 });
+    // 끄는 동안 시트가 포인터를 따라 내려온다.
+    expect((await sheet.boundingBox())!.y).toBeGreaterThan(box.y + distance / 2);
+    await page.mouse.up();
+  }
+
+  await dragDown(20);
+  await expect(sheet).toBeVisible();
+  await expect.poll(async () => (await sheet.boundingBox())?.y).toBe(box.y);
+
+  // 시트 높이의 1/4(최대 120px)보다 더 끌고 놓으면 닫힌다.
+  await dragDown(Math.min(120, box.height / 4) + 20);
+  await expect(sheet).toBeHidden();
+});

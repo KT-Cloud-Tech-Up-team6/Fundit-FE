@@ -70,7 +70,8 @@ export const Default: Story = {
         <BottomSheet aria-label="약관 동의" onClose={() => setOpen(false)} open={open}>
           <p className="text-body-emphasis text-text-default">펀딧 이용 약관 동의 (전체)</p>
           <p className="text-body-s text-text-secondary mt-3">
-            ESC, backdrop 클릭, 닫기 버튼 어느 쪽으로도 닫힙니다.
+            ESC, backdrop 클릭, 닫기 버튼 어느 쪽으로도 닫힙니다. 위쪽 핸들을 아래로 끌어 놓아도
+            닫힙니다.
           </p>
           <Button className="mt-6 w-full" onClick={() => setOpen(false)}>
             닫기
