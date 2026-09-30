@@ -159,8 +159,47 @@ test("약관 시트를 동의 없이 닫으면 가입 정보를 지우고 시작
   await page.getByRole("button", { name: "약관 동의 닫기" }).click();
   await expect(page).toHaveURL(/\/auth\/login/);
   // signupToken이 남아 있으면 다시 열었을 때 폼이 살아난다. 남기지 않는다.
+  // 로딩 문구("가입 정보를 확인하고 있어요")에도 걸리지 않게 "가입 정보 없음" 안내로 확인한다.
   await page.goto("/auth/signup/social");
-  await expect(page.getByText("가입 정보를", { exact: false })).toBeVisible();
+  await expect(page.getByText(/소셜 인증 정보가 만료됐거나 이미 사용됐어요/)).toBeVisible();
+  await expect(page.getByLabel("휴대폰 번호", { exact: true })).toHaveCount(0);
+});
+
+/* 목업이 BE처럼 signupToken을 검증보다 먼저 소비하는지 확인한다. 이게 어긋나면 위의 "실패 뒤 재사용 불가"
+   테스트들이 BE와 다른 전제로 통과한다. 같은 페이지의 MSW 워커에 직접 요청한다. */
+async function postSignup(page: Page, body: Record<string, unknown>[]) {
+  await page.goto("/auth/login");
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  return page.evaluate(async (bodies) => {
+    const statuses: number[] = [];
+    for (const body of bodies) {
+      const response = await fetch("/api/v1/auth/signup/social", {
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      statuses.push(response.status);
+    }
+    return statuses;
+  }, body);
+}
+
+const validSignup = {
+  agreedTerms: ALL_REQUIRED_TERMS,
+  name: "홍길동",
+  nickname: "펀딧러",
+  phoneNumber: "01012345678",
+  signupToken: "mock-signup-token",
+};
+
+test("목업은 같은 signupToken으로 두 번 가입을 허락하지 않는다", async ({ page }) => {
+  expect(await postSignup(page, [validSignup, validSignup])).toEqual([200, 401]);
+});
+
+test("목업은 검증에 실패한 요청도 signupToken을 소비한다", async ({ page }) => {
+  expect(await postSignup(page, [{ ...validSignup, phoneNumber: "" }, validSignup])).toEqual([
+    400, 401,
+  ]);
 });
 
 test("가입 정보 없이 직접 열면 처음부터 다시 시도하도록 안내한다", async ({ page }) => {

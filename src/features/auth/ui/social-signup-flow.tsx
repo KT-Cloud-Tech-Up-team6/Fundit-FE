@@ -106,6 +106,16 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
   const [failure, setFailure] = useState<Failure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  /* 아직 이 화면에 있는지 본다. 이메일 확인이나 가입 요청을 기다리는 사이 사용자가 뒤로 가거나 화면을 벗어나면,
+     떠난 화면이 뒤늦게 가입 요청을 보내거나 이동을 덮어쓰지 않게 한다. StrictMode의 가짜 unmount는 effect가 다시 true로 돌린다. */
+  const activeRef = useRef(false);
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
 
   const needsEmail = session.email === null;
   const valid =
@@ -117,6 +127,7 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
   const startHref = session.entry === "signup" ? "/auth/signup" : "/auth/login";
 
   function leave() {
+    activeRef.current = false;
     clearSocialSignupSession();
     router.replace(startHref);
   }
@@ -158,6 +169,8 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
           return;
         }
       }
+      // 이메일 확인을 기다리는 사이 화면을 떠났다면 가입 요청을 보내지 않는다(요청하면 계정이 만들어진다).
+      if (!activeRef.current) return;
       // 같은 signupToken은 다시 보낼 수 없다. 요청 전에 지워 실패한 뒤 새로고침으로 재사용하지 않게 한다.
       clearSocialSignupSession();
       const result = await signupSocial({
@@ -171,7 +184,8 @@ function SocialSignupForm({ session }: { session: SocialSignupSession }) {
       const authentication = authenticate(result.accessToken);
       resetFlow();
       await authentication;
-      router.push("/auth/signup/complete");
+      // 요청을 보낸 뒤 사용자가 화면을 떠났다면 계정은 이미 만들어졌으니 인증까지만 하고 그 이동을 덮어쓰지 않는다.
+      if (activeRef.current) router.push("/auth/signup/complete");
     } catch (error) {
       setFailure(failureFrom(error, session.provider));
     } finally {

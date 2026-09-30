@@ -103,6 +103,8 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
       try {
         const result = await loginSocial({ authorizationCode: code, provider });
         if (result.needsSignup) {
+          // 응답을 기다리는 사이 화면을 벗어났다면 가입 정보를 남기지 않는다. 남기면 나중에 가입 화면을 열 때 되살아난다.
+          if (!mountedRef.current) return;
           // signupToken은 URL이 아니라 세션 스토리지로 가입 화면에 넘긴다. 가입 화면 진입이면 약관은 이미 받았다.
           const saved = saveSocialSignupSession({
             agreedTerms: session.entry === "signup" ? session.agreedTerms : [],
@@ -114,8 +116,7 @@ export function OAuthCallbackFlow({ provider }: { provider: SocialProvider }) {
           });
           if (!saved)
             return setView({ kind: "failed", message: "소셜 가입을 시작하지 못했습니다." });
-          // 그 사이 사용자가 다른 화면으로 이동했다면 그 이동을 덮어쓰지 않는다.
-          if (mountedRef.current) router.replace("/auth/signup/social");
+          router.replace("/auth/signup/social");
           return;
         }
         if (result.needsLink) return setView({ kind: "needs-link" });

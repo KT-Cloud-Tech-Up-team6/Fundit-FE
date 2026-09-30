@@ -60,6 +60,9 @@ const error = (status: number, code: string, message: string, detail?: unknown) 
 
 const requiredTermCodes = terms.filter((term) => term.required).map((term) => term.code);
 
+/* 소셜 가입에서 이미 쓴 signupToken. 목업 워커가 살아 있는 동안(페이지를 새로 열기 전까지) 유지된다. */
+const consumedSignupTokens = new Set<string>();
+
 function passwordCategoryCount(value: string) {
   return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
 }
@@ -258,9 +261,16 @@ export const authHandlers = [
      원인을 구분할 수 없는 503으로 내려 준다. 본인인증은 없다. */
   http.post("*/api/v1/auth/signup/social", async ({ request }) => {
     const body = (await request.json()) as Partial<SocialSignupRequest>;
-    if (body.signupToken === "mock-expired-token" || !body.signupToken?.startsWith("mock-")) {
+    const token = body.signupToken;
+    if (
+      !token?.startsWith("mock-") ||
+      token === "mock-expired-token" ||
+      consumedSignupTokens.has(token)
+    ) {
       return error(401, "TOKEN_EXPIRED", "Access Token 만료");
     }
+    // BE처럼 이후 검증에서 실패해도 토큰은 이미 소비된 것으로 본다. 같은 토큰으로 다시 보내면 401이다.
+    consumedSignupTokens.add(token);
     if (!body.name?.trim() || !body.nickname?.trim() || !body.phoneNumber?.trim()) {
       return error(400, "INVALID_INPUT", "필수 항목이 비어 있습니다.");
     }
