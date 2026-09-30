@@ -23,7 +23,10 @@ export const SubscriptionKeyboard: Story = {
     for (const article of subscriptions.getAllByRole("article")) {
       const card = within(article);
       const title = card.getByRole("heading").textContent;
-      expect(card.getAllByRole("link")[0]).toHaveAccessibleName(`${title} 라이브 보기`);
+      const escaped = (title ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      expect(card.getByRole("link")).toHaveAccessibleName(
+        new RegExp(`${escaped}.*09\\.18 오후 3:40`),
+      );
       expect(card.getByRole("button")).toHaveAccessibleName(`${title} 시작 알림`);
     }
     alarms()[1].focus();
@@ -35,7 +38,9 @@ export const SubscriptionKeyboard: Story = {
     await waitFor(() =>
       expect(subscriptions.getByText("알림 신청한 라이브가 없습니다.")).toHaveFocus(),
     );
-    expect(canvas.getByRole("button", { name: "예정된 라이브 전체보기 (준비중)" })).toBeDisabled();
+    expect(
+      canvas.getByRole("button", { name: "예정된 라이브 더 보러 가기 (준비중)" }),
+    ).toBeDisabled();
   },
 };
 
@@ -67,6 +72,11 @@ export const UpcomingNoFollowing: Story = {
     expect(canvas.queryByRole("region", { name: "팔로우한 창작자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "알림 신청한 라이브" })).toBeInTheDocument();
     expect(canvas.getByRole("link", { name: "예정 LIVE" })).toHaveAttribute("aria-current", "page");
+    /* 예정 목록 행: 숨긴 썸네일 링크 대신 제목 링크 하나가 제목과 일시를 함께 알린다. */
+    const row = canvas.getAllByRole("link", { name: /09\.18 오후 3:40/ })[0];
+    expect(row).toHaveAccessibleName(
+      expect.stringContaining(within(row).getByRole("heading").textContent ?? ""),
+    );
   },
 };
 
@@ -83,6 +93,11 @@ export const Default: Story = {
       rect.y + rect.height / 2,
     );
     expect(target?.closest("a")).toHaveAttribute("href", "/live/new-1");
+    /* aria-label 없이 가시 텍스트가 이름이 된다: 시청자 수 맥락, 제목, 판매자가 모두 들어간다. */
+    const link = cards.getAllByRole("article")[0].querySelector("a") as HTMLElement;
+    const title = within(link).getByRole("heading").textContent ?? "";
+    expect(link).toHaveAccessibleName(expect.stringContaining("시청자 101"));
+    expect(link).toHaveAccessibleName(expect.stringContaining(title));
   },
 };
 
@@ -102,9 +117,9 @@ export const NotificationToggle: Story = {
     const followCards = within(
       canvas.getByRole("region", { name: "팔로우한 창작자 예정 라이브 목록" }),
     ).getAllByRole("article");
-    const button = within(followCards[1]).getByRole("button", { name: /알림 받기$/ });
+    const button = within(followCards[1]).getByRole("button", { name: /알림받기$/ });
     const title = within(followCards[1]).getByRole("heading").textContent;
-    expect(button).toHaveAccessibleName(`${title} 알림 받기`);
+    expect(button).toHaveAccessibleName(`${title} 알림받기`);
     expect(button).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
@@ -145,6 +160,8 @@ export const SearchAndNavigation: Story = {
     expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
     expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
     expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
-    expect(canvas.getByRole("button", { name: "실시간 순위 전체보기 (준비중)" })).toBeDisabled();
+    expect(
+      canvas.getByRole("button", { name: "실시간 순위 더 보러 가기 (준비중)" }),
+    ).toBeDisabled();
   },
 };

@@ -84,6 +84,12 @@ export function BuyerSearch({
   const [notifications, setNotifications] = useState<string[]>([]);
   const recentDrag = useHorizontalDrag();
   const popularDrag = useHorizontalDrag();
+  const popular = server
+    ? server.keywords.items
+    : ["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map((keyword, index) => ({
+        keyword,
+        rank: index + 1,
+      }));
   const composing = useRef(false);
   const input = useRef<HTMLInputElement>(null);
   if (draft.base !== query.q) {
@@ -177,35 +183,39 @@ export function BuyerSearch({
               <>
                 <section className="py-3" aria-label="최근 검색어">
                   <h2 className="text-body-emphasis mb-1">최근</h2>
-                  <div
-                    className={`${styles.track} flex gap-2 py-2`}
-                    {...recentDrag}
-                    tabIndex={0}
-                    aria-label="최근 검색어 가로 목록"
-                  >
-                    {recent.map((word) => (
-                      <div
-                        key={word}
-                        className="border-border-primary text-label-l flex h-9 shrink-0 items-center gap-2 rounded-full border px-3"
-                      >
-                        <button type="button" onClick={() => submit(word)}>
-                          {word}
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`${word} 최근 검색어 삭제`}
-                          disabled={server?.recent.removing}
-                          onClick={() =>
-                            server
-                              ? server.recent.onRemove(word)
-                              : setRecent((items) => items.filter((item) => item !== word))
-                          }
+                  {recent.length > 0 && (
+                    <ol
+                      // Tailwind preflight의 list-style:none은 Safari/VoiceOver에서 목록 의미를 지우므로 role을 명시한다.
+                      role="list"
+                      className={`${styles.track} flex gap-2 py-2`}
+                      {...recentDrag}
+                      tabIndex={0}
+                      aria-label="최근 검색어 가로 목록"
+                    >
+                      {recent.map((word) => (
+                        <li
+                          key={word}
+                          className="border-border-primary text-label-l flex h-9 shrink-0 items-center gap-2 rounded-full border px-3"
                         >
-                          <Icon name="closeSmall" className="block size-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                          <button type="button" onClick={() => submit(word)}>
+                            {word}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`${word} 최근 검색어 삭제`}
+                            disabled={server?.recent.removing}
+                            onClick={() =>
+                              server
+                                ? server.recent.onRemove(word)
+                                : setRecent((items) => items.filter((item) => item !== word))
+                            }
+                          >
+                            <Icon name="closeSmall" className="block size-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                   {server?.recent.state}
                   {!recent.length && !server?.recent.state && (
                     <p className="text-caption-m text-text-disabled">최근 검색어가 없습니다.</p>
@@ -213,29 +223,27 @@ export function BuyerSearch({
                 </section>
                 <section className="py-3" aria-label="인기 검색어">
                   <h2 className="text-body-emphasis mb-3">인기 검색어</h2>
-                  <ol
-                    className={`${styles.track} flex gap-2 py-2`}
-                    {...popularDrag}
-                    tabIndex={0}
-                    aria-label="인기 검색어 가로 목록"
-                  >
-                    {(server
-                      ? server.keywords.items
-                      : ["수박", "무선 청소기", "육하원칙", "만병통치약", "케클업"].map(
-                          (keyword, index) => ({ keyword, rank: index + 1 }),
-                        )
-                    ).map(({ keyword, rank }) => (
-                      <li key={keyword} className="shrink-0">
-                        <button
-                          type="button"
-                          className="border-border-primary text-label-l h-9 rounded-full border px-3"
-                          onClick={() => submit(keyword)}
-                        >
-                          {rank} {keyword}
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
+                  {popular.length > 0 && (
+                    <ol
+                      role="list"
+                      className={`${styles.track} flex gap-2 py-2`}
+                      {...popularDrag}
+                      tabIndex={0}
+                      aria-label="인기 검색어 가로 목록"
+                    >
+                      {popular.map(({ keyword, rank }) => (
+                        <li key={keyword} className="shrink-0">
+                          <button
+                            type="button"
+                            className="border-border-primary text-label-l h-9 rounded-full border px-3"
+                            onClick={() => submit(keyword)}
+                          >
+                            {rank} {keyword}
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                   {server?.keywords.state}
                   {server && !server.keywords.state && !server.keywords.items.length && (
                     <p className="text-caption-m text-text-disabled">인기 검색어가 없습니다.</p>
