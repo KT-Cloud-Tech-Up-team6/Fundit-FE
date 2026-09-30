@@ -186,6 +186,13 @@ export const projectHandlers = [
     return HttpResponse.json({ projectId, status: "DRAFT" });
   }),
 
+  http.delete("*/api/v1/projects/:id", ({ params }) => {
+    const projectId = String(params.id);
+    if (!sellerProjects.delete(projectId))
+      return HttpResponse.json({ code: "NOT_FOUND", message: "프로젝트 없음" }, { status: 404 });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post("*/api/v1/projects/:id/privacy-consent", ({ params }) =>
     HttpResponse.json({ projectId: String(params.id), consentedAt: new Date().toISOString() }),
   ),
