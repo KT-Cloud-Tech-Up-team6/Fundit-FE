@@ -142,3 +142,32 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$image_uri"
           docker push "$image_uri"
           printf 'Image: `%s`\nPlatform: `linux/amd64`\nCommit: `%s`\n' "$image_uri" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch GitOps image update
+        env:
+          GH_TOKEN: ${{ secrets.FUNDIT_GITOPS_TOKEN }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo '::error::Missing FUNDIT_GITOPS_TOKEN Actions secret.'
+            exit 1
+          fi
+
+          image_uri="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          image_digest="$(docker buildx imagetools inspect "$image_uri" \
+            --format '{{json .Manifest}}' | jq -r '.digest // empty')"
+          if [[ ! "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo '::error::Could not read the pushed image digest.'
+            exit 1
+          fi
+
+          gh workflow run cd-dispatch-frontend-image.yml \
+            --repo KT-Cloud-Tech-Up-team6/Fundit-GitOps \
+            --ref main \
+            -f image_tag="$IMAGE_TAG" \
+            -f image_digest="$image_digest" \
+            -f source_sha="$GITHUB_SHA"
+
+          printf 'GitOps image update requested for `%s` (`%s`).\n' \
+            "$IMAGE_TAG" "$image_digest" >> "$GITHUB_STEP_SUMMARY"
