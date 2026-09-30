@@ -30,13 +30,12 @@ export function formatKoreanDate(value: string | undefined): string {
 }
 
 /* 정리표(2323:53727)에 있는 여섯 단계는 정리표 문구를, 없는 세 단계는 기존 주문 상태 문구를 쓴다.
-   FUNDING_SUCCEEDED(성립 후 제작·발송 준비, 발송 예정일 이내)는 PM 답변(2026-09-29, "펀딩 성공과 발송 지연
-   사이를 제작 중")으로 "제작 중"이다. PD 회신(PD-2)의 "펀딩 성공"과 노션 FE 자체 판단 33·34를 대신한다.
-   "펀딩 성공"은 목표 달성 주문 전체를 묶는 분류 필터 이름으로만 남는다(#431). */
+   성립 후 판매자가 제작·배송 현황에 첫 진행 기록을 올리기 전(FUNDING_SUCCEEDED)은 "펀딩 성공"(PD-2),
+   올린 뒤(IN_PRODUCTION)는 "제작 중"이다(PM 답변 2026-09-29, BE #200·PR #203). 일정 변경만 등록한 것은
+   BE가 진행 기록으로 보지 않는다. 예정일이 지나면 기록과 상관없이 발송 지연이다. */
 export const fundingStageLabels: Record<string, string> = {
   FUNDING_IN_PROGRESS: "펀딩 진행 중",
-  FUNDING_SUCCEEDED: "제작 중",
-  /* BE가 판매자 첫 진행 기록 뒤를 따로 내리기로 한 값(09-29 BE 회신, 미반영). 먼저 배포돼도 원문이 보이지 않게 둔다. */
+  FUNDING_SUCCEEDED: "펀딩 성공",
   IN_PRODUCTION: "제작 중",
   SHIPPING_DELAYED: "발송 지연",
   SHIPPING: "배송 중",

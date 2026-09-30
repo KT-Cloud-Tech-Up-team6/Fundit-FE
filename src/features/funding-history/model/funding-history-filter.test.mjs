@@ -145,8 +145,8 @@ test("분류별 서버 status와 화면이 거를 진행 단계", () => {
   assert.deepEqual(rules, {
     all: ["", "-"],
     in_progress: ["PENDING+FUNDING_IN_PROGRESS", "-"],
-    succeeded: ["GOAL_ACHIEVED", "-"],
-    producing: ["GOAL_ACHIEVED", "FUNDING_SUCCEEDED+IN_PRODUCTION"],
+    succeeded: ["GOAL_ACHIEVED", "FUNDING_SUCCEEDED"],
+    producing: ["GOAL_ACHIEVED", "IN_PRODUCTION"],
     delayed: ["GOAL_ACHIEVED", "SHIPPING_DELAYED"],
     shipping: ["GOAL_ACHIEVED", "SHIPPING"],
     delivered: ["GOAL_ACHIEVED", "DELIVERED"],
@@ -180,18 +180,24 @@ test("진행 단계 분류는 받은 목록에서 같은 단계만 남겨 20건�
   });
 });
 
-test("제작 중은 BE가 나눠 줄 IN_PRODUCTION도 함께 거른다(09-29 BE 회신, 미반영)", () => {
+test("펀딩 성공은 첫 진행 기록 전, 제작 중은 기록 뒤 주문만 거른다(#489)", () => {
   const orders = [
     { id: 1, progressStage: "FUNDING_SUCCEEDED" },
     { id: 2, progressStage: "IN_PRODUCTION" },
     { id: 3, progressStage: "SHIPPING" },
+    { id: 4, progressStage: "FUNDING_SUCCEEDED" },
   ];
-  const page = pageByStages(orders, categoryStages("producing"), 1, 20);
+  const succeeded = pageByStages(orders, categoryStages("succeeded"), 1, 20);
   assert.deepEqual(
-    page.content.map((order) => order.id),
-    [1, 2],
+    succeeded.content.map((order) => order.id),
+    [1, 4],
   );
-  assert.equal(page.totalElements, 2);
+  assert.equal(succeeded.totalElements, 2);
+  const producing = pageByStages(orders, categoryStages("producing"), 1, 20);
+  assert.deepEqual(
+    producing.content.map((order) => order.id),
+    [2],
+  );
 });
 
 test("잘못된 직접 기간은 최근 한 달로 돌아간다", () => {
