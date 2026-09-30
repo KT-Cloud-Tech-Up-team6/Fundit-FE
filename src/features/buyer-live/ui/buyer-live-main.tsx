@@ -134,6 +134,7 @@ function StatusBadge({
       className={live ? styles.liveBadge : ranking ? styles.rankingBadge : styles.viewerBadge}
     >
       <LiveAsset name={scheduled ? "alarm" : live ? "live-navigation" : "viewers"} />
+      {!scheduled && !live && <span className="sr-only">시청자</span>}
       <span>{scheduled ? "예정됨" : live ? "LIVE" : viewers}</span>
     </Badge>
   );
@@ -628,7 +629,7 @@ export function BuyerLiveMain({
     );
   }
 
-  function scheduledRow(rank: number, card: ScheduledView) {
+  function scheduledRow(card: ScheduledView) {
     return (
       <article className="flex gap-3">
         <Link
@@ -647,9 +648,11 @@ export function BuyerLiveMain({
             <h3 className="min-[1200px]:text-title-m line-clamp-3 text-[16px] leading-6 font-semibold">
               {card.title}
             </h3>
-            <span className="sr-only">
-              {card.schedule.date} {card.schedule.time}
-            </span>
+            {card.schedule.date && (
+              <span className="sr-only">
+                {card.schedule.date} {card.schedule.time}
+              </span>
+            )}
             {card.seller && (
               <span className="text-label-m text-text-secondary mt-1">{card.seller.seller}</span>
             )}
@@ -765,7 +768,6 @@ export function BuyerLiveMain({
                     >
                       {upcoming ? (
                         scheduledRow(
-                          rank,
                           live ? realScheduled(live) : demoScheduled(`scheduled-${rank}`),
                         )
                       ) : (

@@ -72,6 +72,11 @@ export const UpcomingNoFollowing: Story = {
     expect(canvas.queryByRole("region", { name: "팔로우한 창작자" })).not.toBeInTheDocument();
     expect(canvas.getByRole("region", { name: "알림 신청한 라이브" })).toBeInTheDocument();
     expect(canvas.getByRole("link", { name: "예정 LIVE" })).toHaveAttribute("aria-current", "page");
+    /* 예정 목록 행: 숨긴 썸네일 링크 대신 제목 링크 하나가 제목과 일시를 함께 알린다. */
+    const row = canvas.getAllByRole("link", { name: /09\.18 오후 3:40/ })[0];
+    expect(row).toHaveAccessibleName(
+      expect.stringContaining(within(row).getByRole("heading").textContent ?? ""),
+    );
   },
 };
 
@@ -88,6 +93,11 @@ export const Default: Story = {
       rect.y + rect.height / 2,
     );
     expect(target?.closest("a")).toHaveAttribute("href", "/live/new-1");
+    /* aria-label 없이 가시 텍스트가 이름이 된다: 시청자 수 맥락, 제목, 판매자가 모두 들어간다. */
+    const link = cards.getAllByRole("article")[0].querySelector("a") as HTMLElement;
+    const title = within(link).getByRole("heading").textContent ?? "";
+    expect(link).toHaveAccessibleName(expect.stringContaining("시청자 101"));
+    expect(link).toHaveAccessibleName(expect.stringContaining(title));
   },
 };
 
