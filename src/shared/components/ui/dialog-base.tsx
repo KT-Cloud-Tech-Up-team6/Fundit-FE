@@ -27,10 +27,15 @@ export function DialogBase({
   onCancel,
   onClick,
   onClose,
+  onPointerDown,
+  onPointerUp,
   open,
   ...props
 }: DialogBaseProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  /* 이번 누름이 배경에서 시작해 배경에서 끝났는지. 창 안에서 누르고 배경에서 떼거나 그 반대로 끌면
+     click은 두 요소의 공통 조상인 dialog를 target으로 남겨 배경 클릭과 구분되지 않는다(#506). */
+  const backdropPressRef = useRef(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -77,10 +82,18 @@ export function DialogBase({
         event.preventDefault();
         onClose();
       }}
+      onPointerDown={(event) => {
+        onPointerDown?.(event);
+        backdropPressRef.current = event.target === event.currentTarget;
+      }}
+      onPointerUp={(event) => {
+        onPointerUp?.(event);
+        if (event.target !== event.currentTarget) backdropPressRef.current = false;
+      }}
       onClick={(event) => {
         onClick?.(event);
         /* backdrop 클릭은 dialog 자신을 target으로 남긴다. 내용 클릭은 자식이 받는다. */
-        if (event.target === dialogRef.current) onClose();
+        if (event.target === dialogRef.current && backdropPressRef.current) onClose();
       }}
       ref={dialogRef}
       {...props}

@@ -26,6 +26,9 @@ export default defineConfig({
       // .env.local의 실제 client ID가 e2e를 실제 제공자로 보내지 않게 비운다(목업 인가 코드를 쓴다).
       NEXT_PUBLIC_KAKAO_CLIENT_ID: "",
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "",
+      // .env.local의 API 프록시가 목업 없는 /api 요청을 실제 dev BE로 보내, e2e 결과가 dev 데이터에 따라
+      // 달라진다(#510). 비워 두면 목업 없는 요청은 이 서버에서 404로 끝난다.
+      API_PROXY_TARGET: "",
     },
   },
 });

@@ -67,6 +67,18 @@ function passwordCategoryCount(value: string) {
   return [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(value)).length;
 }
 
+/* BE `ReservedNickname`(BE PR #208)처럼 NFKC로 맞추고 공백·폭 없는 문자를 뺀 소문자 값이 예약어와 같은지 본다. */
+const reservedNicknames = new Set(["판매자", "나", "ai매니저", "시청자"]);
+
+function isReservedNickname(value: string) {
+  return reservedNicknames.has(
+    value
+      .normalize("NFKC")
+      .replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "")
+      .toLowerCase(),
+  );
+}
+
 export const authHandlers = [
   http.get("*/api/v1/terms", async ({ request }) => {
     const scenario = new URL(request.url).searchParams.get("scenario");
@@ -115,6 +127,10 @@ export const authHandlers = [
     };
     const email = body.email ?? "";
     const verificationToken = body.verificationToken ?? "";
+    // BE처럼 가입 처리 맨 앞에서 거절해 본인인증 토큰을 쓰지 않는다.
+    if (isReservedNickname(body.nickname ?? "")) {
+      return error(400, "RESERVED_NICKNAME", "사용할 수 없는 닉네임입니다.");
+    }
     if (email.startsWith("timeout@")) return delay("infinite");
     if (email.startsWith("taken@")) {
       return error(409, "EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.");
@@ -293,6 +309,10 @@ export const authHandlers = [
   http.post("*/api/v1/auth/signup/social", async ({ request }) => {
     const body = (await request.json()) as Partial<SocialSignupRequest>;
     const token = body.signupToken;
+    // 예약어 닉네임은 BE처럼 토큰을 쓰기 전에 거절한다. 같은 토큰으로 닉네임만 고쳐 다시 보낼 수 있다.
+    if (isReservedNickname(body.nickname ?? "")) {
+      return error(400, "RESERVED_NICKNAME", "사용할 수 없는 닉네임입니다.");
+    }
     if (
       !token?.startsWith("mock-") ||
       token === "mock-expired-token" ||
