@@ -360,8 +360,11 @@ export function RealBuyerLive({
       controls={!isVod}
       onPlayingChange={setPlaying}
       live={!isVod}
-      /* 데스크톱 영상 칸은 세로라 세로 송출이 빈칸 없이 채운다. 모바일 배치는 #497. */
-      coverPortrait={desktop && !isVod}
+      /* 데스크톱 세로 영상 칸(#494)과 모바일 화면 전체(#497)를 세로 송출이 빈칸 없이 채운다. */
+      coverPortrait={!isVod}
+      /* 모바일 시청 화면(Figma 1408:42073)에는 재생 조작이 없어 기본 컨트롤 대신 멈춰 있을 때만 가운데 재생
+         버튼을 보인다(#497). */
+      playButton={!isVod && !desktop}
     />
   );
   const questionData =
