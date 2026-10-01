@@ -9,6 +9,7 @@ import type { StoryPreviewResponse } from "@/entities/project/api/story-api";
 import { agreeProjectPrivacy, submitProject } from "@/entities/project/api/seller-project-api";
 import { ProjectConsentModal } from "@/features/project-basic-info/ui/project-consent-modal";
 import { isApiError } from "@/shared/api/api-error";
+import { storyBodyError } from "../model/story-body";
 import { fromIntroContent, toIntroContent } from "../model/story-content";
 import { STORY_TITLE_MAX_LENGTH, storyTitleError } from "../model/story-title";
 import { missingPublishRequirements, type PublishRequirement } from "../model/project-publish";
@@ -97,6 +98,21 @@ export function ProjectStoryForm({
       pending.current = false;
       setBusy(false);
     }
+  }
+  /* "저장" 버튼. 빈 본문은 공개 확인 모달을 열거나 소개를 저장하기 전에 막는다(QA-175·176).
+     임시저장은 이 검사를 거치지 않는다. */
+  function saveOrPublish() {
+    if (!editor) return;
+    const bodyError = storyBodyError(editor.getJSON());
+    if (bodyError) {
+      setFailed(true);
+      setMessage(bodyError);
+      return;
+    }
+    setFailed(false);
+    setMessage("");
+    if (draft) setPublishStep({ step: "confirm" });
+    else void save();
   }
   async function publish(consented = false) {
     if (!editor || pending.current || !initial) return;
@@ -236,7 +252,7 @@ export function ProjectStoryForm({
               disabled={!initial || !editor || busy}
               size="lg"
               appearance="cta"
-              onClick={() => (draft ? setPublishStep({ step: "confirm" }) : void save())}
+              onClick={saveOrPublish}
             >
               저장
             </Button>
