@@ -73,6 +73,8 @@ export function ProjectBasicInfoForm({
   const rewardFile = useRef<File | undefined>(undefined);
   /* 저장을 눌러 본 뒤에만 칸별 오류를 보인다. 그 뒤로는 값을 고치는 대로 오류가 사라진다. */
   const [attempt, setAttempt] = useState<BasicInfoLevel | null>(null);
+  /* 편집 화면의 리워드는 서버 목록으로 관리한다. 그 개수를 리워드 관리 영역이 알려준다. */
+  const [serverRewardCount, setServerRewardCount] = useState<number | undefined>();
   const [rewards, setRewards] = useState<DemoReward[]>(() =>
     initialView.startsWith("list") ? demoRewards.map((reward) => ({ ...reward })) : [],
   );
@@ -90,7 +92,8 @@ export function ProjectBasicInfoForm({
   const apiProjectId = isPublicUuid(params?.projectId) ? params.projectId : undefined;
   const subcategoryOptions = category ? (subcategoriesByMain[category] ?? []) : [];
   const values = { business, title, category, subcategory, amount };
-  const errors = attempt ? basicInfoFieldErrors(values, attempt, rewards.length) : {};
+  const rewardCount = apiProjectId ? serverRewardCount : rewards.length;
+  const errors = attempt ? basicInfoFieldErrors(values, attempt, rewardCount) : {};
   const invalid = (field: BasicInfoField) => (errors[field] ? true : undefined);
   const describedBy = (field: BasicInfoField) => (errors[field] ? `${field}-error` : undefined);
   const fieldError = (field: BasicInfoField, text = errors[field]) =>
@@ -138,8 +141,8 @@ export function ProjectBasicInfoForm({
   }
   async function saveBasicInfo(partial = false) {
     if (savingRef.current) return;
-    const level = partial ? "draft" : mode === "edit" ? "edit" : "create";
-    const found = basicInfoFieldErrors(values, level, rewards.length);
+    const level = partial ? "draft" : "full";
+    const found = basicInfoFieldErrors(values, level, rewardCount);
     const first = basicInfoFields.find((field) => found[field]);
     setAttempt(level);
     if (first) {
@@ -167,9 +170,7 @@ export function ProjectBasicInfoForm({
         setAttempt(null);
         setFormMessageRole("status");
         setFormMessage(
-          mode === "edit"
-            ? "기본 정보를 저장했습니다. 리워드는 이번 저장에 포함되지 않습니다."
-            : "기본 정보와 리워드를 저장했습니다.",
+          mode === "edit" ? "기본 정보를 저장했습니다." : "기본 정보와 리워드를 저장했습니다.",
         );
       } catch (error) {
         /* 결과를 모르는 리워드는 고치면 같은 멱등 키에 다른 본문이 가 409가 난다. 잠가 두고 다시 저장하면
@@ -361,7 +362,11 @@ export function ProjectBasicInfoForm({
             </div>
           </div>
           {apiProjectId ? (
-            <ProjectRewardManager projectId={apiProjectId} />
+            <ProjectRewardManager
+              projectId={apiProjectId}
+              error={errors.rewards}
+              onCountChange={setServerRewardCount}
+            />
           ) : (
             <section className="mt-[45px]" aria-labelledby="rewards" data-field="rewards">
               <h2 id="rewards" className="text-title-s text-text-title">

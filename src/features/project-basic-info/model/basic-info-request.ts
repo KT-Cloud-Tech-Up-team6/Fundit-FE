@@ -36,19 +36,19 @@ export const basicInfoFields: readonly BasicInfoField[] = [
   "amount",
   "rewards",
 ];
-/** draft는 임시저장(형식만 검사), edit은 기존 프로젝트 저장(제목·목표 금액 필수),
-    create는 신규 생성 저장(사업자 유형·카테고리·리워드까지 모두 필수). */
-export type BasicInfoLevel = "draft" | "edit" | "create";
+/** draft는 임시저장(형식만 검사), full은 저장(신규 생성·편집 모두 6개 항목을 필수로 검사). */
+export type BasicInfoLevel = "draft" | "full";
 
-/** 칸마다 오류 문구를 돌려준다. 비어 있으면 저장해도 된다. */
+/** 칸마다 오류 문구를 돌려준다. 비어 있으면 저장해도 된다. 리워드 개수를 아직 모르면(서버 목록을
+    불러오는 중) `rewardCount`를 비워 리워드 검사를 건너뛴다. 공개 때 BE가 한 번 더 막는다. */
 export function basicInfoFieldErrors(
   values: BasicInfoValues,
   level: BasicInfoLevel,
-  rewardCount = 0,
+  rewardCount?: number,
 ): BasicInfoErrors {
   const errors: BasicInfoErrors = {};
-  const required = level !== "draft";
-  const all = level === "create";
+  const required = level === "full";
+  const all = required;
   const title = values.title.trim();
   if (values.business ? !businessCodes[values.business] : all)
     errors.business = "사업자 유형을 선택해주세요.";

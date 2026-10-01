@@ -184,7 +184,7 @@ export function ProjectBasicInfoApi({
             statusMessage={
               initialValues.business
                 ? undefined
-                : "저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다."
+                : "저장된 사업자 유형을 확인할 수 없습니다. 아래에서 다시 선택해주세요."
             }
           />
         ) : (

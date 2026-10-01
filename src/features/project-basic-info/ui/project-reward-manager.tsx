@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
@@ -35,7 +35,17 @@ import {
 } from "../model/reward-create-attempt";
 
 /** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
-export function ProjectRewardManager({ projectId }: { projectId: string }) {
+export function ProjectRewardManager({
+  projectId,
+  error,
+  onCountChange,
+}: {
+  projectId: string;
+  /** 저장을 눌렀을 때 리워드가 없다는 안내. 기본 정보 폼이 내려준다. */
+  error?: string;
+  /** 서버에 등록된 리워드 개수. 아직 불러오지 못했으면 undefined. */
+  onCountChange?: (count: number | undefined) => void;
+}) {
   const { state } = useAuth();
   const cache = useQueryClient();
   const queryKey = ["seller-rewards", state.user?.memberId, projectId];
@@ -45,6 +55,8 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
     enabled: state.status === "authenticated" && Boolean(state.user?.memberId),
   });
   const rewards = (query.data ?? []).map(rewardToDraft);
+  const count = query.data?.length;
+  useEffect(() => onCountChange?.(count), [count, onCountChange]);
   const [draft, setDraft] = useState<RewardDraft | null>(null),
     [editing, setEditing] = useState<number | undefined>();
   const [rewardMessage, setRewardMessage] = useState(""),
@@ -151,7 +163,7 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
   return (
     <>
       <fieldset disabled={busy}>
-        <section className="mt-[45px]" aria-labelledby="rewards">
+        <section className="mt-[45px]" aria-labelledby="rewards" data-field="rewards">
           <h2 id="rewards" className="text-title-s text-text-title">
             리워드
           </h2>
@@ -251,13 +263,19 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
                 appearance="cta"
                 size="md"
                 className="text-body-s! w-[106px] gap-1 font-medium"
+                aria-describedby={error ? "rewards-error" : undefined}
                 onClick={() => openReward()}
               >
                 추가 <Icon name="plus" className="size-4" />
               </Button>
             </div>
           ) : (
-            <div className="bg-layer-bg border-w-xs border-border-default mt-2 flex h-[238px] flex-col items-center justify-center rounded-sm border border-dashed">
+            <div
+              className={[
+                "bg-layer-bg border-w-xs mt-2 flex h-[238px] flex-col items-center justify-center rounded-sm border border-dashed",
+                error ? "border-border-accent-warning" : "border-border-default",
+              ].join(" ")}
+            >
               <div className="relative size-14">
                 <Icon name="gift" className="absolute top-2.5 left-2.5 size-9" />
                 <Icon name="plusCircle" className="absolute top-0 right-0 size-4" />
@@ -271,11 +289,17 @@ export function ProjectRewardManager({ projectId }: { projectId: string }) {
                 type="button"
                 size="md"
                 className="text-body-s! mt-3 h-10! w-[204px] font-medium"
+                aria-describedby={error ? "rewards-error" : undefined}
                 onClick={() => openReward()}
               >
                 리워드 추가
               </Button>
             </div>
+          )}
+          {error && (
+            <p id="rewards-error" className="text-caption-s text-text-warning mt-1">
+              {error}
+            </p>
           )}
         </section>
         {formMessage && <p role="alert">{formMessage}</p>}
