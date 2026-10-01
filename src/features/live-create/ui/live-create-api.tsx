@@ -32,6 +32,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Dropdown } from "@/shared/components/ui/dropdown";
 import { Modal } from "@/shared/components/ui/modal";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { Tooltip } from "@/shared/components/ui/tooltip";
 import {
   fromProjectListItem,
   fromProjectPreview,
@@ -578,24 +579,29 @@ export function LiveCreateApi({
               readOnly
               value={intro}
             />
-            <div className="relative mt-auto flex shrink-0 items-center gap-3 pt-12">
-              {cueSaved && (
-                <span
-                  role="status"
-                  className="bg-layer-surface-primary text-text-inverse text-caption-s absolute top-3 left-8 rounded-xs px-2 py-1"
+            {/* 원본 FL_S_LV_CREATE_8은 두 버튼이 같은 폭(264px)이다. */}
+            <div className="mt-auto grid shrink-0 grid-cols-2 gap-3 pt-12">
+              <div className="relative">
+                {/* 원본 tooltip_vertical(1256:26836)은 [AI 큐시트 생성] 가로 가운데 바로 위, 꼬리 끝이
+                    버튼 위 3px이다. */}
+                {cueSaved && (
+                  <div
+                    role="status"
+                    className="absolute bottom-full left-1/2 mb-[3px] w-max -translate-x-1/2"
+                  >
+                    <Tooltip variant="inverse">저장된 큐시트가 있어요!</Tooltip>
+                  </div>
+                )}
+                <button
+                  className={`${secondaryButtonClasses} h-10 w-full font-medium`}
+                  onClick={() => setCueOpen(true)}
+                  type="button"
                 >
-                  저장된 큐시트가 있어요!
-                </span>
-              )}
-              <button
-                className={`${secondaryButtonClasses} h-10 flex-1`}
-                onClick={() => setCueOpen(true)}
-                type="button"
-              >
-                AI 큐시트 생성
-              </button>
+                  AI 큐시트 생성
+                </button>
+              </div>
               <Button
-                className="h-10 flex-1 font-semibold"
+                className="text-body-s! h-10 w-full font-medium"
                 size="sm"
                 variant="primaryLive"
                 disabled={!liveId || start.isPending}
@@ -676,7 +682,12 @@ export function LiveCreateApi({
         <LiveCueSheetApi
           liveId={liveId}
           onClose={() => setCueOpen(false)}
-          onSaved={() => setCueSaved(true)}
+          /* 원본 `1256:26879` "저장 시 자동 [FL_S_LV_CREATE]로 이동": 저장되면 모달을 닫고 확인 화면의
+             저장 툴팁을 보인다(#530). 단독 큐시트 화면은 onSaved가 없어 그대로 머문다. */
+          onSaved={() => {
+            setCueSaved(true);
+            setCueOpen(false);
+          }}
         />
       )}
     </>

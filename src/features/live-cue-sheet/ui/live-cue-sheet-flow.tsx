@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { CUE_SHEET_BRIEF_MAX_LENGTH } from "@/entities/live/api/live-cue-sheet-api";
@@ -25,6 +26,35 @@ type Step =
 
 /** 다섯 답을 받은 뒤의 정정은 새 답이 아니라 골라둔 답(기본 마지막 답) 뒤에 이 머리말로 붙는다. */
 const CORRECTION_PREFIX = "\n정정 사항: ";
+
+/** 원본 FL_S_LVS_AISLT_1~3의 유형 카드. 설명·예시 문구는 원본 그대로다. */
+const cueTypeOptions = [
+  {
+    value: "scenario",
+    label: "시나리오",
+    description: "시나리오: 진행 순서 + 구간별 주요 내용 + 예상 시간",
+    examples: [
+      "인사와 오늘 방송에서 다룰 내용 안내",
+      "제품명과 오늘 방송의 핵심 한 줄 소개",
+      "방송이 10분 진행된다는 점 안내",
+      "상품 시연",
+    ],
+  },
+  {
+    value: "script",
+    label: "대사 완성",
+    description: "대사 완성: 시나리오 내용 포함 + 구간별 완성 대사 전문",
+    examples: [
+      '"안녕하세요, 오늘은 무선 청소기 V3를 소개해 드리려고 합니다."',
+      '"무게를 줄이면서도 흡입력은 그대로 유지한 제품인데요, 어떻게 만들었는지부터 보여드릴게요."',
+    ],
+  },
+] as const satisfies readonly {
+  value: CueSheetType;
+  label: string;
+  description: string;
+  examples: readonly string[];
+}[];
 
 /**
  * 서버가 아는 큐시트 상태. `onGenerate`와 함께 주면 이 화면은 **API 모드**로 동작한다 —
@@ -74,29 +104,38 @@ function ProjectInfo({ project }: { project: CueSheetProject }) {
           이미지 없음
         </div>
       )}
-      {/* 값이 없으면 지어내지 않고 자리만 남긴 채 없다고 적는다. */}
-      <div className="min-w-0">
-        <h4 className="text-body-strong">{project.title}</h4>
-        <div className="text-caption-s text-text-secondary flex flex-col gap-1">
-          <span>{project.category || "카테고리 정보 없음"}</span>
-          <span>{project.period || "기간 정보 없음"}</span>
-          <span className="flex items-center gap-1">
-            <Icon name="people" className="size-3.5" />
-            {project.participantCount === null
-              ? "참여자 정보 없음"
-              : `${project.participantCount}명`}
-          </span>
+      {/* 값이 없으면 지어내지 않고 자리만 남긴 채 없다고 적는다. 원본 카드는 기간 한 줄,
+          카테고리·참여자 한 줄, 모금액·목표액 순서다. */}
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
+          <h4 className="text-body-strong">{project.title}</h4>
+          <div className="text-caption-s text-text-secondary flex flex-col gap-1">
+            <span className="font-medium">{project.period || "기간 정보 없음"}</span>
+            {/* "정보 없음" 문구는 길어 줄이 바뀌므로 구분점은 두 값이 다 있을 때만 둔다. */}
+            <span className="flex flex-wrap items-center gap-1">
+              {project.category || "카테고리 정보 없음"}
+              {project.category && project.participantCount !== null && <span aria-hidden>·</span>}
+              <span className="flex items-center gap-1">
+                <Icon name="people" className="size-3.5" />
+                {project.participantCount === null
+                  ? "참여자 정보 없음"
+                  : `${project.participantCount}명`}
+              </span>
+            </span>
+          </div>
         </div>
-        <p className="text-title-s mt-2">
-          {project.currentAmount === null
-            ? "모금액 정보 없음"
-            : `${project.currentAmount.toLocaleString("ko-KR")}원`}
-        </p>
-        <p className="text-body-s text-text-secondary">
-          {project.goalAmount === null
-            ? "목표액 정보 없음"
-            : `/ ${project.goalAmount.toLocaleString("ko-KR")}원`}
-        </p>
+        <div>
+          <p className="text-title-s">
+            {project.currentAmount === null
+              ? "모금액 정보 없음"
+              : `${project.currentAmount.toLocaleString("ko-KR")}원`}
+          </p>
+          <p className="text-body-s text-text-secondary">
+            {project.goalAmount === null
+              ? "목표액 정보 없음"
+              : `/ ${project.goalAmount.toLocaleString("ko-KR")}원`}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -162,6 +201,7 @@ export function LiveCueSheetFlow({
     : CUE_SHEET_BRIEF_MAX_LENGTH;
   const apiMode = Boolean(onGenerate);
   const message = externalNotice || notice;
+  const optionsReady = Boolean(type) && minutes >= 1;
   /* 서버 상태가 "바뀐 순간"에만 단계를 옮긴다. 매 렌더마다 옮기면 판매자가 편집기에서
      뒤로 간 직후 다시 편집기로 끌려온다. */
   const [appliedPhase, setAppliedPhase] = useState(generation?.phase ?? null);
@@ -350,36 +390,37 @@ export function LiveCueSheetFlow({
           </header>
 
           {step === "generating" || step === "ready" ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex min-h-[540px] flex-col items-center justify-center gap-10"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <h3 className="text-title-s text-center">AI가 큐시트를 생성중이에요...</h3>
-                {/* 원본(FL_S_LVS_AIC)에는 제목과 로고뿐이라 문구 자리가 없다. 다만 실제
-                    생성이 평균 1분 26초·최대 2분 남짓 걸려 안내 없이는 멈춘 화면으로 보인다. */}
-                <p className="text-body-s text-text-secondary text-center">
-                  보통 1분 30초, 길게는 2분 정도 걸려요
-                </p>
-              </div>
-              <div className="bg-layer-surface-default flex size-40 items-center justify-center rounded-full">
+            /* 원본 FL_S_LVS_AISLT_4(모달 1230:17313): 500px 내용 칸 가운데 456×286 상자에
+               제목과 로고를 40px 간격으로 두고, 흰 원(160)은 로고 뒤에 따로 놓는다. */
+            <div role="status" aria-live="polite" className="mt-6 flex h-[500px] justify-center">
+              <div className="relative flex h-[286px] w-[456px] flex-col items-center gap-10 self-center px-4 pt-8">
+                <span
+                  aria-hidden
+                  className="bg-layer-surface-default absolute top-[82.5px] left-[146.5px] size-40 rounded-full"
+                />
+                <h3 className="text-title-s relative text-center">AI가 큐시트를 생성중이에요...</h3>
                 <Image
                   src="/images/seller-live/loading-logo.svg"
                   alt=""
                   width={144}
                   height={121}
-                  className={styles.loadingLogo}
+                  className={`relative ${styles.loadingLogo}`}
                 />
+                {/* 원본에는 제목과 로고뿐이라 문구 자리가 없다. 다만 실제 생성이 평균 1분 26초·
+                    최대 2분 남짓 걸려 안내 없이는 멈춘 화면으로 보인다. 원본의 제목·원·로고 자리를
+                    그대로 두려고 원 아래에 둔다. */}
+                <p className="text-body-s text-text-secondary text-center">
+                  보통 1분 30초, 길게는 2분 정도 걸려요
+                </p>
               </div>
             </div>
           ) : step === "failed" ? (
             /* FL_S_LVS_AIC_FAIL — 원본에 실패 화면이 없어 새로 부여한 화면 ID다.
-               생성 중 화면(FL_S_LVS_AIC)과 같은 자리·배경을 쓰고 사유와 재시도만 둔다 —
+               생성 중 화면(FL_S_LVS_AISLT_4)과 같은 자리·배경을 쓰고 사유와 재시도만 둔다 —
                생성 중·성공과 구분되지 않으면 판매자가 기다리기만 하게 된다(#289 필수 계약 2). */
             <div
               role="alert"
-              className="flex min-h-[540px] flex-col items-center justify-center gap-6 px-6 text-center"
+              className="mt-6 flex h-[500px] flex-col items-center justify-center gap-6 px-6 text-center"
             >
               <h3 className="text-title-s">AI 큐시트를 만들지 못했어요</h3>
               <p className="text-body-s text-text-secondary max-w-md break-words">
@@ -487,11 +528,22 @@ export function LiveCueSheetFlow({
                               )}
                             </div>
                           ))}
+                        {/* 원본 FL_S_LVS_AIC_3의 완료 안내도 질문과 같은 chat_dialogue_unit이라
+                            avatar가 붙고 문항 번호만 없다. */}
                         {complete && (
-                          <p className="bg-layer-surface-default border-border-default text-body-s rounded-[16px] rounded-tl-none border p-4">
-                            필수 항목 입력을 완료했어요. 다음으로 이동하거나, 고칠 답변을 탭하고
-                            정정할 내용을 입력해주세요(안 고르면 마지막 답이 고쳐져요).
-                          </p>
+                          <div className="flex items-start gap-3">
+                            <Image
+                              src="/icons/funding-story/avatar.svg"
+                              alt=""
+                              width={28}
+                              height={32}
+                              className="h-8 w-7 shrink-0"
+                            />
+                            <p className="bg-layer-surface-default border-border-default text-body-s max-w-[85%] rounded-[16px] rounded-tl-none border p-4">
+                              필수 항목 입력을 완료했어요. 다음으로 이동하거나, 고칠 답변을 탭하고
+                              정정할 내용을 입력해주세요(안 고르면 마지막 답이 고쳐져요).
+                            </p>
+                          </div>
                         )}
                       </div>
                       <form
@@ -574,81 +626,127 @@ export function LiveCueSheetFlow({
                       </button>
                     </div>
                   ) : (
-                    <div className={`${styles.panel} flex flex-col gap-6 p-4`}>
-                      <fieldset className="grid min-h-0 flex-1 grid-cols-2 gap-3">
+                    /* 원본 FL_S_LVS_AISLT_1~3: 유형 카드 두 장(338px) 아래 48px 띄워 방송 시간 줄을 둔다. */
+                    <div className={`${styles.panel} flex flex-col gap-12 p-4`}>
+                      <fieldset className="grid h-[338px] shrink-0 grid-cols-2 gap-3">
                         <legend className="sr-only">큐시트 유형</legend>
-                        {(["scenario", "script"] as const).map((value) => (
-                          <label
-                            key={value}
-                            className={`cursor-pointer overflow-y-auto rounded-xs border p-4 ${type === value ? "border-border-primary-live bg-layer-surface-primary-live/5" : "bg-layer-bg border-transparent"}`}
-                          >
-                            <span className="text-body-s flex items-center justify-between gap-2 font-medium">
-                              {value === "scenario" ? "시나리오" : "대사 완성"}
-                              <input
-                                type="radio"
-                                name="cue-type"
-                                value={value}
-                                checked={type === value}
-                                onChange={() => setType(value)}
-                                className="accent-layer-surface-primary size-4 shrink-0"
-                              />
-                            </span>
-                            <div className="text-body-s mt-2 space-y-4">
-                              <p>예시)</p>
-                              <p className="pt-2 underline">오프닝</p>
-                              {value === "scenario" ? (
-                                <>
-                                  <p>인사와 오늘 방송에서 다룰 내용 안내</p>
-                                  <p>제품명과 오늘 방송의 핵심 한 줄 소개</p>
-                                  <p>방송이 10분 진행된다는 점 안내</p>
-                                  <p>상품 시연</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p>
-                                    “안녕하세요, 오늘은 무선 청소기 V3를 소개해 드리려고 합니다.”
-                                  </p>
-                                  <p>
-                                    “무게를 줄이면서도 흡입력은 그대로 유지한 제품인데요, 어떻게
-                                    만들었는지부터 보여드릴게요.”
-                                  </p>
-                                </>
-                              )}
+                        {cueTypeOptions.map((option) => {
+                          const selected = type === option.value;
+                          return (
+                            <div key={option.value} className="flex min-h-0 flex-col gap-2">
+                              <p
+                                id={`cue-type-${option.value}`}
+                                className="text-label-s text-text-secondary font-medium"
+                              >
+                                {option.description}
+                              </p>
+                              {/* 테두리 1.5px만큼 안쪽 여백을 줄여 원본의 16px 안쪽 선을 맞춘다. */}
+                              <label
+                                className={`flex min-h-0 flex-1 cursor-pointer flex-col gap-6 overflow-y-auto rounded-xs border-[1.5px] p-[14.5px] ${selected ? "bg-status-accent border-border-primary-live" : "bg-layer-bg border-transparent"}`}
+                              >
+                                <span className="flex flex-col gap-2">
+                                  <span className="flex items-center justify-between">
+                                    <Badge variant={selected ? "primaryLive" : "info"}>
+                                      {option.label}
+                                    </Badge>
+                                    {/* 카드 전체가 label이라 공용 Radio(자체 label)를 넣지 못한다.
+                                        같은 모양을 그대로 그린다. */}
+                                    <span className="relative flex size-7 shrink-0 items-center justify-center p-1">
+                                      <input
+                                        type="radio"
+                                        name="cue-type"
+                                        value={option.value}
+                                        checked={selected}
+                                        aria-label={option.label}
+                                        aria-describedby={`cue-type-${option.value}`}
+                                        onChange={() => setType(option.value)}
+                                        className="peer sr-only"
+                                      />
+                                      <span
+                                        aria-hidden
+                                        className="border-border-default peer-checked:bg-layer-surface-primary peer-focus-visible:outline-border-primary after:border-text-inverse relative size-5 shrink-0 rounded-full border peer-checked:border-transparent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 after:absolute after:top-1/2 after:left-1/2 after:h-2.5 after:w-1.5 after:-translate-x-1/2 after:-translate-y-[60%] after:rotate-45 after:border-r-2 after:border-b-2 after:opacity-0 peer-checked:after:opacity-100"
+                                      />
+                                    </span>
+                                  </span>
+                                  <span className="text-label-m text-text-secondary font-medium">
+                                    예시)
+                                  </span>
+                                </span>
+                                <span className="flex flex-col gap-4">
+                                  <span className="text-label-l">오프닝</span>
+                                  <span className="flex flex-col">
+                                    <span className="text-body-s flex flex-col gap-4 font-medium">
+                                      {option.examples.map((example) => (
+                                        <span key={example}>{example}</span>
+                                      ))}
+                                    </span>
+                                    <span aria-hidden className="text-body-s w-[252px] text-center">
+                                      .<br />.
+                                    </span>
+                                  </span>
+                                </span>
+                              </label>
                             </div>
-                          </label>
-                        ))}
+                          );
+                        })}
                       </fieldset>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <label htmlFor="cue-minutes" className="text-body-m">
+                      <div className="flex items-center justify-between">
+                        <div className="w-[221px]">
+                          <label htmlFor="cue-minutes" className="text-body-emphasis block">
                             방송 시간 설정
                           </label>
                           <p id="cue-minutes-help" className="text-caption-s">
                             최대 10분 분량의 큐시트 제공이 가능합니다
                           </p>
                         </div>
-                        <div className="bg-layer-surface-disabled flex items-center rounded-xs px-3">
-                          <input
-                            id="cue-minutes"
-                            aria-describedby="cue-minutes-help"
-                            type="number"
-                            min={1}
-                            max={10}
-                            step={1}
-                            value={minutes}
-                            className="h-10 w-16 text-center"
-                            onChange={(event) =>
-                              setMinutes(
-                                Math.max(0, Math.min(10, Math.floor(Number(event.target.value)))),
-                              )
-                            }
-                          />
-                          <span>분</span>
+                        {/* 원본은 0분일 때 회색 칸(input_disabled), 고른 뒤 흰 칸(input_filled)과
+                            위·아래 버튼이다. 고르기 전에도 입력은 받는다. */}
+                        <div className="flex items-center gap-1">
+                          <div
+                            className={`${styles.minutesField} flex h-9 w-35 items-center justify-center rounded-xs border px-4 ${minutes > 0 ? "bg-layer-surface-default border-border-default text-body-m" : "bg-layer-surface-disabled text-body-s text-text-secondary border-transparent"}`}
+                          >
+                            <input
+                              id="cue-minutes"
+                              aria-describedby="cue-minutes-help"
+                              type="number"
+                              min={1}
+                              max={10}
+                              step={1}
+                              value={minutes}
+                              className="w-[2ch] [appearance:textfield] bg-transparent text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              onChange={(event) =>
+                                setMinutes(
+                                  Math.max(0, Math.min(10, Math.floor(Number(event.target.value)))),
+                                )
+                              }
+                            />
+                            <span>분</span>
+                          </div>
+                          <div className="flex w-8 flex-col gap-0.5">
+                            <button
+                              type="button"
+                              aria-label="방송 시간 1분 늘리기"
+                              disabled={minutes >= 10}
+                              className="border-border-default text-text-secondary disabled:text-text-disabled flex h-[17px] items-center justify-center rounded-xs border disabled:cursor-not-allowed"
+                              onClick={() => setMinutes(Math.min(10, Math.max(1, minutes + 1)))}
+                            >
+                              <Icon name="arrowDown" className="size-2 rotate-180" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="방송 시간 1분 줄이기"
+                              disabled={minutes <= 1}
+                              className="border-border-default text-text-secondary disabled:text-text-disabled flex h-[17px] items-center justify-center rounded-xs border disabled:cursor-not-allowed"
+                              onClick={() => setMinutes(Math.max(1, minutes - 1))}
+                            >
+                              <Icon name="arrowDown" className="size-2" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
-                  <div className="mt-5 flex justify-between gap-4">
+                  <div className="mt-6 flex justify-between gap-4">
                     <button
                       type="button"
                       className={`${styles.secondary} w-36`}
@@ -660,18 +758,14 @@ export function LiveCueSheetFlow({
                     >
                       {step === "chat" ? "큐시트 불러오기" : "뒤로가기"}
                     </button>
+                    {/* 원본은 유형·시간을 다 고르기 전엔 "다음으로", 고른 뒤 LIVE 색 "큐시트 생성"이다.
+                        비활성 면은 원본 버튼(color=disabled)의 #cdced4로 LIVE 생성 화면과 맞춘다. */}
                     <Button
                       size="md"
-                      variant={
-                        step === "options" && type && minutes > 0 ? "primaryLive" : "primary"
-                      }
-                      className="text-body-s! h-10! w-36"
+                      variant={step === "options" && optionsReady ? "primaryLive" : "primary"}
+                      className="text-body-s! h-10! w-36 disabled:bg-[#cdced4]!"
                       disabled={
-                        step === "chat"
-                          ? !complete
-                          : step === "options"
-                            ? !type || minutes < 1
-                            : false
+                        step === "chat" ? !complete : step === "options" ? !optionsReady : false
                       }
                       onClick={
                         step === "options"
@@ -682,7 +776,7 @@ export function LiveCueSheetFlow({
                             }
                       }
                     >
-                      {step === "options" ? "큐시트 생성하기" : "다음으로"}
+                      {step === "options" && optionsReady ? "큐시트 생성" : "다음으로"}
                     </Button>
                   </div>
                   <p role="status" className="sr-only">
