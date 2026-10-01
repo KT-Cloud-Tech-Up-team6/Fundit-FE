@@ -3,6 +3,7 @@
 import type { CheckoutAddress } from "@/entities/order/api/order-api";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Icon } from "@/shared/components/ui/icon";
+import { displayMobilePhone } from "@/shared/lib/korean-mobile-phone";
 import styles from "./checkout-sheet.module.css";
 
 /* 실제 주문서의 "배송지 변경". Figma 주문서(FL_B_PY_ORD)에는 저장 배송지 목록 화면이 없어, 기존
@@ -57,7 +58,7 @@ export function SavedAddressSheet({
                     <span className="text-body-s text-text-primary">기본 배송지</span>
                   )}
                 </span>
-                <span className="text-body-s">{address.phoneNumber}</span>
+                <span className="text-body-s">{displayMobilePhone(address.phoneNumber)}</span>
                 <span className="text-body-s">{location}</span>
               </button>
             );
