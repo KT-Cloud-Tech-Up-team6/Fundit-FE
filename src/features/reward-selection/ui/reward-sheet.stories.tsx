@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { RewardSheet } from "./reward-sheet";
 import { FundingCta } from "./funding-cta";
@@ -176,6 +176,7 @@ export const ApiRewards: Story = {
     await expect(soldOut).toHaveTextContent("품절");
 
     await userEvent.click(rate);
+    await waitFor(() => expect(dialog.getByText("선택됨: 얼리버드 컬러 세트")).toBeInTheDocument());
     const color = dialog.getByRole("combobox", { name: "얼리버드 컬러 세트 색상" });
     const size = dialog.getByRole("combobox", { name: "얼리버드 컬러 세트 사이즈" });
     await userEvent.selectOptions(color, "블랙");
@@ -243,6 +244,16 @@ export const ApiRewardsInline: Story = {
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(args.onSubmit).not.toHaveBeenCalled();
     await userEvent.click(form.getByRole("button", { name: /정액 할인 기본 세트/ }));
+    await waitFor(() => expect(form.getByText("선택됨: 정액 할인 기본 세트")).toBeInTheDocument());
+    await userEvent.click(trigger);
+    await userEvent.click(
+      within(form.getByRole("group", { name: "리워드 목록" })).getByRole("button", {
+        name: /정액 할인 기본 세트/,
+      }),
+    );
+    await waitFor(() =>
+      expect(form.getByText("이미 선택됨: 정액 할인 기본 세트")).toBeInTheDocument(),
+    );
     await userEvent.click(trigger);
     await userEvent.click(form.getByRole("button", { name: /얼리버드 컬러 세트/ }));
     await userEvent.selectOptions(form.getByRole("combobox", { name: /색상$/ }), "블랙");

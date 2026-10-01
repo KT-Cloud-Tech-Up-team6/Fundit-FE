@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useOrderSession } from "@/entities/order/model/order-session";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
@@ -25,6 +25,8 @@ import { QuantityStepper } from "./quantity-stepper";
 import styles from "./reward-sheet.module.css";
 
 const DEMO_REWARDS = designRewards();
+/* 포커스 낭독 뒤에 선택 안내가 이어지도록 두는 지연(ms). */
+const ANNOUNCE_DELAY_MS = 250;
 
 type RewardSheetProps = {
   projectId: string;
@@ -55,7 +57,26 @@ export function RewardSheet({
   /* 옵션 그룹이 여럿이면 모든 그룹을 고를 때까지 고른 값 순번을 리워드별로 들고 있다. */
   const [picks, setPicks] = useState<Record<string, (number | undefined)[]>>({});
 
+  /* 선택하면 패널이 접히고 포커스가 트리거로 돌아온다. 이때 합계(role=status)가 읽히지 않는 것이
+     VoiceOver에서 관찰됐다. 선택 이벤트마다 갱신하는 안내를 따로 두되, 포커스 낭독과 겹치면 빠지므로
+     잠깐 늦춰 그 뒤에 읽히게 한다. 같은 문구가 연속되면 다시 읽히지 않는다(같은 리워드를 연달아 누를 때). */
+  const [announcement, setAnnouncement] = useState("");
+  const announceTimer = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (announceTimer.current !== null) window.clearTimeout(announceTimer.current);
+    },
+    [],
+  );
+
+  function announce(text: string) {
+    if (announceTimer.current !== null) window.clearTimeout(announceTimer.current);
+    announceTimer.current = window.setTimeout(() => setAnnouncement(text), ANNOUNCE_DELAY_MS);
+  }
+
   function selectReward(reward: Reward) {
+    announce(`${cart[reward.id] ? "이미 선택됨" : "선택됨"}: ${reward.name}`);
     setCart((previous) =>
       previous[reward.id] ? previous : { [reward.id]: initialLines(reward), ...previous },
     );
@@ -143,6 +164,9 @@ export function RewardSheet({
           리워드 ({rewards.length}개)
           <Icon name="arrowDown" className={`size-4 ${expanded ? "rotate-180" : ""}`} />
         </button>
+        <div role="status" className="sr-only">
+          {announcement}
+        </div>
         {expanded && (
           <div
             id={listId}
