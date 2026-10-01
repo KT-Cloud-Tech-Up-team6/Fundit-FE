@@ -10,6 +10,8 @@ type ModalProps = Omit<
   "children" | "onClose" | "open" | "title"
 > & {
   children: ReactNode;
+  /** 닫기 처리가 진행 중일 때 헤더 닫기 버튼도 함께 비활성화한다. */
+  closeDisabled?: boolean;
   onClose: () => void;
   open: boolean;
   /** Figma modal_web 폭 variant. `l`은 996px(w-249), `m`(기본)은 588px(w-147). */
@@ -27,6 +29,7 @@ const sizeClasses = { l: "w-249", m: "w-147" } as const;
 export function Modal({
   children,
   className,
+  closeDisabled = false,
   onClose,
   open,
   size = "m",
@@ -63,6 +66,7 @@ export function Modal({
           <button
             aria-label={typeof title === "string" ? `${title} 닫기` : "닫기"}
             className={dialogHeaderButtonClasses}
+            disabled={closeDisabled}
             onClick={onClose}
             type="button"
           >

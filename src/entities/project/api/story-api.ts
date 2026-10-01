@@ -79,7 +79,7 @@ export type FundingStoryFailedSlot = {
 };
 export type FundingStoryRun = {
   run_id: string;
-  status: "queued" | "running" | "succeeded" | "partially_succeeded" | "failed";
+  status: "queued" | "running" | "succeeded" | "partially_succeeded" | "failed" | "discarded";
   result: null | {
     cover_image_url: string | null;
     intro_content: Extract<IntroBlock, { type: "TEXT" | "IMAGE" }>[];
@@ -231,6 +231,22 @@ export function createFundingStoryRun(
       idempotency_key: idempotencyKey,
     },
     signal,
+  });
+}
+
+/**
+ * AI 서버 작업 자체는 계속될 수 있지만, 이 run의 완료 결과를 프로젝트 스토리에 반영하지 않는다.
+ * run ID를 받기 전에는 생성 요청에 사용한 같은 idempotency key를 전달한다.
+ */
+export function discardFundingStoryRun(
+  projectId: string,
+  target: { runId: string } | { idempotencyKey: string },
+) {
+  return apiRequest<void>(`/api/v1/ai/runs/discard`, {
+    auth: true,
+    method: "POST",
+    headers: projectHeaders(projectId),
+    body: "runId" in target ? { run_id: target.runId } : { idempotency_key: target.idempotencyKey },
   });
 }
 

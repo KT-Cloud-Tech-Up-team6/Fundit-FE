@@ -17,6 +17,8 @@ import {
   confirmFundingStorySession,
   createFundingStoryRun,
   createFundingStorySession,
+  discardFundingStoryRun,
+  getFundingStoryRun,
   getFundingStorySession,
   getLatestFundingStorySession,
   isFundingStorySessionSynchronized,
@@ -48,6 +50,10 @@ type PendingSessionSync = {
   sessionId: string;
   minimumRevision: number;
 };
+
+/* 204가 폐기 성공을 확정한 뒤의 조회는 안내 문구를 고르기 위한 것뿐이다. 응답이 오지 않는
+   조회가 닫기를 막지 않도록 상한을 둔다. api client에는 요청 제한 시간이 없다. */
+const DISCARD_LOOKUP_TIMEOUT_MS = 5_000;
 
 const nextRemoteStage = (session: FundingStorySession) =>
   session.missing.length === 0 && session.summary ? "summary" : "collecting";
@@ -86,8 +92,186 @@ export function FundingStoryModal({
   const [apiBusy, setApiBusy] = useState(false);
   const [pendingSessionSync, setPendingSessionSync] = useState<PendingSessionSync | null>(null);
   const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [discardError, setDiscardError] = useState("");
   const apiBusyRef = useRef(false);
   const lifecycleRef = useRef<AbortController | null>(null);
+  const pendingRunIdRef = useRef<string | null>(null);
+  // run ID 응답 전에 닫기를 확정해도 같은 키로 BE에 폐기를 선기록할 수 있어야 한다.
+  const runIdempotencyKeyRef = useRef<string | null>(null);
+  const runCreateRequestedRef = useRef(false);
+  const discardConfirmOpenRef = useRef(false);
+  const discardRequestedRef = useRef(false);
+  const completedWhileDiscardingRef = useRef<FundingStoryRun | null>(null);
+
+  function closeModal() {
+    lifecycleRef.current?.abort();
+    onClose();
+  }
+
+  function setDiscardConfirmationOpen(open: boolean) {
+    discardConfirmOpenRef.current = open;
+    setDiscardConfirmOpen(open);
+  }
+
+  function handleClose() {
+    // 이벤트 시점에는 ref로 run ID 응답 전의 생성 요청까지 함께 판단한다.
+    const generatingRun =
+      !!projectId &&
+      (remoteStage === "generating" ||
+        pendingRunIdRef.current !== null ||
+        runIdempotencyKeyRef.current !== null);
+    if (generatingRun) {
+      setDiscardError("");
+      setDiscardConfirmationOpen(true);
+      return;
+    }
+    closeModal();
+  }
+
+  function clearRunTracking() {
+    pendingRunIdRef.current = null;
+    runIdempotencyKeyRef.current = null;
+    runCreateRequestedRef.current = false;
+    setPendingRunId(null);
+  }
+
+  function showTerminalRun(completed: FundingStoryRun, notice?: string) {
+    if (discardRequestedRef.current) {
+      // 폐기 응답이 오기 전에는 결과 화면을 열지 않는다. 결과 반영 동작도 함께 막는다.
+      completedWhileDiscardingRef.current = completed;
+      return;
+    }
+    const wasConfirmingDiscard = discardConfirmOpenRef.current;
+    clearRunTracking();
+    // 확인창을 보는 사이 생성이 끝나면 폐기 버튼 대신 실제 종료 결과를 보여준다.
+    setDiscardConfirmationOpen(false);
+    setDiscarding(false);
+    const completedNotice =
+      notice ??
+      (wasConfirmingDiscard
+        ? "생성이 이미 완료되어 결과를 폐기할 수 없습니다. 스토리를 수정해주세요."
+        : undefined);
+    if (completed.status === "discarded") {
+      setApiError(completedNotice ?? "생성 결과가 폐기되었습니다.");
+      setRemoteStage("summary");
+      return;
+    }
+    if (completed.status === "failed" || !completed.result) {
+      setApiError(completedNotice ?? completed.error?.message ?? "상세페이지 생성에 실패했습니다.");
+      setRemoteStage("summary");
+      return;
+    }
+    setRun(completed);
+    setRemoteStage("result");
+    setApiError(
+      completedNotice ??
+        (completed.status === "partially_succeeded"
+          ? partialSuccessMessage(completed.failed_slots)
+          : ""),
+    );
+  }
+
+  /* 폐기 응답을 기다리는 사이 폴링이 종결 상태를 관측한 경우를 처리한다. 폐기로 끝났으면
+     목적을 달성했으니 닫고, 완료로 끝났으면 되돌릴 수 없으므로 결과 화면으로 안내한다. */
+  function settleRunObservedWhileDiscarding(observed: FundingStoryRun) {
+    discardRequestedRef.current = false;
+    completedWhileDiscardingRef.current = null;
+    if (observed.status === "discarded") {
+      closeModal();
+      return;
+    }
+    showTerminalRun(
+      observed,
+      "생성이 이미 완료되어 결과를 폐기할 수 없습니다. 스토리를 수정해주세요.",
+    );
+  }
+
+  async function discardRunAndClose() {
+    if (!projectId || discarding) return;
+    const runId = pendingRunIdRef.current;
+    const idempotencyKey = runIdempotencyKeyRef.current;
+    if (!runId && !idempotencyKey) {
+      setDiscardError("생성 작업을 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    setDiscarding(true);
+    setDiscardError("");
+    discardRequestedRef.current = true;
+    try {
+      await discardFundingStoryRun(
+        projectId,
+        runId ? { runId } : { idempotencyKey: idempotencyKey! },
+      );
+      /* 폐기를 기다리는 사이 폴링이 종결 상태를 관측했다면 그 결과가 조회보다 정확하다. run ID를
+         늦게 받은 경우에도 여기서 완료를 잡아내므로 왕복을 한 번 줄인다. */
+      const observed = completedWhileDiscardingRef.current;
+      if (observed) {
+        settleRunObservedWhileDiscarding(observed);
+        return;
+      }
+      if (runId) {
+        // 204은 폐기 성공의 권위다. 조회는 이미 완료돼 되돌릴 수 없는 경우만 감지한다.
+        const signal = lifecycleRef.current?.signal;
+        const latest = await getFundingStoryRun(
+          projectId,
+          runId,
+          AbortSignal.timeout(DISCARD_LOOKUP_TIMEOUT_MS),
+        ).catch(() => null);
+        if (signal?.aborted) return;
+        if (latest && ["succeeded", "partially_succeeded", "failed"].includes(latest.status)) {
+          settleRunObservedWhileDiscarding(latest);
+          return;
+        }
+      }
+      // 폐기 성공 전에는 폴링을 끊지 않는다. 요청 실패 시 사용자가 재시도할 수 있어야 한다.
+      closeModal();
+    } catch (error) {
+      discardRequestedRef.current = false;
+      // 폐기 요청이 실패해도 그 사이 run이 끝났다면 오류 대신 종결 결과를 보여줘야 한다.
+      const observed = completedWhileDiscardingRef.current;
+      if (observed) {
+        settleRunObservedWhileDiscarding(observed);
+        return;
+      }
+      setDiscardError(
+        error instanceof Error
+          ? `${error.message} 다시 시도해주세요.`
+          : "생성 결과를 폐기하지 못했습니다. 다시 시도해주세요.",
+      );
+      setDiscarding(false);
+    }
+  }
+
+  async function discardUnknownRunAndRegenerate() {
+    if (!projectId || apiBusyRef.current || !runIdempotencyKeyRef.current) return;
+    apiBusyRef.current = true;
+    setApiBusy(true);
+    setApiError("");
+    // 폐기는 생명주기 signal을 받지 않으므로, 재생성 여부는 시작 시점의 controller로 판단한다.
+    const controller = lifecycleRef.current;
+    try {
+      // POST 응답이 유실된 요청은 같은 key로 다시 생성하면 409가 난다. 먼저 결과를 폐기한다.
+      await discardFundingStoryRun(projectId, { idempotencyKey: runIdempotencyKeyRef.current });
+      clearRunTracking();
+    } catch (error) {
+      setApiError(
+        error instanceof Error
+          ? `${error.message} 다시 시도해주세요.`
+          : "이전 생성 요청을 폐기하지 못했습니다. 다시 시도해주세요.",
+      );
+      return;
+    } finally {
+      apiBusyRef.current = false;
+      setApiBusy(false);
+    }
+    /* 폐기를 기다리는 사이 모달이 사라졌거나 프로젝트가 바뀌면, generate()가 아무도 끊을 수 없는
+       새 controller로 run을 만든다. 그 run의 key는 사라진 ref에만 남아 폐기할 수단이 없다. */
+    if (!controller || lifecycleRef.current !== controller || controller.signal.aborted) return;
+    void generate();
+  }
   const remoteBlocks = run?.result?.intro_content;
   const generatedBody = projectId
     ? (remoteBlocks
@@ -168,60 +352,68 @@ export function FundingStoryModal({
   }, [projectId]);
 
   async function generate() {
-    if (apiBusyRef.current || pendingSessionSync) return;
+    if (apiBusyRef.current || pendingSessionSync || discardRequestedRef.current) return;
     if (!projectId) {
       dispatch({ type: "generate" });
       return;
     }
     if (!session || !session.summary || session.missing.length) return;
+    if (!pendingRunIdRef.current && runCreateRequestedRef.current && runIdempotencyKeyRef.current) {
+      void discardUnknownRunAndRegenerate();
+      return;
+    }
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
-    let runId = pendingRunId;
+    const idempotencyKey = runIdempotencyKeyRef.current ?? crypto.randomUUID();
+    runIdempotencyKeyRef.current = idempotencyKey;
+    let runId = pendingRunIdRef.current;
+    const controller = lifecycleRef.current ?? new AbortController();
     try {
-      const controller = lifecycleRef.current ?? new AbortController();
-      runId = await resolveFundingStoryRunId(pendingRunId, async () => {
+      // run ID를 받기 전 X를 눌러도 idempotency key로 폐기할 수 있게 먼저 생성 중 화면으로 전환한다.
+      setRemoteStage("generating");
+      runId = await resolveFundingStoryRunId(pendingRunIdRef.current, async () => {
         const confirmed = await confirmFundingStorySession(
           projectId,
           session.session_id,
           session.revision,
           controller.signal,
         );
+        // fetch 실패가 서버 처리 전인지 후인지 알 수 없으므로, 이 시점부터 키를 보존해 폐기할 수 있게 한다.
+        runCreateRequestedRef.current = true;
         return createFundingStoryRun(
           projectId,
           session.session_id,
           confirmed.confirmed_revision,
-          crypto.randomUUID(),
+          idempotencyKey,
           controller.signal,
         );
       });
+      controller.signal.throwIfAborted();
+      pendingRunIdRef.current = runId;
       setPendingRunId(runId);
-      setRemoteStage("generating");
       const completed = await waitForFundingStoryRun(projectId, runId, controller.signal);
-      if (completed.status === "failed" || !completed.result) {
-        setPendingRunId(null);
-        runId = null;
-        throw new Error(completed.error?.message ?? "상세페이지 생성에 실패했습니다.");
-      }
-      setPendingRunId(null);
-      setRun(completed);
-      setRemoteStage("result");
-      if (completed.status === "partially_succeeded") {
-        setApiError(partialSuccessMessage(completed.failed_slots));
-      }
+      controller.signal.throwIfAborted();
+      showTerminalRun(completed);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "생성 요청에 실패했습니다.";
-      setApiError(
-        runId ? `${message} 다시 시도하면 같은 생성 작업의 상태를 이어서 확인합니다.` : message,
-      );
-      setRemoteStage("summary");
+      if (
+        !controller.signal.aborted &&
+        !(error instanceof DOMException && error.name === "AbortError")
+      ) {
+        const message = error instanceof Error ? error.message : "생성 요청에 실패했습니다.";
+        setApiError(
+          runId ? `${message} 다시 시도하면 같은 생성 작업의 상태를 이어서 확인합니다.` : message,
+        );
+        setRemoteStage("summary");
+        if (!runId && !runCreateRequestedRef.current) runIdempotencyKeyRef.current = null;
+      }
     } finally {
       apiBusyRef.current = false;
-      setApiBusy(false);
+      if (!controller.signal.aborted) setApiBusy(false);
     }
   }
   async function importResult() {
-    if (apiBusyRef.current) return;
+    if (apiBusyRef.current || discardRequestedRef.current) return;
     if (!projectId) {
       onImport(generatedBody);
       return;
@@ -410,228 +602,287 @@ export function FundingStoryModal({
   return (
     <Modal
       open
-      onClose={() => {
-        if (!apiBusyRef.current) onClose();
-      }}
-      title="AI 스토리 작성"
-      className={`h-168 sm:mt-[clamp(20px,calc((100dvh-672px)/2),114px)] [&>div]:gap-6 ${loading ? styles.loading : ""}`}
-      size={result ? "l" : "m"}
+      closeDisabled={discardConfirmOpen && discarding}
+      title={discardConfirmOpen ? "AI 스토리 생성을 그만둘까요?" : "AI 스토리 작성"}
+      onClose={
+        discardConfirmOpen
+          ? discarding
+            ? () => {}
+            : () => setDiscardConfirmationOpen(false)
+          : handleClose
+      }
+      className={
+        discardConfirmOpen
+          ? undefined
+          : `h-168 sm:mt-[clamp(20px,calc((100dvh-672px)/2),114px)] [&>div]:gap-6 ${loading ? styles.loading : ""}`
+      }
+      size={discardConfirmOpen ? "m" : result ? "l" : "m"}
     >
-      {projectId && (
-        <p className="text-caption-s">
-          전체 생성만 지원합니다. 생성이 끝나면 BE가 검증한 결과를 현재 스토리에 불러옵니다.
-        </p>
-      )}
-      {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
-      {apiError && <p role="alert">{apiError}</p>}
-      {pendingSessionSync && !apiBusy && (
-        <Button size="xs" className="self-start" onClick={() => void synchronizeSession()}>
-          세션 다시 동기화
-        </Button>
-      )}
-      {loading ? (
-        <div className="flex h-full flex-col items-center pt-[139px] text-center" role="status">
-          <p className="text-title-s leading-[1.42] font-semibold">AI가 스토리를 생성중이에요...</p>
-          <div
-            className="mt-6 flex size-40 shrink-0 items-center justify-center rounded-full bg-[var(--grey-white)]"
-            aria-hidden
-          >
-            <Image
-              src="/icons/funding-story/loading-logo.svg"
-              alt=""
-              width={144}
-              height={121}
-              className={styles.loadingLogo}
-            />
-          </div>
-        </div>
-      ) : result ? (
-        <div className="mx-auto flex h-full max-w-203 flex-col gap-6">
-          <div
-            className="bg-layer-surface-disabled min-h-0 flex-1 overflow-y-auto"
-            aria-label="AI 스토리 결과 본문"
-            tabIndex={0}
-          >
-            <p className="text-caption-s mb-2 break-words">{projectTitle} · AI 생성 결과</p>
-            {projectId && remoteBlocks ? (
-              <article className="border-border-default bg-layer-surface-default space-y-6 rounded-xs border p-6 sm:p-10">
-                {remoteBlocks.map((block, index) =>
-                  block.type === "IMAGE" ? (
-                    <Image
-                      key={`${block.value}-${index}`}
-                      src={block.value}
-                      alt="AI가 생성한 상세페이지 이미지"
-                      width={1200}
-                      height={800}
-                      unoptimized
-                      className="h-auto w-full rounded-xs"
-                    />
-                  ) : (
-                    /* 하단 TEXT는 섹션·제목·구분선 HTML이다(#331). 글자로 보이지 않게 구매자 상세와
-                       같은 안전 렌더러로 그린다. */
-                    <div key={index} className="text-body-m break-words">
-                      <StoryTextBlock value={block.value} />
-                    </div>
-                  ),
-                )}
-              </article>
-            ) : (
-              <StoryPreview body={generatedBody} />
-            )}
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-3">
+      {discardConfirmOpen ? (
+        <div className="flex h-full flex-col justify-center" aria-busy={discarding}>
+          {discarding && (
+            <p role="status" aria-live="polite" className="sr-only">
+              생성 결과를 폐기 중입니다.
+            </p>
+          )}
+          <p className="text-body-m text-center break-keep">
+            생성 작업은 서버에서 계속될 수 있지만,
+            <br />
+            생성 결과는 스토리에 반영되지 않습니다.
+          </p>
+          {discardError && (
+            <p role="alert" className="text-body-s text-text-error mt-4 text-center break-keep">
+              {discardError}
+            </p>
+          )}
+          <div className="mt-10 flex gap-3">
             <Button
+              type="button"
               variant="secondary"
-              size="xs"
-              className="h-10! w-36 leading-[1.42] font-medium"
-              disabled={apiBusy}
-              onClick={() => {
-                if (projectId) {
-                  setRemoteStage("summary");
-                  setRun(null);
-                } else {
-                  dispatch({ type: "back" });
-                }
-              }}
+              appearance="cta"
+              size="md"
+              className="flex-1"
+              disabled={discarding}
+              onClick={() => setDiscardConfirmationOpen(false)}
             >
-              이전으로
+              계속 생성하기
             </Button>
-            <TextButton
-              className="ml-auto h-10 no-underline!"
-              disabled={apiBusy}
-              onClick={() => void generate()}
-            >
-              재생성
-            </TextButton>
             <Button
-              size="xs"
-              className="h-10! w-36 leading-[1.42] font-medium"
-              disabled={apiBusy}
-              onClick={() => void importResult()}
+              type="button"
+              appearance="cta"
+              size="md"
+              className="flex-1"
+              disabled={discarding}
+              onClick={() => void discardRunAndClose()}
             >
-              불러오기
+              {discarding ? "폐기 중" : "생성 결과 폐기"}
             </Button>
           </div>
         </div>
       ) : (
-        <div className="bg-layer-bg border-border-default flex h-full min-h-0 flex-col rounded-xs border px-4 pb-4">
-          <div
-            ref={historyRef}
-            role="log"
-            aria-label="스토리 작성 대화"
-            aria-live="polite"
-            tabIndex={0}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
-            onScroll={() => {
-              const el = historyRef.current;
-              if (el) followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
-            }}
-          >
-            <div className="flex min-h-full flex-col gap-2">
-              {displayedMessages.map((message, index) => {
-                const latest = index === displayedMessages.length - 1;
-                return (
-                  <ChatDialogue
-                    key={index}
-                    appearance="story"
-                    sender={message.role === "assistant" ? "ai" : "user"}
-                    avatar={
-                      state.messages[index - 1]?.role === "assistant" ? (
-                        <span />
-                      ) : (
-                        <Image
-                          src="/icons/funding-story/avatar.svg"
-                          alt=""
-                          width={32}
-                          height={32}
-                        />
-                      )
-                    }
-                    progress={
-                      message.question ? `${message.question}/${storyQuestions.length}` : undefined
-                    }
-                    actions={
-                      projectId &&
-                      latest &&
-                      message.role === "assistant" &&
-                      remoteStage === "collecting" &&
-                      !streamingText ? (
-                        <Chip
-                          appearance="outline"
-                          className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
-                          disabled={busy}
-                          onClick={() => send("해당 사항 없음")}
-                        >
-                          해당 사항 없음
-                        </Chip>
-                      ) : projectId && message.isSummary ? (
-                        <Chip
-                          appearance="outline"
-                          className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
-                          disabled={apiBusy || pendingSessionSync !== null}
-                          onClick={() => void generate()}
-                        >
-                          그대로 생성하기
-                        </Chip>
-                      ) : message.question ? (
-                        <Chip
-                          appearance="outline"
-                          className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
-                          disabled={state.stage !== "questions" || !latest}
-                          onClick={() => send("해당 사항 없음")}
-                        >
-                          해당 사항 없음
-                        </Chip>
-                      ) : displayStage === "summary" && latest ? (
-                        <Chip
-                          appearance="outline"
-                          className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
-                          disabled={apiBusy}
-                          onClick={() => void generate()}
-                        >
-                          그대로 생성하기
-                        </Chip>
-                      ) : undefined
-                    }
-                  >
-                    {message.text}
-                  </ChatDialogue>
-                );
-              })}
+        <>
+          {projectId && (
+            <p className="text-caption-s">
+              전체 생성만 지원합니다. 생성이 끝나면 BE가 검증한 결과를 현재 스토리에 불러옵니다.
+            </p>
+          )}
+          {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
+          {apiError && <p role="alert">{apiError}</p>}
+          {pendingSessionSync && !apiBusy && (
+            <Button size="xs" className="self-start" onClick={() => void synchronizeSession()}>
+              세션 다시 동기화
+            </Button>
+          )}
+          {loading ? (
+            <div className="flex h-full flex-col items-center pt-[139px] text-center" role="status">
+              <p className="text-title-s leading-[1.42] font-semibold">
+                AI가 스토리를 생성중이에요...
+              </p>
+              <div
+                className="mt-6 flex size-40 shrink-0 items-center justify-center rounded-full bg-[var(--grey-white)]"
+                aria-hidden
+              >
+                <Image
+                  src="/icons/funding-story/loading-logo.svg"
+                  alt=""
+                  width={144}
+                  height={121}
+                  className={styles.loadingLogo}
+                />
+              </div>
             </div>
-          </div>
-          <p
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className={
-              displayStage === "summarizing" || (projectId && apiBusy)
-                ? "text-caption-s text-text-secondary mb-2 pl-10"
-                : "sr-only"
-            }
-          >
-            {displayStage === "summarizing"
-              ? "요약 중 …"
-              : projectId && remoteStage === "connecting"
-                ? "AI 세션 연결 중 …"
-                : projectId && apiBusy
-                  ? "AI 응답 생성 중 …"
-                  : ""}
-          </p>
-          <InputChat
-            ref={textareaRef}
-            appearance="story"
-            className="shrink-0"
-            aria-label="스토리 메시지"
-            value={input}
-            disabled={busy}
-            attachDisabled
-            attachLabel="파일 첨부 (준비 중)"
-            placeholder="답변을 작성해주세요"
-            onChange={(event) => setInput(event.target.value)}
-            onSend={send}
-          />
-        </div>
+          ) : result ? (
+            <div className="mx-auto flex h-full max-w-203 flex-col gap-6">
+              <div
+                className="bg-layer-surface-disabled min-h-0 flex-1 overflow-y-auto"
+                aria-label="AI 스토리 결과 본문"
+                tabIndex={0}
+              >
+                <p className="text-caption-s mb-2 break-words">{projectTitle} · AI 생성 결과</p>
+                {projectId && remoteBlocks ? (
+                  <article className="border-border-default bg-layer-surface-default space-y-6 rounded-xs border p-6 sm:p-10">
+                    {remoteBlocks.map((block, index) =>
+                      block.type === "IMAGE" ? (
+                        <Image
+                          key={`${block.value}-${index}`}
+                          src={block.value}
+                          alt="AI가 생성한 상세페이지 이미지"
+                          width={1200}
+                          height={800}
+                          unoptimized
+                          className="h-auto w-full rounded-xs"
+                        />
+                      ) : (
+                        /* 하단 TEXT는 섹션·제목·구분선 HTML이다(#331). 글자로 보이지 않게 구매자 상세와
+                       같은 안전 렌더러로 그린다. */
+                        <div key={index} className="text-body-m break-words">
+                          <StoryTextBlock value={block.value} />
+                        </div>
+                      ),
+                    )}
+                  </article>
+                ) : (
+                  <StoryPreview body={generatedBody} />
+                )}
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-3">
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  className="h-10! w-36 leading-[1.42] font-medium"
+                  disabled={apiBusy || discarding}
+                  onClick={() => {
+                    if (projectId) {
+                      setRemoteStage("summary");
+                      setRun(null);
+                    } else {
+                      dispatch({ type: "back" });
+                    }
+                  }}
+                >
+                  이전으로
+                </Button>
+                <TextButton
+                  className="ml-auto h-10 no-underline!"
+                  disabled={apiBusy || discarding}
+                  onClick={() => void generate()}
+                >
+                  재생성
+                </TextButton>
+                <Button
+                  size="xs"
+                  className="h-10! w-36 leading-[1.42] font-medium"
+                  disabled={apiBusy || discarding}
+                  onClick={() => void importResult()}
+                >
+                  불러오기
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-layer-bg border-border-default flex h-full min-h-0 flex-col rounded-xs border px-4 pb-4">
+              <div
+                ref={historyRef}
+                role="log"
+                aria-label="스토리 작성 대화"
+                aria-live="polite"
+                tabIndex={0}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
+                onScroll={() => {
+                  const el = historyRef.current;
+                  if (el)
+                    followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
+                }}
+              >
+                <div className="flex min-h-full flex-col gap-2">
+                  {displayedMessages.map((message, index) => {
+                    const latest = index === displayedMessages.length - 1;
+                    return (
+                      <ChatDialogue
+                        key={index}
+                        appearance="story"
+                        sender={message.role === "assistant" ? "ai" : "user"}
+                        avatar={
+                          state.messages[index - 1]?.role === "assistant" ? (
+                            <span />
+                          ) : (
+                            <Image
+                              src="/icons/funding-story/avatar.svg"
+                              alt=""
+                              width={32}
+                              height={32}
+                            />
+                          )
+                        }
+                        progress={
+                          message.question
+                            ? `${message.question}/${storyQuestions.length}`
+                            : undefined
+                        }
+                        actions={
+                          projectId &&
+                          latest &&
+                          message.role === "assistant" &&
+                          remoteStage === "collecting" &&
+                          !streamingText ? (
+                            <Chip
+                              appearance="outline"
+                              className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
+                              disabled={busy}
+                              onClick={() => send("해당 사항 없음")}
+                            >
+                              해당 사항 없음
+                            </Chip>
+                          ) : projectId && message.isSummary ? (
+                            <Chip
+                              appearance="outline"
+                              className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
+                              disabled={apiBusy || pendingSessionSync !== null}
+                              onClick={() => void generate()}
+                            >
+                              그대로 생성하기
+                            </Chip>
+                          ) : message.question ? (
+                            <Chip
+                              appearance="outline"
+                              className="text-text-secondary border-border-default! bg-layer-surface-default! text-label-m h-[26px] font-semibold"
+                              disabled={state.stage !== "questions" || !latest}
+                              onClick={() => send("해당 사항 없음")}
+                            >
+                              해당 사항 없음
+                            </Chip>
+                          ) : displayStage === "summary" && latest ? (
+                            <Chip
+                              appearance="outline"
+                              className="text-text-secondary bg-layer-surface-default text-label-m h-[26px] font-semibold"
+                              disabled={apiBusy}
+                              onClick={() => void generate()}
+                            >
+                              그대로 생성하기
+                            </Chip>
+                          ) : undefined
+                        }
+                      >
+                        {message.text}
+                      </ChatDialogue>
+                    );
+                  })}
+                </div>
+              </div>
+              <p
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className={
+                  displayStage === "summarizing" || (projectId && apiBusy)
+                    ? "text-caption-s text-text-secondary mb-2 pl-10"
+                    : "sr-only"
+                }
+              >
+                {displayStage === "summarizing"
+                  ? "요약 중 …"
+                  : projectId && remoteStage === "connecting"
+                    ? "AI 세션 연결 중 …"
+                    : projectId && apiBusy
+                      ? "AI 응답 생성 중 …"
+                      : ""}
+              </p>
+              <InputChat
+                ref={textareaRef}
+                appearance="story"
+                className="shrink-0"
+                aria-label="스토리 메시지"
+                value={input}
+                disabled={busy}
+                attachDisabled
+                attachLabel="파일 첨부 (준비 중)"
+                placeholder="답변을 작성해주세요"
+                onChange={(event) => setInput(event.target.value)}
+                onSend={send}
+              />
+            </div>
+          )}
+        </>
       )}
     </Modal>
   );
