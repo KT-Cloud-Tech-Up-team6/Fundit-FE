@@ -5,8 +5,12 @@ import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 import { getSellerProjects, saveProjectBasicInfo } from "../api/seller-project-api.ts";
 import {
   basicInfoRequest,
-  basicInfoApiError,
+  basicInfoFieldErrors,
 } from "../../../features/project-basic-info/model/basic-info-request.ts";
+
+// 임시저장(draft)·저장(edit) 검증의 첫 오류 문구. 비어 있으면 저장해도 된다.
+const basicInfoApiError = (values, partial) =>
+  Object.values(basicInfoFieldErrors(values, partial ? "draft" : "edit"))[0] ?? "";
 
 const item = {
   projectId: "01990000-0000-7000-8000-000000000001",
