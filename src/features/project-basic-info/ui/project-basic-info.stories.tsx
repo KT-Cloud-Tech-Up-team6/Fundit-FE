@@ -36,7 +36,24 @@ export const FooterButtons: Story = {
     }
     await userEvent.click(canvas.getByRole("button", { name: "임시저장" }));
     expect(canvas.getByRole("status")).toHaveTextContent("목업 임시저장");
-    expect(canvas.getByRole("button", { name: "저장" })).toBeDisabled();
+    /* 저장은 비활성으로 막지 않고, 눌렀을 때 빠진 칸을 칸마다 알린다. */
+    const save = canvas.getByRole("button", { name: "저장" });
+    expect(save).toBeEnabled();
+    await userEvent.click(save);
+    expect(canvas.getByRole("alert")).toHaveTextContent("필수정보 입력이 필요합니다");
+    for (const text of [
+      "사업자 유형을 선택해주세요.",
+      "프로젝트 제목을 입력해주세요.",
+      "대분류와 상세 카테고리를 선택해주세요.",
+      "목표 금액을 입력해주세요.",
+      "리워드를 최소 1개 등록해주세요.",
+    ])
+      expect(canvas.getByText(text)).toBeVisible();
+    expect(canvas.getByRole("radio", { name: "일반 사업자" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(canvas.getByRole("radio", { name: "일반 사업자" })).toHaveFocus();
   },
 };
 
@@ -51,6 +68,9 @@ export const RewardLifecycle: Story = {
     await userEvent.type(modal.getByRole("textbox", { name: "리워드 명" }), "테스트 패키지");
     expect(register()).toBeDisabled();
     await userEvent.type(modal.getByRole("textbox", { name: /^가격$/ }), "29000");
+    expect(register()).toBeDisabled();
+    /* 서버가 리워드 설명을 필수로 받는다. 설명 없이 등록되면 프로젝트를 만든 뒤에 저장이 거절된다. */
+    await userEvent.type(modal.getByRole("textbox", { name: "리워드 설명" }), "테스트 설명");
     expect(register()).toBeEnabled();
     await userEvent.click(modal.getByRole("checkbox", { name: "수량 제한" }));
     expect(register()).toBeDisabled();
@@ -116,7 +136,12 @@ export const CategoriesAndAmount: Story = {
     expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveValue("600000");
     await userEvent.click(canvas.getByRole("button", { name: "지우기" }));
     expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveValue("");
-    expect(canvas.getByRole("button", { name: /^저장$/ })).toBeDisabled();
+    await userEvent.click(canvas.getByRole("button", { name: /^저장$/ }));
+    expect(canvas.getByText("목표 금액을 입력해주세요.")).toBeVisible();
+    expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
   },
 };
 
