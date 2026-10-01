@@ -3,9 +3,11 @@ import test from "node:test";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 import {
   createFundingStorySession,
+  discardFundingStoryRun,
   getFundingStorySession,
   getLatestFundingStorySession,
   isFundingStorySessionSynchronized,
+  waitForFundingStoryRun,
 } from "./story-api.ts";
 
 const projectId = "project-id";
@@ -63,4 +65,60 @@ test("완료 세션의 생략·명시적 null을 동등하게 처리하고 진�
     false,
   );
   assert.equal(isFundingStorySessionSynchronized(completed, 3), false);
+});
+
+test("run 폴링 대기 중 취소하면 다음 조회를 보내지 않는다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(url, "/api/v1/ai/runs/run-id");
+    assert.equal(new Headers(init.headers).get("X-Project-Id"), projectId);
+    requests += 1;
+    return Response.json({ run_id: "run-id", status: "running", result: null });
+  });
+
+  const controller = new AbortController();
+  const pending = waitForFundingStoryRun(projectId, "run-id", controller.signal);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(requests, 1);
+  controller.abort();
+
+  await assert.rejects(pending, { name: "AbortError" });
+  assert.equal(requests, 1);
+});
+
+test("폐기된 run은 폴링을 즉시 끝낸다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(url, "/api/v1/ai/runs/run-id");
+    requests += 1;
+    return Response.json({ run_id: "run-id", status: "discarded", result: null });
+  });
+
+  const run = await waitForFundingStoryRun(projectId, "run-id");
+  assert.equal(run.status, "discarded");
+  assert.equal(requests, 1);
+});
+
+test("run 폐기는 식별자 하나와 프로젝트 헤더를 보내고 빈 204 응답을 처리한다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(url, "/api/v1/ai/runs/discard");
+    assert.equal(init.method, "POST");
+    assert.equal(new Headers(init.headers).get("X-Project-Id"), projectId);
+    bodies.push(JSON.parse(init.body));
+    return new Response(null, { status: 204 });
+  });
+
+  assert.equal(await discardFundingStoryRun(projectId, { runId: "run-id" }), undefined);
+  assert.equal(
+    await discardFundingStoryRun(projectId, { idempotencyKey: "creation-request-key" }),
+    undefined,
+  );
+  assert.deepEqual(bodies, [{ run_id: "run-id" }, { idempotency_key: "creation-request-key" }]);
 });
