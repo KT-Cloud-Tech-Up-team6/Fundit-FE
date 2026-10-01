@@ -30,6 +30,7 @@ const iconFiles = {
   insertVideo: "insert_video",
   italic: "italic",
   live: "live_video",
+  modeSwitch: "buyer-account/ab25c",
   next: "next",
   people: "people",
   play: "play",

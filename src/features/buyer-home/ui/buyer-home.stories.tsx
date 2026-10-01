@@ -152,6 +152,15 @@ export const Desktop: Story = {
     await waitFor(() => expect(canvas.getByText("2/3")).toBeInTheDocument(), { timeout: 3000 });
     await userEvent.click(canvas.getByRole("button", { name: "이전 배너" }));
     await waitFor(() => expect(canvas.getByText("1/3")).toBeInTheDocument(), { timeout: 3000 });
+    /* 끝과 처음이 이어진다. 첫 장의 이전은 마지막 장, 마지막 장의 다음은 첫 장이다. */
+    await userEvent.click(canvas.getByRole("button", { name: "이전 배너" }));
+    await waitFor(() => expect(canvas.getByText("3/3")).toBeInTheDocument(), { timeout: 3000 });
+    await userEvent.click(canvas.getByRole("button", { name: "다음 배너" }));
+    await waitFor(() => expect(canvas.getByText("1/3")).toBeInTheDocument(), { timeout: 3000 });
+    /* 홈은 LIVE·카테고리 화면이 아니라 PC 헤더의 두 메뉴가 모두 비활성이다. */
+    const menu = within(canvas.getByRole("navigation", { name: "구매자 주요 메뉴" }));
+    for (const name of ["카테고리", "라이브"])
+      expect(menu.getByRole("link", { name })).not.toHaveAttribute("aria-current");
   },
 };
 
