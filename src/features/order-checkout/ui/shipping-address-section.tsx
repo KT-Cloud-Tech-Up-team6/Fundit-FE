@@ -1,4 +1,5 @@
 import { Icon } from "@/shared/components/ui/icon";
+import { displayMobilePhone } from "@/shared/lib/korean-mobile-phone";
 import type { ShippingAddress, ShippingSectionState } from "../model/checkout-demo";
 
 type ShippingAddressSectionProps = {
@@ -43,7 +44,7 @@ export function ShippingAddressSection({
           )}
         </div>
 
-        <p className="text-body-s text-text-default">{address.phone}</p>
+        <p className="text-body-s text-text-default">{displayMobilePhone(address.phone)}</p>
 
         {state === "saved" && (
           <p className="text-body-s text-text-default">

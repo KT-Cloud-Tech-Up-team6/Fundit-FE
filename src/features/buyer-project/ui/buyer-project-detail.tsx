@@ -75,7 +75,7 @@ export function Information({ label, disabled = false }: { label: string; disabl
           if (event.key === "Escape") setOpen(false);
         }}
       >
-        <DetailIcon name="info" className="h-3.5 w-4" />
+        <DetailIcon name="info" />
       </button>
       {open && (
         <div ref={tooltip} id={id} role="tooltip" className={styles.tooltip}>
@@ -433,11 +433,13 @@ export function BuyerProjectDetail({
               등록된 썸네일 이미지가 없습니다.
             </p>
           )}
+          {/* PiP는 모바일 390px에서 90×120(Figma 1443:44407)이고 화면 폭에 비례해 같은 비율로 커진다.
+              웹은 디자인 QA대로 164×200이다(#525). 이미지 sizes의 24vw는 90/390(약 23vw)을 올린 값이다. */}
           {hasLive && (
             <Link
               href={`/live/${encodeURIComponent(liveId)}`}
               aria-label="진행 중 라이브 시청"
-              className="absolute top-5 left-5 flex flex-col gap-1"
+              className="absolute top-5 left-5 flex w-[max(90px,calc(100vw*90/390))] flex-col gap-1 min-[1200px]:w-[164px]"
             >
               <Badge
                 variant="neutral"
@@ -448,8 +450,14 @@ export function BuyerProjectDetail({
                 <Image src="/images/buyer-live/3fa99.svg" width={16} height={16} alt="" />
                 LIVE
               </Badge>
-              <div className="border-border-default relative h-30 w-[90px] overflow-hidden rounded-xs border shadow-md">
-                <Image src={project.poster} alt="" fill sizes="90px" className="object-cover" />
+              <div className="border-border-default relative aspect-[3/4] overflow-hidden rounded-xs border shadow-md min-[1200px]:aspect-[164/200]">
+                <Image
+                  src={project.poster}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1200px) 164px, 24vw"
+                  className="object-cover"
+                />
               </div>
             </Link>
           )}
@@ -474,7 +482,7 @@ export function BuyerProjectDetail({
                   className={
                     preview
                       ? undefined
-                      : "max-[1200px]:bg-status-info max-[1200px]:text-text-info max-[1200px]:text-label-m max-[1200px]:h-6 max-[1200px]:font-semibold"
+                      : "max-[1200px]:text-label-m max-[1200px]:h-6 max-[1200px]:font-semibold"
                   }
                 >
                   {server

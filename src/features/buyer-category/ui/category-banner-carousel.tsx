@@ -8,7 +8,7 @@ import styles from "./category-banner-carousel.module.css";
 const SLIDE_COUNT = 3;
 
 export function CategoryBannerCarousel() {
-  const { activeIndex, trackProps } = useBannerCarousel(SLIDE_COUNT);
+  const { activeIndex, slots, trackProps } = useBannerCarousel(SLIDE_COUNT);
 
   return (
     <div className="relative">
@@ -19,10 +19,10 @@ export function CategoryBannerCarousel() {
         tabIndex={0}
         className={`${styles.track} flex overflow-x-auto`}
       >
-        {Array.from({ length: SLIDE_COUNT }, (_, index) => (
+        {slots.map(({ key, index, clone }) => (
           <div
-            key={index}
-            aria-hidden={index !== activeIndex}
+            key={key}
+            aria-hidden={clone || index !== activeIndex}
             className={`${styles.slide} relative aspect-[350/88] w-full shrink-0 overflow-hidden rounded-xs`}
           >
             <Image

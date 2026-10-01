@@ -89,7 +89,9 @@ export type LiveCard = {
 export function liveCard(live: LiveSummaryResponse): LiveCard {
   return {
     id: live.liveId,
-    href: realLiveHref(live),
+    /* 홈에서 연 방송은 나가기가 홈으로 돌아오게 진입 경로를 붙인다(디자인 QA, #526). LIVE 메인 카드는 같은
+       realLiveHref를 그대로 써서 나가기가 LIVE 메인이다. 예정 LIVE는 프로젝트 상세로 가므로 붙이지 않는다. */
+    href: live.status === "LIVE" ? `${realLiveHref(live)}?from=home` : realLiveHref(live),
     title: realLiveTitle(live),
     image: live.thumbnailUrl,
     viewers: live.viewerCount?.toLocaleString("ko-KR"),

@@ -16,6 +16,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Icon } from "@/shared/components/ui/icon";
 import { Modal } from "@/shared/components/ui/modal";
+import { compactCount } from "@/shared/lib/compact-count";
 import { desktopMessages, desktopProductDescription } from "../model/desktop-room-demo";
 import { liveChatFailedNotice, type LiveChat, type LiveChatMessage } from "../model/live-chat";
 import type { LiveSeller } from "../model/live-seller";
@@ -34,6 +35,7 @@ function WatchIcon({
     | "question-filled"
     | "share"
     | "heart"
+    | "heart-filled"
     | "viewers"
     | "chat"
     | "chat-filled"
@@ -49,7 +51,7 @@ function WatchIcon({
     ? `/images/buyer-live-replay/${name}.svg`
     : name === "viewers"
       ? "/icons/buyer-live/viewers.svg"
-      : `/icons/${["question", "question-filled", "share", "heart"].includes(name) ? "buyer-live-room" : "buyer-live-replay"}/${name}.svg`;
+      : `/icons/${["question", "question-filled", "share", "heart", "heart-filled"].includes(name) ? "buyer-live-room" : "buyer-live-replay"}/${name}.svg`;
   return (
     <span
       aria-hidden
@@ -87,6 +89,7 @@ export function BuyerLiveDesktop({
   seller,
   replayMessages,
   liveChat,
+  exitHref = "/live",
 }: {
   liveId: string;
   product?: typeof roomDemo;
@@ -122,6 +125,8 @@ export function BuyerLiveDesktop({
   /** 실제 LIVE 채팅. 주면 리워드 없이도 채팅 패널과 입력을 그린다. */
   liveChat?: LiveChat;
   onRefreshQuestions?: () => void;
+  /** 나가기 목적지. 홈에서 들어온 방송은 홈(`/`)이다(#526). */
+  exitHref?: string;
 }) {
   const [internalFollowing, setInternalFollowing] = useState(false);
   const following = seller ? seller.following : internalFollowing;
@@ -252,7 +257,7 @@ export function BuyerLiveDesktop({
 
   return (
     <div className={`${styles.screen} bg-layer-bg text-text-default min-h-dvh`}>
-      <BuyerDesktopHeader exitHref="/live" />
+      <BuyerDesktopHeader exitHref={exitHref} />
       <main
         aria-label={`${replay ? (clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
         className="mx-auto grid w-full max-w-300 grid-cols-3 items-start gap-6 pt-10 pb-16"
@@ -290,11 +295,12 @@ export function BuyerLiveDesktop({
                   {seller?.name ?? product.seller}
                 </span>
                 {onToggleFollow && (
-                  /* Figma 1525:43639 button secondary/S: 62×36, 좌우 8px, Body/Medium_14. */
+                  /* Figma 1525:43639 button secondary/S: 62×36, 좌우 8px, Body/Medium_14. 팔로우·팔로잉은
+                     디졸브 없이 바로 바뀐다(디자인 QA, #526). 공용 Button의 전환 시간만 0으로 끈다. */
                   <Button
                     size="sm"
                     variant={following ? "primary" : "secondary"}
-                    className="text-body-s! ml-auto h-9! min-w-[62px] font-medium"
+                    className="text-body-s! ml-auto h-9! min-w-[62px] font-medium duration-0"
                     aria-pressed={following}
                     onClick={onToggleFollow}
                   >
@@ -412,12 +418,13 @@ export function BuyerLiveDesktop({
                     aria-pressed={liked}
                     onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
                   >
-                    <WatchIcon name="heart" />
-                    {likeCount === undefined
-                      ? liked
-                        ? "2.4천+"
-                        : "2.4천"
-                      : likeCount.toLocaleString("ko-KR")}
+                    {/* 누르면 채운 heart이고 선택 색은 아이콘에만 쓴다. 라벨은 전체 좋아요 수다(목업은
+                        Figma 1525:43676 "2.4천", 디자인 QA #526). */}
+                    <WatchIcon
+                      name={liked ? "heart-filled" : "heart"}
+                      className={liked ? "text-text-warning size-7" : undefined}
+                    />
+                    {likeCount === undefined ? "2.4천" : compactCount(likeCount)}
                   </button>
                 )}
               </>

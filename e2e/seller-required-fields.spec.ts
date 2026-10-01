@@ -82,7 +82,7 @@ test("필수 항목이 비어 있으면 저장되지 않고 빠진 칸마다 안
   await expect(page.getByText(errors.rewards)).toBeVisible();
   await expect(page.getByRole("button", { name: "리워드 추가", exact: true })).toBeFocused();
   await expect(title).toHaveValue("E2E 필수 항목 프로젝트");
-  await expect(amount).toHaveValue("600000");
+  await expect(amount).toHaveValue("600,000");
 
   // 지금까지 한 번도 저장 요청이 나가지 않았고, 모든 항목을 채우면 비로소 저장된다.
   await expect(saved).toBeHidden();
