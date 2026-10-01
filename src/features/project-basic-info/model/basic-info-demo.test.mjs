@@ -3,9 +3,13 @@ import test from "node:test";
 import {
   addAmount,
   basicInfoError,
+  caretAfterDigits,
   convertDiscount,
+  digitInput,
   discountedPrice,
+  editDigits,
   emptyReward,
+  formatDigits,
   positiveInteger,
   rewardError,
   upsertReward,
@@ -69,4 +73,67 @@ test("기본 정보 검증은 모든 카테고리의 상세 선택을 요구한�
   };
   assert.equal(basicInfoError(input), "");
   assert.notEqual(basicInfoError({ ...input, subcategory: "" }), "");
+});
+
+test("숫자 입력은 쉼표와 앞자리 0을 지우고 숫자가 아닌 글자는 거부한다", () => {
+  assert.equal(digitInput(""), "");
+  assert.equal(digitInput(","), "");
+  assert.equal(digitInput("0"), "0");
+  assert.equal(digitInput("000"), "0");
+  assert.equal(digitInput("000500000"), "500000");
+  assert.equal(digitInput("500000"), "500000");
+  assert.equal(digitInput("500,000"), "500000");
+  assert.equal(digitInput("5,00,0"), "5000");
+  assert.equal(digitInput("1,00"), "100"); // 쉼표 위치가 틀려도 숫자만 남긴다
+  assert.equal(digitInput("9".repeat(16)), "9".repeat(16));
+  assert.equal(digitInput("9".repeat(17)), null);
+  assert.equal(digitInput("0".repeat(30) + "5"), "5"); // 길이는 앞자리 0을 지운 뒤 센다
+  for (const value of ["-1", "1.5", "abc", " 5"]) assert.equal(digitInput(value), null);
+});
+
+test("숫자 문자열에 천 단위 쉼표를 붙인다", () => {
+  assert.equal(formatDigits(""), "");
+  assert.equal(formatDigits("999"), "999");
+  assert.equal(formatDigits("1000"), "1,000");
+  assert.equal(formatDigits("500000"), "500,000");
+  assert.equal(formatDigits("1234567"), "1,234,567");
+});
+
+test("쉼표만 지워지는 입력은 쉼표 옆 숫자를 대신 지우고 커서를 숫자 개수로 돌려준다", () => {
+  // 표시값 `1,234,567`에서 쉼표(인덱스 1)를 Backspace로 지우면 raw `1234,567`, 커서 1
+  assert.deepEqual(editDigits("1234567", "1234,567", 1, "deleteContentBackward"), {
+    value: "234567",
+    caret: 0,
+  });
+  // 같은 쉼표를 Delete로 지우면 쉼표 뒤 숫자가 지워진다
+  assert.deepEqual(editDigits("1234567", "1234,567", 1, "deleteContentForward"), {
+    value: "134567",
+    caret: 1,
+  });
+  // 숫자를 지우는 입력은 그대로 처리하고, 커서는 지운 자리에 남는다
+  assert.deepEqual(editDigits("1234567", "1,24,567", 3, "deleteContentBackward"), {
+    value: "124567",
+    caret: 2,
+  });
+  // 끝에 쳐서 쉼표가 새로 생겨도 커서는 입력한 숫자 뒤다
+  assert.deepEqual(editDigits("999", "9999", 4, "insertText"), { value: "9999", caret: 4 });
+  // 앞자리 0은 지워지고 커서 앞 숫자도 그만큼 줄어든다
+  assert.deepEqual(editDigits("500", "0500", 1, "insertText"), { value: "500", caret: 0 });
+  assert.deepEqual(editDigits("", "0", 1, "insertText"), { value: "0", caret: 1 });
+  // 거부된 입력은 value가 null이고 커서는 입력 전 자리로 돌아간다
+  assert.deepEqual(editDigits("1234", "1,2a34", 4, "insertText"), { value: null, caret: 2 });
+  assert.deepEqual(editDigits("9".repeat(16), "9".repeat(17), 17, "insertText"), {
+    value: null,
+    caret: 16,
+  });
+});
+
+test("숫자 개수 뒤의 커서 위치를 쉼표가 붙은 표시값에서 찾는다", () => {
+  assert.equal(caretAfterDigits("1,234,567", 0), 0);
+  assert.equal(caretAfterDigits("1,234,567", 1), 1);
+  assert.equal(caretAfterDigits("1,234,567", 2), 3);
+  assert.equal(caretAfterDigits("1,234,567", 4), 5);
+  assert.equal(caretAfterDigits("1,234,567", 7), 9);
+  assert.equal(caretAfterDigits("1,234,567", 99), 9);
+  assert.equal(caretAfterDigits("", 3), 0);
 });
