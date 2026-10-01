@@ -155,9 +155,11 @@ export function convertDiscount(
   if (!positiveInteger(value) || !positiveInteger(price) || from === to) return value;
   const amount = Number(value);
   const base = Number(price);
+  // BE처럼 버림한다. 곱을 먼저 해야 29/100*100 = 28 같은 실수 오차가 없다.
+  // ponytail: Number 정밀도라 가격이 약 90조 원을 넘으면 BE(long)와 1 어긋난다. 입력 한도가 16자리라 BigInt는 쓰지 않았다.
   return from === "won"
-    ? String(Math.round((amount / base) * 100))
-    : String(Math.round((base * amount) / 100));
+    ? String(Math.floor((amount * 100) / base))
+    : String(Math.floor((base * amount) / 100));
 }
 
 export function discountedPrice(
@@ -169,7 +171,7 @@ export function discountedPrice(
   const discount =
     reward.discountUnit === "won"
       ? Number(reward.discountValue)
-      : Math.round((price * Number(reward.discountValue)) / 100);
+      : Math.floor((price * Number(reward.discountValue)) / 100); // BE: price - price*rate/100(할인액 버림)
   return Math.max(0, price - discount);
 }
 
