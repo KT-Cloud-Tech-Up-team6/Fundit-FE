@@ -6,7 +6,16 @@ export function RoomIcon({
   name,
   className = "size-7",
 }: {
-  name: "expand" | "question" | "question-filled" | "share" | "heart" | "heart-filled" | "viewers";
+  name:
+    | "expand"
+    | "question"
+    | "question-filled"
+    | "share"
+    | "heart"
+    | "heart-filled"
+    | "viewers"
+    | "sound-on"
+    | "sound-off";
   className?: string;
 }) {
   return (
