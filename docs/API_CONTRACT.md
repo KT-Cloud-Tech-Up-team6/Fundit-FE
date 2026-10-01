@@ -472,6 +472,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                              |
 | 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                              |
 
+소개 콘텐츠는 보이는 내용이 있어야 한다. 이미지·영상 블록이 없고 TEXT 블록에서 태그를 걷어낸 글자가 공백뿐이면(`<p></p>`·`<p>&nbsp;</p>`) 미작성이다(BE #212). 이미 공개된 프로젝트의 소개를 빈 본문으로 저장하면 400 `STORY_CONTENT_REQUIRED`, DRAFT는 빈 본문도 저장한다. FE는 "저장"에서 먼저 막는다(#523).
+
 공개 시점이 펀딩 시작이고 마감은 30일 뒤다. PROJECT_NOT_SUBMITTABLE 메시지 끝에는 빠진 키 목록(`basicInfo, story, rewards, privacyConsent`)이 붙고 `detail`은 비어 있다. FE는 이 목록으로 빠진 항목을 안내한다(#322).
 
 진행 중 목표금액·가격 수정도 현재 서버가 막지 않는다. FE 비활성화만으로 보안을 대신하지 않으며 상태별 허용 필드와 BE 검증을 협의한다. ONGOING에서 SUCCEEDED/FAILED로 전환하는 시점·주체는 전달된 답변으로 확정하지 않는다.
