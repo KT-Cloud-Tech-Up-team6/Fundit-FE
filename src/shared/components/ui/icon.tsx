@@ -39,6 +39,7 @@ const iconFiles = {
   settings: "cog_setting",
   stream: "stream",
   swap: "refresh",
+  syncWarning: "synchronize_warning",
   transferVan: "transfer_van",
   uploadFile: "upload_file",
   viewers: "viewers",
