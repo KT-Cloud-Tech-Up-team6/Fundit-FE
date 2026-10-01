@@ -120,14 +120,30 @@ export function rewardError(reward: RewardDraft) {
   if (!positiveInteger(reward.price)) return "리워드 가격을 양의 정수로 입력해주세요.";
   if (reward.limited && !positiveInteger(reward.quantity))
     return "제한 수량을 양의 정수로 입력해주세요.";
-  if (reward.discount) {
-    if (!positiveInteger(reward.discountValue)) return "할인 값을 입력해주세요.";
-    if (reward.discountUnit === "won" && Number(reward.discountValue) >= Number(reward.price))
-      return "할인 금액은 리워드 가격보다 작아야 합니다.";
-    if (reward.discountUnit === "percent" && Number(reward.discountValue) > 100)
-      return "할인율은 1~100%로 입력해주세요.";
+  return discountError(reward);
+}
+
+/** 얼리버드 정률 할인율의 상한. BE `Reward.validateEarlyBirdDiscount`와 같다(QA-156, PM 2026-09-30). */
+const DISCOUNT_RATE_MAX = 99;
+
+/** 할인 입력의 오류 문구. 할인을 쓰지 않으면 빈 문자열이다. 정률은 0~99%, 정액은 1원 이상 가격 미만(BE와 같음). */
+export function discountError(
+  reward: Pick<RewardDraft, "discount" | "discountValue" | "discountUnit" | "price">,
+) {
+  if (!reward.discount) return "";
+  const value = reward.discountValue;
+  if (reward.discountUnit === "percent") {
+    if (value === "") return "할인 값을 입력해주세요.";
+    return /^\d+$/.test(value) && Number(value) <= DISCOUNT_RATE_MAX
+      ? ""
+      : `할인율은 0~${DISCOUNT_RATE_MAX}%로 입력해주세요.`;
   }
-  return "";
+  if (value === "") return "할인 값을 입력해주세요.";
+  // 가격 오류는 rewardError가 따로 말하므로, 가격을 아직 못 읽을 때는 할인 문구를 띄우지 않는다.
+  if (!positiveInteger(reward.price)) return "";
+  return positiveInteger(value) && Number(value) < Number(reward.price)
+    ? ""
+    : "할인 금액은 1원 이상, 리워드 가격 미만으로 입력해주세요.";
 }
 
 export function convertDiscount(
@@ -139,9 +155,11 @@ export function convertDiscount(
   if (!positiveInteger(value) || !positiveInteger(price) || from === to) return value;
   const amount = Number(value);
   const base = Number(price);
+  // BE처럼 버림한다. 곱을 먼저 해야 29/100*100 = 28 같은 실수 오차가 없다.
+  // ponytail: Number 정밀도라 가격이 약 90조 원을 넘으면 BE(long)와 1 어긋난다. 입력 한도가 16자리라 BigInt는 쓰지 않았다.
   return from === "won"
-    ? String(Math.round((amount / base) * 100))
-    : String(Math.round((base * amount) / 100));
+    ? String(Math.floor((amount * 100) / base))
+    : String(Math.floor((base * amount) / 100));
 }
 
 export function discountedPrice(
@@ -153,7 +171,7 @@ export function discountedPrice(
   const discount =
     reward.discountUnit === "won"
       ? Number(reward.discountValue)
-      : Math.round((price * Number(reward.discountValue)) / 100);
+      : Math.floor((price * Number(reward.discountValue)) / 100); // BE: price - price*rate/100(할인액 버림)
   return Math.max(0, price - discount);
 }
 

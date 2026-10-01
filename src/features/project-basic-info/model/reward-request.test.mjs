@@ -4,6 +4,7 @@ import {
   REWARD_OPTION_MAX_LENGTH,
   rewardOptionsError,
   rewardRequest,
+  rewardSaveError,
   rewardToDraft,
 } from "./reward-request.ts";
 import { REWARD_NAME_MAX_LENGTH, rewardError } from "./basic-info-demo.ts";
@@ -42,6 +43,17 @@ test("서버 숫자 ID와 옵션 유무를 복원하고 편집하지 않은 옵�
   assert.equal(body.earlyBirdDiscountType, "RATE");
   for (const key of ["options", "shippingFee", "estimatedDeliveryDays", "imageUrl"])
     assert.equal(key in body, false);
+});
+test("서버 정률 할인 0·99%는 그대로 저장되고 100%는 할인을 낮출 때까지 저장되지 않는다(QA-156)", () => {
+  for (const value of [0, 99]) {
+    const draft = rewardToDraft({ ...reward, earlyBirdDiscountValue: value });
+    assert.equal(rewardSaveError(draft), "");
+    const body = rewardRequest(draft);
+    assert.equal(body.earlyBirdDiscountType, "RATE");
+    assert.equal(body.earlyBirdDiscountValue, value);
+  }
+  const legacy = rewardToDraft({ ...reward, earlyBirdDiscountValue: 100 });
+  assert.equal(rewardSaveError(legacy), "할인율은 0~99%로 입력해주세요.");
 });
 test("할인을 해제하면 이전 할인 값을 재전송하지 않는다", () => {
   const body = rewardRequest({ ...rewardToDraft(reward), discount: false });

@@ -8,6 +8,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Modal } from "@/shared/components/ui/modal";
 import {
   convertDiscount,
+  discountError,
   REWARD_NAME_MAX_LENGTH,
   type RewardDraft,
 } from "../model/basic-info-demo";
@@ -48,6 +49,8 @@ export function RewardFormModal({
 }: RewardFormModalProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   if (!draft) return null;
+  // 값을 넣기 전에는 숨겨, 할인을 처음 켰을 때 바로 오류가 뜨지 않게 한다.
+  const discountMessage = draft.discountValue ? discountError(draft) : "";
   const discountUnitOptions = [
     { value: "won", label: "원" },
     { value: "percent", label: "%" },
@@ -190,6 +193,8 @@ export function RewardFormModal({
                   shape="compact"
                   className="h-10 [&_input]:pr-15"
                   aria-label="할인 값"
+                  error={Boolean(discountMessage)}
+                  aria-describedby={discountMessage ? "reward-discount-error" : undefined}
                   value={draft.discountValue}
                   onValueChange={(discountValue) => onUpdate({ discountValue })}
                   placeholder="할인가격을 입력해주세요"
@@ -214,6 +219,11 @@ export function RewardFormModal({
                   }
                 />
               </div>
+              {discountMessage && (
+                <p id="reward-discount-error" className="text-caption-s text-text-warning mt-1">
+                  {discountMessage}
+                </p>
+              )}
             </div>
           )}
           <Checkbox
