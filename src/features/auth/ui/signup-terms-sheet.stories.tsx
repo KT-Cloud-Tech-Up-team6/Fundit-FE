@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 /* 미동의. `회원가입 하기`가 비활성이다. */
 export const NotAgreed: Story = {};
 
-/* 필수 3개만 동의. 전체 동의는 indeterminate, `회원가입 하기`는 활성이다. */
+/* 필수 3개만 동의. 일부만 골라도 전체 동의는 미선택 모양을 유지하고(디자인 QA #529), `회원가입 하기`는 활성이다. */
 export const RequiredOnly: Story = {
   args: { initialCheckedIds: requiredTermCodes },
 };

@@ -191,8 +191,12 @@
 .message[data-ai] > span {
   color: var(--text-success);
 }
+/* 화면 폭과 관계없이 Figma 카드 열(1408:42078)의 300×90이다(디자인 QA, #526). 높이는 이미지 74px와 위아래
+   여백 8px로 정해진다. 390px보다 좁아 열이 300px가 안 되면 넘치지 않게 열 폭으로 줄인다. */
 .product {
   display: flex;
+  width: 300px;
+  max-width: 100%;
   overflow: hidden;
   background: var(--layer-surface-default);
   color: var(--text-default);
@@ -224,7 +228,8 @@
   font-size: 13px;
   line-height: 18px;
 }
-.actions button[aria-pressed="true"] {
+/* 선택 색은 아이콘에만 쓰고 아래 좋아요 수는 기본 색을 유지한다(디자인 QA, #526). */
+.actions button[aria-pressed="true"] > [aria-hidden] {
   color: var(--text-warning);
 }
 .composer {

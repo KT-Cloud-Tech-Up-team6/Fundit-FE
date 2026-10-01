@@ -10,6 +10,7 @@ const names = [
   "profile",
   "settings",
   "swap",
+  "syncWarning",
 ] as const satisfies readonly Parameters<typeof Icon>[0]["name"][];
 
 const meta = {

@@ -69,7 +69,7 @@ const live: LiveSummaryResponse = {
 
 test("live cards open the room and format the viewer count", () => {
   const card = liveCard(live);
-  assert.equal(card.href, `/live/${live.liveId}`);
+  assert.equal(card.href, `/live/${live.liveId}?from=home`);
   assert.equal(card.title, "환절기 스킨케어 라이브");
   assert.equal(card.viewers, "12,345");
 });

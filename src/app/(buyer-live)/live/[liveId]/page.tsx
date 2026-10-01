@@ -18,6 +18,8 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
   const query = await searchParams;
   const connection = getLiveDemoConnection(liveId);
   if (!connection && !isPublicUuid(liveId)) notFound();
+  /* 홈 실시간 LIVE 카드로 들어오면(`?from=home`) 나가기가 홈으로 돌아간다. 그 밖의 진입은 LIVE 메인이다(#526). */
+  const exitHref = query.from === "home" ? "/" : "/live";
   if (!connection) {
     const replay = query.mode === "replay";
     const clip = replay && query.view === "clip";
@@ -33,6 +35,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
               replay={replay}
               clip={clip}
               clipId={clipId}
+              exitHref={exitHref}
               desktop
             />
           }
@@ -43,6 +46,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
             replay={replay}
             clip={clip}
             clipId={clipId}
+            exitHref={exitHref}
           />
         </LiveViewport>
       </RealLiveChatProvider>
@@ -74,6 +78,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
             progress: [0, 50, 75, 90][index],
           }))}
           rewardSummary={<LiveRewardSummary projectId={connection?.projectId} />}
+          exitHref={exitHref}
         />
       }
     >
@@ -87,6 +92,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
           rewardAction={
             connection ? <FundingCta projectId={connection.projectId} more /> : undefined
           }
+          exitHref={exitHref}
         />
       ) : (
         <BuyerLiveRoom
@@ -97,6 +103,7 @@ export default async function LivePage({ params, searchParams }: PageProps<"/liv
           rewardAction={
             connection ? <FundingCta projectId={connection.projectId} more /> : undefined
           }
+          exitHref={exitHref}
         />
       )}
     </LiveViewport>
