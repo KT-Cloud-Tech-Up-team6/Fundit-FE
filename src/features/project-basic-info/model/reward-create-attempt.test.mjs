@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createRewardOnce,
+  registerRewards,
   RewardAlreadySubmittedError,
+  RewardBatchError,
   RewardCreationUncertainError,
 } from "./reward-create-attempt.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
@@ -90,4 +92,49 @@ test("저장소를 사용할 수 없으면 생성 요청 전에 중단한다", a
   const request = t.mock.method(globalThis, "fetch", async () => Response.json({}));
   await assert.rejects(createRewardOnce(s, "owner", "project", {}), /storage unavailable/);
   assert.equal(request.mock.callCount(), 0);
+});
+
+test("리워드를 순서대로 등록하다 첫 실패에서 멈추고, 다시 저장하면 등록한 리워드는 건너뛴다", async () => {
+  const rewards = [1, 2, 3].map((id) => ({ id, name: `리워드${id}` }));
+  const sent = [];
+  let fail = true;
+  const register = async (reward) => {
+    sent.push(reward.id);
+    if (reward.id === 2 && fail) throw new RewardCreationUncertainError();
+  };
+  const done = new Set();
+  await assert.rejects(
+    registerRewards(rewards, register, (id) => done.add(id)),
+    (error) => error instanceof RewardBatchError && error.message.includes("리워드2"),
+  );
+  // 3번은 시도하지 않는다. 같은 멱등 키에 다른 본문이 가면 409가 나기 때문이다.
+  assert.deepEqual(sent, [1, 2]);
+  assert.deepEqual([...done], [1]);
+
+  fail = false;
+  sent.length = 0;
+  const retry = rewards.map((reward) => ({ ...reward, registered: done.has(reward.id) }));
+  await registerRewards(retry, register, (id) => done.add(id));
+  assert.deepEqual(sent, [2, 3]);
+  assert.deepEqual([...done], [1, 2, 3]);
+});
+
+test("결과를 모르는 실패만 uncertain으로 알려 화면이 그 리워드를 고치지 못하게 한다", async () => {
+  const reward = { id: 5, name: "리워드5" };
+  for (const [cause, uncertain] of [
+    [new RewardCreationUncertainError(), true],
+    [new RewardAlreadySubmittedError(), false],
+    [new Error("확정 거절"), false],
+  ]) {
+    const error = await registerRewards(
+      [reward],
+      async () => {
+        throw cause;
+      },
+      () => {},
+    ).catch((caught) => caught);
+    assert.ok(error instanceof RewardBatchError);
+    assert.equal(error.rewardId, 5);
+    assert.equal(error.uncertain, uncertain);
+  }
 });

@@ -24,25 +24,49 @@ export function basicInfoRequest(values: BasicInfoValues): BasicInfoRequest {
   };
 }
 
-export function basicInfoApiError(values: BasicInfoValues, partial: boolean) {
-  if (values.title.trim().length > 40) return "프로젝트 제목은 40자 이하로 입력해주세요.";
-  if (
-    values.amount &&
-    (!/^\d+$/.test(values.amount) ||
+export type BasicInfoField =
+  "business" | "title" | "category" | "subcategory" | "amount" | "rewards";
+export type BasicInfoErrors = Partial<Record<BasicInfoField, string>>;
+/** 화면에 나타나는 순서. 첫 오류 칸으로 포커스를 옮길 때 이 순서를 따른다. */
+export const basicInfoFields: readonly BasicInfoField[] = [
+  "business",
+  "title",
+  "category",
+  "subcategory",
+  "amount",
+  "rewards",
+];
+/** draft는 임시저장(형식만 검사), full은 저장(신규 생성·편집 모두 6개 항목을 필수로 검사). */
+export type BasicInfoLevel = "draft" | "full";
+
+/** 칸마다 오류 문구를 돌려준다. 비어 있으면 저장해도 된다. 리워드 개수를 아직 모르면(서버 목록을
+    불러오는 중) `rewardCount`를 비워 리워드 검사를 건너뛴다. 공개 때 BE가 한 번 더 막는다. */
+export function basicInfoFieldErrors(
+  values: BasicInfoValues,
+  level: BasicInfoLevel,
+  rewardCount?: number,
+): BasicInfoErrors {
+  const errors: BasicInfoErrors = {};
+  const required = level === "full";
+  const all = required;
+  const title = values.title.trim();
+  if (values.business ? !businessCodes[values.business] : all)
+    errors.business = "사업자 유형을 선택해주세요.";
+  if (title.length > 40) errors.title = "프로젝트 제목은 40자 이하로 입력해주세요.";
+  else if (!title && required) errors.title = "프로젝트 제목을 입력해주세요.";
+  if (values.category && !values.subcategory) errors.subcategory = "상세 카테고리를 선택해주세요.";
+  else if (values.category || values.subcategory) {
+    if (!projectCategories[values.category]?.includes(values.subcategory))
+      errors.category = "프로젝트 카테고리와 상세 카테고리를 목록에서 다시 선택해주세요.";
+  } else if (all) errors.category = "대분류와 상세 카테고리를 선택해주세요.";
+  if (values.amount) {
+    if (
+      !/^\d+$/.test(values.amount) ||
       !Number.isSafeInteger(Number(values.amount)) ||
-      Number(values.amount) < 500_000)
-  ) {
-    return "목표 금액은 최소 500,000원 이상의 정수로 입력해주세요.";
-  }
-  if (values.business && !businessCodes[values.business]) return "사업자 유형을 선택해주세요.";
-  if (values.category && !values.subcategory) return "상세 카테고리를 선택해주세요.";
-  if (
-    (values.category || values.subcategory) &&
-    !projectCategories[values.category]?.includes(values.subcategory)
-  )
-    return "프로젝트 카테고리와 상세 카테고리를 목록에서 다시 선택해주세요.";
-  if (!partial && (!values.title.trim() || !values.amount))
-    return "제목과 목표 금액을 입력해주세요.";
-  if (Object.keys(basicInfoRequest(values)).length === 0) return "저장할 기본 정보를 입력해주세요.";
-  return "";
+      Number(values.amount) < 500_000
+    )
+      errors.amount = "목표 금액은 최소 500,000원 이상의 정수로 입력해주세요.";
+  } else if (required) errors.amount = "목표 금액을 입력해주세요.";
+  if (all && rewardCount === 0) errors.rewards = "리워드를 최소 1개 등록해주세요.";
+  return errors;
 }

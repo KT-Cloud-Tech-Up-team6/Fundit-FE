@@ -17,7 +17,14 @@ export type RewardDraft = {
   optionSummary?: string;
   simpleRefundDisabled?: boolean;
 };
-export type DemoReward = RewardDraft & { id: number };
+/** `file`은 프로젝트 생성 뒤 올릴 이미지, `registered`는 서버에 이미 등록됐음을, `pending`은 등록
+    결과를 몰라 같은 내용으로 다시 확인해야 함을 뜻한다. 둘 다 고칠 수 없다. */
+export type DemoReward = RewardDraft & {
+  id: number;
+  file?: File;
+  registered?: boolean;
+  pending?: boolean;
+};
 
 export function emptyReward(): RewardDraft {
   return {
@@ -39,6 +46,7 @@ export const demoRewards: DemoReward[] = [
     ...emptyReward(),
     id: 1,
     name: "할인 패키지",
+    description: "얼리버드 할인이 적용된 패키지입니다.",
     price: "29000",
     quantity: "100",
     limited: true,
@@ -46,7 +54,13 @@ export const demoRewards: DemoReward[] = [
     discountValue: "5000",
     imageName: "reward-package.jpg",
   },
-  { ...emptyReward(), id: 2, name: "기본 패키지", price: "39000" },
+  {
+    ...emptyReward(),
+    id: 2,
+    name: "기본 패키지",
+    description: "기본 구성 패키지입니다.",
+    price: "39000",
+  },
 ];
 
 export function positiveInteger(value: string) {
@@ -95,24 +109,6 @@ export function discountedPrice(
       ? Number(reward.discountValue)
       : Math.round((price * Number(reward.discountValue)) / 100);
   return Math.max(0, price - discount);
-}
-
-export function basicInfoError(input: {
-  business: string;
-  title: string;
-  category: string;
-  subcategory: string;
-  amount: string;
-  rewards: readonly DemoReward[];
-}) {
-  if (!input.business) return "사업자 유형을 선택해주세요.";
-  if (!input.title.trim()) return "프로젝트 제목을 입력해주세요.";
-  if (!input.category) return "프로젝트 카테고리를 선택해주세요.";
-  if (!input.subcategory) return "상세 카테고리를 선택해주세요.";
-  if (!positiveInteger(input.amount) || Number(input.amount) < 500_000)
-    return "목표 금액은 최소 500,000원 이상의 정수로 입력해주세요.";
-  if (!input.rewards.length) return "리워드를 최소 1개 등록해주세요.";
-  return "";
 }
 
 export function upsertReward(rewards: DemoReward[], draft: RewardDraft, id: number) {
