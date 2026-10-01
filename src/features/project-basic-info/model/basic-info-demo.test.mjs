@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addAmount,
-  basicInfoError,
   caretAfterDigits,
   convertDiscount,
   digitInput,
@@ -60,19 +59,6 @@ test("할인 단위 환산과 판매가를 계산한다", () => {
   assert.equal(discountedPrice(reward), 24000);
   assert.notEqual(rewardError({ ...reward, discountValue: "29000" }), "");
   assert.notEqual(rewardError({ ...reward, discountUnit: "percent", discountValue: "101" }), "");
-});
-
-test("기본 정보 검증은 모든 카테고리의 상세 선택을 요구한다", () => {
-  const input = {
-    business: "일반 사업자",
-    title: "프로젝트",
-    category: "뷰티",
-    subcategory: "스킨케어",
-    amount: "500000",
-    rewards: [{ ...emptyReward(), id: 1, name: "패키지", price: "10000" }],
-  };
-  assert.equal(basicInfoError(input), "");
-  assert.notEqual(basicInfoError({ ...input, subcategory: "" }), "");
 });
 
 test("숫자 입력은 쉼표와 앞자리 0을 지우고 숫자가 아닌 글자는 거부한다", () => {

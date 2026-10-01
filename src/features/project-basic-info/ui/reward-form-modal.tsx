@@ -96,8 +96,11 @@ export function RewardFormModal({
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={(event) => {
-                onUpdate({ imageName: event.target.files?.[0]?.name ?? "" });
-                onFile?.(event.target.files?.[0]);
+                const file = event.target.files?.[0];
+                onUpdate({ imageName: file?.name ?? "" });
+                onFile?.(file);
+                /* 거절된 파일을 다시 골라도 change가 나도록 비운다. 값은 draft와 부모가 들고 있다. */
+                event.target.value = "";
               }}
             />
             <Button

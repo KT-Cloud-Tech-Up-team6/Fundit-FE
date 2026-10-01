@@ -4,7 +4,11 @@ import {
   mainCategories,
   subcategoriesByMain,
 } from "../../../entities/category/model/project-categories.ts";
-import { basicInfoApiError, basicInfoRequest } from "./basic-info-request.ts";
+import { basicInfoFieldErrors, basicInfoRequest } from "./basic-info-request.ts";
+
+// 임시저장(draft)·저장(full) 검증의 첫 오류 문구. 비어 있으면 저장해도 된다.
+const basicInfoApiError = (values, partial) =>
+  Object.values(basicInfoFieldErrors(values, partial ? "draft" : "full", 1))[0] ?? "";
 
 // PRD 4.2.4와 BE V14 확정 계약. 구매자 목업이나 실제 옵션에서 기대값을 만들지 않는다.
 const confirmed = [
@@ -69,4 +73,63 @@ test("slug·자리표시자·다른 대분류의 소분류와 불완전한 조�
   assert.equal(basicInfoApiError(values, true), "");
   assert.equal("categoryMajor" in basicInfoRequest(values), false);
   assert.equal("categoryMinor" in basicInfoRequest(values), false);
+});
+
+const complete = {
+  business: "일반 사업자",
+  title: "프로젝트",
+  category: "뷰티",
+  subcategory: "스킨케어",
+  amount: "500000",
+};
+
+test("저장은 사업자 유형·제목·카테고리·목표 금액·리워드가 모두 있어야 한다", () => {
+  assert.deepEqual(basicInfoFieldErrors(complete, "full", 1), {});
+  const missing = [
+    ["business", { business: "" }, 1],
+    ["title", { title: "  " }, 1],
+    ["category", { category: "", subcategory: "" }, 1],
+    ["subcategory", { subcategory: "" }, 1],
+    ["amount", { amount: "" }, 1],
+    ["rewards", {}, 0],
+  ];
+  for (const [field, patch, rewardCount] of missing) {
+    const errors = basicInfoFieldErrors({ ...complete, ...patch }, "full", rewardCount);
+    // 빠진 칸만 오류로 알린다. 다른 칸은 입력이 있으니 그대로 둔다.
+    assert.deepEqual(Object.keys(errors), [field]);
+    assert.notEqual(errors[field], "");
+  }
+  assert.deepEqual(
+    Object.keys(basicInfoFieldErrors({ ...complete, business: "", amount: "" }, "full", 0)),
+    ["business", "amount", "rewards"],
+  );
+});
+
+test("저장은 상세만 있거나 목록에 없는 카테고리 조합을 다시 고르게 한다", () => {
+  for (const patch of [
+    { category: "", subcategory: "스킨케어" },
+    { category: "뷰티", subcategory: "의류" },
+    { category: "여행", subcategory: "여행" },
+  ]) {
+    const errors = basicInfoFieldErrors({ ...complete, ...patch }, "full", 1);
+    assert.deepEqual(Object.keys(errors), ["category"]);
+  }
+});
+
+test("임시저장은 필수값 없이 형식만 검사한다", () => {
+  const empty = { business: "", title: "", category: "", subcategory: "", amount: "" };
+  assert.deepEqual(basicInfoFieldErrors(empty, "draft"), {});
+  assert.equal(
+    basicInfoFieldErrors({ ...complete, amount: "1000" }, "draft").amount?.length > 0,
+    true,
+  );
+  assert.equal(
+    basicInfoFieldErrors({ ...complete, title: "가".repeat(41) }, "draft").title?.length > 0,
+    true,
+  );
+});
+
+test("리워드 개수를 아직 모르면(서버 목록을 불러오는 중) 리워드 검사만 건너뛴다", () => {
+  assert.deepEqual(basicInfoFieldErrors(complete, "full"), {});
+  assert.deepEqual(Object.keys(basicInfoFieldErrors(complete, "full", 0)), ["rewards"]);
 });

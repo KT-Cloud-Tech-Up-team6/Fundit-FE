@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixtureUser } from "./support/login";
+import {
+  addReward,
+  fillBasicInfo,
+  openNewProjectForm,
+  openRewardModal,
+} from "./support/seller-project-form";
 
 /* UCS 판매자 2~4: 프로젝트 목록에서 신규 생성하기를 선택하면 개인정보 동의 모달이 열린다. */
 test("프로젝트 목록에서 신규 생성하기를 누르면 기본정보 등록으로 이동해 동의를 받는다", async ({
@@ -26,16 +32,9 @@ test("프로젝트 목록에서 신규 생성하기를 누르면 기본정보 �
 
 test("준비 중 프로젝트를 확인한 뒤 삭제할 수 있다", async ({ page }) => {
   await loginAsFixtureUser(page);
-  await page.goto("/seller/projects/new");
-  await page.getByRole("checkbox", { name: "약관 전체 동의" }).check({ force: true });
-  await page.getByRole("button", { name: "동의하기" }).click();
-  await page.getByRole("radio", { name: "일반 사업자" }).check({ force: true });
-  await page.getByPlaceholder("프로젝트 제목을 입력해주세요").fill("삭제할 테스트 프로젝트");
-  await page.getByRole("button", { name: "대분류" }).click();
-  await page.getByRole("option").first().click();
-  await page.getByRole("button", { name: "상세 카테고리" }).click();
-  await page.getByRole("option").first().click();
-  await page.getByLabel("목표 금액").fill("600000");
+  await openNewProjectForm(page);
+  await fillBasicInfo(page, "삭제할 테스트 프로젝트");
+  await addReward(page, "삭제할 프로젝트 리워드");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await page
     .getByRole("dialog", { name: "기본정보가 저장되었습니다" })
@@ -58,24 +57,10 @@ test("준비 중 프로젝트를 확인한 뒤 삭제할 수 있다", async ({ p
 /* UCS 판매자 6~7: 리워드에 할인·옵션을 설정해 등록하면 그 값이 신청에 실린다. */
 test("리워드 할인과 옵션을 설정해 등록한다", async ({ page }) => {
   await loginAsFixtureUser(page);
-  await page.goto("/seller/projects/new");
-  await page.getByRole("checkbox", { name: "약관 전체 동의" }).check({ force: true });
-  await page.getByRole("button", { name: "동의하기" }).click();
-  await page.getByRole("radio", { name: "일반 사업자" }).check({ force: true });
-  await page.getByPlaceholder("프로젝트 제목을 입력해주세요").fill("리워드 옵션 프로젝트");
-  await page.getByRole("button", { name: "대분류" }).click();
-  await page.getByRole("option").first().click();
-  await page.getByRole("button", { name: "상세 카테고리" }).click();
-  await page.getByRole("option").first().click();
-  await page.getByLabel("목표 금액").fill("600000");
-  await page.getByRole("button", { name: "저장", exact: true }).click();
-  await page
-    .getByRole("dialog", { name: "기본정보가 저장되었습니다" })
-    .getByRole("button", { name: "다음에" })
-    .click();
+  await openNewProjectForm(page);
+  await fillBasicInfo(page, "리워드 옵션 프로젝트");
 
-  await page.getByRole("button", { name: "리워드 추가" }).click();
-  const modal = page.getByRole("dialog", { name: "리워드 추가" });
+  const modal = await openRewardModal(page);
   await modal.getByRole("textbox", { name: "리워드 명" }).fill("색상 선택 리워드");
   await modal.getByPlaceholder("리워드 설명을 입력해주세요").fill("색상을 고를 수 있어요.");
   await modal.getByRole("textbox", { name: /^가격$/ }).fill("20000");
@@ -92,11 +77,14 @@ test("리워드 할인과 옵션을 설정해 등록한다", async ({ page }) =>
   const choice = modal.getByRole("textbox", { name: "색상 선택지" });
   await choice.fill("화이트");
   await choice.press("Enter");
+  await modal.getByRole("button", { name: /^등록$/ }).click();
+  await expect(page.getByRole("table").getByText("색상 선택 리워드")).toBeVisible();
 
+  // 신규 생성 화면에서는 프로젝트 저장 때 리워드가 함께 등록된다. 옵션이 빠지면 안 된다.
   const request = page.waitForRequest(
     (req) => req.method() === "POST" && /\/api\/v1\/projects\/[^/]+\/rewards$/.test(req.url()),
   );
-  await modal.getByRole("button", { name: /^등록$/ }).click();
+  await page.getByRole("button", { name: "저장", exact: true }).click();
 
   const body = (await request).postDataJSON();
   expect(body).toMatchObject({
@@ -106,5 +94,9 @@ test("리워드 할인과 옵션을 설정해 등록한다", async ({ page }) =>
     earlyBirdDiscountValue: 3000,
     options: [{ groupName: "색상", values: ["화이트"] }],
   });
+  await page
+    .getByRole("dialog", { name: "기본정보가 저장되었습니다" })
+    .getByRole("button", { name: "다음에" })
+    .click();
   await expect(page.getByText("색상 선택 리워드")).toBeVisible();
 });

@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { LoginRedirect } from "@/providers/login-redirect";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
+import { uploadProjectMedia } from "@/entities/project/api/media-api";
 import {
   agreeProjectPrivacy,
   getProjectPreview,
@@ -17,6 +18,9 @@ import { basicInfoRequest, businessCodes, type BasicInfoValues } from "../model/
 import { ProjectBasicInfoForm } from "./project-basic-info-form";
 import { ProjectSavedModal } from "./project-saved-modal";
 import { createProjectOnce, projectAttemptKey } from "../model/project-create-attempt";
+import { createRewardOnce, registerRewards } from "../model/reward-create-attempt";
+import { rewardRequest } from "../model/reward-request";
+import type { DemoReward } from "../model/basic-info-demo";
 import { ProjectWorkspaceLayout, projectEditTabs } from "@/entities/project/ui/project-sidebar";
 import { useProjectManageTabs } from "@/features/seller-live-clips/model/use-project-manage-tabs";
 
@@ -59,16 +63,46 @@ export function ProjectBasicInfoApi({
     },
     [],
   );
-  async function save(values: BasicInfoValues, partial = false) {
+  /* 올린 이미지 URL을 파일별로 남긴다. 저장에 실패한 뒤 다시 저장해도 같은 URL을 써야 리워드 본문이
+     같아, 결과를 모르던 생성의 같은 멱등 키가 409로 거절되지 않는다. */
+  const uploaded = useRef(new Map<File, string>());
+  async function save(
+    values: BasicInfoValues,
+    partial = false,
+    rewards: DemoReward[] = [],
+    onRewardRegistered: (id: number) => void = () => {},
+  ) {
     if (!enabled || !owner) throw new Error("로그인이 필요합니다.");
     const id = projectId ?? (await createProjectOnce(sessionStorage, owner));
     if (!projectId && consentedId.current !== id) {
       await agreeProjectPrivacy(id);
       consentedId.current = id;
     }
-    const response = await saveProjectBasicInfo(id, basicInfoRequest(values));
-    cache.setQueryData(["seller-project-basic", owner, id], response);
+    const request = basicInfoRequest(values);
+    /* 리워드만 있는 임시저장은 보낼 기본 정보가 없다. */
+    if (Object.keys(request).length) {
+      const response = await saveProjectBasicInfo(id, request);
+      cache.setQueryData(["seller-project-basic", owner, id], response);
+    }
+    /* 새 프로젝트 화면에서 모은 리워드는 프로젝트가 생긴 뒤에야 등록할 수 있다(이미지 업로드도 마찬가지). */
+    if (!projectId)
+      await registerRewards(
+        rewards,
+        async (reward) => {
+          let imageUrl: string | undefined;
+          if (reward.file) {
+            imageUrl = uploaded.current.get(reward.file);
+            if (!imageUrl) {
+              imageUrl = await uploadProjectMedia(id, reward.file, "image");
+              uploaded.current.set(reward.file, imageUrl);
+            }
+          }
+          await createRewardOnce(sessionStorage, owner, id, rewardRequest(reward, imageUrl, true));
+        },
+        onRewardRegistered,
+      );
     await Promise.all([
+      cache.invalidateQueries({ queryKey: ["seller-rewards", owner, id] }),
       cache.invalidateQueries({ queryKey: ["seller-projects"] }),
       cache.invalidateQueries({ queryKey: ["seller-project-counts"] }),
       cache.invalidateQueries({ queryKey: ["seller-project-preview", owner, id] }),
@@ -150,7 +184,7 @@ export function ProjectBasicInfoApi({
             statusMessage={
               initialValues.business
                 ? undefined
-                : "저장된 사업자 유형을 확인할 수 없습니다. 변경할 때만 선택하면 기존 값은 유지됩니다."
+                : "저장된 사업자 유형을 확인할 수 없습니다. 아래에서 다시 선택해주세요."
             }
           />
         ) : (
