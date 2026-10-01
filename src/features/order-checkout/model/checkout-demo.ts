@@ -127,15 +127,14 @@ export function emptyShippingAddress(): ShippingAddress {
    점자 빈칸(U+2800)을 지우지 못해 그것만 넣어도 저장이 켜졌다(QA-064). BE `@NotBlank`도 같아서 FE가 먼저 막는다. */
 const INVISIBLE = /[\s\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}\u2800]/gu;
 
-/** 배송지 저장 가능 여부: 배송 요청 사항(선택) 외 필수 항목이 모두 채워졌는지 (FL_B_PY_ADDR interaction_spec).
+/** 배송지 저장 가능 여부: 배송 요청 사항·상세주소(선택) 외 필수 항목이 모두 채워졌는지 (FL_B_PY_ADDR interaction_spec).
+   상세주소는 디자인 QA(#528)로 선택이 됐다. BE 배송지·주문 배송지도 `addressLine2`를 검사하지 않는다.
    연락처는 BE와 같은 휴대폰 형식이어야 하고(QA-061~063), 받는 사람은 보이는 글자가 있어야 한다(QA-064). */
 export function isShippingAddressComplete(address: ShippingAddress): boolean {
   return (
     address.recipientName.replace(INVISIBLE, "").length > 0 &&
     isKoreanMobilePhone(address.phone) &&
-    [address.zipCode, address.baseAddress, address.detailAddress].every(
-      (value) => value.trim().length > 0,
-    )
+    [address.zipCode, address.baseAddress].every((value) => value.trim().length > 0)
   );
 }
 

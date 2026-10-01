@@ -100,7 +100,6 @@ export function SignupTermsSheet({
           checked={allChecked}
           className="[&>span:last-child]:text-body-emphasis"
           disabled={termsQuery.isPending || termsQuery.isError}
-          indeterminate={checkedCodes.length > 0 && !allChecked}
           onChange={(event) => toggleAll(event.target.checked)}
           shape="circle"
         >
