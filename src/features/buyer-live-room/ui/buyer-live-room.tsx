@@ -37,6 +37,11 @@ type BuyerLiveRoomProps = {
   liveChat?: LiveChat;
   /** 나가기 목적지. 홈에서 들어온 방송은 홈(`/`)이다(#526). */
   exitHref?: string;
+  /**
+   * 실제 방송 영상의 소리 켜기·끄기. 주면 오른쪽 버튼 열 맨 위에 소리 버튼을 그린다(#549). 모바일 시청 화면은 기본
+   * 컨트롤이 없어, 브라우저가 소리를 막아 음소거로 자동 재생되면 이 버튼으로 켠다.
+   */
+  sound?: { muted: boolean; onToggle: () => void };
 };
 
 export function BuyerLiveRoom({
@@ -58,6 +63,7 @@ export function BuyerLiveRoom({
   seller,
   liveChat,
   exitHref = "/live",
+  sound,
 }: BuyerLiveRoomProps) {
   const [internalFollowing, setInternalFollowing] = useState(false);
   const following = seller ? seller.following : internalFollowing;
@@ -380,6 +386,19 @@ export function BuyerLiveRoom({
               )}
             </div>
             <div className={`${styles.actions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
+              {sound && (
+                /* Figma에 없는 버튼이라 옆 버튼과 같은 아이콘+라벨 모양으로 둔다(FE 자체 판단, #549). 아이콘은
+                   지금 상태(음소거면 X 스피커)이고 라벨도 상태를 적는다. 음량은 기기 버튼이 맡는다 — iOS는 웹에서
+                   음량을 바꿀 수 없다. */
+                <button
+                  type="button"
+                  aria-label={sound.muted ? "소리 켜기" : "소리 끄기"}
+                  onClick={sound.onToggle}
+                >
+                  <RoomIcon name={sound.muted ? "sound-off" : "sound-on"} />
+                  <span>{sound.muted ? "음소거" : "소리"}</span>
+                </button>
+              )}
               <button type="button" aria-haspopup="dialog" onClick={() => setQuestions("compact")}>
                 <RoomIcon name="question" />
                 <span>Q&amp;A</span>
