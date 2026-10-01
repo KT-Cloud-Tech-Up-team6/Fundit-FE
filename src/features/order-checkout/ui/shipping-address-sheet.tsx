@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { BottomSheet } from "@/shared/components/ui/bottom-sheet";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
@@ -10,6 +10,11 @@ import { Input } from "@/shared/components/ui/input";
 import { emptyShippingAddress, isShippingAddressComplete } from "../model/checkout-demo";
 import type { ShippingAddress } from "../model/checkout-demo";
 import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button";
+import {
+  invalidPhoneMessage,
+  isKoreanMobilePhone,
+  normalizeMobilePhoneInput,
+} from "@/shared/lib/korean-mobile-phone";
 import styles from "./checkout-sheet.module.css";
 
 type ShippingAddressSheetProps = {
@@ -36,16 +41,22 @@ export function ShippingAddressSheet({
   const [form, setForm] = useState<ShippingAddress>(initial ?? emptyShippingAddress());
   const [searching, setSearching] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
+  /* 미리 채워진 연락처는 바로 검사하고, 직접 입력 중인 값은 칸을 벗어난 뒤에 검사한다. */
+  const [phoneTouched, setPhoneTouched] = useState(Boolean(initial?.phone));
   const detail = useRef<HTMLInputElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
       setForm(initial ?? emptyShippingAddress());
+      setPhoneTouched(Boolean(initial?.phone));
       setSearching(false);
     }
   }
   const canSave = isShippingAddressComplete(form);
+  /* 비어 있는 칸은 안내하지 않고 저장 버튼만 막는다. 값이 있는데 형식이 틀릴 때만, 입력을 마친 뒤 이유를 보인다. */
+  const phoneInvalid = phoneTouched && form.phone !== "" && !isKoreanMobilePhone(form.phone);
+  const phoneErrorId = useId();
   function update<K extends keyof ShippingAddress>(key: K, value: ShippingAddress[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -122,9 +133,17 @@ export function ShippingAddressSheet({
               inputMode="tel"
               placeholder="연락처를 입력해주세요"
               value={form.phone}
-              onChange={(event) => update("phone", event.target.value)}
+              onChange={(event) => update("phone", normalizeMobilePhoneInput(event.target.value))}
+              onBlur={() => setPhoneTouched(true)}
               endAdornment={clearButton("phone", "연락처")}
+              error={phoneInvalid}
+              aria-describedby={phoneInvalid ? phoneErrorId : undefined}
             />
+            {phoneInvalid && (
+              <p id={phoneErrorId} role="alert" className="text-body-s text-text-warning">
+                {invalidPhoneMessage}
+              </p>
+            )}
           </Field>
           <Field label="배송지">
             <div className="flex flex-col gap-2">

@@ -423,7 +423,7 @@ SignupRequest의 required는 password, email, verificationToken, name, phoneNumb
 
 ### 4.5. 주소·약관
 
-이번 Member YAML의 배송지 등록 필수값은 recipientName, phoneNumber, zipcode, addressLine1이며 모두 minLength 1이다. addressLine2·isDefault는 선택이다. isDefault 기본 false는 이전 Markdown 설명이고 YAML에 default는 없다. 주소 목록·등록 응답은 4.2를 따른다. Auth 가입 address는 자유 객체이며 Member AddressPayload에도 required가 없어 배송지 등록 규칙을 그대로 확대하지 않는다. 빈 객체·부분 입력·기본값 계약은 보완 대상이다.
+이번 Member YAML의 배송지 등록 필수값은 recipientName, phoneNumber, zipcode, addressLine1이며 모두 minLength 1이다. addressLine2·isDefault는 선택이다. isDefault 기본 false는 이전 Markdown 설명이고 YAML에 default는 없다. 주소 목록·등록 응답은 4.2를 따른다. Auth 가입 address는 자유 객체이며 Member AddressPayload에도 required가 없어 배송지 등록 규칙을 그대로 확대하지 않는다. 빈 객체·부분 입력·기본값 계약은 보완 대상이다. 배송지 등록·수정과 주문 배송지의 `phoneNumber`는 BE PR #210부터 휴대폰 형식(`^01[016789]-?\d{3,4}-?\d{4}$`, 하이픈 선택, BE는 앞뒤 공백을 지우지 않음)이어야 하고 어기면 400 `INVALID_INPUT`이다. 가입 `address`를 넣으면 `address.phoneNumber`는 필수이고 같은 형식이어야 하며, 어기면 본인인증 토큰 소비 전에 400이다. FE는 입력 시트에서 같은 형식으로 저장을 막는다(QA-061~063).
 
 회원가입 agreedTerms는 동의한 약관 코드 문자열 배열이다. Member 약관 조회의 SERVICE_USE·PRIVACY는 예시이며 전체 확정 코드 목록으로 하드코딩하지 않는다. Member 명세는 회원가입 시 구매자·판매자 권한 모두 부여한다고 명시한다. 이는 프로젝트 개인정보 동의·판매자 별도 절차와 다른 범위다. 프로젝트 약관은 최신 BE 답변상 미구현이며 별도 협의한다. 두 종류의 약관을 같은 계약으로 합치지 않는다.
 
