@@ -103,6 +103,12 @@ test("쉼표만 지워지는 입력은 쉼표 옆 숫자를 대신 지우고 커
   });
   // 끝에 쳐서 쉼표가 새로 생겨도 커서는 입력한 숫자 뒤다
   assert.deepEqual(editDigits("999", "9999", 4, "insertText"), { value: "9999", caret: 4 });
+  // `1,234`를 전체 선택하고 같은 숫자 `1234`를 붙여넣어도 값은 그대로다(삭제가 아니다)
+  assert.deepEqual(editDigits("1234", "1234", 4, "insertFromPaste"), { value: "1234", caret: 4 });
+  assert.deepEqual(editDigits("1234", "1234", 4, "insertReplacementText"), {
+    value: "1234",
+    caret: 4,
+  });
   // 앞자리 0은 지워지고 커서 앞 숫자도 그만큼 줄어든다
   assert.deepEqual(editDigits("500", "0500", 1, "insertText"), { value: "500", caret: 0 });
   assert.deepEqual(editDigits("", "0", 1, "insertText"), { value: "0", caret: 1 });

@@ -83,7 +83,9 @@ export function editDigits(current: string, raw: string, caret: number, inputTyp
   const typed = raw.slice(0, caret).replace(/\D/g, "").length;
   const next = digitInput(raw);
   if (next === null) return { value: null, caret: Math.min(typed, current.length) };
-  if (next === current && raw.length < formatDigits(current).length) {
+  // 붙여넣기 등으로 같은 숫자가 쉼표 없이 들어온 경우와 구분하려고 삭제 이벤트일 때만 본다.
+  const deleting = inputType === "deleteContentBackward" || inputType === "deleteContentForward";
+  if (deleting && next === current && raw.length < formatDigits(current).length) {
     const cut = inputType === "deleteContentForward" ? typed : typed - 1;
     if (cut >= 0 && cut < current.length)
       return {
