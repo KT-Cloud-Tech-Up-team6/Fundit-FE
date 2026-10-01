@@ -302,6 +302,9 @@ function ProjectItem({
    이어진다. 띠 폭(100cqw)으로 1200px 콘텐츠의 바깥 여백을 구해 왼쪽을 맞추고, 끝까지 넘기면 마지막 카드가
    콘텐츠 오른쪽 끝에 오도록 목록 오른쪽에 같은 여백을 둔다. */
 function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
+  /* 목록만 화면 오른쪽 끝까지 잇는다. 불러오는 중·빈 목록·오류 안내는 같은 오른쪽 여백을 두어 다른 홈 섹션처럼
+     1200px 콘텐츠 열 안 가운데에 둔다(#527 리뷰). */
+  const showsList = lives.status === "ready" && lives.items.length > 0;
   return (
     <section
       aria-label="실시간 LIVE"
@@ -334,7 +337,9 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
             <Icon name="next" className="size-3" />
           </Link>
         </div>
-        <div className="min-w-0 flex-1">
+        <div
+          className={`min-w-0 flex-1 ${showsList ? "" : "min-[1200px]:pr-[max(40px,calc((100cqw_-_1200px)/2))]"}`}
+        >
           <SectionBody
             data={lives}
             messages={{
