@@ -6,6 +6,7 @@ import {
   convertDiscount,
   digitInput,
   discountedPrice,
+  discountError,
   editDigits,
   emptyReward,
   formatDigits,
@@ -58,7 +59,51 @@ test("할인 단위 환산과 판매가를 계산한다", () => {
   const reward = { ...emptyReward(), price: "29000", discount: true, discountValue: "5000" };
   assert.equal(discountedPrice(reward), 24000);
   assert.notEqual(rewardError({ ...reward, discountValue: "29000" }), "");
-  assert.notEqual(rewardError({ ...reward, discountUnit: "percent", discountValue: "101" }), "");
+});
+
+test("정률 할인은 0~99%, 정액은 1원 이상 가격 미만만 허용한다(BE와 같음, QA-156)", () => {
+  const rate = { ...emptyReward(), price: "1000", discount: true, discountUnit: "percent" };
+  const rangeMessage = "할인율은 0~99%로 입력해주세요.";
+  for (const value of ["0", "1", "99"])
+    assert.equal(discountError({ ...rate, discountValue: value }), "");
+  for (const value of ["100", "101", "1.5"])
+    assert.equal(discountError({ ...rate, discountValue: value }), rangeMessage);
+  assert.equal(discountError({ ...rate, discountValue: "" }), "할인 값을 입력해주세요.");
+  assert.equal(rewardError({ ...rate, name: "패키지", discountValue: "100" }), rangeMessage);
+  assert.equal(rewardError({ ...rate, name: "패키지", discountValue: "99" }), "");
+  const won = { ...rate, discountUnit: "won" };
+  assert.equal(discountError({ ...won, discountValue: "999" }), "");
+  const wonMessage = "할인 금액은 1원 이상, 리워드 가격 미만으로 입력해주세요.";
+  for (const value of ["1000", "0"])
+    assert.equal(discountError({ ...won, discountValue: value }), wonMessage);
+  assert.equal(discountError({ ...won, discountValue: "" }), "할인 값을 입력해주세요.");
+  // 가격을 아직 못 읽을 때(비어 있음)는 가격 오류만 보이도록 할인 문구를 띄우지 않는다.
+  assert.equal(discountError({ ...won, price: "", discountValue: "500" }), "");
+  assert.equal(discountError({ ...rate, discount: false, discountValue: "100" }), "");
+  // 화면에서는 digitInput이 앞자리 0을 먼저 지우므로 "099"는 99, "00"은 0, "0100"은 100으로 검사된다.
+  const typed = (raw) => discountError({ ...rate, discountValue: digitInput(raw) });
+  assert.equal(typed("099"), "");
+  assert.equal(typed("00"), "");
+  assert.equal(typed("0100"), rangeMessage);
+});
+
+test("할인 단위 환산과 판매가는 BE처럼 할인액을 버림한다(QA-156)", () => {
+  assert.equal(convertDiscount("996", "won", "percent", "1000"), "99"); // 반올림이면 100
+  assert.equal(convertDiscount("29", "won", "percent", "100"), "29"); // 29/100*100은 28이 된다
+  assert.equal(convertDiscount("4", "won", "percent", "1000"), "0");
+  assert.equal(convertDiscount("99", "percent", "won", "10"), "9"); // 반올림이면 10(가격과 같음)
+  const price = (value, unit, base) =>
+    discountedPrice({
+      ...emptyReward(),
+      price: base,
+      discount: true,
+      discountValue: value,
+      discountUnit: unit,
+    });
+  assert.equal(price("99", "percent", "1"), 1);
+  assert.equal(price("99", "percent", "49"), 1); // 반올림이면 0원
+  assert.equal(price("15", "percent", "29950"), 25458); // 반올림이면 25457
+  assert.equal(price("0", "percent", "1000"), 1000);
 });
 
 test("숫자 입력은 쉼표와 앞자리 0을 지우고 숫자가 아닌 글자는 거부한다", () => {

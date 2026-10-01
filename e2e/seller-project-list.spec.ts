@@ -100,3 +100,32 @@ test("리워드 할인과 옵션을 설정해 등록한다", async ({ page }) =>
     .click();
   await expect(page.getByText("색상 선택 리워드")).toBeVisible();
 });
+
+/* QA-156: 정률 할인은 BE와 같이 0~99%만 등록할 수 있고, 막힌 이유가 입력칸 아래에 보인다. */
+test("리워드 정률 할인은 99%까지만 등록할 수 있다", async ({ page }) => {
+  await loginAsFixtureUser(page);
+  await openNewProjectForm(page);
+  await fillBasicInfo(page, "리워드 할인율 프로젝트");
+
+  const modal = await openRewardModal(page);
+  await modal.getByRole("textbox", { name: "리워드 명" }).fill("할인율 리워드");
+  await modal.getByPlaceholder("리워드 설명을 입력해주세요").fill("할인율을 확인해요.");
+  await modal.getByRole("textbox", { name: /^가격$/ }).fill("1000");
+  await modal.getByRole("checkbox", { name: /리워드 할인 설정/ }).check({ force: true });
+
+  // 996원 할인을 %로 바꾸면 버림해 99%다(반올림이면 100%가 되어 등록이 막힌다).
+  await modal.getByLabel("할인 값").fill("996");
+  await modal.getByRole("button", { name: "할인 단위" }).click();
+  await page.getByRole("option", { name: "%" }).click();
+  await expect(modal.getByLabel("할인 값")).toHaveValue("99");
+
+  const submit = modal.getByRole("button", { name: /^등록$/ });
+  await expect(submit).toBeEnabled();
+  await modal.getByLabel("할인 값").fill("100");
+  await expect(submit).toBeDisabled();
+  await expect(modal.getByText("할인율은 0~99%로 입력해주세요.")).toBeVisible();
+
+  await modal.getByLabel("할인 값").fill("0");
+  await expect(submit).toBeEnabled();
+  await expect(modal.getByText("할인율은 0~99%로 입력해주세요.")).toBeHidden();
+});
