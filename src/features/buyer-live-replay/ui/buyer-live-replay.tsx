@@ -34,6 +34,7 @@ function ReplayIcon({
     | "expand"
     | "question"
     | "heart"
+    | "heart-filled"
     | "share"
     | "chat"
     | "chat-filled"
@@ -46,7 +47,7 @@ function ReplayIcon({
     | "viewers";
   small?: boolean;
 }) {
-  const folder = ["expand", "question", "heart", "share"].includes(name)
+  const folder = ["expand", "question", "heart", "heart-filled", "share"].includes(name)
     ? "buyer-live-room"
     : "buyer-live-replay";
   return (
@@ -57,7 +58,13 @@ function ReplayIcon({
         maskImage: ["play", "pause", "previous", "next"].includes(name)
           ? `url(/images/buyer-live-replay/${name}.svg)`
           : `url(/icons/${name === "viewers" ? "buyer-live/viewers" : `${folder}/${name}`}.svg)`,
-        maskSize: ["play", "pause"].includes(name) ? "contain" : undefined,
+        /* heart는 가로로 긴 도형이라 정사각 마스크(90.36% 90.36%)에 넣으면 세로로 늘어난다(#526). 폭만
+           Figma 글리프(28 중 25.3)에 맞추고 높이는 원본 비율을 따른다. */
+        maskSize: ["play", "pause"].includes(name)
+          ? "contain"
+          : name === "heart" || name === "heart-filled"
+            ? "90.36% auto"
+            : undefined,
       }}
     />
   );
@@ -87,6 +94,7 @@ export function BuyerLiveReplay({
   questionsData,
   questionsState,
   onRefreshQuestions,
+  exitHref = "/live",
 }: {
   liveId: string;
   projectId?: string;
@@ -122,6 +130,8 @@ export function BuyerLiveReplay({
   questionsData?: LiveQuestion[];
   questionsState?: ReactNode;
   onRefreshQuestions?: () => void;
+  /** 나가기 목적지. 홈에서 들어온 방송은 홈(`/`)이다(#526). */
+  exitHref?: string;
 }) {
   const chapterDrag = useHorizontalDrag();
   const [panel, setPanel] = useState(initialPanel);
@@ -219,7 +229,7 @@ export function BuyerLiveReplay({
         <button type="button" aria-label="전체 화면 전환" onClick={fullscreen}>
           <ReplayIcon name="expand" />
         </button>
-        <Link href="/live" aria-label="라이브 목록으로 나가기">
+        <Link href={exitHref} aria-label="라이브 목록으로 나가기">
           <Icon name="close" className="size-5" />
         </Link>
       </header>
@@ -235,10 +245,11 @@ export function BuyerLiveReplay({
                   </Avatar>
                   <span className="[text-shadow:0_0_4px_rgba(0,0,0,0.3)]">{product.seller}</span>
                 </div>
+                {/* 팔로우·팔로잉은 디졸브 없이 바로 바뀐다(디자인 QA, #526). 공용 Button의 전환 시간만 0으로 끈다. */}
                 <Button
                   size="sm"
                   variant={following ? "primary" : "secondary"}
-                  className="text-body-s! px-3"
+                  className="text-body-s! px-3 duration-0"
                   aria-pressed={following}
                   onClick={() => setFollowing(!following)}
                 >
@@ -247,9 +258,8 @@ export function BuyerLiveReplay({
               </div>
             )}
             {clip ? (
-              <Badge variant="neutral" className={styles.badge}>
-                {clipBadge}
-              </Badge>
+              /* Figma 1408:42167 badge primary_live: 파란 배경에 흰 글자. */
+              <Badge variant="primaryLive">{clipBadge}</Badge>
             ) : (
               demoMode && (
                 <div className={`${styles.metrics} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
@@ -284,7 +294,8 @@ export function BuyerLiveReplay({
                 aria-pressed={liked}
                 onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
               >
-                <ReplayIcon name="heart" />
+                {/* 시청 화면과 같이 누르면 채운 heart이고 선택 색은 아이콘에만 쓴다(#526). */}
+                <ReplayIcon name={liked ? "heart-filled" : "heart"} />
                 좋아요
               </button>
             )}
@@ -439,10 +450,8 @@ export function BuyerLiveReplay({
                         <b>{chapter.time}</b>
                         <span className="text-body-s truncate font-medium">{chapter.title}</span>
                       </span>
-                      <Badge
-                        variant={currentChapter === n ? "neutral" : "live"}
-                        className={currentChapter === n ? styles.badge : undefined}
-                      >
+                      {/* 선택 카드는 Figma 1408:42281 primary_live 배지(흰 글자), 나머지는 accent다. */}
+                      <Badge variant={currentChapter === n ? "primaryLive" : "live"}>
                         {chapter.label}
                       </Badge>
                     </span>
