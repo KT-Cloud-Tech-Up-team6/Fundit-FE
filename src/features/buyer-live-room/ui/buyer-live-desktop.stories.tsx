@@ -34,6 +34,8 @@ export const Live: Story = {
       "aria-pressed",
       "true",
     );
+    // 라벨은 누르기 전후 모두 전체 좋아요 수다(Figma 1525:43676, 디자인 QA #526).
+    expect(canvas.getByRole("button", { name: "좋아요 취소" })).toHaveTextContent("2.4천");
     expect(canvas.getByRole("link", { name: "상세 정보 보기" })).toHaveAttribute(
       "href",
       "/projects/demo-project?tab=story",

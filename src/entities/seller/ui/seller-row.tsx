@@ -69,11 +69,12 @@ export function SellerRow({
           </p>
         </div>
       </div>
+      {/* 팔로우·팔로잉은 디졸브 없이 바로 바뀐다(디자인 QA, #526). 공용 Button의 전환 시간만 0으로 끈다. */}
       <Button
         type="button"
         variant={following ? "secondary" : "primary"}
         size="md"
-        className="h-9 shrink-0 px-3 text-[12px]!"
+        className="h-9 shrink-0 px-3 text-[12px]! duration-0"
         aria-label={`${seller.name} ${following ? "팔로우 해제" : buttonLabel}`}
         aria-pressed={followUnavailable ? undefined : following}
         disabled={followUnavailable}

@@ -10,6 +10,7 @@ import type { LiveSeller } from "../model/live-seller";
 import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
+import { compactCount } from "@/shared/lib/compact-count";
 import styles from "./buyer-live-room.module.css";
 import { RoomIcon } from "./room-icon";
 
@@ -34,6 +35,8 @@ type BuyerLiveRoomProps = {
   seller?: LiveSeller;
   /** 실제 LIVE 채팅. 주면 목업 채팅 대신 이 목록과 입력을 그린다. */
   liveChat?: LiveChat;
+  /** 나가기 목적지. 홈에서 들어온 방송은 홈(`/`)이다(#526). */
+  exitHref?: string;
 };
 
 export function BuyerLiveRoom({
@@ -54,6 +57,7 @@ export function BuyerLiveRoom({
   onToggleLike,
   seller,
   liveChat,
+  exitHref = "/live",
 }: BuyerLiveRoomProps) {
   const [internalFollowing, setInternalFollowing] = useState(false);
   const following = seller ? seller.following : internalFollowing;
@@ -208,7 +212,7 @@ export function BuyerLiveRoom({
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
         </button>
-        <Link href="/live" aria-label="라이브 나가기">
+        <Link href={exitHref} aria-label="라이브 나가기">
           <Icon name="close" className="inline-block size-5" />
         </Link>
       </header>
@@ -233,11 +237,12 @@ export function BuyerLiveRoom({
                 {seller?.name ?? product.seller}
               </span>
               {onToggleFollow && (
-                /* Figma 1408:42133 button secondary/XS: 높이 28, 좌우 12px, Caption/Medium_13. */
+                /* Figma 1408:42133 button secondary/XS: 높이 28, 좌우 12px, Caption/Medium_13. 팔로우·팔로잉은
+                   디졸브 없이 바로 바뀐다(디자인 QA, #526). 공용 Button의 전환 시간만 0으로 끈다. */
                 <Button
                   size="sm"
                   variant={following ? "primary" : "secondary"}
-                  className="text-caption-s! ml-auto px-3 font-medium"
+                  className="text-caption-s! ml-auto px-3 font-medium duration-0"
                   aria-pressed={following}
                   onClick={onToggleFollow}
                 >
@@ -390,14 +395,10 @@ export function BuyerLiveRoom({
                   aria-label={liked ? "좋아요 취소" : "좋아요"}
                   onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
                 >
-                  <RoomIcon name="heart" />
-                  <span>
-                    {likeCount === undefined
-                      ? liked
-                        ? "좋아요 취소"
-                        : "좋아요"
-                      : likeCount.toLocaleString("ko-KR")}
-                  </span>
+                  {/* 누르면 채운 heart이고 선택 색은 아이콘에만 쓴다. 라벨은 전체 좋아요 수다(목업은
+                      Figma 데스크톱 예시 "2.4천", 디자인 QA #526). */}
+                  <RoomIcon name={liked ? "heart-filled" : "heart"} />
+                  <span>{likeCount === undefined ? "2.4천" : compactCount(likeCount)}</span>
                 </button>
               )}
             </div>
