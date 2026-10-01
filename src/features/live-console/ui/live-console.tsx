@@ -108,7 +108,7 @@ export function LiveConsole({
         <Button
           variant="secondary"
           size="md"
-          className="text-body-s h-10! gap-2 px-3!"
+          className="text-caption-m! h-10! gap-3 px-3! font-medium!"
           disabled={state.phase === "ended"}
           onClick={() => {
             dispatch({ type: "end" });
