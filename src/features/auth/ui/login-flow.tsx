@@ -48,6 +48,23 @@ export function LoginFlow({
   const [error, setError] = useState<LoginError>(initialError);
   const [submitting, setSubmitting] = useState(initialSubmitting);
   const submitTimerRef = useRef<number | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const emailLoginRef = useRef<HTMLButtonElement>(null);
+  const pendingFocusRef = useRef<"email" | "password" | "emailLogin" | null>(null);
+
+  // 화면을 통째로 바꾸거나(방식 선택 ↔ 이메일 폼) 제출 중 입력이 disabled가 되면 누른 요소가 사라져
+  // 포커스가 BODY로 빠진다. 전환하는 쪽이 갈 곳을 적어 두면 커밋 뒤 여기서 한 번에 옮긴다.
+  // 마운트 때는 적힌 곳이 없어 포커스를 뺏지 않고(autoFocus와 다르다), 사용자가 직접 옮긴 포커스도 건드리지 않는다.
+  useEffect(() => {
+    const target = pendingFocusRef.current;
+    if (!target || submitting) return;
+    pendingFocusRef.current = null;
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    const targets = { email: emailRef, password: passwordRef, emailLogin: emailLoginRef };
+    targets[target].current?.focus();
+  }, [view, submitting, mustChangePassword]);
 
   useEffect(
     () => () => {
@@ -90,6 +107,7 @@ export function LoginFlow({
 
     setSubmitting(false);
     setError("none");
+    pendingFocusRef.current = "emailLogin";
     setView("method");
   }
 
@@ -101,6 +119,7 @@ export function LoginFlow({
           restrictedSession.current = null;
           clearSession();
           setMustChangePassword(false);
+          pendingFocusRef.current = "emailLogin";
           setView("method");
         }}
         onComplete={async () => {
@@ -149,7 +168,15 @@ export function LoginFlow({
               {requestError}
             </p>
           )}
-          <AuthButton onClick={() => setView("form")}>이메일로 로그인</AuthButton>
+          <AuthButton
+            ref={emailLoginRef}
+            onClick={() => {
+              pendingFocusRef.current = "email";
+              setView("form");
+            }}
+          >
+            이메일로 로그인
+          </AuthButton>
         </div>
         <div className="mt-12 text-center">
           <p className="text-body-s text-text-default">펀딧 계정이 없으신가요?</p>
@@ -192,6 +219,7 @@ export function LoginFlow({
         }
       } catch (cause) {
         if (request.signal.aborted) return;
+        pendingFocusRef.current = "password";
         if (isApiError(cause) && cause.code === "INVALID_CREDENTIALS") setError("credentials");
         else
           setRequestError(
@@ -209,6 +237,7 @@ export function LoginFlow({
     }
     submitTimerRef.current = window.setTimeout(() => {
       submitTimerRef.current = null;
+      pendingFocusRef.current = "password";
       setSubmitting(false);
       setError("credentials");
     }, 300);
@@ -227,6 +256,7 @@ export function LoginFlow({
       <form className="mt-16" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-3">
           <AuthInput
+            ref={emailRef}
             disabled={submitting}
             aria-label="이메일"
             autoComplete="email"
@@ -241,6 +271,7 @@ export function LoginFlow({
             value={email}
           />
           <AuthInput
+            ref={passwordRef}
             disabled={submitting}
             aria-label="비밀번호"
             autoComplete="current-password"
