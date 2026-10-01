@@ -59,7 +59,8 @@ export function RewardSheet({
 
   /* 선택하면 패널이 접히고 포커스가 트리거로 돌아온다. 이때 합계(role=status)가 읽히지 않는 것이
      VoiceOver에서 관찰됐다. 선택 이벤트마다 갱신하는 안내를 따로 두되, 포커스 낭독과 겹치면 빠지므로
-     잠깐 늦춰 그 뒤에 읽히게 한다. 같은 문구가 연속되면 다시 읽히지 않는다(같은 리워드를 연달아 누를 때). */
+     잠깐 늦춰 그 뒤에 읽히게 한다. 같은 문구는 다시 읽히지 않으므로, 목록을 펼치거나 리워드를 지울 때
+     비워 두어 다음 선택이 항상 실제 변화가 되게 하고 낡은 안내가 남지 않게 한다. */
   const [announcement, setAnnouncement] = useState("");
   const announceTimer = useRef<number | null>(null);
 
@@ -75,6 +76,12 @@ export function RewardSheet({
     announceTimer.current = window.setTimeout(() => setAnnouncement(text), ANNOUNCE_DELAY_MS);
   }
 
+  function clearAnnouncement() {
+    if (announceTimer.current !== null) window.clearTimeout(announceTimer.current);
+    announceTimer.current = null;
+    setAnnouncement("");
+  }
+
   function selectReward(reward: Reward) {
     announce(`${cart[reward.id] ? "이미 선택됨" : "선택됨"}: ${reward.name}`);
     setCart((previous) =>
@@ -85,6 +92,7 @@ export function RewardSheet({
   }
 
   function removeReward(id: string) {
+    clearAnnouncement();
     setCart((previous) =>
       Object.fromEntries(Object.entries(previous).filter(([key]) => key !== id)),
     );
@@ -158,7 +166,10 @@ export function RewardSheet({
           type="button"
           aria-expanded={expanded}
           aria-controls={listId}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            clearAnnouncement();
+            setExpanded(!expanded);
+          }}
           className="border-border-default text-text-secondary focus-visible:outline-border-primary flex h-13 w-full shrink-0 items-center justify-between rounded-xs border px-4 text-[14px] focus-visible:outline-2"
         >
           리워드 ({rewards.length}개)

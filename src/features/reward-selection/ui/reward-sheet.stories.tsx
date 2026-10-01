@@ -255,6 +255,7 @@ export const ApiRewardsInline: Story = {
       expect(form.getByText("이미 선택됨: 정액 할인 기본 세트")).toBeInTheDocument(),
     );
     await userEvent.click(trigger);
+    await expect(form.queryByText("이미 선택됨: 정액 할인 기본 세트")).not.toBeInTheDocument();
     await userEvent.click(form.getByRole("button", { name: /얼리버드 컬러 세트/ }));
     await userEvent.selectOptions(form.getByRole("combobox", { name: /색상$/ }), "블랙");
     await userEvent.selectOptions(form.getByRole("combobox", { name: /사이즈$/ }), "S");
