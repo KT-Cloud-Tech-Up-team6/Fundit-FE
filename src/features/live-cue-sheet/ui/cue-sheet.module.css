@@ -19,12 +19,13 @@
   padding: 24px;
 }
 
+/* 원본 modal_web: 머리글 아래 24px, 내용 812px(196 + 20 + 596) */
 .body {
   display: grid;
   grid-template-columns: 196px minmax(0, 596px);
   gap: 20px;
   max-width: 812px;
-  margin: 32px auto 0;
+  margin: 24px auto 0;
 }
 
 .panel {
@@ -42,6 +43,7 @@
   border-radius: var(--radius-xs);
   background: var(--layer-surface-disabled);
   font-size: var(--text-body-s);
+  font-weight: 500;
 }
 
 .secondary:hover:enabled {
@@ -60,6 +62,21 @@
 
 .frame textarea {
   resize: vertical;
+}
+
+/* 편집기의 진행 개요는 원본 목록처럼 글만 보이게 두고 내용만큼 늘어난다. */
+.frame textarea.outline {
+  resize: none;
+}
+
+/* 방송 시간 입력칸은 숫자와 "분"을 한 칸처럼 보여 준다. 포커스 표시는 숫자가 아니라 칸 전체에 둔다. */
+.minutesField:focus-within {
+  outline: 2px solid var(--border-primary);
+  outline-offset: 2px;
+}
+
+.minutesField input:focus-visible {
+  outline: none;
 }
 
 @media (max-width: 767px) {
@@ -82,14 +99,20 @@
   background: var(--blue-50);
 }
 .loadingLogo {
-  animation: cue-logo 834ms ease-in-out infinite alternate;
+  /* 원본 로고 컴포넌트 세트(1230:19147)의 두 variant(1230:19148 → 1230:19153)에 맞춘다. 두 variant의
+     경로와 경계 상자로 역산하면 Union 노드(115.94×36.76)는 원점 (93.11, 16.09)·-114.23°에서 141px 폭
+     variant의 원점 (91.79, 1.85)·-75°로 바뀐다. 가운데 정렬이라 폭이 3px 줄면 1.5px 오른쪽으로 간다.
+     Smart Animate처럼 원점을 직선으로 옮기며 돌리고(끝 상태가 원본 경로와 0.002px 안에서 겹친다),
+     834ms로 왕복한다. easing은 노드 데이터에 없어 같은 로고를 쓰는 스토리 AI와 같은 ease-out으로 둔다. */
+  transform-origin: 93.11px 16.09px;
+  animation: cue-logo 834ms cubic-bezier(0, 0, 0.58, 1) infinite alternate;
 }
 @keyframes cue-logo {
   from {
-    transform: rotate(0);
+    transform: translate(0, 0) rotate(0);
   }
   to {
-    transform: rotate(39deg);
+    transform: translate(0.18px, -14.24px) rotate(-39.23deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
