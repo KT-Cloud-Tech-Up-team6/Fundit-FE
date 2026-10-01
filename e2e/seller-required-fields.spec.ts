@@ -120,3 +120,41 @@ test("임시저장은 필수값이 없어도 저장되고 추가한 리워드도
   await expect(page).toHaveURL(/\/seller\/projects\/[^/]+\?tab=basic-info/);
   await expect(page.getByText("초안 리워드")).toBeVisible();
 });
+
+/* 편집 화면의 저장도 신규 생성과 같은 규칙이다. 리워드는 서버에 등록된 목록으로 센다. */
+test("기존 프로젝트 저장도 필수 항목이 비면 막고, 채우면 저장된다", async ({ page }) => {
+  await loginAsFixtureUser(page);
+  await openNewProjectForm(page);
+
+  // 제목과 금액만 임시저장해 사업자 유형·카테고리·리워드가 없는 프로젝트의 편집 화면으로 간다.
+  await page.getByPlaceholder("프로젝트 제목을 입력해주세요").fill("편집 필수 항목 프로젝트");
+  await page.getByLabel("목표 금액").fill("600000");
+  await page.getByRole("button", { name: "임시저장", exact: true }).click();
+  await expect(page).toHaveURL(/\/seller\/projects\/[^/]+\?tab=basic-info/);
+  await expect(page.getByRole("button", { name: "리워드 추가", exact: true })).toBeVisible();
+
+  const save = page.getByRole("button", { name: "저장", exact: true });
+  await save.click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "필수정보 입력이 필요합니다" }),
+  ).toBeVisible();
+  for (const text of [
+    "사업자 유형을 선택해주세요.",
+    "대분류와 상세 카테고리를 선택해주세요.",
+    "리워드를 최소 1개 등록해주세요.",
+  ])
+    await expect(page.getByText(text)).toBeVisible();
+  await expect(page.getByPlaceholder("프로젝트 제목을 입력해주세요")).toHaveValue(
+    "편집 필수 항목 프로젝트",
+  );
+
+  // 빠진 항목을 채우면 저장된다. 리워드는 관리 영역에서 바로 등록된다.
+  await fillBusinessType(page);
+  await fillCategory(page);
+  await addReward(page, "편집 화면 리워드");
+  await expect(page.getByText("리워드를 최소 1개 등록해주세요.")).toHaveCount(0);
+  await save.click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "기본 정보를 저장했습니다." }),
+  ).toBeVisible();
+});
