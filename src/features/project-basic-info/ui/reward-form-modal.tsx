@@ -11,6 +11,7 @@ import {
   REWARD_NAME_MAX_LENGTH,
   type RewardDraft,
 } from "../model/basic-info-demo";
+import { DigitInput } from "./digit-input";
 import { RewardOptionEditor } from "./reward-option-editor";
 
 type RewardFormModalProps = {
@@ -127,15 +128,12 @@ export function RewardFormModal({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-2">
             <span className={`${labelClass} block`}>가격</span>
-            <Input
+            <DigitInput
               size="md"
               shape="compact"
               className="[&_input]:text-body-s"
-              inputMode="numeric"
               value={draft.price}
-              onChange={(event) =>
-                /^\d*$/.test(event.target.value) && onUpdate({ price: event.target.value })
-              }
+              onValueChange={(price) => onUpdate({ price })}
               placeholder="리워드 가격을 입력해주세요"
             />
           </label>
@@ -158,17 +156,14 @@ export function RewardFormModal({
                 수량 제한
               </Checkbox>
             </div>
-            <Input
+            <DigitInput
               id="reward-quantity"
               size="md"
               shape="compact"
               className="[&_input]:text-body-s"
-              inputMode="numeric"
               disabled={!draft.limited}
               value={draft.quantity}
-              onChange={(event) =>
-                /^\d*$/.test(event.target.value) && onUpdate({ quantity: event.target.value })
-              }
+              onValueChange={(quantity) => onUpdate({ quantity })}
               placeholder={draft.limited ? "리워드 수량을 입력해주세요" : "제한 없음"}
             />
           </div>
@@ -190,17 +185,13 @@ export function RewardFormModal({
                 단일 필드다. 단위 선택은 같은 테두리 안쪽 오른쪽에 놓인다. */
             <div className="mt-2 mb-4 pl-9">
               <div className="relative">
-                <Input
+                <DigitInput
                   size="sm"
                   shape="compact"
                   className="h-10 [&_input]:pr-15"
                   aria-label="할인 값"
-                  inputMode="numeric"
                   value={draft.discountValue}
-                  onChange={(event) =>
-                    /^\d*$/.test(event.target.value) &&
-                    onUpdate({ discountValue: event.target.value })
-                  }
+                  onValueChange={(discountValue) => onUpdate({ discountValue })}
                   placeholder="할인가격을 입력해주세요"
                 />
                 <Dropdown

@@ -133,7 +133,7 @@ export const CategoriesAndAmount: Story = {
     expect(canvas.queryByRole("listbox")).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: /^\+500,000$/ }));
     await userEvent.click(canvas.getByRole("button", { name: /^\+100,000$/ }));
-    expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveValue("600000");
+    expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveValue("600,000");
     await userEvent.click(canvas.getByRole("button", { name: "지우기" }));
     expect(canvas.getByRole("textbox", { name: "목표 금액" })).toHaveValue("");
     await userEvent.click(canvas.getByRole("button", { name: /^저장$/ }));

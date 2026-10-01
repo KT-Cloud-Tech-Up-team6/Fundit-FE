@@ -63,6 +63,52 @@ export const demoRewards: DemoReward[] = [
   },
 ];
 
+/** 입력을 숫자 문자열로 만든다: 쉼표와 앞자리 0을 지운다. 숫자가 아닌 글자가 있거나 16자리(안전한 정수의 최대 자리)를 넘으면 null(입력 거부). */
+export function digitInput(value: string) {
+  const digits = value.replaceAll(",", "");
+  if (!/^\d*$/.test(digits)) return null;
+  const next = digits.replace(/^0+(?=\d)/, "");
+  return next.length > 16 ? null : next;
+}
+
+/** 숫자 문자열에 천 단위 쉼표를 붙인다. 화면 표시 전용이고 state에는 넣지 않는다. */
+export function formatDigits(digits: string) {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** 쉼표가 보이는 칸의 입력 이벤트(raw, 커서 caret)를 숫자 문자열 `value`로 만들고,
+ *  입력 뒤 커서가 놓여야 할 곳을 "커서 앞 숫자 개수" `caret`으로 돌려준다. 거부된 입력은 value가 null이다.
+ *  쉼표만 지워진 입력은 숫자가 그대로라 state가 안 바뀌어 지워지지 않으므로, 쉼표 옆 숫자를 대신 지운다. */
+export function editDigits(current: string, raw: string, caret: number, inputType = "") {
+  const typed = raw.slice(0, caret).replace(/\D/g, "").length;
+  const next = digitInput(raw);
+  if (next === null) return { value: null, caret: Math.min(typed, current.length) };
+  // 붙여넣기 등으로 같은 숫자가 쉼표 없이 들어온 경우와 구분하려고 삭제 이벤트일 때만 본다.
+  const deleting = inputType === "deleteContentBackward" || inputType === "deleteContentForward";
+  if (deleting && next === current && raw.length < formatDigits(current).length) {
+    const cut = inputType === "deleteContentForward" ? typed : typed - 1;
+    if (cut >= 0 && cut < current.length)
+      return {
+        value: digitInput(current.slice(0, cut) + current.slice(cut + 1)) ?? current,
+        caret: cut,
+      };
+  }
+  // 앞자리 0이 지워진 만큼 커서 앞 숫자도 줄어든다.
+  return {
+    value: next,
+    caret: Math.max(0, typed - (raw.replaceAll(",", "").length - next.length)),
+  };
+}
+
+/** 쉼표가 붙은 표시값에서 숫자 `count`개 바로 뒤의 커서 위치. */
+export function caretAfterDigits(display: string, count: number) {
+  let seen = 0;
+  for (let i = 0; i < display.length && count > 0; i++) {
+    if (display[i] !== "," && ++seen === count) return i + 1;
+  }
+  return count > 0 ? display.length : 0;
+}
+
 export function positiveInteger(value: string) {
   return /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
 }
