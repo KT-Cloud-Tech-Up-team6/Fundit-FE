@@ -26,6 +26,7 @@ import {
   type DemoReward,
   type RewardDraft,
 } from "../model/basic-info-demo";
+import { DigitInput } from "./digit-input";
 import { RewardFormModal } from "./reward-form-modal";
 import { basicInfoApiError, type BasicInfoValues } from "../model/basic-info-request";
 import { ProjectCreationUncertainError } from "../model/project-create-attempt";
@@ -224,17 +225,14 @@ export function ProjectBasicInfoForm({
                 펀딩금은 선결제되며, 목표 금액을 달성하지 못할 경우 결제 금액이 자동으로 환불됩니다
               </p>
               <div className="mt-2 flex items-center gap-3">
-                <Input
+                <DigitInput
                   id="amount"
                   aria-describedby="amount-hint"
                   size="md"
                   shape="compact"
                   className="[&_input]:text-body-s [&_input]:text-right"
-                  inputMode="numeric"
                   value={amount}
-                  onChange={(event) =>
-                    /^\d*$/.test(event.target.value) && setAmount(event.target.value)
-                  }
+                  onValueChange={setAmount}
                   placeholder="금액은 최소 500,000원부터 입력 가능합니다"
                   endAdornment={<span className="text-body-s">원</span>}
                 />
