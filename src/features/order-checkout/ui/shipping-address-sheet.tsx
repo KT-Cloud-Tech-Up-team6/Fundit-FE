@@ -11,11 +11,21 @@ import { emptyShippingAddress, isShippingAddressComplete } from "../model/checko
 import type { ShippingAddress } from "../model/checkout-demo";
 import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button";
 import {
+  caretAfterPhoneDigits,
+  editMobilePhone,
+  formatMobilePhone,
   invalidPhoneMessage,
   isKoreanMobilePhone,
   normalizeMobilePhoneInput,
 } from "@/shared/lib/korean-mobile-phone";
 import styles from "./checkout-sheet.module.css";
+
+/* 연락처는 숫자만 들고 있다가 칸에서만 하이픈을 붙여 보인다. 저장된 하이픈 번호도 열 때 숫자로 맞춘다. */
+function initialForm(initial?: ShippingAddress | null): ShippingAddress {
+  return initial
+    ? { ...initial, phone: normalizeMobilePhoneInput(initial.phone) }
+    : emptyShippingAddress();
+}
 
 type ShippingAddressSheetProps = {
   showDefault?: boolean;
@@ -38,7 +48,7 @@ export function ShippingAddressSheet({
   error,
   showDeliveryMemo = true,
 }: ShippingAddressSheetProps) {
-  const [form, setForm] = useState<ShippingAddress>(initial ?? emptyShippingAddress());
+  const [form, setForm] = useState<ShippingAddress>(() => initialForm(initial));
   const [searching, setSearching] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
   /* 미리 채워진 연락처는 바로 검사하고, 직접 입력 중인 값은 칸을 벗어난 뒤에 검사한다. */
@@ -48,7 +58,7 @@ export function ShippingAddressSheet({
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setForm(initial ?? emptyShippingAddress());
+      setForm(initialForm(initial));
       setPhoneTouched(Boolean(initial?.phone));
       setSearching(false);
     }
@@ -132,8 +142,22 @@ export function ShippingAddressSheet({
               aria-label="연락처"
               inputMode="tel"
               placeholder="연락처를 입력해주세요"
-              value={form.phone}
-              onChange={(event) => update("phone", normalizeMobilePhoneInput(event.target.value))}
+              value={formatMobilePhone(form.phone)}
+              onChange={(event) => {
+                const input = event.currentTarget;
+                const edit = editMobilePhone(
+                  form.phone,
+                  input.value,
+                  input.selectionStart ?? 0,
+                  (event.nativeEvent as InputEvent).inputType,
+                );
+                update("phone", edit.value);
+                // 하이픈 때문에 표시값이 바뀌면 커서가 끝으로 가므로, React가 값을 다시 넣은 직후 숫자 개수 기준으로 되돌린다.
+                queueMicrotask(() => {
+                  const at = caretAfterPhoneDigits(input.value, edit.caret);
+                  input.setSelectionRange(at, at);
+                });
+              }}
               onBlur={() => setPhoneTouched(true)}
               endAdornment={clearButton("phone", "연락처")}
               error={phoneInvalid}

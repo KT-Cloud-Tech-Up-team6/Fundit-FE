@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isKoreanMobilePhone, normalizeMobilePhoneInput } from "./korean-mobile-phone";
+import {
+  caretAfterPhoneDigits,
+  displayMobilePhone,
+  editMobilePhone,
+  formatMobilePhone,
+  isKoreanMobilePhone,
+  normalizeMobilePhoneInput,
+} from "./korean-mobile-phone";
 
 test("BE가 받는 휴대폰 번호를 통과시킨다(하이픈은 선택)", () => {
   for (const value of [
@@ -49,4 +56,58 @@ test("입력 칸은 숫자만 11자리까지 받는다", () => {
   assert.equal(normalizeMobilePhoneInput("0101234567890123"), "01012345678");
   // 붙여넣기한 하이픈 번호도 BE 형식을 통과한다
   assert.equal(isKoreanMobilePhone(normalizeMobilePhoneInput(" 010-1234-5678")), true);
+});
+
+test("입력 칸은 숫자를 하이픈으로 나눠 보인다(#528)", () => {
+  assert.equal(formatMobilePhone(""), "");
+  assert.equal(formatMobilePhone("010"), "010");
+  assert.equal(formatMobilePhone("0101"), "010-1");
+  assert.equal(formatMobilePhone("0101234"), "010-1234");
+  assert.equal(formatMobilePhone("01012345"), "010-1234-5");
+  assert.equal(formatMobilePhone("0111234567"), "011-123-4567");
+  assert.equal(formatMobilePhone("01012345678"), "010-1234-5678");
+});
+
+test("목록은 휴대폰 형식인 값만 하이픈으로 보이고 나머지는 그대로 둔다", () => {
+  assert.equal(displayMobilePhone("01012345678"), "010-1234-5678");
+  assert.equal(displayMobilePhone("010-1234-5678"), "010-1234-5678");
+  assert.equal(displayMobilePhone("0101234-5678"), "010-1234-5678");
+  assert.equal(displayMobilePhone("abc"), "abc");
+  assert.equal(displayMobilePhone("010123"), "010123");
+});
+
+test("하이픈 칸의 입력을 숫자 문자열과 커서 앞 숫자 개수로 바꾼다", () => {
+  // 끝에 숫자를 입력하면 하이픈은 다시 붙고 커서는 마지막 숫자 뒤에 둔다
+  assert.deepEqual(editMobilePhone("0101", "010-12", 6, "insertText"), {
+    value: "01012",
+    caret: 5,
+  });
+  // 붙여넣은 하이픈·공백은 지운다
+  assert.deepEqual(editMobilePhone("", " 010-1234-5678", 14, "insertFromPaste"), {
+    value: "01012345678",
+    caret: 11,
+  });
+  // 하이픈 바로 뒤에서 지우면(지운 뒤 커서는 3) 하이픈 앞 숫자를 지운다
+  assert.deepEqual(editMobilePhone("01012345678", "0101234-5678", 3, "deleteContentBackward"), {
+    value: "0112345678",
+    caret: 2,
+  });
+  // 하이픈 바로 앞에서 Delete를 누르면 하이픈 뒤 숫자를 지운다
+  assert.deepEqual(editMobilePhone("01012345678", "0101234-5678", 3, "deleteContentForward"), {
+    value: "0102345678",
+    caret: 3,
+  });
+  // 가운데 숫자를 지우면 그 숫자만 빠지고 커서는 제자리다
+  assert.deepEqual(editMobilePhone("01012345678", "010-124-5678", 6, "deleteContentBackward"), {
+    value: "0101245678",
+    caret: 5,
+  });
+});
+
+test("하이픈 표시값에서 숫자 개수로 커서 위치를 찾는다", () => {
+  assert.equal(caretAfterPhoneDigits("010-1234-5678", 0), 0);
+  assert.equal(caretAfterPhoneDigits("010-1234-5678", 3), 3);
+  assert.equal(caretAfterPhoneDigits("010-1234-5678", 4), 5);
+  assert.equal(caretAfterPhoneDigits("010-1234-5678", 11), 13);
+  assert.equal(caretAfterPhoneDigits("010", 5), 3);
 });
