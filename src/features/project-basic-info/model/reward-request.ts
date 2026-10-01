@@ -1,5 +1,5 @@
 import type { RewardRequest, RewardResponse } from "@/entities/project/api/reward-api";
-import type { DemoReward, RewardDraft } from "./basic-info-demo";
+import { rewardError, type DemoReward, type RewardDraft } from "./basic-info-demo";
 
 export const REWARD_OPTION_MAX_LENGTH = 50;
 
@@ -49,6 +49,15 @@ export function rewardOptionsError(draft: RewardDraft) {
   )
     return "옵션값은 50자 이내로 입력해주세요.";
   return "";
+}
+
+/** 서버 리워드 저장 전 검사. 모달의 등록 버튼 활성 조건도 같은 결과를 쓴다. */
+export function rewardSaveError(draft: RewardDraft) {
+  return (
+    rewardError(draft) ||
+    rewardOptionsError(draft) ||
+    (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "")
+  );
 }
 
 export function rewardRequest(

@@ -23,26 +23,16 @@ import {
 import {
   discountedPrice,
   emptyReward,
-  rewardError,
   type RewardDraft,
   type DemoReward,
 } from "../model/basic-info-demo";
-import { rewardOptionsError, rewardRequest, rewardToDraft } from "../model/reward-request";
+import { rewardRequest, rewardSaveError, rewardToDraft } from "../model/reward-request";
 import { RewardFormModal } from "./reward-form-modal";
 import {
   createRewardOnce,
   RewardAlreadySubmittedError,
   RewardCreationUncertainError,
 } from "../model/reward-create-attempt";
-
-/** 서버 리워드 저장 전 검사. 모달의 등록 버튼 활성 조건도 같은 결과를 쓴다. */
-function rewardSaveError(draft: RewardDraft) {
-  return (
-    rewardError(draft) ||
-    rewardOptionsError(draft) ||
-    (!draft.description.trim() ? "리워드 설명을 입력해주세요." : "")
-  );
-}
 
 /** 프로젝트 리워드를 조회·생성·수정·삭제하는 관리 화면을 제공한다. */
 export function ProjectRewardManager({ projectId }: { projectId: string }) {

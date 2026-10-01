@@ -4,6 +4,7 @@ import {
   type RewardResponse,
 } from "@/entities/project/api/reward-api";
 import { ApiError } from "@/shared/api/api-error";
+import { ProjectMediaValidationError } from "@/entities/project/api/media-api";
 
 export class RewardCreationUncertainError extends Error {
   constructor() {
@@ -47,4 +48,42 @@ export async function createRewardOnce(
     throw new RewardCreationUncertainError();
   storage.removeItem(storageKey);
   return reward;
+}
+
+/** 새 프로젝트 화면에서 모은 리워드 중 하나를 등록하지 못해 멈췄다. 앞선 리워드는 이미 등록됐다. */
+export class RewardBatchError extends Error {
+  /** 서버가 이미 만들었을 수 있다. 이 리워드는 고치지 말고 같은 내용으로 다시 보내야 한다. */
+  readonly uncertain: boolean;
+  readonly rewardId: number;
+  constructor(reward: { id: number; name: string }, cause: unknown) {
+    const reason =
+      cause instanceof RewardCreationUncertainError ||
+      cause instanceof RewardAlreadySubmittedError ||
+      cause instanceof ProjectMediaValidationError ||
+      (cause instanceof ApiError && cause.status < 500 && cause.message)
+        ? (cause as Error).message
+        : "입력 내용을 유지했으니 다시 저장해주세요.";
+    super(`리워드 '${reward.name}'을(를) 등록하지 못했습니다. ${reason}`);
+    this.rewardId = reward.id;
+    this.uncertain = cause instanceof RewardCreationUncertainError;
+  }
+}
+
+/* 앞에서부터 하나씩 등록하다 첫 실패에서 멈춘다. createRewardOnce가 프로젝트당 키 하나만 남기므로
+   실패 뒤 다음 리워드를 이어 보내면 같은 키에 다른 본문이 가 409가 난다. 이미 등록한 리워드는
+   건너뛰어 다시 저장할 때 중복으로 만들지 않는다. */
+export async function registerRewards<T extends { id: number; name: string; registered?: boolean }>(
+  rewards: readonly T[],
+  register: (reward: T) => Promise<unknown>,
+  onRegistered: (id: number) => void,
+) {
+  for (const reward of rewards) {
+    if (reward.registered) continue;
+    try {
+      await register(reward);
+    } catch (error) {
+      throw new RewardBatchError(reward, error);
+    }
+    onRegistered(reward.id);
+  }
 }
