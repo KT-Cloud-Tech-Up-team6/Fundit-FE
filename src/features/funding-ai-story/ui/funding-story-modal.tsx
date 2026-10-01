@@ -51,6 +51,10 @@ type PendingSessionSync = {
   minimumRevision: number;
 };
 
+/* 204가 폐기 성공을 확정한 뒤의 조회는 안내 문구를 고르기 위한 것뿐이다. 응답이 오지 않는
+   조회가 닫기를 막지 않도록 상한을 둔다. api client에는 요청 제한 시간이 없다. */
+const DISCARD_LOOKUP_TIMEOUT_MS = 5_000;
+
 const nextRemoteStage = (session: FundingStorySession) =>
   session.missing.length === 0 && session.summary ? "summary" : "collecting";
 
@@ -169,6 +173,21 @@ export function FundingStoryModal({
     );
   }
 
+  /* 폐기 응답을 기다리는 사이 폴링이 종결 상태를 관측한 경우를 처리한다. 폐기로 끝났으면
+     목적을 달성했으니 닫고, 완료로 끝났으면 되돌릴 수 없으므로 결과 화면으로 안내한다. */
+  function settleRunObservedWhileDiscarding(observed: FundingStoryRun) {
+    discardRequestedRef.current = false;
+    completedWhileDiscardingRef.current = null;
+    if (observed.status === "discarded") {
+      closeModal();
+      return;
+    }
+    showTerminalRun(
+      observed,
+      "생성이 이미 완료되어 결과를 폐기할 수 없습니다. 스토리를 수정해주세요.",
+    );
+  }
+
   async function discardRunAndClose() {
     if (!projectId || discarding) return;
     const runId = pendingRunIdRef.current;
@@ -186,18 +205,24 @@ export function FundingStoryModal({
         projectId,
         runId ? { runId } : { idempotencyKey: idempotencyKey! },
       );
+      /* 폐기를 기다리는 사이 폴링이 종결 상태를 관측했다면 그 결과가 조회보다 정확하다. run ID를
+         늦게 받은 경우에도 여기서 완료를 잡아내므로 왕복을 한 번 줄인다. */
+      const observed = completedWhileDiscardingRef.current;
+      if (observed) {
+        settleRunObservedWhileDiscarding(observed);
+        return;
+      }
       if (runId) {
         // 204은 폐기 성공의 권위다. 조회는 이미 완료돼 되돌릴 수 없는 경우만 감지한다.
         const signal = lifecycleRef.current?.signal;
-        const latest = await getFundingStoryRun(projectId, runId, signal).catch(() => null);
+        const latest = await getFundingStoryRun(
+          projectId,
+          runId,
+          AbortSignal.timeout(DISCARD_LOOKUP_TIMEOUT_MS),
+        ).catch(() => null);
         if (signal?.aborted) return;
         if (latest && ["succeeded", "partially_succeeded", "failed"].includes(latest.status)) {
-          discardRequestedRef.current = false;
-          completedWhileDiscardingRef.current = null;
-          showTerminalRun(
-            latest,
-            "생성이 이미 완료되어 결과를 폐기할 수 없습니다. 스토리를 수정해주세요.",
-          );
+          settleRunObservedWhileDiscarding(latest);
           return;
         }
       }
@@ -205,20 +230,18 @@ export function FundingStoryModal({
       closeModal();
     } catch (error) {
       discardRequestedRef.current = false;
+      // 폐기 요청이 실패해도 그 사이 run이 끝났다면 오류 대신 종결 결과를 보여줘야 한다.
+      const observed = completedWhileDiscardingRef.current;
+      if (observed) {
+        settleRunObservedWhileDiscarding(observed);
+        return;
+      }
       setDiscardError(
         error instanceof Error
           ? `${error.message} 다시 시도해주세요.`
           : "생성 결과를 폐기하지 못했습니다. 다시 시도해주세요.",
       );
       setDiscarding(false);
-      const completed = completedWhileDiscardingRef.current;
-      completedWhileDiscardingRef.current = null;
-      if (completed) {
-        showTerminalRun(
-          completed,
-          "생성이 이미 완료되어 결과를 폐기할 수 없습니다. 스토리를 수정해주세요.",
-        );
-      }
     }
   }
 
@@ -227,6 +250,8 @@ export function FundingStoryModal({
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
+    // 폐기는 생명주기 signal을 받지 않으므로, 재생성 여부는 시작 시점의 controller로 판단한다.
+    const controller = lifecycleRef.current;
     try {
       // POST 응답이 유실된 요청은 같은 key로 다시 생성하면 409가 난다. 먼저 결과를 폐기한다.
       await discardFundingStoryRun(projectId, { idempotencyKey: runIdempotencyKeyRef.current });
@@ -242,6 +267,9 @@ export function FundingStoryModal({
       apiBusyRef.current = false;
       setApiBusy(false);
     }
+    /* 폐기를 기다리는 사이 모달이 사라졌거나 프로젝트가 바뀌면, generate()가 아무도 끊을 수 없는
+       새 controller로 run을 만든다. 그 run의 key는 사라진 ref에만 남아 폐기할 수단이 없다. */
+    if (!controller || lifecycleRef.current !== controller || controller.signal.aborted) return;
     void generate();
   }
   const remoteBlocks = run?.result?.intro_content;
