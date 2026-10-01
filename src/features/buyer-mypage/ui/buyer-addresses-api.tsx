@@ -43,7 +43,8 @@ function toRequestBody(address: ShippingAddress) {
     phoneNumber: address.phone,
     zipcode: address.zipCode,
     addressLine1: address.baseAddress,
-    addressLine2: address.detailAddress.trim(),
+    /* 상세주소는 선택이라 비우면 빈 문자열 대신 null을 보낸다. BE 수정은 null로 이전 상세주소를 지운다(#528). */
+    addressLine2: address.detailAddress.trim() || null,
     isDefault: address.isDefault ?? false,
   };
 }

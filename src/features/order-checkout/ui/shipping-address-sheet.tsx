@@ -13,17 +13,18 @@ import { DaumPostcodeSearch } from "@/shared/components/ui/daum-postcode-button"
 import {
   caretAfterPhoneDigits,
   editMobilePhone,
-  formatMobilePhone,
+  initialMobilePhoneInput,
   invalidPhoneMessage,
   isKoreanMobilePhone,
-  normalizeMobilePhoneInput,
+  mobilePhoneInputDisplay,
 } from "@/shared/lib/korean-mobile-phone";
 import styles from "./checkout-sheet.module.css";
 
-/* 연락처는 숫자만 들고 있다가 칸에서만 하이픈을 붙여 보인다. 저장된 하이픈 번호도 열 때 숫자로 맞춘다. */
+/* 연락처는 숫자만 들고 있다가 칸에서만 하이픈을 붙여 보인다. 저장된 하이픈 번호도 열 때 숫자로 맞추되,
+   형식이 틀린 저장값은 바꾸지 않고 그대로 두어 오류 안내와 저장 막기가 걸리게 한다. */
 function initialForm(initial?: ShippingAddress | null): ShippingAddress {
   return initial
-    ? { ...initial, phone: normalizeMobilePhoneInput(initial.phone) }
+    ? { ...initial, phone: initialMobilePhoneInput(initial.phone) }
     : emptyShippingAddress();
 }
 
@@ -142,7 +143,7 @@ export function ShippingAddressSheet({
               aria-label="연락처"
               inputMode="tel"
               placeholder="연락처를 입력해주세요"
-              value={formatMobilePhone(form.phone)}
+              value={mobilePhoneInputDisplay(form.phone)}
               onChange={(event) => {
                 const input = event.currentTarget;
                 const edit = editMobilePhone(

@@ -112,3 +112,27 @@ export const InvalidPhone: Story = {
     await expect(save).toBeEnabled();
   },
 };
+
+/** 형식이 틀린 채 저장된 연락처(12자리) — 시트를 열 때 잘라 바꾸지 않고 그대로 보여 안내하고 저장을 막는다(#528). */
+export const InvalidSavedPhone: Story = {
+  args: {
+    initial: {
+      recipientName: "홍길동",
+      phone: "010123456789",
+      zipCode: "06099",
+      baseAddress: "서울 강남구 학동로 343",
+      detailAddress: "",
+      deliveryMemo: "",
+    },
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("dialog");
+    const save = canvas.getByRole("button", { name: "저장" });
+    await expect(canvas.getByLabelText("연락처")).toHaveValue("010-1234-56789");
+    await expect(canvas.getByRole("alert")).toHaveTextContent("휴대폰 번호 형식을 확인해 주세요.");
+    await expect(save).toBeDisabled();
+    await userEvent.click(save);
+    await expect(args.onSave).not.toHaveBeenCalled();
+  },
+};

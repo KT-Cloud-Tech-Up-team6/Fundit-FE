@@ -5,7 +5,9 @@ import {
   displayMobilePhone,
   editMobilePhone,
   formatMobilePhone,
+  initialMobilePhoneInput,
   isKoreanMobilePhone,
+  mobilePhoneInputDisplay,
   normalizeMobilePhoneInput,
 } from "./korean-mobile-phone";
 
@@ -110,4 +112,20 @@ test("하이픈 표시값에서 숫자 개수로 커서 위치를 찾는다", ()
   assert.equal(caretAfterPhoneDigits("010-1234-5678", 4), 5);
   assert.equal(caretAfterPhoneDigits("010-1234-5678", 11), 13);
   assert.equal(caretAfterPhoneDigits("010", 5), 3);
+});
+
+test("저장된 연락처는 형식이 맞을 때만 숫자로 맞추고, 틀린 값은 잘라 바꾸지 않는다", () => {
+  assert.equal(initialMobilePhoneInput("010-1234-5678"), "01012345678");
+  assert.equal(initialMobilePhoneInput("01012345678"), "01012345678");
+  // 12자리를 11자리로 자르면 다른 번호가 되므로 그대로 둔다
+  assert.equal(initialMobilePhoneInput("010123456789"), "010123456789");
+  assert.equal(initialMobilePhoneInput("abc"), "abc");
+  assert.equal(initialMobilePhoneInput("010-123-456"), "010-123-456");
+});
+
+test("입력 칸 표시값은 숫자만 든 값만 하이픈으로 나눈다", () => {
+  assert.equal(mobilePhoneInputDisplay("01012345678"), "010-1234-5678");
+  assert.equal(mobilePhoneInputDisplay(""), "");
+  assert.equal(mobilePhoneInputDisplay("abc"), "abc");
+  assert.equal(mobilePhoneInputDisplay("010-123-456"), "010-123-456");
 });

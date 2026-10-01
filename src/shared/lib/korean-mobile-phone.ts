@@ -19,6 +19,17 @@ export function formatMobilePhone(digits: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, middleEnd)}-${digits.slice(middleEnd)}`;
 }
 
+/* 저장된 연락처로 입력 칸을 열 때: 휴대폰 형식인 값만 숫자로 맞춘다. 형식이 틀린 값(예: 12자리)을 잘라 맞추면
+   다른 번호로 바뀐 채 저장될 수 있어, 사용자가 고칠 때까지 그대로 두고 오류로 보인다(#528). */
+export function initialMobilePhoneInput(value: string) {
+  return isKoreanMobilePhone(value) ? normalizeMobilePhoneInput(value) : value;
+}
+
+/* 입력 칸 표시값: 숫자만 든 값은 하이픈으로 나누고, 형식이 틀린 채 저장된 값은 그대로 보인다. */
+export function mobilePhoneInputDisplay(value: string) {
+  return /^\d*$/.test(value) ? formatMobilePhone(value) : value;
+}
+
 /* 목록 표시용: 휴대폰 형식인 저장값만 하이픈 형태로 보이고, 그 밖의 값은 그대로 둔다. */
 export function displayMobilePhone(value: string) {
   return isKoreanMobilePhone(value) ? formatMobilePhone(normalizeMobilePhoneInput(value)) : value;
