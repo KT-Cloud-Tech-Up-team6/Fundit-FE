@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useId } from "react";
-import type { ComponentPropsWithRef, ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -62,7 +62,7 @@ export function AuthFieldLabel({ children, htmlFor }: { children: ReactNode; htm
   );
 }
 
-type AuthButtonProps = ComponentPropsWithoutRef<typeof Button>;
+type AuthButtonProps = ComponentPropsWithRef<typeof Button>;
 
 export function AuthButton({ className, ...props }: AuthButtonProps) {
   return (
