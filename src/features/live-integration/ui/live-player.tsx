@@ -10,8 +10,15 @@ import {
   type RefObject,
 } from "react";
 
-/** 바깥에서 재생 위치·재생 여부를 바꾸기 위한 손잡이. 다시보기 재생바와 구간 탐색이 쓴다. */
-export type LivePlayerHandle = { seek: (sec: number) => void; togglePlay: () => void };
+/**
+ * 바깥에서 재생 위치·재생 여부·소리를 바꾸기 위한 손잡이. 다시보기 재생바와 구간 탐색, 모바일 LIVE의 소리 버튼이
+ * 쓴다.
+ */
+export type LivePlayerHandle = {
+  seek: (sec: number) => void;
+  togglePlay: () => void;
+  toggleSound: () => void;
+};
 
 /*
  * 방송 중 재생 주소가 404면 아직 송출 전이다(IVS: 스트림이 없거나 오프라인). 재생 실패 대신 송출 대기로 두고
@@ -33,6 +40,7 @@ export function LivePlayer({
   waitingMessage = "영상을 준비하는 중입니다.",
   muted = false,
   ended = false,
+  onSoundChange,
 }: {
   src: string;
   title: string;
@@ -63,6 +71,8 @@ export function LivePlayer({
   muted?: boolean;
   /** 방송이 끝났다(판매자 콘솔만 안다). 송출 대기 중이면 더 받지 않고 종료 안내를 보인다. */
   ended?: boolean;
+  /** 소리가 꺼지고 켜질 때마다 알린다(true면 음소거). 기본 컨트롤이 없는 모바일 LIVE가 소리 버튼을 그리는 데 쓴다. */
+  onSoundChange?: (muted: boolean) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [portrait, setPortrait] = useState(false);
@@ -100,6 +110,13 @@ export function LivePlayer({
       void element.play().catch(() => {});
     },
     togglePlay,
+    /* 소리 버튼은 소리만 켜고 끈다. 누르는 것이 사용자 조작이라 음소거로 자동 재생 중에 켜도 브라우저가 막지 않는다
+       (#549). 재생·멈춤은 영상 누르기와 가운데 버튼이 맡는다. */
+    toggleSound() {
+      const player = ivsPlayer.current;
+      if (player) player.setMuted(!player.isMuted());
+      else if (video.current) video.current.muted = !video.current.muted;
+    },
   }));
   function reportProgress() {
     const element = video.current;
@@ -112,7 +129,10 @@ export function LivePlayer({
     if (element?.videoWidth) setPortrait(element.videoHeight > element.videoWidth);
   }
   const [error, setError] = useState("");
-  const [status, setStatus] = useState<"loading" | "waiting" | "playing" | "ended">("loading");
+  /* blocked: 브라우저가 자동 재생을 막아 재생 전으로 멈춰 있다(#549). 준비 중 안내 대신 재생 조작을 보인다. */
+  const [status, setStatus] = useState<"loading" | "waiting" | "blocked" | "playing" | "ended">(
+    "loading",
+  );
   const [attempt, setAttempt] = useState(0);
   /* 종료는 재시도 때만 본다. 바뀌어도 재생기를 다시 불러오지 않게 effect 의존성에서 뺀다. */
   const broadcastEnded = useEffectEvent(() => ended);
@@ -195,19 +215,25 @@ export function LivePlayer({
           ivsPlayer.current = player;
           player.attachHTMLVideoElement(element);
           if (muted) player.setMuted(true);
+          /* 방송 중 영상은 열자마자 재생한다(#549). SDK는 재생 요청 전에는 영상을 받지 않아, 자동 재생이 없으면 준비 중
+             안내가 컨트롤 위에 남아 송출이 안 되는 것처럼 보인다. 브라우저가 소리를 막으면 SDK가 음소거로 재생하고,
+             소리는 기본 컨트롤(모바일은 소리 버튼, toggleSound)로 켠다. */
+          player.setAutoplay(true);
           player.addEventListener(ivs.PlayerEventType.ERROR, (playerError) => {
             if (cancelled) return;
             if (playerError.type === ivs.ErrorType.NOT_AVAILABLE && playerError.code === 404) {
-              /* 송출이 시작돼 받아지면 조작 없이 재생한다(재생되면 canplay가 대기 안내를 거둔다). 브라우저가 소리
-                 있는 재생을 막으면 SDK가 음소거로 재생한다. */
-              player.setAutoplay(true);
+              /* 송출이 시작돼 받아지면 위의 자동 재생으로 조작 없이 재생한다(재생되면 canplay가 대기 안내를 거둔다). */
               waitForStream(() => player.load(src));
             } else setError("영상 재생에 실패했습니다. 다시 시도해 주세요.");
           });
-          /* 스트림은 받았지만 자동 재생이 모두 막혔다. 오류 없이 재생 전으로 두어 기본 컨트롤·가운데 버튼으로 재생한다.
+          /* 스트림은 받았지만 자동 재생이 모두 막혔다. SDK는 소리 있는 자동 재생이 막히면 스스로 음소거해 다시
+             재생하고, 그마저 막혀야 이 이벤트를 보낸다(이때 SDK는 음소거 상태). 오류 없이 재생 전으로 두어 기본
+             컨트롤·가운데 버튼으로 재생하고, 직접 누른 재생은 소리와 함께 시작하도록 음소거를 되돌린다(#549).
              READY에서 거두면 자동 재생이 시작되기 전에 가운데 버튼이 잠깐 보인다. */
           player.addEventListener(ivs.PlayerEventType.PLAYBACK_BLOCKED, () => {
-            if (!cancelled) setStatus((value) => (value === "waiting" ? "loading" : value));
+            if (cancelled) return;
+            if (!muted) player.setMuted(false);
+            setStatus((value) => (value === "waiting" || value === "loading" ? "blocked" : value));
           });
           /* SDK는 영상 요소를 직접 재생·멈춤해도 따르지 않는다 — 요소만 재생하면 스트림을 받지 않고, 요소만 멈추면
              SDK가 다시 재생한다. 기본 컨트롤의 재생·일시정지가 동작하도록 SDK에 알린다. 멈춤은 SDK가 실제로 재생
@@ -274,6 +300,7 @@ export function LivePlayer({
         onCanPlay={() => setStatus("playing")}
         onPlaying={() => setStatus("playing")}
         onEnded={() => setStatus("ended")}
+        onVolumeChange={() => onSoundChange?.(video.current?.muted ?? false)}
         onPlay={() => {
           setPaused(false);
           onPlayingChange?.(true);

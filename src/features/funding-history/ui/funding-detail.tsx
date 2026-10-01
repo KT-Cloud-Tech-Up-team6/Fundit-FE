@@ -1,7 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-screen";
 import { BuyerBottomNavigation } from "@/shared/components/layout/buyer-bottom-navigation";
-import { Button } from "@/shared/components/ui/button";
 import { formatWon, toFundingDetailView, type FundingDetailView } from "../model/funding-history";
 import { demoOrderDetail } from "../model/funding-orders-demo";
 import { FundingActionButtons, FundingThumbnail } from "./funding-card-parts";
@@ -103,18 +102,6 @@ export function FundingDetail({
         </section>
 
         {children}
-
-        <div className="hidden justify-center px-5 py-3 min-[1200px]:flex">
-          <Button
-            href="/my/fundings"
-            variant="secondary"
-            appearance="cta"
-            size="lg"
-            className="w-[189px]"
-          >
-            돌아가기
-          </Button>
-        </div>
       </div>
     </FundingDetailScreen>
   );

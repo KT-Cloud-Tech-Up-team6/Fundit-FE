@@ -41,6 +41,7 @@ function ScrollList({
   label,
   desktopScroll = false,
   bleed = false,
+  fade = true,
   className,
   children,
 }: {
@@ -48,20 +49,26 @@ function ScrollList({
   desktopScroll?: boolean;
   /** 모바일에서 화면 가장자리까지 넘치게(-mx-5) 둔다. 흰 그라데이션도 그 가장자리에 붙는다. */
   bleed?: boolean;
+  /** 잘린 가장자리에 흰 그라데이션(ScrollFade)을 덮는다. */
+  fade?: boolean;
   className: string;
   children: ReactNode;
 }) {
   const drag = useHorizontalDrag();
-  return (
-    <ScrollFade className={bleed ? "-mx-5 min-[1200px]:mx-0" : ""}>
-      <ul
-        {...drag}
-        aria-label={label}
-        className={`${desktopScroll ? styles.scroller : styles.mobileScroller} flex overflow-x-auto ${className}`}
-      >
-        {children}
-      </ul>
-    </ScrollFade>
+  const frameClass = bleed ? "-mx-5 min-[1200px]:mx-0" : "";
+  const list = (
+    <ul
+      {...drag}
+      aria-label={label}
+      className={`${desktopScroll ? styles.scroller : styles.mobileScroller} flex overflow-x-auto ${className}`}
+    >
+      {children}
+    </ul>
+  );
+  return fade ? (
+    <ScrollFade className={frameClass}>{list}</ScrollFade>
+  ) : (
+    <div className={frameClass}>{list}</div>
   );
 }
 
@@ -290,14 +297,20 @@ function ProjectItem({
   );
 }
 
-/* 모바일은 제목 줄과 가로 목록, PC(`2315:71742`)는 파란 띠 안에 소개와 가로 목록이다. 전체보기는 LIVE 메인이다. */
+/* 모바일은 제목 줄과 가로 목록, PC(`2315:71742`)는 파란 띠 안에 소개와 가로 목록이다. 전체보기는 LIVE 메인이다.
+   이 목록만 흰 그라데이션 없이 둔다(#527). PC 목록은 1200px 콘텐츠의 소개 오른쪽에서 시작해 화면 오른쪽 끝까지
+   이어진다. 띠 폭(100cqw)으로 1200px 콘텐츠의 바깥 여백을 구해 왼쪽을 맞추고, 끝까지 넘기면 마지막 카드가
+   콘텐츠 오른쪽 끝에 오도록 목록 오른쪽에 같은 여백을 둔다. */
 function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
+  /* 목록만 화면 오른쪽 끝까지 잇는다. 불러오는 중·빈 목록·오류 안내는 같은 오른쪽 여백을 두어 다른 홈 섹션처럼
+     1200px 콘텐츠 열 안 가운데에 둔다(#527 리뷰). */
+  const showsList = lives.status === "ready" && lives.items.length > 0;
   return (
     <section
       aria-label="실시간 LIVE"
-      className="min-[1200px]:bg-status-accent min-[1200px]:px-10 min-[1200px]:py-12"
+      className="min-[1200px]:bg-status-accent @container min-[1200px]:py-12"
     >
-      <div className="flex flex-col gap-3 min-[1200px]:mx-auto min-[1200px]:max-w-300 min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:gap-6">
+      <div className="flex flex-col gap-3 min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:gap-6 min-[1200px]:pl-[max(40px,calc((100cqw_-_1200px)/2))]">
         <div className="flex h-7 items-center justify-between gap-2 min-[1200px]:hidden">
           <h2 className="text-title-m text-text-primary-live">실시간 LIVE</h2>
           <Link href="/live" className={`${textButtonNavigationClasses} -my-1.5`}>
@@ -324,7 +337,9 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
             <Icon name="next" className="size-3" />
           </Link>
         </div>
-        <div className="min-w-0 flex-1">
+        <div
+          className={`min-w-0 flex-1 ${showsList ? "" : "min-[1200px]:pr-[max(40px,calc((100cqw_-_1200px)/2))]"}`}
+        >
           <SectionBody
             data={lives}
             messages={{
@@ -338,7 +353,8 @@ function LiveSection({ lives }: { lives: SectionData<LiveCard> }) {
                 label="실시간 LIVE 목록"
                 desktopScroll
                 bleed
-                className="gap-3 px-5 min-[1200px]:px-0"
+                fade={false}
+                className="gap-3 px-5 min-[1200px]:pr-[max(40px,calc((100cqw_-_1200px)/2))] min-[1200px]:pl-0"
               >
                 {items.map((card) => (
                   <li key={card.id} className="w-41 shrink-0 min-[1200px]:w-56">

@@ -14,8 +14,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Chat: Story = {};
 export const Closed: Story = { args: { initialStep: "closed" } };
+/* FL_S_LVS_AISLT_1 — 유형·시간을 고르기 전. */
 export const TypeSelection: Story = { args: { initialStep: "options" } };
+/* FL_S_LVS_AISLT_5 — 대사 완성 유형 편집. */
 export const Editor: Story = { args: { initialStep: "editor" } };
+/* 시나리오 유형 편집. 대사 칸 없이 개요만 고친다. */
+export const EditorScenario: Story = { args: { initialStep: "editor", initialType: "scenario" } };
 
 export const ChatComplete: Story = {
   args: { initialStep: "chat", initialAnswers: demoAnswers },
@@ -25,6 +29,12 @@ export const Summary: Story = {
   args: { initialStep: "summary", initialAnswers: demoAnswers },
 };
 
+/* FL_S_LVS_AISLT_2 — 유형만 골라 버튼은 아직 "다음으로" 비활성이다. */
+export const TypeSelectedWithoutMinutes: Story = {
+  args: { initialStep: "options", initialAnswers: demoAnswers, initialType: "script" },
+};
+
+/* FL_S_LVS_AISLT_3 — 유형과 시간을 다 골라 "큐시트 생성"이 켜진다. */
 export const TypeSelected: Story = {
   args: {
     initialStep: "options",
@@ -34,6 +44,7 @@ export const TypeSelected: Story = {
   },
 };
 
+/* FL_S_LVS_AISLT_4 — 생성 중 로고 모션. */
 export const Generating: Story = {
   args: {
     ...TypeSelected.args,

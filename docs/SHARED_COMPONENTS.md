@@ -176,6 +176,8 @@ src/shared/components/
 
 - `HeaderWeb`은 로고·메뉴·액션 슬롯을 제공하며 구매자·판매자 Shell에서 공유합니다. 구매자 데스크톱 검색은 `/search?q=...`로 제출합니다.
 - `BuyerBottomNavigation`은 현재 경로로 활성 탭을 결정하고 `activeHref`로 재정의할 수 있습니다. 카테고리 재선택 시 기존 복귀 경로를 유지합니다.
+- `BuyerDesktopHeader`(1200px 이상 구매자 헤더)도 하단 메뉴와 같은 경로 앞부분으로 활성 메뉴를 고릅니다. `/live`로 시작하면 라이브, `/categories`로 시작하면 카테고리만 활성(fill 아이콘, 기본 글자색, `aria-current="page"`)이고 그 밖의 화면은 둘 다 비활성(line 아이콘, 보조 글자색)입니다. 활성 라이브 아이콘만 파랑입니다(Figma 홈 `2315:71553`, LIVE `1419:51918`, #527). 오른쪽 끝 버튼은 `exitHref`를 주면 "나가기"(닫기 아이콘)로 그 경로에 갑니다.
+- 창작자·참여자 전환 버튼(`BuyerDesktopHeader`, `ModeSwitchLink`)은 Figma `frequently/arrow-reload-horizontal-1`인 가로형 아이콘 `Icon name="modeSwitch"`를 씁니다. `swap`(세로형)은 새로고침 의미로 다른 화면이 쓰므로 그대로 둡니다.
 - `Calendar`는 react-day-picker의 선택 모드·선택값·disabled 계약을 그대로 받으며 기본 locale은 한국어입니다. `classNames`와 `components`는 기본값에 병합합니다. 실제 화면 연결은 호출자가 담당합니다.
 - `Breadcrumb`은 텍스트 경로를 표시하고 마지막 항목에 `aria-current="page"`를 지정합니다.
 - `BottomSheet`는 `title`을 주면 제목과 닫기 버튼을 표시하며 `onBack`으로 뒤로가기를 추가합니다. 헤더가 없으면 `aria-label` 또는 `aria-labelledby`를 제공합니다. 제목·하단 영역은 고정하고 본문만 스크롤합니다.

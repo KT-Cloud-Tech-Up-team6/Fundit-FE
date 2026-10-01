@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -166,9 +167,20 @@ export function SellerProjectList({
             </div>
           </section>
         ) : (
-          <p className="text-body-m text-text-secondary mt-6 py-16 text-center">
-            해당 상태의 프로젝트가 없습니다.
-          </p>
+          /* 프로젝트 관리 섹션에는 빈 상태 시안이 없어 자매 화면 LIVE 스튜디오(FL_S_LV_HOME
+             1230:16296의 empty_state)와 같이 남은 높이 가운데에 그래픽과 안내를 둔다. */
+          <div className="mt-6 flex flex-1 flex-col items-center justify-center pb-16">
+            <Image
+              alt=""
+              src="/images/shared/island.svg"
+              width={112}
+              height={112}
+              className="size-28"
+            />
+            <p className="text-body-s text-text-secondary mt-10">
+              해당 상태의 프로젝트가 없습니다.
+            </p>
+          </div>
         ))
       )}
       {projects.data && (

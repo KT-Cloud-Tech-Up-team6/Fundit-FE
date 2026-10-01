@@ -111,7 +111,7 @@ test("적립금을 반영하면 최종 결제 금액이 그만큼 줄어든다",
   assert.equal(finalPaymentAmount({ ...base, pointDiscount: 5_000 }), 194_000);
 });
 
-test("배송지는 배송 요청 사항 외 필수 항목이 모두 채워져야 저장 가능", () => {
+test("배송지는 배송 요청 사항·상세주소 외 필수 항목이 모두 채워져야 저장 가능", () => {
   assert.equal(isShippingAddressComplete(emptyShippingAddress()), false);
 
   const filled = {
@@ -124,8 +124,9 @@ test("배송지는 배송 요청 사항 외 필수 항목이 모두 채워져야
   assert.equal(isShippingAddressComplete(filled), true);
   // 배송 요청 사항은 없어도 저장 가능
   assert.equal(isShippingAddressComplete({ ...filled, deliveryMemo: "" }), true);
-  // 상세주소가 공백뿐이면 미완성
-  assert.equal(isShippingAddressComplete({ ...filled, detailAddress: "   " }), false);
+  // 상세주소는 선택이라 비어 있어도 저장 가능(#528)
+  assert.equal(isShippingAddressComplete({ ...filled, detailAddress: "" }), true);
+  assert.equal(isShippingAddressComplete({ ...filled, detailAddress: "   " }), true);
   // 우편번호 찾기 전이면 미완성
   assert.equal(isShippingAddressComplete({ ...filled, zipCode: "", baseAddress: "" }), false);
 });

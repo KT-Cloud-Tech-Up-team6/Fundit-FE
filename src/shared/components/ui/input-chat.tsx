@@ -51,6 +51,7 @@ export function InputChat({
             />
           </button>
         )}
+        {/* story 입력은 모달이 높이를 28px부터 맞추므로, 14px·1.42 줄(약 20px) 위아래에 4px씩 두어 세로 가운데에 둔다(#532). */}
         <textarea
           {...props}
           value={value}

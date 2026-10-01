@@ -10,6 +10,7 @@ import type { LiveSeller } from "../model/live-seller";
 import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
+import { compactCount } from "@/shared/lib/compact-count";
 import styles from "./buyer-live-room.module.css";
 import { RoomIcon } from "./room-icon";
 
@@ -34,6 +35,13 @@ type BuyerLiveRoomProps = {
   seller?: LiveSeller;
   /** 실제 LIVE 채팅. 주면 목업 채팅 대신 이 목록과 입력을 그린다. */
   liveChat?: LiveChat;
+  /** 나가기 목적지. 홈에서 들어온 방송은 홈(`/`)이다(#526). */
+  exitHref?: string;
+  /**
+   * 실제 방송 영상의 소리 켜기·끄기. 주면 오른쪽 버튼 열 맨 위에 소리 버튼을 그린다(#549). 모바일 시청 화면은 기본
+   * 컨트롤이 없어, 브라우저가 소리를 막아 음소거로 자동 재생되면 이 버튼으로 켠다.
+   */
+  sound?: { muted: boolean; onToggle: () => void };
 };
 
 export function BuyerLiveRoom({
@@ -54,6 +62,8 @@ export function BuyerLiveRoom({
   onToggleLike,
   seller,
   liveChat,
+  exitHref = "/live",
+  sound,
 }: BuyerLiveRoomProps) {
   const [internalFollowing, setInternalFollowing] = useState(false);
   const following = seller ? seller.following : internalFollowing;
@@ -208,7 +218,7 @@ export function BuyerLiveRoom({
         <button type="button" onClick={toggleFullscreen} aria-label="라이브 전체 화면">
           <RoomIcon name="expand" className="size-5" />
         </button>
-        <Link href="/live" aria-label="라이브 나가기">
+        <Link href={exitHref} aria-label="라이브 나가기">
           <Icon name="close" className="inline-block size-5" />
         </Link>
       </header>
@@ -233,11 +243,12 @@ export function BuyerLiveRoom({
                 {seller?.name ?? product.seller}
               </span>
               {onToggleFollow && (
-                /* Figma 1408:42133 button secondary/XS: 높이 28, 좌우 12px, Caption/Medium_13. */
+                /* Figma 1408:42133 button secondary/XS: 높이 28, 좌우 12px, Caption/Medium_13. 팔로우·팔로잉은
+                   디졸브 없이 바로 바뀐다(디자인 QA, #526). 공용 Button의 전환 시간만 0으로 끈다. */
                 <Button
                   size="sm"
                   variant={following ? "primary" : "secondary"}
-                  className="text-caption-s! ml-auto px-3 font-medium"
+                  className="text-caption-s! ml-auto px-3 font-medium duration-0"
                   aria-pressed={following}
                   onClick={onToggleFollow}
                 >
@@ -375,6 +386,19 @@ export function BuyerLiveRoom({
               )}
             </div>
             <div className={`${styles.actions} drop-shadow-[0_0_2px_rgba(0,0,0,0.3)]`}>
+              {sound && (
+                /* Figma에 없는 버튼이라 옆 버튼과 같은 아이콘+라벨 모양으로 둔다(FE 자체 판단, #549). 아이콘은
+                   지금 상태(음소거면 X 스피커)이고 라벨도 상태를 적는다. 음량은 기기 버튼이 맡는다 — iOS는 웹에서
+                   음량을 바꿀 수 없다. */
+                <button
+                  type="button"
+                  aria-label={sound.muted ? "소리 켜기" : "소리 끄기"}
+                  onClick={sound.onToggle}
+                >
+                  <RoomIcon name={sound.muted ? "sound-off" : "sound-on"} />
+                  <span>{sound.muted ? "음소거" : "소리"}</span>
+                </button>
+              )}
               <button type="button" aria-haspopup="dialog" onClick={() => setQuestions("compact")}>
                 <RoomIcon name="question" />
                 <span>Q&amp;A</span>
@@ -390,14 +414,10 @@ export function BuyerLiveRoom({
                   aria-label={liked ? "좋아요 취소" : "좋아요"}
                   onClick={() => (onToggleLike ? onToggleLike() : setInternalLiked(!liked))}
                 >
-                  <RoomIcon name="heart" />
-                  <span>
-                    {likeCount === undefined
-                      ? liked
-                        ? "좋아요 취소"
-                        : "좋아요"
-                      : likeCount.toLocaleString("ko-KR")}
-                  </span>
+                  {/* 누르면 채운 heart이고 선택 색은 아이콘에만 쓴다. 라벨은 전체 좋아요 수다(목업은
+                      Figma 데스크톱 예시 "2.4천", 디자인 QA #526). */}
+                  <RoomIcon name={liked ? "heart-filled" : "heart"} />
+                  <span>{likeCount === undefined ? "2.4천" : compactCount(likeCount)}</span>
                 </button>
               )}
             </div>

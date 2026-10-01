@@ -472,6 +472,8 @@ enum은 DRAFT, ONGOING, SUCCEEDED, FAILED다. BE develop `47bee6ed`에서 관리
 | 삭제       | DRAFT만 가능. 나머지는 422 PROJECT_NOT_DELETABLE.                                                                                                                              |
 | 그 외 수정 | 기본정보·소개·리워드·고시·환불정책은 현재 프로젝트 상태와 무관하게 호출 가능. 허용 정책이 확정됐다는 의미는 아님.                                                              |
 
+소개 콘텐츠는 보이는 내용이 있어야 한다. 이미지·영상 블록이 없고 TEXT 블록에서 태그를 걷어낸 글자가 공백뿐이면(`<p></p>`·`<p>&nbsp;</p>`) 미작성이다(BE #212). 이미 공개된 프로젝트의 소개를 빈 본문으로 저장하면 400 `STORY_CONTENT_REQUIRED`, DRAFT는 빈 본문도 저장한다. FE는 "저장"에서 먼저 막는다(#523).
+
 공개 시점이 펀딩 시작이고 마감은 30일 뒤다. PROJECT_NOT_SUBMITTABLE 메시지 끝에는 빠진 키 목록(`basicInfo, story, rewards, privacyConsent`)이 붙고 `detail`은 비어 있다. FE는 이 목록으로 빠진 항목을 안내한다(#322).
 
 진행 중 목표금액·가격 수정도 현재 서버가 막지 않는다. FE 비활성화만으로 보안을 대신하지 않으며 상태별 허용 필드와 BE 검증을 협의한다. ONGOING에서 SUCCEEDED/FAILED로 전환하는 시점·주체는 전달된 답변으로 확정하지 않는다.
@@ -605,10 +607,10 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 - **생성은 비동기다.** `POST`는 `GENERATING`만 돌려주고 BE가 별도 스레드에서 AI를 호출해 결과를 채운다. `jobId`는 없고 세션당 큐시트가 1개라 `GET`의 `status`(`GENERATING`·`COMPLETED`·`FAILED`)를 폴링한다. 실패 사유는 `failureReason`이지만 AI 호출 예외 원문이라(AI 주소 등 내부 정보가 섞일 수 있다) 화면에 보이지 않는다(#403).
 - `segments`는 **JSON 문자열**이다. BE가 AI 계약을 타입으로 박지 않고 그대로 저장·반환하므로 구조 확인은 FE 몫이다. 현재 구간은 `{id, title, duration, outline, script}`이며 `duration`은 초다.
 - 큐시트를 한 번도 요청하지 않은 LIVE는 `GET`이 404다. 오류가 아니라 "아직 없음"이다. 다만 없는 LIVE·남의 LIVE도 같은 404라, 큐시트 화면·콘솔은 LIVE 단건 조회(`GET /api/v1/lives/{liveId}`)가 404·403이면 "큐시트 없음" 대신 오류 화면을 보인다(#403).
-- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다. 생성 중(`FL_S_LVS_AIC`)과 같은 자리·배경을 쓰고 일반 안내("잠시 후 다시 시도해 주세요.", 생성 요청 자체가 거절되면 상태별 안내)와 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`·채팅 답)으로 `POST`를 다시 보낸다.
+- `FAILED` 화면은 원본에 없어 **`FL_S_LVS_AIC_FAIL`**로 화면 ID를 새로 부여했다(이미 쓰는 화면 ID라 이름은 그대로 둔다). 생성 중(`FL_S_LVS_AISLT_4`)과 같은 자리·배경을 쓰고 일반 안내("잠시 후 다시 시도해 주세요.", 생성 요청 자체가 거절되면 상태별 안내)와 재시도만 둔다. 재시도는 직전 조건(`mode`·`targetDurationSec`·채팅 답)으로 `POST`를 다시 보낸다.
 - 스텁 모드(`live.ai.mode=stub`)의 결과는 `[stub]` 한 구간뿐이다. 실연동과 스텁 결과를 구분한다.
 - #289 당시에는 `liveId` 단건 조회 API가 없었다. `/playback`은 공개용이라 `DRAFT`·`SCHEDULED`에서 404여서, LIVE의 `projectId`가 필요한 큐시트 화면은 `/lives/mine`에서 찾았다. 이후 BE #139가 소유자 단건 조회(`GET /api/v1/lives/{liveId}`)를 추가했고 콘솔(#320)에 이어 큐시트 화면도 #326에서 단건 조회로 바꿔 우회를 걷었다.
-- 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AIC`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다.
+- 큐시트 생성은 실측 평균 약 86.5초, 최대 약 122초다. 원본(`FL_S_LVS_AISLT_4`, 모달 `1230:17313`)에 시간 문구 자리가 없어 #326에서 생성 중 화면에 "보통 1분 30초, 길게는 2분 정도 걸려요"를 덧붙였다. #530부터 원본의 제목·원·로고 자리를 그대로 두려고 이 문구를 원 아래에 둔다.
 
 ### 5.8. 판매자 LIVE 콘솔 (#320)
 

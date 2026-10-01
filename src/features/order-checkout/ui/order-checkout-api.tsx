@@ -538,7 +538,7 @@ function Checkout({
             phoneNumber: value.phone,
             zipcode: value.zipCode,
             addressLine1: value.baseAddress,
-            addressLine2: value.detailAddress,
+            addressLine2: value.detailAddress.trim(),
           };
           setAddressSheet(null);
           requestOrderChange({

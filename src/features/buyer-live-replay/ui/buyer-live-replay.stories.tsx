@@ -27,9 +27,12 @@ export const Chapters: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     expect(canvas.getAllByRole("button", { name: /구간 \d 재생/ })).toHaveLength(4);
-    expect(canvas.getByRole("button", { name: "구간 1 재생" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    const selected = canvas.getByRole("button", { name: "구간 1 재생" });
+    expect(selected).toHaveAttribute("aria-pressed", "true");
+    // 선택 카드는 status_accent 배경에 흰 글자 배지다(디자인 QA FL_B_LV_VOD, #526).
+    expect(getComputedStyle(within(selected).getByText("도입")).color).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(selected).backgroundColor).not.toBe(
+      getComputedStyle(canvas.getByRole("button", { name: "구간 2 재생" })).backgroundColor,
     );
     await userEvent.click(canvas.getByRole("button", { name: "일시정지" }));
     await userEvent.click(canvas.getByRole("button", { name: "구간 2 재생" }));
@@ -94,6 +97,8 @@ export const Clip: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     expect(canvas.getByText("시연 영상")).toBeVisible();
+    // Figma 1408:42167 primary_live 배지: 흰 글자.
+    expect(getComputedStyle(canvas.getByText("시연 영상")).color).toBe("rgb(255, 255, 255)");
     expect(canvas.queryByRole("slider")).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "좋아요" }));
     expect(canvas.getByRole("button", { name: "좋아요" })).toHaveAttribute("aria-pressed", "true");
