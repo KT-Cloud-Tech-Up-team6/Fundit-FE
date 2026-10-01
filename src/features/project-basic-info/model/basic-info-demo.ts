@@ -120,14 +120,30 @@ export function rewardError(reward: RewardDraft) {
   if (!positiveInteger(reward.price)) return "리워드 가격을 양의 정수로 입력해주세요.";
   if (reward.limited && !positiveInteger(reward.quantity))
     return "제한 수량을 양의 정수로 입력해주세요.";
-  if (reward.discount) {
-    if (!positiveInteger(reward.discountValue)) return "할인 값을 입력해주세요.";
-    if (reward.discountUnit === "won" && Number(reward.discountValue) >= Number(reward.price))
-      return "할인 금액은 리워드 가격보다 작아야 합니다.";
-    if (reward.discountUnit === "percent" && Number(reward.discountValue) > 100)
-      return "할인율은 1~100%로 입력해주세요.";
+  return discountError(reward);
+}
+
+/** 얼리버드 정률 할인율의 상한. BE `Reward.validateEarlyBirdDiscount`와 같다(QA-156, PM 2026-09-30). */
+const DISCOUNT_RATE_MAX = 99;
+
+/** 할인 입력의 오류 문구. 할인을 쓰지 않으면 빈 문자열이다. 정률은 0~99%, 정액은 1원 이상 가격 미만(BE와 같음). */
+export function discountError(
+  reward: Pick<RewardDraft, "discount" | "discountValue" | "discountUnit" | "price">,
+) {
+  if (!reward.discount) return "";
+  const value = reward.discountValue;
+  if (reward.discountUnit === "percent") {
+    if (value === "") return "할인 값을 입력해주세요.";
+    return /^\d+$/.test(value) && Number(value) <= DISCOUNT_RATE_MAX
+      ? ""
+      : `할인율은 0~${DISCOUNT_RATE_MAX}%로 입력해주세요.`;
   }
-  return "";
+  if (value === "") return "할인 값을 입력해주세요.";
+  // 가격 오류는 rewardError가 따로 말하므로, 가격을 아직 못 읽을 때는 할인 문구를 띄우지 않는다.
+  if (!positiveInteger(reward.price)) return "";
+  return positiveInteger(value) && Number(value) < Number(reward.price)
+    ? ""
+    : "할인 금액은 1원 이상, 리워드 가격 미만으로 입력해주세요.";
 }
 
 export function convertDiscount(
