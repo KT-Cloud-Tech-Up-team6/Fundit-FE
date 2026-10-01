@@ -6,7 +6,11 @@ const meta = {
   title: "Features/BuyerLive/Main",
   component: BuyerLiveMain,
   tags: ["autodocs"],
-  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
+  /* PC 헤더는 경로로 활성 메뉴를 고른다. LIVE 화면 경로를 줘야 헤더의 라이브가 활성이다. */
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true, navigation: { pathname: "/live" } },
+  },
 } satisfies Meta<typeof BuyerLiveMain>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -160,6 +164,15 @@ export const SearchAndNavigation: Story = {
     expect(bottomNav.getByRole("link", { name: "라이브" })).toHaveAttribute("aria-current", "page");
     expect(bottomNav.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
     expect(bottomNav.getByRole("link", { name: "마이" })).toHaveAttribute("href", "/my");
+    /* PC 헤더(1200px 미만에서는 숨김)는 라이브만 활성이다. */
+    const menu = within(canvas.getByRole("navigation", { name: "구매자 주요 메뉴", hidden: true }));
+    expect(menu.getByRole("link", { name: "라이브", hidden: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(menu.getByRole("link", { name: "카테고리", hidden: true })).not.toHaveAttribute(
+      "aria-current",
+    );
     expect(
       canvas.getByRole("button", { name: "실시간 순위 더 보러 가기 (준비중)" }),
     ).toBeDisabled();

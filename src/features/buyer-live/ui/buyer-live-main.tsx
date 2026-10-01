@@ -887,9 +887,12 @@ export function BuyerLiveMain({
             </Section>
           )}
           <Section className="min-[1200px]:order-5" title="추천 라이브">
+            {/* 모바일 원본(실시간 `1408:41606`, 예정 `1408:41906`)은 169px 카드를 줄바꿈해 늘어놓는다. 화면이
+                넓어지면 카드 크기는 그대로 두고 열만 늘린다. 390px보다 좁으면 두 열을 지키도록 카드가 줄어든다.
+                행 간격은 실시간 16px, 예정 24px다. */}
             <div
               ref={recommendationList}
-              className="grid grid-cols-2 gap-x-3 gap-y-4 min-[1200px]:grid-cols-5 min-[1200px]:gap-x-4 min-[1200px]:gap-y-6"
+              className={`grid grid-cols-[repeat(auto-fill,min(169px,calc((100%_-_12px)/2)))] gap-x-3 ${upcoming ? "gap-y-6" : "gap-y-4"} min-[1200px]:grid-cols-5 min-[1200px]:gap-x-4 min-[1200px]:gap-y-6`}
             >
               {Array.from({ length: visibleCount }, (_, i) =>
                 upcoming ? (
