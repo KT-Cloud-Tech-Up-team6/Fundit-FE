@@ -55,13 +55,15 @@ export function LoginFlow({
 
   // 화면을 통째로 바꾸거나(방식 선택 ↔ 이메일 폼) 제출 중 입력이 disabled가 되면 누른 요소가 사라져
   // 포커스가 BODY로 빠진다. 전환하는 쪽이 갈 곳을 적어 두면 커밋 뒤 여기서 한 번에 옮긴다.
-  // 마운트 때는 적힌 곳이 없어 포커스를 뺏지 않고(autoFocus와 다르다), 사용자가 직접 옮긴 포커스도 건드리지 않는다.
+  // 마운트 때는 적힌 곳이 없어 포커스를 뺏지 않고(autoFocus와 다르다), 폼 밖으로 사용자가 직접 옮긴 포커스도 건드리지 않는다.
   useEffect(() => {
     const target = pendingFocusRef.current;
     if (!target || submitting) return;
     pendingFocusRef.current = null;
     const active = document.activeElement;
-    if (active && active !== document.body) return;
+    // 폼 밖(아이디 찾기 링크 등)으로 사용자가 옮긴 포커스만 존중한다. 비활성이 된 폼 요소에 포커스가 남는
+    // 브라우저(Firefox·Safari)도 있어, 폼 안의 포커스는 잃은 것으로 본다.
+    if (active && active !== document.body && !active.closest("form")) return;
     const targets = { email: emailRef, password: passwordRef, emailLogin: emailLoginRef };
     targets[target].current?.focus();
   }, [view, submitting, mustChangePassword]);
