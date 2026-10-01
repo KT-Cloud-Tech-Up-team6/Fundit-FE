@@ -11,7 +11,7 @@ type DialogBaseProps = Omit<ComponentPropsWithoutRef<"dialog">, "children" | "on
 
 /** Modal·BottomSheet 헤더의 뒤로가기·닫기 버튼이 공유하는 스타일. */
 export const dialogHeaderButtonClasses =
-  "text-text-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary flex size-9 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2";
+  "text-text-default hover:bg-layer-surface-disabled focus-visible:outline-border-primary disabled:cursor-not-allowed disabled:opacity-40 flex size-9 shrink-0 items-center justify-center rounded-xs focus-visible:outline-2";
 
 /**
  * 네이티브 `<dialog>`의 열림 동기화·ESC·backdrop 닫기·배경 스크롤 잠금만 담당한다.

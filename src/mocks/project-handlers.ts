@@ -6,6 +6,7 @@ import type { PublicProject, PublicReward } from "@/entities/project/api/buyer-p
 
 import {
   FIXTURE_LIMITED_REWARD_ID,
+  FIXTURE_AI_STORY_PROJECT_ID,
   FIXTURE_PROJECT_ID,
   FIXTURE_REWARD_ID,
   FIXTURE_SELLER_PROJECT_ID,
@@ -68,6 +69,18 @@ export const projectHandlers = [
   /* ProjectBasicInfoApi가 edit 모드 진입 때(저장 완료 모달의 "다음에" 이후) 여는 화면이 읽는다. */
   http.get("*/api/v1/projects/:id/preview", ({ params }) => {
     const projectId = String(params.id);
+    if (projectId === FIXTURE_AI_STORY_PROJECT_ID)
+      return HttpResponse.json({
+        projectId,
+        status: "DRAFT",
+        title: "QA-189 AI 스토리 프로젝트",
+        coverImageUrl: null,
+        introContent: [],
+        goalAmount: 1_000_000,
+        fundingStatus: { currentAmount: 0, achievementRate: 0, participantCount: 0 },
+        hasLiveVerification: false,
+        seller: { sellerId: "seller-demo", displayName: "E2E 판매자" },
+      });
     const record = sellerProjects.get(projectId);
     if (!record)
       return HttpResponse.json({ code: "NOT_FOUND", message: "프로젝트 없음" }, { status: 404 });
