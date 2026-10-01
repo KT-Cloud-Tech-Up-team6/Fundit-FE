@@ -228,6 +228,8 @@ export function RealBuyerLive({
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
   const seekRef = useRef<LivePlayerHandle | null>(null);
+  /* 방송 영상이 음소거인지. 브라우저가 소리를 막으면 SDK가 음소거로 자동 재생해 true가 된다(모바일 소리 버튼, #549). */
+  const [soundMuted, setSoundMuted] = useState(false);
   const [position, setPosition] = useState({ currentSec: 0, durationSec: 0 });
   const highlights = useQuery({
     queryKey: ["live", liveId, "highlights-public"],
@@ -368,6 +370,7 @@ export function RealBuyerLive({
       /* 모바일 시청 화면(Figma 1408:42073)에는 재생 조작이 없어 기본 컨트롤 대신 멈춰 있을 때만 가운데 재생
          버튼을 보인다(#497). */
       playButton={!isVod && !desktop}
+      onSoundChange={setSoundMuted}
     />
   );
   const questionData =
@@ -458,6 +461,11 @@ export function RealBuyerLive({
       seller={liveSeller}
       liveChat={liveChat}
       exitHref={exitHref}
+      sound={
+        playback.isSuccess
+          ? { muted: soundMuted, onToggle: () => seekRef.current?.toggleSound() }
+          : undefined
+      }
     />
   );
 }
