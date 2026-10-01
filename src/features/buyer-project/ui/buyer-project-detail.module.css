@@ -285,6 +285,10 @@
     align-self: start;
     aspect-ratio: 714 / 536;
   }
+  /* 페이지 스크롤이 0이면 패널은 180px(헤더 70 + 본문 위 여백 32 + 탭 46 + 탭 아래 32)에서 시작해
+     sticky 위치(78px)보다 102px 아래에 있다. 패널 끝이 그만큼 화면 밖에 남고 overscroll-behavior: contain이라
+     패널만 내려서는 올라오지 않으므로, 그 차이만큼 아래 여백을 두어 패널 끝까지 내리면 페이지 스크롤과
+     관계없이 펀딩하기가 보이게 한다(#525). */
   .desktop .summaryColumn {
     grid-column: 2;
     grid-row: 2 / 4;
@@ -293,6 +297,7 @@
     align-self: start;
     min-width: 0;
     max-height: calc(100dvh - 94px);
+    padding-bottom: 102px;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
