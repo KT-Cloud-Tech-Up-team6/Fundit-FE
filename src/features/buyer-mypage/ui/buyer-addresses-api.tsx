@@ -14,6 +14,7 @@ import { BuyerAccountScreen } from "@/shared/components/layout/buyer-account-scr
 import { Button } from "@/shared/components/ui/button";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 import { TextButton } from "@/shared/components/ui/text-button";
+import { displayMobilePhone } from "@/shared/lib/korean-mobile-phone";
 import { ShippingAddressSheet } from "@/features/order-checkout/ui/shipping-address-sheet";
 import type { ShippingAddress } from "@/features/order-checkout/model/checkout-demo";
 import { MemberAccess } from "./member-access";
@@ -42,7 +43,8 @@ function toRequestBody(address: ShippingAddress) {
     phoneNumber: address.phone,
     zipcode: address.zipCode,
     addressLine1: address.baseAddress,
-    addressLine2: address.detailAddress,
+    /* 상세주소는 선택이라 비우면 빈 문자열 대신 null을 보낸다. BE 수정은 null로 이전 상세주소를 지운다(#528). */
+    addressLine2: address.detailAddress.trim() || null,
     isDefault: address.isDefault ?? false,
   };
 }
@@ -143,7 +145,7 @@ function Addresses({ memberId }: { memberId: string }) {
                     <span className="text-text-primary text-body-s">기본 배송지</span>
                   )}
                 </h2>
-                <p>{address.phoneNumber}</p>
+                <p>{displayMobilePhone(address.phoneNumber)}</p>
                 <p>
                   ({address.zipcode}) {address.addressLine1} {address.addressLine2}
                 </p>

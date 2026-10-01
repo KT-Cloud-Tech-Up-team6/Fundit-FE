@@ -323,7 +323,7 @@ export function QuestionManager({
       status={
         state.phase !== "loading" && (
           <span className="text-caption-s text-text-secondary flex items-center gap-1">
-            2분 전 <Icon name="swap" className="size-3.5" />
+            2분 전 <Icon name="syncWarning" className="size-3.5" />
           </span>
         )
       }

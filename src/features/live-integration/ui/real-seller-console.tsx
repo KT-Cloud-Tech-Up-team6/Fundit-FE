@@ -282,7 +282,7 @@ function ConsoleBody({
         <Button
           variant="secondary"
           size="md"
-          className="text-body-s h-10! gap-2 px-3!"
+          className="text-caption-m! h-10! gap-3 px-3! font-medium!"
           disabled={!live || end.isPending}
           onClick={() => {
             if (ending.current) return;
@@ -509,7 +509,7 @@ function UpdatedAgo({
       onClick={onRefresh}
       className="text-caption-s text-text-secondary flex items-center gap-1 disabled:opacity-60"
     >
-      {fetching ? "갱신 중" : ago} <Icon name="swap" className="size-3.5" />
+      {fetching ? "갱신 중" : ago} <Icon name="syncWarning" className="size-3.5" />
     </button>
   );
 }

@@ -106,7 +106,9 @@ export function ProjectConsentModal({
 
   return (
     <Modal open title="개인 정보 동의" onClose={onClose} className={styles.modal}>
-      <div className="mt-6 min-h-0 overflow-y-auto overscroll-contain">
+      {/* 체크박스의 숨은 input(sr-only, absolute)이 dialog를 기준으로 잡히면 dialog 자체가 스크롤되며 제목이
+          밀려 올라가 잘려 보였다(Safari, #533). 이 스크롤 영역을 기준으로 삼게 relative를 둔다. */}
+      <div className="relative mt-6 min-h-0 overflow-y-auto overscroll-contain">
         <Checkbox
           checked={allSelected}
           className="min-h-8 w-full gap-3 px-1 [&>span:last-child]:font-medium"

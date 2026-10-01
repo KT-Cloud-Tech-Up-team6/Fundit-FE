@@ -35,8 +35,17 @@ export const Default: Story = {
     await userEvent.click(follow);
     expect(follow).toHaveAttribute("aria-pressed", "false");
     const like = canvas.getByRole("button", { name: "좋아요" });
+    expect(like).toHaveTextContent("2.4천");
+    const likeLabel = like.querySelector("span:not([aria-hidden])") as HTMLElement;
+    const labelColor = getComputedStyle(likeLabel).color;
     await userEvent.click(like);
     expect(like).toHaveAttribute("aria-pressed", "true");
+    // 누르면 아이콘만 채운 heart·선택 색으로 바뀌고 좋아요 수 라벨은 그대로다(디자인 QA, #526).
+    expect(like).toHaveTextContent("2.4천");
+    expect(getComputedStyle(likeLabel).color).toBe(labelColor);
+    expect((like.querySelector("[aria-hidden]") as HTMLElement).style.maskImage).toContain(
+      "heart-filled.svg",
+    );
     await userEvent.click(like);
     expect(like).toHaveAttribute("aria-pressed", "false");
     expect(canvas.getByRole("link", { name: "라이브 나가기" })).toHaveAttribute("href", "/live");
