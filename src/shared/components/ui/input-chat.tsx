@@ -51,12 +51,13 @@ export function InputChat({
             />
           </button>
         )}
+        {/* story 입력은 모달이 높이를 28px부터 맞추므로, 14px·1.42 줄(약 20px) 위아래에 4px씩 두어 세로 가운데에 둔다(#532). */}
         <textarea
           {...props}
           value={value}
           disabled={disabled}
           rows={props.rows ?? 1}
-          className={`text-text-default placeholder:text-text-placeholder disabled:text-text-disabled disabled:placeholder:text-text-disabled min-h-7 min-w-0 flex-1 resize-none bg-transparent outline-none placeholder:text-[14px] placeholder:leading-[1.42] ${appearance === "story" ? "text-body-s py-0 leading-[1.42]" : "text-body-m py-0.5"}`}
+          className={`text-text-default placeholder:text-text-placeholder disabled:text-text-disabled disabled:placeholder:text-text-disabled min-h-7 min-w-0 flex-1 resize-none bg-transparent outline-none placeholder:text-[14px] placeholder:leading-[1.42] ${appearance === "story" ? "text-body-s py-1 leading-[1.42]" : "text-body-m py-0.5"}`}
           onKeyDown={(event) => {
             onKeyDown?.(event);
             if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229)

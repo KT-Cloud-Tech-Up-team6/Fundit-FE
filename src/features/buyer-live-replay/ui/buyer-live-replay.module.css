@@ -107,10 +107,6 @@
   line-height: 16px;
   font-weight: 600;
 }
-.badge {
-  --status-info: var(--layer-surface-primary-live);
-  --text-secondary: var(--text-static-white);
-}
 /* 실제 영상은 화면 가운데 16:9 띠로 놓이고 기본 컨트롤바가 그 아래 가장자리에 붙는다.
    타임라인을 열면 이 오버레이가 커져 짧은 화면(360x640·390x667)에서 컨트롤바를 덮어
    재생·탐색이 막혔다. 배경은 클릭을 통과시키고 실제 조작 요소만 되살린다. */
@@ -176,8 +172,12 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* 화면 폭과 관계없이 Figma 카드 열(1408:42255)의 290×90이다(#526). 390px보다 좁아 열이 290px가 안 되면
+   넘치지 않게 열 폭으로 줄인다. */
 .project {
   display: flex;
+  width: 290px;
+  max-width: 100%;
   overflow: hidden;
   border-radius: 4px;
   background: var(--layer-surface-default);
@@ -225,7 +225,8 @@
   bottom: env(safe-area-inset-bottom);
   padding: 8px 0;
 }
-.clipActions button[aria-pressed="true"] {
+/* 선택 색은 아이콘에만 쓰고 아래 글자는 기본 색을 유지한다(시청 좋아요와 같음, #526). */
+.clipActions button[aria-pressed="true"] > .icon {
   color: var(--text-warning);
 }
 .chapters {
@@ -253,8 +254,10 @@
   text-align: left;
   scroll-snap-align: center;
 }
+/* 선택 카드의 surface는 status_accent다(디자인 QA FL_B_LV_VOD, #526). */
 .chapters > button[aria-pressed="true"] {
   border-color: var(--border-primary-live);
+  background: var(--status-accent);
 }
 .chapters > button > span:last-child {
   flex: 1;

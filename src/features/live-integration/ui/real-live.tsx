@@ -76,6 +76,7 @@ export function RealBuyerLive({
   clip = false,
   clipId,
   desktop = false,
+  exitHref,
 }: {
   liveId: string;
   replay?: boolean;
@@ -84,6 +85,8 @@ export function RealBuyerLive({
   /** 재생할 쇼츠의 하이라이트 id(`&clip=`). 없거나 맞지 않으면 첫 쇼츠를 재생한다. */
   clipId?: string;
   desktop?: boolean;
+  /** 나가기 목적지. 주지 않으면 각 화면의 기본값(`/live`)이다. */
+  exitHref?: string;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -413,6 +416,7 @@ export function RealBuyerLive({
         video={video}
         videoConnected={clip ? Boolean(shortClip) : playback.isSuccess}
         demoMode={false}
+        exitHref={exitHref}
       />
     );
   if (isVod)
@@ -436,6 +440,7 @@ export function RealBuyerLive({
         questionsData={questionData}
         questionsState={questionState}
         onRefreshQuestions={() => void questions.refetch()}
+        exitHref={exitHref}
       />
     );
   return (
@@ -452,6 +457,7 @@ export function RealBuyerLive({
       onToggleLike={onToggleLike}
       seller={liveSeller}
       liveChat={liveChat}
+      exitHref={exitHref}
     />
   );
 }
