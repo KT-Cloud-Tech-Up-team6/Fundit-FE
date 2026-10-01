@@ -106,10 +106,7 @@ export function LiveCueSheetApi({
 
   const save = useMutation({
     mutationFn: (scenes: CueScene[]) => saveCueSheetSegments(liveId, toCueSheetSegmentBody(scenes)),
-    onSuccess: (response: CueSheetResponse) => {
-      cache.setQueryData(cueSheetKey, response);
-      onSaved?.();
-    },
+    onSuccess: (response: CueSheetResponse) => cache.setQueryData(cueSheetKey, response),
   });
 
   if (state.status === "checking") return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
@@ -205,7 +202,9 @@ export function LiveCueSheetApi({
         failureReason: server.failureReason,
       }}
       onGenerate={(request) => generate.mutate(request)}
-      onSave={(saved) => save.mutate(saved.scenes)}
+      /* onSaved는 mutate 단위 콜백으로 부른다. 저장 중에 닫힌 모달의 저장이 늦게 끝나도, 그사이 다시 연
+         모달을 닫지 않게 하려는 것이다(이 컴포넌트가 사라지면 실행되지 않는다, #530 리뷰). */
+      onSave={(saved) => save.mutate(saved.scenes, { onSuccess: () => onSaved?.() })}
       saving={save.isPending}
       notice={notice}
     />

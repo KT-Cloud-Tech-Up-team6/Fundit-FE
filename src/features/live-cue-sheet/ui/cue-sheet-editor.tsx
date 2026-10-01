@@ -237,11 +237,16 @@ export function CueSheetEditor({
             </div>
           </aside>
           <section className="flex min-w-0 flex-col gap-2.5">
-            <h3 className="flex flex-wrap items-center gap-2">
-              <span className="text-body-strong">
+            {/* 내용 상자 높이(418px)가 고정이라 제목이 두 줄이 되면 아래 안내·버튼과 겹친다. 제목은 한 줄로
+                자르고 전체는 title로 보인다(#530 리뷰). */}
+            <h3
+              className="flex min-w-0 items-center gap-2"
+              title={`${selectedIndex + 1} ${selected.title}`}
+            >
+              <span className="text-body-strong min-w-0 truncate">
                 {selectedIndex + 1} {selected.title}
               </span>
-              <span className="text-caption-m">
+              <span className="text-caption-m shrink-0">
                 {formatCueTime(start)}-{formatCueTime(start + selected.duration - 1)}
               </span>
             </h3>
