@@ -11,9 +11,9 @@ export const FOLLOW_FILTER_LIMIT = 100;
 export const RANKING_ROWS = 10;
 
 /**
- * 시연 칸(PM 2026-09-29). 실시간 순위 4위는 시연할 로봇청소기(Figma 목업 `rank-4` 카드)로 고정하고,
- * 누르면 가장 최근에 만든 방송 중 LIVE로 보낸다(2026-09-29 사용자 결정). 시연 때 만들어 시작한 방송이
- * 가장 최근 LIVE라 그 방송으로 들어간다. 방송 중인 LIVE가 없으면 목업 화면(`/live/rank-4`)으로 간다.
+ * 시연 칸(PM 2026-09-29). 실시간 순위 4위는 가장 최근에 만든 방송 중 LIVE다(2026-09-29 사용자 결정). 시연 때
+ * 만들어 시작한 방송이 가장 최근 LIVE라 그 방송의 실제 정보로 보이고 누르면 그리로 간다(시연 제품 변경,
+ * PM 2026-10-02, #558). 방송 중인 LIVE가 없으면 Figma 목업 로봇청소기 카드(`rank-4`)와 목업 화면이다.
  */
 export const DEMO_RANK = 4;
 
@@ -55,6 +55,18 @@ export function fillRankingSlots(
   const slots = fillRealSlots(RANKING_ROWS - 1, others);
   slots.splice(DEMO_RANK - 1, 0, undefined);
   return slots;
+}
+
+/**
+ * 실시간 순위 카드가 제목(프로젝트명)·대분류·달성률을 읽을 프로젝트(#445). 보이는 실제 칸과 시연 칸이 가리키는
+ * LIVE의 프로젝트다 — 시연 칸도 그 LIVE의 실제 정보로 그린다(#558).
+ */
+export function rankingProjectIds(
+  ranking: readonly LiveSummaryResponse[],
+  demo?: LiveSummaryResponse,
+): string[] {
+  const lives = [...fillRankingSlots(ranking, demo?.liveId), demo];
+  return [...new Set(lives.flatMap((live) => (live ? [live.projectId] : [])))];
 }
 
 /** 시연 칸의 목적지. 최신순(`createdAt` 내림차순) 목록에서 가장 최근에 만든 방송 중 LIVE다. */
