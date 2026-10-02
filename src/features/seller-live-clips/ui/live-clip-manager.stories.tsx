@@ -13,7 +13,7 @@ import { applySaved, splitSaveResults, toLiveClips, type LiveClip } from "../mod
 import { LiveClipIntro, LiveClipManager } from "./live-clip-manager";
 
 const projectTitle = "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기";
-const thumbnail = "/images/funding-status/vacuum-cleaner.png";
+const thumbnail = "/images/funding-status/vacuum-cleaner.jpg";
 const clipThumbnail = "/images/seller-live/broadcast.png";
 
 function live(liveId: string, scheduledStartAt: string, thumbnailUrl: string | null) {

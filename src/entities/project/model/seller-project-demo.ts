@@ -12,7 +12,7 @@ const projects: readonly SellerProject[] = [
   {
     id: "vacuum-cleaner",
     status: "active",
-    thumbnail: "/images/funding-status/vacuum-cleaner.png",
+    thumbnail: "/images/funding-status/vacuum-cleaner.jpg",
     title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
     badges: [
       { label: "D-12", variant: "neutral" },
