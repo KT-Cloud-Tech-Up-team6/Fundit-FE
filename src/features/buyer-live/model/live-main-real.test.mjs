@@ -10,6 +10,7 @@ import {
   pickDemoLive,
   pickNewOpen,
   pickUpcoming,
+  rankingProjectIds,
   realLiveHref,
   realLiveSeller,
   realLiveTitle,
@@ -76,6 +77,27 @@ test("시연 칸이 가리키는 LIVE는 순위에 섞여 와도 다른 칸에 �
       .slice(0, 3),
     ["a", "b", undefined],
   );
+});
+
+test("순위 카드는 보이는 칸과 시연 칸이 가리키는 LIVE의 프로젝트를 한 번씩 읽는다", () => {
+  const lives = [
+    live({ liveId: "a", projectId: "p1" }),
+    live({ liveId: "demo", projectId: "p-demo" }),
+    live({ liveId: "b", projectId: "p1" }),
+  ];
+  // 시연 LIVE는 다른 칸에서 빠지지만 시연 칸이 그 실제 정보로 보이므로 프로젝트는 읽는다(#558).
+  assert.deepEqual(rankingProjectIds(lives, live({ liveId: "demo", projectId: "p-demo" })), [
+    "p1",
+    "p-demo",
+  ]);
+  // 순위 첫 페이지 밖의 시연 LIVE도 읽는다.
+  assert.deepEqual(rankingProjectIds(lives.slice(0, 1), live({ projectId: "p-new" })), [
+    "p1",
+    "p-new",
+  ]);
+  // 방송 중 LIVE가 없으면(시연 칸은 목업) 보이는 칸만 읽는다.
+  assert.deepEqual(rankingProjectIds(lives), ["p1", "p-demo"]);
+  assert.deepEqual(rankingProjectIds([]), []);
 });
 
 test("시연 칸은 최신순 목록에서 가장 최근에 만든 방송 중 LIVE로 간다", () => {

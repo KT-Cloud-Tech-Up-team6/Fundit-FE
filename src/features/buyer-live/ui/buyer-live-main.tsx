@@ -435,10 +435,12 @@ const realRanking = (live: LiveSummaryResponse, project?: RankingProject): Ranki
   seller: realSellerLine(live),
 });
 
-/* 시연 칸(PM 2026-09-29)은 목업 로봇청소기 카드를 그대로 두고, 가장 최근에 만든 방송 중 LIVE가 있으면 그리로 보낸다.
-   달성률은 모바일에서도 PC와 같은 값(10,900%)이다(2026-09-29 사용자 결정). */
-function demoLiveRanking(demo?: LiveSummaryResponse): RankingView {
-  const card: RankingView = {
+/* 시연 칸(PM 2026-09-29)은 가장 최근에 만든 방송 중 LIVE다. 그 LIVE가 있으면 다른 실제 순위 카드와 같이 그 LIVE와
+   프로젝트의 실제 정보를 보인다(시연 제품 변경, PM 2026-10-02, #558). 없으면 목업 로봇청소기 카드이고, 달성률은
+   모바일에서도 PC와 같은 값(10,900%)이다(2026-09-29 사용자 결정). */
+function demoLiveRanking(demo?: LiveSummaryResponse, project?: RankingProject): RankingView {
+  if (demo) return realRanking(demo, project);
+  return {
     ...demoRanking(DEMO_RANK),
     achievement: (
       <span className="text-title-s text-text-primary-live">
@@ -446,7 +448,6 @@ function demoLiveRanking(demo?: LiveSummaryResponse): RankingView {
       </span>
     ),
   };
-  return demo ? { ...card, href: realLiveHref(demo) } : card;
 }
 
 /** 예정 카드 한 장의 표시 값. `id`는 알림 버튼 상태의 키다. */
@@ -781,7 +782,10 @@ export function BuyerLiveMain({
                           rank={rank}
                           card={
                             rank === DEMO_RANK
-                              ? demoLiveRanking(real.demo)
+                              ? demoLiveRanking(
+                                  real.demo,
+                                  real.demo && real.rankingProjects?.get(real.demo.projectId),
+                                )
                               : live
                                 ? realRanking(live, real.rankingProjects?.get(live.projectId))
                                 : demoRanking(rank)

@@ -7,11 +7,11 @@ import { getPublicProject } from "@/entities/project/api/buyer-project-api";
 import { followsQueryKey, getAllFollows } from "@/entities/seller/api/follow-api";
 import { useAuth } from "@/providers/auth-provider";
 import {
-  fillRankingSlots,
   followSellerIds,
   pickDemoLive,
   pickNewOpen,
   pickUpcoming,
+  rankingProjectIds,
   withViewerCounts,
   type RankingProject,
 } from "../model/live-main-real";
@@ -51,15 +51,12 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
      최신순 첫 페이지에서 고르면 그 뒤에 예정·종료 LIVE가 20건 넘게 생겼을 때 방송 중 LIVE를 놓치므로, 방송 중만
      최신순으로 따로 받는다(#447 CodeRabbit 리뷰). */
   const demo = pickDemoLive(usePublicLives({ status: "LIVE" }, !upcoming));
-  /* 실시간 순위 실제 카드의 제목(프로젝트명)·대분류·달성률은 LIVE 목록에 없어 보이는 칸의 프로젝트 상세를
-     한 번씩 읽는다(#445). BE 시더가 넣은 목업 달성률이고, 상세 화면과 같은 키라 카드와 상세의 값이 같다. */
-  const rankingProjectIds = [
-    ...new Set(
-      fillRankingSlots(ranking, demo?.liveId).flatMap((live) => (live ? [live.projectId] : [])),
-    ),
-  ];
+  /* 실시간 순위 실제 카드의 제목(프로젝트명)·대분류·달성률은 LIVE 목록에 없어 보이는 칸과 시연 칸의 프로젝트
+     상세를 한 번씩 읽는다(#445·#558). BE 시더가 넣은 목업 달성률이고, 상세 화면과 같은 키라 카드와 상세의 값이
+     같다. */
+  const projectIds = rankingProjectIds(ranking, demo);
   const rankingProjectResults = useQueries({
-    queries: rankingProjectIds.map((projectId) => ({
+    queries: projectIds.map((projectId) => ({
       queryKey: ["public-project", projectId],
       queryFn: ({ signal }) => getPublicProject(projectId, signal),
     })),
@@ -67,7 +64,7 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
   const rankingProjects = new Map<string, RankingProject>();
   rankingProjectResults.forEach(({ data }, index) => {
     if (!data) return;
-    rankingProjects.set(rankingProjectIds[index], {
+    rankingProjects.set(projectIds[index], {
       title: data.title?.trim() || undefined,
       category: data.categoryMajor ?? undefined,
       achievementRate: data.fundingStatus.achievementRate,
@@ -87,7 +84,8 @@ export function BuyerLiveMainApi({ view = "live" }: { view?: "live" | "upcoming"
       real={{
         newOpen: withViewerCounts(pickNewOpen(newOpen), ranking),
         ranking,
-        demo,
+        /* 최신순 목록에는 시청자 수가 없어 실시간 순위에서 같은 LIVE의 수를 붙인다. */
+        demo: demo && withViewerCounts([demo], ranking)[0],
         rankingProjects,
         /* 예정 탭의 팔로우 칸도 날짜별 예정과 같이 아직 시작 시각이 오지 않은 예정만 이른 순서로 고른다.
            BE는 시각이 지나도 판매자가 시작하기 전까지 SCHEDULED로 둔다. */
