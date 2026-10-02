@@ -18,6 +18,7 @@ import {
   createFundingStoryRun,
   createFundingStorySession,
   discardFundingStoryRun,
+  FundingStoryChatFailedError,
   getFundingStoryRun,
   getFundingStorySession,
   getLatestFundingStorySession,
@@ -590,8 +591,8 @@ export function FundingStoryModal({
       attachmentUrls: sent.flatMap((item) => (item.fileUrl ? [item.fileUrl] : [])),
     });
     failedMessageRef.current = null;
-    // AI 답변까지 끝나면 메시지가 세션에 들어간 것이라, 그 뒤 실패는 입력창으로 되돌리지 않는다.
-    let answered = false;
+    // AI가 답했거나 답변 생성에 실패했으면 메시지는 이미 세션에 있다. 그 뒤 실패는 입력창으로 되돌리지 않는다.
+    let delivered = false;
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
@@ -617,7 +618,7 @@ export function FundingStoryModal({
         setStreamingText,
         controller.signal,
       );
-      answered = true;
+      delivered = true;
       const pending = {
         sessionId: session.session_id,
         minimumRevision: done.revision,
@@ -637,13 +638,28 @@ export function FundingStoryModal({
       setOptimisticMessage(null);
       setStreamingText("");
     } catch (error) {
+      const answerFailed = error instanceof FundingStoryChatFailedError;
+      if (answerFailed) delivered = true;
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         setApiError(error instanceof Error ? error.message : "메시지를 보내지 못했습니다.");
       }
       setOptimisticMessage(null);
       setStreamingText("");
       setRemoteStage(nextRemoteStage(session));
-      if (!answered) {
+      if (answerFailed) {
+        /* 같은 message_id로 다시 보내면 실패한 채팅이 그대로 돌아온다. 세션에 남은 사용자 메시지를 다시
+           불러와 보여 주고, 다음 전송은 새 메시지로 받게 한다. */
+        const refreshed = await getFundingStorySession(
+          projectId,
+          session.session_id,
+          lifecycleRef.current?.signal,
+        ).catch(() => null);
+        if (refreshed) {
+          setSession(refreshed);
+          setRemoteStage(nextRemoteStage(refreshed));
+        }
+      }
+      if (!delivered) {
         // 보낸 내용을 입력창에 되돌려 그대로 다시 보내면 같은 message_id로 재요청한다.
         failedMessageRef.current = request;
         if (fromComposer) {
@@ -655,7 +671,7 @@ export function FundingStoryModal({
       apiBusyRef.current = false;
       setApiBusy(false);
       // 세션에 들어간 첨부는 이제 file_url로 그린다.
-      if (answered) for (const item of sent) revokePreview(item.previewUrl);
+      if (delivered) for (const item of sent) revokePreview(item.previewUrl);
     }
   }
 

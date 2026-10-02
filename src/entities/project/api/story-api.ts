@@ -182,6 +182,20 @@ export type FundingStoryChatDone = {
   error: FundingStoryAsyncError | null;
 };
 
+/**
+ * AI가 메시지를 받은 뒤 답변 생성에 실패했다(`done.status=failed`). 스트림이 끊긴 것과 달리 사용자 메시지는
+ * 이미 세션에 들어가 있고, 같은 `message_id`로 다시 보내면 이 실패한 채팅이 그대로 돌아온다.
+ */
+export class FundingStoryChatFailedError extends Error {
+  readonly done: FundingStoryChatDone;
+
+  constructor(done: FundingStoryChatDone) {
+    super(done.error?.message ?? "AI 응답 생성에 실패했습니다.");
+    this.name = "FundingStoryChatFailedError";
+    this.done = done;
+  }
+}
+
 export async function streamFundingStoryChat(
   projectId: string,
   chatId: string,
@@ -220,8 +234,7 @@ export async function streamFundingStoryChat(
     }
   }
   if (!done) throw new Error("AI 응답 스트림이 완료 전에 종료되었습니다.");
-  if (done.status === "failed")
-    throw new Error(done.error?.message ?? "AI 응답 생성에 실패했습니다.");
+  if (done.status === "failed") throw new FundingStoryChatFailedError(done);
   return done;
 }
 
