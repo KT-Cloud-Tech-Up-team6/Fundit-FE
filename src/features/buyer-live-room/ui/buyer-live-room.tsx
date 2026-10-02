@@ -4,9 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
-import { roomDemo, roomQuestions, sampleMessages } from "../model/room-demo";
+import { roomDemo, roomQuestions, sampleMessages, type LiveProduct } from "../model/room-demo";
 import { liveChatFailedNotice, type LiveChat, type LiveChatMessage } from "../model/live-chat";
 import type { LiveSeller } from "../model/live-seller";
+import { LiveProductSummary } from "./live-product-summary";
 import { LiveQuestionsSheet, type LiveQuestion } from "./live-questions-sheet";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/shared/components/ui/icon";
@@ -16,9 +17,10 @@ import { RoomIcon } from "./room-icon";
 
 type BuyerLiveRoomProps = {
   liveId: string;
+  /** 연결 프로젝트. 주면 실제 경로에서도 상품 카드를 그리고 카드 본문이 프로젝트 상세로 간다(#555). */
   projectId?: string;
   rewardAction?: ReactNode;
-  product?: typeof roomDemo;
+  product?: LiveProduct;
   initialChatExpanded?: boolean;
   initialQuestions?: "closed" | "compact" | "expanded";
   initialMessage?: string;
@@ -334,38 +336,9 @@ export function BuyerLiveRoom({
                   ))}
                 </div>
               </div>
-              {demoMode && (
+              {(demoMode || projectId) && (
                 <article className={styles.product}>
-                  <div className="relative flex min-w-0 flex-1 gap-2 p-2">
-                    <div className="relative size-[74px] shrink-0">
-                      <Image
-                        src={product.productImage}
-                        alt=""
-                        fill
-                        sizes="74px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2>
-                        {projectId ? (
-                          <Link
-                            href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
-                            className="after:absolute after:inset-0"
-                            aria-label={`${product.title} 프로젝트 상세 보기`}
-                          >
-                            {product.title}
-                          </Link>
-                        ) : (
-                          product.title
-                        )}
-                      </h2>
-                      <p className="text-text-secondary mt-1 text-[12px] leading-[1.3] line-through">
-                        219,000원
-                      </p>
-                      <p className="text-[14px] leading-[1.3] font-semibold">199,000원</p>
-                    </div>
-                  </div>
+                  <LiveProductSummary product={product} projectId={projectId} />
                   {rewardAction ?? (
                     <button
                       type="button"

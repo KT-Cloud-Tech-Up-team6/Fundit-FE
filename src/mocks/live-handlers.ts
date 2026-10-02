@@ -1,14 +1,12 @@
 import { http, HttpResponse } from "msw";
 
 import type { LiveSummaryResponse } from "@/entities/live/api/seller-live-api";
-import type { ProjectClip } from "@/features/live-integration/api/live-api";
+import type { Playback, ProjectClip } from "@/features/live-integration/api/live-api";
 
-import { FIXTURE_PROJECT_ID } from "./fixtures";
+import { FIXTURE_ENDED_LIVE_ID, FIXTURE_ON_AIR_LIVE_ID, FIXTURE_PROJECT_ID } from "./fixtures";
 
 /* 목업 프로젝트의 종료된 LIVE 한 건과 공개 숏 클립 한 건. 상품 상세는 종료된 LIVE가 있어야 LIVE 체크 탭을
    보이므로(#461), 이 목록이 없으면 e2e가 탭을 찾지 못한다(#510). 건수는 1건이라 "0건"으로 끝나지 않는다. */
-const FIXTURE_ENDED_LIVE_ID = "55555555-5555-4555-8555-555555555555";
-
 const fixtureEndedLive: LiveSummaryResponse = {
   liveId: FIXTURE_ENDED_LIVE_ID,
   introText: "감성 캠핑 무드등 세트 라이브",
@@ -58,4 +56,27 @@ export const liveHandlers = [
     const content = projectId === FIXTURE_PROJECT_ID ? [fixtureClip] : [];
     return HttpResponse.json({ content, totalElements: content.length });
   }),
+
+  /* 목업 프로젝트에 연결한 방송의 재생 정보. 시청·다시보기 화면의 상품 카드와 리워드 목록이 이 projectId로
+     프로젝트 상세·리워드 선택에 간다(#555). 재생 주소는 없는 같은 출처 경로라 영상은 재생되지 않는다. 다른
+     방송은 목업이 없어 그대로 보낸다. */
+  http.get("*/api/v1/lives/:liveId/playback", ({ params }) => {
+    if (params.liveId !== FIXTURE_ON_AIR_LIVE_ID) return undefined;
+    return HttpResponse.json(fixturePlayback(FIXTURE_ON_AIR_LIVE_ID, "LIVE"));
+  }),
+  http.get("*/api/v1/lives/:liveId/vod", ({ params }) => {
+    if (params.liveId !== FIXTURE_ENDED_LIVE_ID) return undefined;
+    return HttpResponse.json(fixturePlayback(FIXTURE_ENDED_LIVE_ID, "VOD"));
+  }),
 ];
+
+function fixturePlayback(liveId: string, type: Playback["type"]): Playback {
+  return {
+    liveId,
+    type,
+    playbackUrl: `/e2e-fixture/${liveId}.m3u8`,
+    projectId: FIXTURE_PROJECT_ID,
+    likeCount: 3,
+    vodReadyAt: type === "VOD" ? "2026-09-20T13:00:00Z" : null,
+  };
+}

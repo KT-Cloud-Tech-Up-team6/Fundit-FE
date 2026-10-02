@@ -14,6 +14,8 @@ import {
   type LiveQuestion,
   type QuestionSheetState,
 } from "@/features/buyer-live-room/ui/live-questions-sheet";
+import { LiveProductSummary } from "@/features/buyer-live-room/ui/live-product-summary";
+import type { LiveProduct } from "@/features/buyer-live-room/model/room-demo";
 import styles from "./buyer-live-replay.module.css";
 
 type Chapter = { time: string; title: string; label: string; progress: number };
@@ -97,9 +99,10 @@ export function BuyerLiveReplay({
   exitHref = "/live",
 }: {
   liveId: string;
+  /** 연결 프로젝트. 주면 실제 경로에서도 상품 카드를 그리고 카드 본문이 프로젝트 상세로 간다(#555). */
   projectId?: string;
   rewardAction?: ReactNode;
-  product?: typeof replayDemo;
+  product?: LiveProduct;
   clip?: boolean;
   /** 실제 쇼츠의 하이라이트 id. 공유 링크가 같은 쇼츠를 가리키게 한다. */
   clipId?: string;
@@ -107,7 +110,7 @@ export function BuyerLiveReplay({
   clipTitle?: string;
   clipBadge?: string;
   initialPanel?: "chat" | "chapters";
-  /** 목업 전용 정보(가짜 지표·프로젝트 카드·자막)를 그릴지. 실제 경로는 false다. */
+  /** 목업 전용 정보(가짜 지표·자막)를 그릴지. 실제 경로는 false다. 프로젝트 카드는 목업이거나 projectId가 있으면 그린다. */
   demoMode?: boolean;
   /** 주면 포스터 대신 이 영상을 배경으로 그린다. */
   video?: ReactNode;
@@ -341,38 +344,12 @@ export function BuyerLiveReplay({
                     </div>
                   </section>
                 )}
-                {demoMode && (
-                  <section className={styles.project} aria-label="연결된 프로젝트 목업">
-                    <div className="relative flex min-w-0 flex-1 gap-2 p-2">
-                      <div className="relative size-[74px] shrink-0">
-                        <Image
-                          src={product.productImage}
-                          alt=""
-                          fill
-                          sizes="74px"
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h2>
-                          {projectId ? (
-                            <Link
-                              href={`/projects/${encodeURIComponent(projectId)}?tab=story`}
-                              className="after:absolute after:inset-0"
-                              aria-label={`${product.title} 프로젝트 상세 보기`}
-                            >
-                              {product.title}
-                            </Link>
-                          ) : (
-                            product.title
-                          )}
-                        </h2>
-                        <p className="text-text-secondary mt-1 text-[12px] leading-[1.3] line-through">
-                          219,000원
-                        </p>
-                        <p className="text-[14px] leading-[1.3] font-semibold">199,000원</p>
-                      </div>
-                    </div>
+                {(demoMode || projectId) && (
+                  <section
+                    className={styles.project}
+                    aria-label={demoMode ? "연결된 프로젝트 목업" : "연결된 프로젝트"}
+                  >
+                    <LiveProductSummary product={product} projectId={projectId} />
                     {rewardAction ?? (
                       <button
                         type="button"
