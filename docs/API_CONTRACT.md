@@ -545,7 +545,8 @@ LIVE검증 조회(#33) `GET /api/v1/projects/{projectId}/live-verifications`는 
 | 상태·결과   | GET `/api/v1/ai/runs/{runId}`                   |
 
 - FE는 Core 프로젝트·리워드 DTO를 만들지 않는다. BE가 최신 Core 사실을 AI 요청에 추가한다.
-- 메시지는 `message_id`, 현재 `revision`, `text`를 보내며 SSE `message`·`done`을 처리한다.
+- 메시지는 `message_id`, 현재 `revision`, `text`를 보내며 SSE `message`·`done`을 처리한다. 채팅 이미지는 업로드 API의 `fileUrl`을 `attachments: [{file_url, reward_id}]`로 보내고, 이미지가 있으면 `text`는 비어도 된다. 세션 조회의 사용자 메시지에는 `attachments[{slot_id, file_url, reward_id, content_type, file_size}]`가 붙는다(#556, AI #17·BE #233).
+- 전송이 실패한 같은 revision·글·첨부는 같은 `message_id`로 다시 보낸다. 내용을 바꾸면 새 ID를 쓴다(같은 ID에 다른 내용이면 409).
 - 전체 생성은 `session_id`, `confirmed_revision`, 새 `idempotency_key`만 보낸다. 부분 재생성 API는 없다.
 - run 상태는 `queued|running|succeeded|partially_succeeded|failed`다. 부분 성공도 `result`를 표시·불러오고 실패 슬롯을 안내한다.
 - 완료 callback 시 BE가 검증된 결과를 프로젝트에 저장한다. 별도 export/apply API는 없으며 FE의 “불러오기”는 현재 에디터와 캐시를 BE 결과에 맞춘다.

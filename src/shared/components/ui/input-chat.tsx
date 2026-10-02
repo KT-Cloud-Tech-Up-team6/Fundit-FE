@@ -13,6 +13,8 @@ type InputChatProps = Omit<
   attachDisabled?: boolean;
   attachLabel?: string;
   sendLabel?: string;
+  /** 보낼 것이 있는지. 주지 않으면 입력한 글이 있을 때만 보낼 수 있다(첨부만 보내는 화면이 덮어쓴다). */
+  canSend?: boolean;
 };
 
 export function InputChat({
@@ -23,12 +25,13 @@ export function InputChat({
   attachDisabled = false,
   attachLabel = "파일 첨부",
   sendLabel = "메시지 보내기",
+  canSend: hasContent = value.trim().length > 0,
   disabled,
   className,
   onKeyDown,
   ...props
 }: InputChatProps) {
-  const canSend = !disabled && value.trim().length > 0;
+  const canSend = !disabled && hasContent;
   function send() {
     if (canSend) onSend(value);
   }
