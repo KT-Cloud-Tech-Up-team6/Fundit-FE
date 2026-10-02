@@ -581,23 +581,37 @@ export function FundingStoryModal({
     }
   }
 
-  const displayedMessages: (FundingStoryMessage & { question?: number; isSummary?: boolean })[] =
-    projectId
-      ? [
-          ...(session?.messages ?? []),
-          ...(optimisticMessage ? [optimisticMessage] : []),
-          ...(streamingText ? [{ role: "assistant" as const, text: streamingText }] : []),
-          ...(remoteStage === "summary" && session?.summary
-            ? [
-                {
-                  role: "assistant" as const,
-                  text: `요약본이 준비됐어요!\n\n${summaryText(session)}\n\n확인해보시고, 그대로 진행하시거나 수정해주세요.`,
-                  isSummary: true,
-                },
-              ]
-            : []),
-        ]
-      : state.messages;
+  // 모달을 열고 프로젝트 내용을 가져오는 첫 응답 전까지 빈 대화창 대신 대기 말풍선을 보인다.
+  const initialLoading =
+    !!projectId &&
+    apiBusy &&
+    ["connecting", "collecting"].includes(remoteStage) &&
+    !session?.messages.length &&
+    !optimisticMessage &&
+    !streamingText;
+  const displayedMessages: (FundingStoryMessage & {
+    question?: number;
+    isSummary?: boolean;
+    isPending?: boolean;
+  })[] = projectId
+    ? [
+        ...(initialLoading
+          ? [{ role: "assistant" as const, text: "스토리를 불러오는 중이에요...", isPending: true }]
+          : []),
+        ...(session?.messages ?? []),
+        ...(optimisticMessage ? [optimisticMessage] : []),
+        ...(streamingText ? [{ role: "assistant" as const, text: streamingText }] : []),
+        ...(remoteStage === "summary" && session?.summary
+          ? [
+              {
+                role: "assistant" as const,
+                text: `요약본이 준비됐어요!\n\n${summaryText(session)}\n\n확인해보시고, 그대로 진행하시거나 수정해주세요.`,
+                isSummary: true,
+              },
+            ]
+          : []),
+      ]
+    : state.messages;
 
   return (
     <Modal
@@ -661,12 +675,6 @@ export function FundingStoryModal({
         </div>
       ) : (
         <>
-          {projectId && (
-            <p className="text-caption-s">
-              전체 생성만 지원합니다. 생성이 끝나면 BE가 검증한 결과를 현재 스토리에 불러옵니다.
-            </p>
-          )}
-          {apiBusy && <p role="status">서버 요청을 처리하고 있습니다.</p>}
           {apiError && <p role="alert">{apiError}</p>}
           {pendingSessionSync && !apiBusy && (
             <Button size="xs" className="self-start" onClick={() => void synchronizeSession()}>
@@ -693,6 +701,9 @@ export function FundingStoryModal({
             </div>
           ) : result ? (
             <div className="mx-auto flex h-full max-w-203 flex-col gap-6">
+              <p role="status" className="sr-only">
+                {apiBusy ? "스토리에 반영하는 중입니다." : ""}
+              </p>
               <div
                 className="bg-layer-surface-disabled min-h-0 flex-1 overflow-y-auto"
                 aria-label="AI 스토리 결과 본문"
@@ -804,6 +815,7 @@ export function FundingStoryModal({
                           latest &&
                           message.role === "assistant" &&
                           remoteStage === "collecting" &&
+                          !message.isPending &&
                           !streamingText ? (
                             <Chip
                               appearance="outline"
@@ -854,7 +866,7 @@ export function FundingStoryModal({
                 aria-live="polite"
                 aria-atomic="true"
                 className={
-                  displayStage === "summarizing" || (projectId && apiBusy)
+                  displayStage === "summarizing" || (projectId && apiBusy && !initialLoading)
                     ? "text-caption-s text-text-secondary mb-2 pl-10"
                     : "sr-only"
                 }
