@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { FIXTURE_SELLER_PROJECT_ID } from "@/mocks/fixtures";
 import { loginAsFixtureUser } from "./support/login";
 import {
   addReward,
@@ -30,6 +31,18 @@ test("프로젝트 목록에서 신규 생성하기를 누르면 기본정보 �
   await expect(page.getByRole("checkbox", { name: "약관 전체 동의" })).toBeVisible();
 });
 
+/* PM 요청(2026-10-02, #562): 판매자 화면에서 공개 상세를 확인할 수 있게 진행중 썸네일이 같은 탭에서 상세로 간다. */
+test("진행중 카드의 썸네일을 누르면 공개 상세로 가고, 뒤로 가기로 돌아온다", async ({ page }) => {
+  await loginAsFixtureUser(page);
+  await page.goto("/seller/projects");
+
+  await page.getByRole("link", { name: "E2E 제작·배송 프로젝트 상세페이지 보기" }).click();
+  await expect(page).toHaveURL(`/projects/${FIXTURE_SELLER_PROJECT_ID}`);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/seller\/projects$/);
+});
+
 test("준비 중 프로젝트를 확인한 뒤 삭제할 수 있다", async ({ page }) => {
   await loginAsFixtureUser(page);
   await openNewProjectForm(page);
@@ -46,6 +59,10 @@ test("준비 중 프로젝트를 확인한 뒤 삭제할 수 있다", async ({ p
   await page.getByRole("link", { name: "내 프로젝트로" }).click();
   await page.getByRole("link", { name: /준비중/ }).click();
   await expect(page.getByText("삭제할 테스트 프로젝트")).toBeVisible();
+  // 준비중은 공개 전이라 상세가 없어 썸네일에 링크가 없다(#562).
+  await expect(
+    page.getByRole("link", { name: "삭제할 테스트 프로젝트 상세페이지 보기" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "삭제", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "프로젝트를 삭제할까요?" });
   await expect(dialog).toContainText("삭제한 프로젝트는 복구할 수 없습니다.");

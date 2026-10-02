@@ -9,9 +9,12 @@ import { ProgressBar } from "@/shared/components/ui/progress-bar";
 export type { SellerProject } from "@/entities/project/model/seller-project";
 
 /* IA FL_S_PR_LIST(J5)와 PM 결정(2026-09-23): 상태와 관계없이 프로젝트명은 스토리 작성
-   화면(FL_S_PR_DTL), 관리 버튼은 펀딩 관리 화면(FL_S_FD_STATUS)으로 간다. */
+   화면(FL_S_PR_DTL), 관리 버튼은 펀딩 관리 화면(FL_S_FD_STATUS)으로 간다. 진행중·완료 썸네일은 같은 탭에서
+   공개 상세로 간다(PM 요청 2026-10-02, #562). 준비중은 공개 전이라 상세가 없어 썸네일에 링크가 없다. */
 const storyHref = (id: string) => `/seller/projects/${encodeURIComponent(id)}?tab=story`;
 const fundingHref = (id: string) => `/seller/projects/${encodeURIComponent(id)}?tab=funding`;
+const detailHref = (id: string) => `/projects/${encodeURIComponent(id)}`;
+const thumbnailBox = "bg-layer-bg size-[82px] shrink-0 overflow-hidden rounded-xs";
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
@@ -19,23 +22,32 @@ export function SellerProjectCard({
   onDelete,
   ...project
 }: SellerProject & { onDelete?: () => void }) {
+  const thumbnail = project.thumbnail && (
+    <Image
+      src={project.thumbnail}
+      alt=""
+      width={82}
+      height={82}
+      className="size-full object-cover"
+      unoptimized={/^https?:\/\//.test(project.thumbnail)}
+    />
+  );
   return (
     <article
       className={`border-border-default flex min-w-0 flex-col gap-4 border-b p-5 md:flex-row md:items-start md:justify-between md:gap-6 ${project.status === "draft" ? "md:h-[136px]" : "md:h-[148px]"}`}
     >
       <div className="flex min-w-0 flex-1 gap-4 md:gap-6">
-        <div className="bg-layer-bg size-[82px] shrink-0 overflow-hidden rounded-xs">
-          {project.thumbnail && (
-            <Image
-              src={project.thumbnail}
-              alt=""
-              width={82}
-              height={82}
-              className="size-full object-cover"
-              unoptimized={/^https?:\/\//.test(project.thumbnail)}
-            />
-          )}
-        </div>
+        {project.status === "draft" ? (
+          <div className={thumbnailBox}>{thumbnail}</div>
+        ) : (
+          <Link
+            href={detailHref(project.id)}
+            aria-label={`${project.title} 상세페이지 보기`}
+            className={`${thumbnailBox} block`}
+          >
+            {thumbnail}
+          </Link>
+        )}
         <div className="flex min-w-0 flex-1 flex-col md:max-w-[268px]">
           {project.status === "draft" ? (
             <>
