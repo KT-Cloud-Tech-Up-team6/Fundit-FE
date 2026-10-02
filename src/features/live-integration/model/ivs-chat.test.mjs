@@ -223,22 +223,46 @@ test("작성자는 판매자·나·닉네임(없으면 시청자)으로 가르�
     toChatRows(entries, {}).map((row) => row.author),
     ["쓱쓱생활연구소", "내닉네임", "펀딧러버", "시청자"],
   );
+  // 판매자가 보낸 줄만 작성자를 파랗게 그린다(#564). 판매자를 모르면 표시하지 않는다.
+  assert.deepEqual(
+    toChatRows(entries, { memberId: "me", sellerId: "seller" }).map((row) => row.seller),
+    [true, undefined, undefined, undefined],
+  );
+  assert.deepEqual(
+    toChatRows(entries, {}).map((row) => row.seller),
+    [undefined, undefined, undefined, undefined],
+  );
 });
 
-test("판매자 답변은 @everyone을 붙이고 본문이 빠졌으면 답변 목록에서 찾으며, AI 답변은 AI 매니저 줄로 그린다", () => {
+test("판매자 답변은 답한 요약 질문을 인용으로 붙이고 @everyone을 붙이며, 본문이 빠졌으면 답변 목록에서 찾는다", () => {
   const rows = toChatRows(
     [
       { kind: "seller-answer", id: "a", questionId: "q1", answer: "가능합니다." },
       { kind: "seller-answer", id: "b", questionId: "q2" },
       { kind: "seller-answer", id: "c", questionId: "q3" },
+      { kind: "seller-answer", id: "e", questionId: "q4", answer: "세척은 물로 됩니다." },
       { kind: "ai-answer", id: "d", answer: "건조 모드가 있습니다." },
     ],
-    { memberId: "me", answered: [{ questionId: "q2", answerText: "긴 답변" }] },
+    {
+      memberId: "me",
+      answered: [
+        { questionId: "q2", answerText: "긴 답변", summaryText: "충전은 얼마나 걸리나요?" },
+        { questionId: "q4", answerText: "세척은 물로 됩니다.", summaryText: "  " },
+      ],
+    },
   );
   assert.deepEqual(rows, [
-    { id: "a", author: "판매자", text: "@everyone 가능합니다." },
-    { id: "b", author: "판매자", text: "@everyone 긴 답변" },
-    // q3는 목록을 다시 받기 전이라 아직 그리지 않는다.
+    // 답변 목록에 아직 없는 질문(q1)은 인용 없이 답변만 그린다.
+    { id: "a", author: "판매자", text: "@everyone 가능합니다.", seller: true },
+    {
+      id: "b",
+      author: "판매자",
+      text: "@everyone 긴 답변",
+      seller: true,
+      replyTo: "충전은 얼마나 걸리나요?",
+    },
+    // q3는 목록을 다시 받기 전이라 아직 그리지 않는다. 요약 질문이 비었으면(q4) 인용을 붙이지 않는다.
+    { id: "e", author: "판매자", text: "@everyone 세척은 물로 됩니다.", seller: true },
     { id: "d", author: "AI 매니저", text: "건조 모드가 있습니다.", ai: true },
   ]);
 });

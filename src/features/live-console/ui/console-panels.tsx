@@ -167,8 +167,16 @@ export function SellerChatPanel({
   maxLength,
   onSend,
 }: {
-  /** `ai`면 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
-  messages: { id: number | string; author: string; text: string; ai?: boolean }[];
+  /** `ai`면 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). `seller`면 작성자를 파랗게,
+      `replyTo`가 있으면 본문 위에 답한 요약 질문을 인용으로 그린다(#564). */
+  messages: {
+    id: number | string;
+    author: string;
+    text: string;
+    ai?: boolean;
+    seller?: boolean;
+    replyTo?: string;
+  }[];
   countLabel?: string;
   /** 송출 전처럼 채팅 영역을 흐리게 그린다. */
   inactive?: boolean;
@@ -231,13 +239,22 @@ export function SellerChatPanel({
                   key={message.id}
                   className={message.ai ? "flex flex-col py-1" : "flex items-start gap-2 py-1"}
                 >
-                  {/* 작성자 닉네임이 길면 줄의 절반에서 말줄임한다(#488). */}
-                  <span className="text-label-m text-text-secondary max-w-1/2 shrink-0 truncate pt-0.5">
+                  {/* 작성자 닉네임이 길면 줄의 절반에서 말줄임한다(#488). 판매자 이름은 파랗고, 판매자
+                      답변은 답한 요약 질문을 인용으로 붙인다(#564). */}
+                  <span
+                    className={`text-label-m max-w-1/2 shrink-0 truncate pt-0.5 ${message.seller ? "text-text-primary-live" : "text-text-secondary"}`}
+                  >
                     {message.author}
                   </span>
                   <p
                     className={`text-body-s min-w-0 break-words whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
                   >
+                    {message.replyTo && (
+                      <span className="text-caption-s text-text-secondary border-border-default mb-0.5 block truncate border-l-2 pl-2">
+                        <span className="sr-only">답한 질문: </span>
+                        {message.replyTo}
+                      </span>
+                    )}
                     {message.text}
                   </p>
                 </li>

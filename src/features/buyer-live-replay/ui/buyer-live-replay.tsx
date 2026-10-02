@@ -26,7 +26,9 @@ const demoChapters: Chapter[] = chapterDemos.map((chapter, index) => ({
   ...chapter,
   progress: chapterStarts[index],
 }));
-const demoMessages = messages.map((text, id) => ({ id, author: "아이디", text }));
+const demoMessages: { id: number; author: string; text: string; seller?: boolean }[] = messages.map(
+  (text, id) => ({ id, author: "아이디", text }),
+);
 
 function ReplayIcon({
   name,
@@ -127,7 +129,7 @@ export function BuyerLiveReplay({
   /** 주면 숏 클립 좋아요를 바깥(방송 좋아요 API)으로 넘긴다. */
   onToggleLike?: () => void;
   /** 다시보기 구간 채팅. 주면 목업 채팅 대신 이 목록을 그린다. */
-  replayMessages?: { id: string; author: string; text: string }[];
+  replayMessages?: { id: string; author: string; text: string; seller?: boolean }[];
   /* 주면 Q&A가 시청과 같은 하단 시트로 실제 답변을 연다. 주지 않으면 기존 안내를 유지한다
      (모바일 데모는 #156에서 안내 동작을 유지하기로 한 화면이다). */
   questionsData?: LiveQuestion[];
@@ -337,7 +339,13 @@ export function BuyerLiveReplay({
                     <div>
                       {(replayMessages ?? demoMessages).map((message) => (
                         <p key={message.id}>
-                          <b>{message.author}</b>
+                          {/* 판매자 이름은 파랗다(#564). 영상 위라 어두운 화면 값(밝은 파랑)을 받는다. */}
+                          <b
+                            data-seller={message.seller || undefined}
+                            data-theme={message.seller ? "dark" : undefined}
+                          >
+                            {message.author}
+                          </b>
                           <span>{message.text}</span>
                         </p>
                       ))}
