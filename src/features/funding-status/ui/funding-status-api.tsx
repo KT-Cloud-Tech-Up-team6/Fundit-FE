@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { getFundingStatus, getWishStats } from "@/entities/project/api/project-management-api";
 import { getSellerRewards } from "@/entities/project/api/reward-api";
+import { getFundingProjects } from "@/entities/project/api/seller-project-api";
 import type { ManagementProject } from "@/entities/project/api/project-management-api";
 import { ddayLabel } from "@/entities/project/model/remaining-days";
+import { toFundingMeta } from "@/entities/project/model/seller-project-response";
 import { FundingStatusBoard } from "./funding-status-board";
 import { QueryErrorState } from "@/shared/components/ui/query-error-state";
 
@@ -25,6 +27,14 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
     queryKey: ["funding-reward-names", owner, id],
     queryFn: ({ signal }) => getSellerRewards(id, signal),
   });
+  /* 헤더의 대분류·기간은 내 프로젝트 목록 카드와 같은 값이다(#559). 받는 중·실패·목록에 없으면 "—"로 두고
+     현황 화면은 기다리지 않는다. */
+  const listed = useQuery({
+    queryKey: ["funding-projects", owner],
+    queryFn: ({ signal }) => getFundingProjects(signal),
+  });
+  const listItem = listed.data?.content.find((item) => item.projectId === id);
+  const meta = listItem && toFundingMeta(listItem);
   if (status.isPending || wishes.isPending || rewards.isPending)
     return <p role="status">펀딩 현황을 불러오고 있습니다.</p>;
   if (status.isError || wishes.isError || rewards.isError) {
@@ -60,8 +70,8 @@ export function FundingStatusApi({ project }: { project: ManagementProject }) {
       summary={{
         title: project.title ?? "제목 없음",
         thumbnail: project.coverImageUrl ?? "",
-        category: "—",
-        period: { start: "—", end: "—" },
+        category: meta?.category ?? "—",
+        period: meta?.period ?? { start: "—", end: "—" },
         goalAmount: project.goalAmount,
         raisedAmount: data.currentAmount,
         backerCount: data.participantCount,

@@ -74,6 +74,14 @@ export const getOngoingProjects = (signal?: AbortSignal) =>
     signal,
   });
 
+/* 펀딩 관리 헤더의 대분류·기간(#559). 미리보기·상세 응답에는 펀딩 시작일이 없어 펀딩 관리를 여는 진행 중·완료
+   프로젝트 목록에서 찾는다. 100은 BE `ProjectController.MAX_PAGE_SIZE`이고, 그보다 많으면 첫 페이지까지만 찾는다. */
+export const getFundingProjects = (signal?: AbortSignal) =>
+  apiRequest<ProjectPage>("/api/v1/projects?status=ONGOING,SUCCEEDED,FAILED&page=0&size=100", {
+    auth: true,
+    signal,
+  });
+
 export function getProjectCounts(signal?: AbortSignal) {
   return apiRequest<{ ongoing: number; draft: number; completed: number }>(
     "/api/v1/projects/status-counts",

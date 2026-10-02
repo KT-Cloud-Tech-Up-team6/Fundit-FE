@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { toSellerProject } from "./seller-project-response.ts";
+import { toFundingMeta, toSellerProject } from "./seller-project-response.ts";
 import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 import { getSellerProjects, saveProjectBasicInfo } from "../api/seller-project-api.ts";
 import {
@@ -45,6 +45,29 @@ test("진행중은 BE와 같은 공식으로 마감까지 남은 D-day를 표시
   assert.equal(ongoing("2026-09-23T04:00:00Z")[0].label, "D-1");
   assert.equal(ongoing("2026-09-23T02:59:59Z")[0].label, "종료");
   assert.deepEqual(ongoing(null), []);
+});
+
+test("펀딩 관리 헤더는 목록 카드와 같은 대분류·펀딩 기간(한국 날짜)을 쓴다", () => {
+  const ongoing = {
+    ...item,
+    status: "ONGOING",
+    categoryMajor: "테크·가전",
+    // 한국 시간으로 10월 2일·11월 1일이다(UTC 날짜와 다르다).
+    fundingStartAt: "2026-10-01T15:30:00Z",
+    fundingDeadline: "2026-10-31T16:00:00Z",
+  };
+  const meta = toFundingMeta(ongoing);
+  assert.deepEqual(meta, {
+    category: "테크·가전",
+    period: { start: "2026. 10. 02.", end: "2026. 11. 01." },
+  });
+  assert.equal(toSellerProject(ongoing).period, `${meta.period.start} - ${meta.period.end}`);
+  assert.equal(toSellerProject(ongoing).category, meta.category);
+  // 값이 없으면 목록 카드와 같이 "미분류"·"미정"이다.
+  assert.deepEqual(toFundingMeta({ ...ongoing, categoryMajor: null, fundingStartAt: null }), {
+    category: "미분류",
+    period: { start: "미정", end: "2026. 11. 01." },
+  });
 });
 
 test("서버 완료 상태를 성공과 실패로 구분하고 금액을 유지한다", () => {
