@@ -20,7 +20,15 @@ export type ChatFrame =
   | { type: "error"; code: number; requestId?: string };
 
 /** 화면 한 줄. `ai`면 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). */
-export type ChatRow = { id: string; author: string; text: string; ai?: boolean };
+/** `seller`면 작성자를 파랗게, `replyTo`가 있으면 답변 위에 답한 요약 질문을 인용으로 그린다(#564). */
+export type ChatRow = {
+  id: string;
+  author: string;
+  text: string;
+  ai?: boolean;
+  seller?: boolean;
+  replyTo?: string;
+};
 
 export type SendResult = "sent" | "rejected" | "failed";
 
@@ -136,33 +144,44 @@ export function authorLabel(
 }
 
 /**
- * 받은 채팅 → 화면 줄. 판매자 답변은 "판매자 @everyone 본문"(판매자 Prototype 170:72652), AI 답변은
- * "AI 매니저" 라벨 줄 아래 본문(Figma 295:50452)이다. 본문 없이 온 판매자 답변은 답변된 질문 목록에서
- * 찾고, 아직 없으면(목록을 다시 받는 중) 그 줄을 그리지 않는다.
+ * 받은 채팅 → 화면 줄. 판매자 답변은 "판매자 @everyone 본문"(판매자 Prototype 170:72652)이고, 답한 요약 질문을
+ * 답변 위 인용으로 붙인다(PM 요청 2026-10-02, 답장형 사용자 결정, #564). AI 답변은 "AI 매니저" 라벨 줄 아래
+ * 본문(Figma 295:50452)이다. 본문 없이 온 판매자 답변은 답변된 질문 목록에서 찾고, 아직 없으면(목록을 다시
+ * 받는 중) 그 줄을 그리지 않는다. 질문을 찾지 못한 답변은 인용 없이 그린다. 판매자 줄은 작성자를 파랗게 한다.
  */
 export function toChatRows(
   entries: ChatEntry[],
   viewer: {
     memberId?: string;
     sellerId?: string;
-    answered?: { questionId: string; answerText: string }[];
+    answered?: { questionId: string; answerText: string; summaryText?: string }[];
   },
 ): ChatRow[] {
   const rows: ChatRow[] = [];
   for (const entry of entries) {
-    if (entry.kind === "message")
-      rows.push({
+    if (entry.kind === "message") {
+      const row = {
         id: entry.id,
         author: authorLabel(entry.senderId, entry.nickname, viewer),
         text: entry.text,
-      });
-    else if (entry.kind === "ai-answer")
+      };
+      rows.push(
+        viewer.sellerId && entry.senderId === viewer.sellerId ? { ...row, seller: true } : row,
+      );
+    } else if (entry.kind === "ai-answer")
       rows.push({ id: entry.id, author: "AI 매니저", text: entry.answer, ai: true });
     else {
-      const answer =
-        entry.answer ??
-        viewer.answered?.find((item) => item.questionId === entry.questionId)?.answerText;
-      if (answer) rows.push({ id: entry.id, author: "판매자", text: `@everyone ${answer}` });
+      const question = viewer.answered?.find((item) => item.questionId === entry.questionId);
+      const answer = entry.answer ?? question?.answerText;
+      const replyTo = question?.summaryText?.trim();
+      if (answer)
+        rows.push({
+          id: entry.id,
+          author: "판매자",
+          text: `@everyone ${answer}`,
+          seller: true,
+          ...(replyTo && { replyTo }),
+        });
     }
   }
   return rows;

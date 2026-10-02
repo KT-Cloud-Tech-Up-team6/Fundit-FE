@@ -161,6 +161,10 @@
   font-size: 13px;
   line-height: 18px;
 }
+/* 판매자 이름은 파랗다(PM 요청 2026-10-02, #564). 영상 위라 이름에 data-theme="dark"를 두어 밝은 파랑을 받는다. */
+.chat b[data-seller] {
+  color: var(--text-primary-live);
+}
 .chat b {
   color: #dedede;
   /* 아이디는 내용 폭이다(Figma 1408:42073 hug). 닉네임이 길면 줄의 절반에서 말줄임한다(#488). */

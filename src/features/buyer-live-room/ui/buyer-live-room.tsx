@@ -105,7 +105,15 @@ export function BuyerLiveRoom({
   const invalid = !liveChat && draft.includes("바보");
   const showBlocked = (blocked && invalid) || rejected;
   const chatMessages: (
-    LiveChatMessage | { id: number; author: string; text: string; ai?: never }
+    | LiveChatMessage
+    | {
+        id: number;
+        author: string;
+        text: string;
+        ai?: never;
+        seller?: never;
+        replyTo?: never;
+      }
   )[] = liveChat?.messages ?? messages;
 
   function setNotice(message: string) {
@@ -330,8 +338,22 @@ export function BuyerLiveRoom({
                       className={styles.message}
                       data-ai={message.ai || undefined}
                     >
-                      <strong>{message.author}</strong>
-                      <span>{message.text}</span>
+                      {/* 판매자 이름은 파랗다(#564). 영상 위라 어두운 화면 값(밝은 파랑)을 받는다. */}
+                      <strong
+                        data-seller={message.seller || undefined}
+                        data-theme={message.seller ? "dark" : undefined}
+                      >
+                        {message.author}
+                      </strong>
+                      <span>
+                        {message.replyTo && (
+                          <span className={styles.reply}>
+                            <span className="sr-only">답한 질문: </span>
+                            {message.replyTo}
+                          </span>
+                        )}
+                        {message.text}
+                      </span>
                     </span>
                   ))}
                 </div>

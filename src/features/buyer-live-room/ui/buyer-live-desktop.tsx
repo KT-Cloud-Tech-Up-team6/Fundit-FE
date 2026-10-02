@@ -121,7 +121,7 @@ export function BuyerLiveDesktop({
   /** 실제 경로의 판매자 행. 주면 목업 판매자 대신 Figma 위치(왼쪽 정보 패널)에 그린다. */
   seller?: LiveSeller;
   /** 다시보기 구간 채팅. 주면 목업 채팅 대신 이 목록을 그린다. */
-  replayMessages?: { id: string; author: string; text: string }[];
+  replayMessages?: { id: string; author: string; text: string; seller?: boolean }[];
   /** 실제 LIVE 채팅. 주면 리워드 없이도 채팅 패널과 입력을 그린다. */
   liveChat?: LiveChat;
   onRefreshQuestions?: () => void;
@@ -169,7 +169,15 @@ export function BuyerLiveDesktop({
   const invalid = !liveChat && /바보|멍청이/.test(draft);
   const showBlocked = (blocked && invalid) || rejected;
   const chatMessages: (
-    LiveChatMessage | { id: number; author: string; text: string; ai?: never }
+    | LiveChatMessage
+    | {
+        id: number;
+        author: string;
+        text: string;
+        ai?: never;
+        seller?: never;
+        replyTo?: never;
+      }
   )[] = replayMessages ?? liveChat?.messages ?? messages;
 
   useEffect(
@@ -560,12 +568,21 @@ export function BuyerLiveDesktop({
                         key={message.id}
                         className={message.ai ? "flex flex-col" : "flex items-start gap-2"}
                       >
-                        <span className="text-label-m text-text-secondary mt-0.5 max-w-1/2 shrink-0 truncate">
+                        {/* 판매자 이름은 파랗고, 판매자 답변은 답한 요약 질문을 인용으로 붙인다(#564). */}
+                        <span
+                          className={`text-label-m mt-0.5 max-w-1/2 shrink-0 truncate ${message.seller ? "text-text-primary-live" : "text-text-secondary"}`}
+                        >
                           {message.author}
                         </span>
                         <span
                           className={`min-w-0 wrap-anywhere whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
                         >
+                          {message.replyTo && (
+                            <span className="text-caption-s text-text-secondary border-border-default mb-0.5 block truncate border-l-2 pl-2">
+                              <span className="sr-only">답한 질문: </span>
+                              {message.replyTo}
+                            </span>
+                          )}
                           {message.text}
                         </span>
                       </p>

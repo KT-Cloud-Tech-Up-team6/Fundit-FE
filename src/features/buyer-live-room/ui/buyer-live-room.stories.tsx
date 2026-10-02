@@ -147,13 +147,19 @@ export const BlockedMessage: Story = {
 };
 
 /* 아래는 실제 LIVE 채팅(#470) 표시다. 작성자는 닉네임(없으면 시청자)·나·판매자이고 긴 닉네임은 줄의
-   절반에서 말줄임한다(#488). 판매자 답변은 @everyone, AI 답변은 "AI 매니저" 윗줄 라벨과 초록
+   절반에서 말줄임한다(#488). 판매자 이름은 파랗고 답변은 답한 요약 질문 인용과 @everyone(#564), AI 답변은 "AI 매니저" 윗줄 라벨과 초록
    본문(Figma 295:50452)이다. 전송 결과는 서버 응답을 흉내 낸다. */
 const liveChatRows: LiveChatMessage[] = [
   { id: "1", author: "펀딧러버", text: "배송은 언제 시작되나요?" },
-  { id: "2", author: "판매자", text: "오늘 방송 시작합니다!" },
+  { id: "2", author: "판매자", text: "오늘 방송 시작합니다!", seller: true },
   { id: "3", author: "나", text: "물걸레 건조 모드가 있나요?" },
-  { id: "4", author: "판매자", text: "@everyone 네, 물걸레 건조 모드를 지원합니다." },
+  {
+    id: "4",
+    author: "판매자",
+    text: "@everyone 네, 물걸레 건조 모드를 지원합니다.",
+    seller: true,
+    replyTo: "물걸레 건조 모드가 있나요?",
+  },
   {
     id: "5",
     author: "AI 매니저",
