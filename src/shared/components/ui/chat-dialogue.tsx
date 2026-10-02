@@ -9,6 +9,8 @@ type ChatDialogueProps = ComponentPropsWithoutRef<"div"> & {
   progress?: string;
   status?: ReactNode;
   actions?: ReactNode;
+  /** 말풍선 위에 붙는 첨부(이미지 등). 글 없이 첨부만 있으면 말풍선을 그리지 않는다. */
+  attachments?: ReactNode;
 };
 
 export function ChatDialogue({
@@ -19,12 +21,14 @@ export function ChatDialogue({
   progress,
   status,
   actions,
+  attachments,
   children,
   className,
   ...props
 }: ChatDialogueProps) {
   const isUser = sender === "user";
   const isStory = appearance === "story";
+  const hasText = children !== "" && children != null;
   return (
     <div
       className={[
@@ -51,24 +55,30 @@ export function ChatDialogue({
           .filter(Boolean)
           .join(" ")}
       >
-        <div
-          className={[
-            "flex max-w-full flex-col gap-1 rounded-t-md rounded-bl-md px-4 break-words whitespace-pre-wrap",
-            isStory
-              ? `text-body-s leading-[1.42] font-medium ${isUser ? "bg-layer-surface-primary text-text-inverse" : "bg-layer-surface-default text-text-default shadow-light-s rounded-tl-none rounded-br-md"}`
-              : `text-body-m ${isUser ? "border border-[#959595] bg-[#ffffff] text-[#000000]" : "rounded-tl-none rounded-br-md bg-[#959595] text-[#ffffff]"}`,
-            size === "sm" ? "py-3" : isUser ? "pt-2 pb-3" : "py-2",
-          ].join(" ")}
-        >
-          <div className="min-w-0">{children}</div>
-          {!isUser && progress && (
-            <span
-              className={`${isStory ? "text-text-secondary text-[11px] leading-[1.3]" : "text-label-s"} self-end font-medium`}
-            >
-              {progress}
-            </span>
-          )}
-        </div>
+        {attachments && <div className={isUser ? "self-end" : undefined}>{attachments}</div>}
+        {(hasText || !attachments) && (
+          <div
+            className={[
+              "flex max-w-full flex-col gap-1 rounded-t-md rounded-bl-md px-4 break-words whitespace-pre-wrap",
+              isStory
+                ? `text-body-s leading-[1.42] font-medium ${isUser ? "bg-layer-surface-primary text-text-inverse" : "bg-layer-surface-default text-text-default shadow-light-s rounded-tl-none rounded-br-md"}`
+                : `text-body-m ${isUser ? "border border-[#959595] bg-[#ffffff] text-[#000000]" : "rounded-tl-none rounded-br-md bg-[#959595] text-[#ffffff]"}`,
+              size === "sm" ? "py-3" : isUser ? "pt-2 pb-3" : "py-2",
+              isUser && "self-end",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <div className="min-w-0">{children}</div>
+            {!isUser && progress && (
+              <span
+                className={`${isStory ? "text-text-secondary text-[11px] leading-[1.3]" : "text-label-s"} self-end font-medium`}
+              >
+                {progress}
+              </span>
+            )}
+          </div>
+        )}
         {!isUser && status && (
           <div
             className={`text-caption-s ${isStory ? "text-text-secondary" : "text-[#000000]"}`}

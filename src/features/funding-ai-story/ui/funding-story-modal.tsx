@@ -27,15 +27,19 @@ import {
   streamFundingStoryChat,
   waitForFundingStoryRun,
   type FundingStoryMessage,
+  type FundingStoryMessageRequest,
   type FundingStoryRun,
   type FundingStorySession,
   type IntroBlock,
 } from "@/entities/project/api/story-api";
+import { uploadProjectMedia, validateProjectMedia } from "@/entities/project/api/media-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { applyStory } from "../model/apply-story";
+import { chatMessageRequest } from "../model/chat-message";
 import { partialSuccessMessage } from "../model/run-feedback";
 import { resolveFundingStoryRunId } from "../model/run-resume";
+import { ChatAttachmentTray, ChatImages, type ChatAttachmentDraft } from "./chat-attachments";
 
 type FundingStoryModalProps = {
   projectTitle: string;
@@ -50,6 +54,9 @@ type PendingSessionSync = {
   sessionId: string;
   minimumRevision: number;
 };
+
+/** 화면에 그리는 메시지. 사용자 메시지의 첨부는 세션의 `file_url`이나 전송 중 미리보기 주소다. */
+type DisplayMessage = Pick<FundingStoryMessage, "role" | "text"> & { images?: string[] };
 
 /* 204가 폐기 성공을 확정한 뒤의 조회는 안내 문구를 고르기 위한 것뿐이다. 응답이 오지 않는
    조회가 닫기를 막지 않도록 상한을 둔다. api client에는 요청 제한 시간이 없다. */
@@ -87,7 +94,9 @@ export function FundingStoryModal({
     "connecting" | "collecting" | "summary" | "generating" | "result"
   >("connecting");
   const [streamingText, setStreamingText] = useState("");
-  const [optimisticMessage, setOptimisticMessage] = useState<FundingStoryMessage | null>(null);
+  const [optimisticMessage, setOptimisticMessage] = useState<DisplayMessage | null>(null);
+  const [attachments, setAttachments] = useState<ChatAttachmentDraft[]>([]);
+  const [attachmentError, setAttachmentError] = useState("");
   const [apiError, setApiError] = useState("");
   const [apiBusy, setApiBusy] = useState(false);
   const [pendingSessionSync, setPendingSessionSync] = useState<PendingSessionSync | null>(null);
@@ -104,6 +113,72 @@ export function FundingStoryModal({
   const discardConfirmOpenRef = useRef(false);
   const discardRequestedRef = useRef(false);
   const completedWhileDiscardingRef = useRef<FundingStoryRun | null>(null);
+  // 업로드 결과는 비동기로 와서 그 사이 지운 첨부인지 지금 목록으로 판단해야 한다.
+  const attachmentsRef = useRef<ChatAttachmentDraft[]>([]);
+  const previewUrlsRef = useRef(new Set<string>());
+  // 실패한 전송을 같은 내용으로 다시 보내면 같은 message_id를 써야 AI가 중복으로 받지 않는다.
+  const failedMessageRef = useRef<FundingStoryMessageRequest | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function updateAttachments(update: (items: ChatAttachmentDraft[]) => ChatAttachmentDraft[]) {
+    attachmentsRef.current = update(attachmentsRef.current);
+    setAttachments(attachmentsRef.current);
+  }
+
+  function revokePreview(previewUrl: string) {
+    URL.revokeObjectURL(previewUrl);
+    previewUrlsRef.current.delete(previewUrl);
+  }
+
+  function removeAttachment(id: string) {
+    const removed = attachmentsRef.current.find((item) => item.id === id);
+    if (!removed) return false;
+    revokePreview(removed.previewUrl);
+    updateAttachments((items) => items.filter((item) => item.id !== id));
+    return true;
+  }
+
+  function addAttachments(files: File[]) {
+    if (!projectId) return;
+    const errors: string[] = [];
+    for (const file of files) {
+      try {
+        validateProjectMedia(file, "image");
+      } catch (error) {
+        errors.push(
+          `${file.name}: ${error instanceof Error ? error.message : "올릴 수 없는 파일입니다."}`,
+        );
+        continue;
+      }
+      const id = crypto.randomUUID();
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlsRef.current.add(previewUrl);
+      updateAttachments((items) => [...items, { id, name: file.name, previewUrl, fileUrl: null }]);
+      uploadProjectMedia(projectId, file, "image").then(
+        (fileUrl) =>
+          updateAttachments((items) =>
+            items.map((item) => (item.id === id ? { ...item, fileUrl } : item)),
+          ),
+        (error: unknown) => {
+          // 업로드 중에 이미 지운 파일이면 실패를 알릴 필요가 없다.
+          if (!removeAttachment(id)) return;
+          const reason = error instanceof Error ? error.message : "파일을 업로드하지 못했습니다.";
+          setAttachmentError((current) =>
+            [current, `${file.name}: ${reason}`].filter(Boolean).join("\n"),
+          );
+        },
+      );
+    }
+    setAttachmentError(errors.join("\n"));
+  }
+
+  useEffect(() => {
+    const previewUrls = previewUrlsRef.current;
+    return () => {
+      for (const previewUrl of previewUrls) URL.revokeObjectURL(previewUrl);
+      previewUrls.clear();
+    };
+  }, []);
 
   function closeModal() {
     lifecycleRef.current?.abort();
@@ -486,34 +561,54 @@ export function FundingStoryModal({
     return () => window.removeEventListener("resize", resizeInput);
   }, [input, state.messages, displayStage, busy, result]);
 
-  function send(text: string) {
-    if (!text.trim() || busy) return;
+  const uploadingAttachment = attachments.some((item) => item.fileUrl === null);
+  // 업로드가 끝난 첨부만 보내므로 올리는 중에는 전송을 막는다.
+  const canSendComposer =
+    !uploadingAttachment && (input.trim().length > 0 || (!!projectId && attachments.length > 0));
+
+  /** 입력창의 글과 첨부를 보낸다. 「해당 사항 없음」 같은 고정 답변은 입력창을 건드리지 않는다. */
+  function send(text: string, fromComposer = false) {
+    if (busy) return;
     if (projectId) {
-      void sendRemote(text.trim());
+      if (fromComposer ? !canSendComposer : !text.trim()) return;
+      void sendRemote(text.trim(), fromComposer);
       return;
     }
+    if (!text.trim()) return;
     followBottom.current = true;
     dispatch({ type: "send", text });
     setInput("");
     textareaRef.current?.focus();
   }
 
-  async function sendRemote(text: string) {
+  async function sendRemote(text: string, fromComposer: boolean) {
     if (!projectId || !session || apiBusyRef.current) return;
+    const sent = fromComposer ? attachmentsRef.current : [];
+    const request = chatMessageRequest(failedMessageRef.current, {
+      revision: session.revision,
+      text,
+      attachmentUrls: sent.flatMap((item) => (item.fileUrl ? [item.fileUrl] : [])),
+    });
+    failedMessageRef.current = null;
+    // AI 답변까지 끝나면 메시지가 세션에 들어간 것이라, 그 뒤 실패는 입력창으로 되돌리지 않는다.
+    let answered = false;
     apiBusyRef.current = true;
     setApiBusy(true);
     setApiError("");
-    setOptimisticMessage({ role: "user", text });
+    setOptimisticMessage({ role: "user", text, images: sent.map((item) => item.previewUrl) });
     setRemoteStage("collecting");
-    setInput("");
+    if (fromComposer) {
+      setInput("");
+      updateAttachments(() => []);
+      setAttachmentError("");
+    }
     setStreamingText("");
     try {
       const controller = lifecycleRef.current ?? new AbortController();
       const accepted = await sendFundingStoryMessage(
         projectId,
         session.session_id,
-        session.revision,
-        text,
+        request,
         controller.signal,
       );
       const done = await streamFundingStoryChat(
@@ -522,6 +617,7 @@ export function FundingStoryModal({
         setStreamingText,
         controller.signal,
       );
+      answered = true;
       const pending = {
         sessionId: session.session_id,
         minimumRevision: done.revision,
@@ -547,9 +643,19 @@ export function FundingStoryModal({
       setOptimisticMessage(null);
       setStreamingText("");
       setRemoteStage(nextRemoteStage(session));
+      if (!answered) {
+        // 보낸 내용을 입력창에 되돌려 그대로 다시 보내면 같은 message_id로 재요청한다.
+        failedMessageRef.current = request;
+        if (fromComposer) {
+          setInput(text);
+          updateAttachments(() => sent);
+        }
+      }
     } finally {
       apiBusyRef.current = false;
       setApiBusy(false);
+      // 세션에 들어간 첨부는 이제 file_url로 그린다.
+      if (answered) for (const item of sent) revokePreview(item.previewUrl);
     }
   }
 
@@ -589,7 +695,7 @@ export function FundingStoryModal({
     !session?.messages.length &&
     !optimisticMessage &&
     !streamingText;
-  const displayedMessages: (FundingStoryMessage & {
+  const displayedMessages: (DisplayMessage & {
     question?: number;
     isSummary?: boolean;
     isPending?: boolean;
@@ -598,7 +704,11 @@ export function FundingStoryModal({
         ...(initialLoading
           ? [{ role: "assistant" as const, text: "스토리를 불러오는 중이에요...", isPending: true }]
           : []),
-        ...(session?.messages ?? []),
+        ...(session?.messages ?? []).map(({ role, text, attachments: sentAttachments }) => ({
+          role,
+          text,
+          images: sentAttachments?.map((attachment) => attachment.file_url),
+        })),
         ...(optimisticMessage ? [optimisticMessage] : []),
         ...(streamingText ? [{ role: "assistant" as const, text: streamingText }] : []),
         ...(remoteStage === "summary" && session?.summary
@@ -854,6 +964,9 @@ export function FundingStoryModal({
                             </Chip>
                           ) : undefined
                         }
+                        attachments={
+                          message.images?.length ? <ChatImages urls={message.images} /> : undefined
+                        }
                       >
                         {message.text}
                       </ChatDialogue>
@@ -879,6 +992,27 @@ export function FundingStoryModal({
                       ? "AI 응답 생성 중 …"
                       : ""}
               </p>
+              {projectId && (
+                <>
+                  <ChatAttachmentTray
+                    items={attachments}
+                    error={attachmentError}
+                    disabled={busy}
+                    onRemove={removeAttachment}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    hidden
+                    onChange={(event) => {
+                      addAttachments(Array.from(event.target.files ?? []));
+                      event.target.value = "";
+                    }}
+                  />
+                </>
+              )}
               <InputChat
                 ref={textareaRef}
                 appearance="story"
@@ -886,11 +1020,14 @@ export function FundingStoryModal({
                 aria-label="스토리 메시지"
                 value={input}
                 disabled={busy}
-                attachDisabled
-                attachLabel="파일 첨부 (준비 중)"
+                canSend={canSendComposer}
+                // 데모 대화는 업로드할 서버 프로젝트가 없어 첨부를 열지 않는다.
+                attachDisabled={!projectId}
+                attachLabel={projectId ? "파일 첨부" : "파일 첨부 (준비 중)"}
+                onAttach={projectId ? () => fileInputRef.current?.click() : undefined}
                 placeholder="답변을 작성해주세요"
                 onChange={(event) => setInput(event.target.value)}
-                onSend={send}
+                onSend={(text) => send(text, true)}
               />
             </div>
           )}

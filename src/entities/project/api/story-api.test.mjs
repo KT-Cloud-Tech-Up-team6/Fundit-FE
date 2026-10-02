@@ -7,6 +7,7 @@ import {
   getFundingStorySession,
   getLatestFundingStorySession,
   isFundingStorySessionSynchronized,
+  sendFundingStoryMessage,
   waitForFundingStoryRun,
 } from "./story-api.ts";
 
@@ -121,4 +122,37 @@ test("run 폐기는 식별자 하나와 프로젝트 헤더를 보내고 빈 204
     undefined,
   );
   assert.deepEqual(bodies, [{ run_id: "run-id" }, { idempotency_key: "creation-request-key" }]);
+});
+
+test("메시지는 첨부가 있을 때만 attachments를 붙이고 받은 message_id를 그대로 보낸다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(url, "/api/v1/ai/sessions/session-id/messages");
+    assert.equal(new Headers(init.headers).get("X-Project-Id"), projectId);
+    bodies.push(JSON.parse(init.body));
+    return Response.json({ chat_id: "chat-id", status: "queued" }, { status: 202 });
+  });
+
+  await sendFundingStoryMessage(projectId, "session-id", {
+    messageId: "message-1",
+    revision: 2,
+    text: "글만",
+  });
+  await sendFundingStoryMessage(projectId, "session-id", {
+    messageId: "message-2",
+    revision: 3,
+    text: "",
+    attachmentUrls: ["https://cdn.test/media/projects/p/a.png"],
+  });
+  assert.deepEqual(bodies, [
+    { message_id: "message-1", revision: 2, text: "글만" },
+    {
+      message_id: "message-2",
+      revision: 3,
+      text: "",
+      attachments: [{ file_url: "https://cdn.test/media/projects/p/a.png", reward_id: null }],
+    },
+  ]);
 });

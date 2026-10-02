@@ -77,3 +77,13 @@ export const Interaction: Story = {
     await expect(args.onAttach).toHaveBeenCalledTimes(1);
   },
 };
+/** 첨부만 있어도 보낼 수 있는 화면은 `canSend`로 전송 가능 여부를 정한다(#556). */
+export const SendWithoutText: Story = {
+  args: { appearance: "story", canSend: true },
+  play: async ({ canvasElement, args }) => {
+    const send = within(canvasElement).getByRole("button", { name: "메시지 보내기" });
+    await expect(send).toBeEnabled();
+    await userEvent.click(send);
+    await expect(args.onSend).toHaveBeenCalledWith("");
+  },
+};
