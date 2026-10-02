@@ -61,3 +61,35 @@ export const LongContent: Story = {
       "프로젝트의 특징과 제작 과정을 자세히 소개해 주세요. 제품을 처음 접하는 사람도 이해할 수 있도록 핵심 내용을 함께 정리해 드릴게요.\n여러 줄의 메시지도 그대로 표시합니다.",
   },
 };
+const attachedImage = (
+  // eslint-disable-next-line @next/next/no-img-element -- 호출자가 넘기는 첨부 예시다.
+  <img
+    src="/images/buyer-home/deadline-1.jpg"
+    alt="첨부한 제품 사진"
+    className="size-30 rounded-xs object-cover"
+  />
+);
+/** 말풍선 위 첨부(#556). 글이 있으면 첨부 아래에 말풍선이 붙는다. */
+export const StoryUserWithAttachment: Story = {
+  args: {
+    appearance: "story",
+    sender: "user",
+    children: "이 사진을 참고해 주세요.",
+    attachments: attachedImage,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("img", { name: "첨부한 제품 사진" })).toBeVisible();
+    await expect(canvas.getByText("이 사진을 참고해 주세요.")).toBeVisible();
+  },
+};
+/** 글 없이 첨부만 보낸 메시지는 말풍선을 그리지 않는다. */
+export const StoryUserAttachmentOnly: Story = {
+  args: { appearance: "story", sender: "user", children: "", attachments: attachedImage },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("img", { name: "첨부한 제품 사진" }),
+    ).toBeVisible();
+    await expect(canvasElement.querySelector(".whitespace-pre-wrap")).toBeNull();
+  },
+};

@@ -42,7 +42,20 @@ export function saveProjectStory(projectId: string, body: StoryRequest) {
   );
 }
 
-export type FundingStoryMessage = { role: "user" | "assistant"; text: string };
+/** 세션 조회의 사용자 메시지 첨부(#556). 서명 읽기 URL은 오지 않고 `file_url`은 업로드 API가 준 주소다. */
+export type FundingStoryAttachment = {
+  slot_id: string;
+  file_url: string;
+  reward_id?: number | null;
+  content_type: string;
+  file_size: number;
+};
+export type FundingStoryMessage = {
+  role: "user" | "assistant";
+  text: string;
+  /** 첨부가 없는 메시지는 키가 빠진다. */
+  attachments?: FundingStoryAttachment[];
+};
 export type FundingStorySummary = {
   product: string;
   story: string;
@@ -129,18 +142,34 @@ export function startFundingStorySession(
   });
 }
 
+export type FundingStoryMessageRequest = {
+  /** 같은 요청을 다시 보낼 때는 같은 값을 써야 AI가 기존 채팅을 돌려준다. */
+  messageId: string;
+  revision: number;
+  text: string;
+  /** 업로드 API가 돌려준 fileUrl. 서명 URL·MIME·크기는 BE가 채운다. */
+  attachmentUrls?: string[];
+};
+
 export function sendFundingStoryMessage(
   projectId: string,
   sessionId: string,
-  revision: number,
-  text: string,
+  { messageId, revision, text, attachmentUrls = [] }: FundingStoryMessageRequest,
   signal?: AbortSignal,
 ) {
   return apiRequest<FundingStoryChatAccepted>(`/api/v1/ai/sessions/${sessionId}/messages`, {
     auth: true,
     method: "POST",
     headers: projectHeaders(projectId),
-    body: { message_id: crypto.randomUUID(), revision, text },
+    body: {
+      message_id: messageId,
+      revision,
+      text,
+      // 첨부가 없으면 키를 빼서 기존 텍스트 전송과 같은 요청을 보낸다.
+      ...(attachmentUrls.length
+        ? { attachments: attachmentUrls.map((fileUrl) => ({ file_url: fileUrl, reward_id: null })) }
+        : {}),
+    },
     signal,
   });
 }
@@ -152,6 +181,20 @@ export type FundingStoryChatDone = {
   revision: number;
   error: FundingStoryAsyncError | null;
 };
+
+/**
+ * AI가 메시지를 받은 뒤 답변 생성에 실패했다(`done.status=failed`). 스트림이 끊긴 것과 달리 사용자 메시지는
+ * 이미 세션에 들어가 있고, 같은 `message_id`로 다시 보내면 이 실패한 채팅이 그대로 돌아온다.
+ */
+export class FundingStoryChatFailedError extends Error {
+  readonly done: FundingStoryChatDone;
+
+  constructor(done: FundingStoryChatDone) {
+    super(done.error?.message ?? "AI 응답 생성에 실패했습니다.");
+    this.name = "FundingStoryChatFailedError";
+    this.done = done;
+  }
+}
 
 export async function streamFundingStoryChat(
   projectId: string,
@@ -191,8 +234,7 @@ export async function streamFundingStoryChat(
     }
   }
   if (!done) throw new Error("AI 응답 스트림이 완료 전에 종료되었습니다.");
-  if (done.status === "failed")
-    throw new Error(done.error?.message ?? "AI 응답 생성에 실패했습니다.");
+  if (done.status === "failed") throw new FundingStoryChatFailedError(done);
   return done;
 }
 

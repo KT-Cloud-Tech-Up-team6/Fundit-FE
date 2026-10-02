@@ -4,9 +4,12 @@ import { authTokenStore } from "../../../shared/api/auth-token-store.ts";
 import {
   createFundingStorySession,
   discardFundingStoryRun,
+  FundingStoryChatFailedError,
   getFundingStorySession,
   getLatestFundingStorySession,
   isFundingStorySessionSynchronized,
+  sendFundingStoryMessage,
+  streamFundingStoryChat,
   waitForFundingStoryRun,
 } from "./story-api.ts";
 
@@ -121,4 +124,83 @@ test("run 폐기는 식별자 하나와 프로젝트 헤더를 보내고 빈 204
     undefined,
   );
   assert.deepEqual(bodies, [{ run_id: "run-id" }, { idempotency_key: "creation-request-key" }]);
+});
+
+test("메시지는 첨부가 있을 때만 attachments를 붙이고 받은 message_id를 그대로 보낸다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(url, "/api/v1/ai/sessions/session-id/messages");
+    assert.equal(new Headers(init.headers).get("X-Project-Id"), projectId);
+    bodies.push(JSON.parse(init.body));
+    return Response.json({ chat_id: "chat-id", status: "queued" }, { status: 202 });
+  });
+
+  await sendFundingStoryMessage(projectId, "session-id", {
+    messageId: "message-1",
+    revision: 2,
+    text: "글만",
+  });
+  await sendFundingStoryMessage(projectId, "session-id", {
+    messageId: "message-2",
+    revision: 3,
+    text: "",
+    attachmentUrls: ["https://cdn.test/media/projects/p/a.png"],
+  });
+  assert.deepEqual(bodies, [
+    { message_id: "message-1", revision: 2, text: "글만" },
+    {
+      message_id: "message-2",
+      revision: 3,
+      text: "",
+      attachments: [{ file_url: "https://cdn.test/media/projects/p/a.png", reward_id: null }],
+    },
+  ]);
+});
+
+test("AI 답변 생성 실패(done.status=failed)는 스트림 끊김과 구분되는 오류로 알린다", async (t) => {
+  authTokenStore.set("test-token");
+  t.after(() => authTokenStore.clear());
+  const failed = {
+    chat_id: "chat-id",
+    status: "failed",
+    session_id: "session-id",
+    revision: 3,
+    error: {
+      code: "CHAT_FAILED",
+      message: "답변 생성에 실패했습니다.",
+      retryable: true,
+      detail: null,
+    },
+  };
+  let body = `event: done
+data: ${JSON.stringify(failed)}
+
+`;
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(url, "/api/v1/ai/chats/chat-id/events");
+    return new Response(body, { headers: { "Content-Type": "text/event-stream" } });
+  });
+
+  await assert.rejects(
+    streamFundingStoryChat(projectId, "chat-id", () => {}),
+    (error) => {
+      assert.ok(error instanceof FundingStoryChatFailedError);
+      assert.equal(error.message, "답변 생성에 실패했습니다.");
+      assert.equal(error.done.revision, 3);
+      return true;
+    },
+  );
+  body = `event: message
+data: ${JSON.stringify({ text: "중간" })}
+
+`;
+  await assert.rejects(
+    streamFundingStoryChat(projectId, "chat-id", () => {}),
+    (error) => {
+      assert.ok(!(error instanceof FundingStoryChatFailedError));
+      return true;
+    },
+  );
 });
