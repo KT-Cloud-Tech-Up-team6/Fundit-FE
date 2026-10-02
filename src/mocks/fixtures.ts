@@ -14,3 +14,7 @@ export const FIXTURE_SELLER_ORDER_IDS = [
 /* 한정 리워드: 상세에는 남은 것처럼 보이지만 주문하는 순간 재고가 없다(UCS 예외 소비자 18·19). */
 export const FIXTURE_LIMITED_REWARD_ID = 9003;
 export const FIXTURE_SOLD_OUT_REWARD_ID = 9004;
+/* 목업 프로젝트에 연결한 LIVE. 방송 중 한 건은 실시간 시청, 종료된 한 건은 다시보기·상품 상세 LIVE 체크 탭에
+   쓴다(#510·#555). */
+export const FIXTURE_ON_AIR_LIVE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+export const FIXTURE_ENDED_LIVE_ID = "55555555-5555-4555-8555-555555555555";

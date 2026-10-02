@@ -27,6 +27,9 @@ export function FundingCta({
   onSubmit,
 }: FundingCtaProps) {
   const [open, setOpen] = useState(false);
+  /* LIVE 상품 카드의 더보기. Figma 예시(1408:42112) "5+"는 같은 예시 상품의 데스크톱 리워드 수(5개)와 같다. 실제
+     리워드를 받으면 그 수를 같은 모양("N+")으로 보인다(FE 자체 판단, #555). 목업은 예시 그대로다. */
+  const moreCount = rewards ? `${rewards.length}+` : "5+";
   useEffect(() => {
     if (!desktopFormId) return;
     const desktop = window.matchMedia("(min-width: 1200px)");
@@ -42,11 +45,11 @@ export function FundingCta({
       {more ? (
         <button
           type="button"
-          aria-label="리워드 5개 이상 더보기"
+          aria-label={rewards ? `리워드 ${rewards.length}개 더보기` : "리워드 5개 이상 더보기"}
           className="bg-layer-surface-primary text-text-static-white shrink-0 self-stretch px-3 text-[12px] leading-[1.3] font-semibold"
           onClick={() => setOpen(true)}
         >
-          5+
+          {moreCount}
           <br />
           더보기
         </button>

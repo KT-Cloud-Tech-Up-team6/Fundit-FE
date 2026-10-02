@@ -1,10 +1,26 @@
+/** LIVE 시청·다시보기의 제목과 상품 카드 값. 실제 방송은 연결 프로젝트로 채운다(#555). */
+export type LiveProduct = {
+  title: string;
+  seller: string;
+  poster: string;
+  avatar: string;
+  /** 비어 있으면 카드 이미지 자리를 빈 면으로 둔다. 실제 프로젝트는 대표 이미지가 없을 수 있다. */
+  productImage: string;
+  /** 카드 가격. 없으면 가격 줄을 그리지 않는다. */
+  price?: number;
+  /** 정가 취소선. 할인가가 있을 때만 있다. */
+  originalPrice?: number;
+};
+
 export const roomDemo = {
   title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
   seller: "홈메이트랩",
   poster: "/images/buyer-project/live-poster.png",
   avatar: "/images/buyer-live/seller-4.png",
   productImage: "/images/buyer-live/413b1.png",
-};
+  price: 199_000,
+  originalPrice: 219_000,
+} satisfies LiveProduct;
 
 export const sampleMessages = [
   "나도 이번에 무선 청소기 사볼까~",

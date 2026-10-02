@@ -20,7 +20,7 @@ import { compactCount } from "@/shared/lib/compact-count";
 import { desktopMessages, desktopProductDescription } from "../model/desktop-room-demo";
 import { liveChatFailedNotice, type LiveChat, type LiveChatMessage } from "../model/live-chat";
 import type { LiveSeller } from "../model/live-seller";
-import { roomDemo } from "../model/room-demo";
+import { roomDemo, type LiveProduct } from "../model/room-demo";
 import styles from "./buyer-live-desktop.module.css";
 
 type Chapter = { time: string; title: string; label: string; progress: number };
@@ -92,7 +92,7 @@ export function BuyerLiveDesktop({
   exitHref = "/live",
 }: {
   liveId: string;
-  product?: typeof roomDemo;
+  product?: LiveProduct;
   replay?: boolean;
   clip?: boolean;
   /** 쇼츠 제목·배지. 기본값은 Figma 예시 문구다(데모). */
@@ -141,6 +141,9 @@ export function BuyerLiveDesktop({
   const playing = playingProp ?? internalPlaying;
   /* 실제 경로에서는 받아온 구간이 있을 때만 사이드 패널을 연다. 없으면 기존처럼 영상만 그린다. */
   const sidePanel = replay && chapters.length > 0;
+  /* 오른쪽 열의 채팅·구간 패널. 리워드 목록(rewardSummary)은 이것과 따로 그린다 — 구간이 없는 실제 다시보기도
+     연결 프로젝트 리워드와 상세 이동은 보인다(#555). */
+  const conversationPanel = demoMode || sidePanel || Boolean(liveChat);
   const [internalProgress, setInternalProgress] = useState(37.5);
   const progress = onSeek ? (progressProp ?? 0) : internalProgress;
   const selectedChapter = chapters.filter((chapter) => chapter.progress <= progress).length - 1;
@@ -262,8 +265,8 @@ export function BuyerLiveDesktop({
         aria-label={`${replay ? (clip ? "숏 클립" : "라이브 다시보기") : "라이브 시청"}${demoMode ? " 목업" : ""}`}
         className="mx-auto grid w-full max-w-300 grid-cols-3 items-start gap-6 pt-10 pb-16"
       >
-        {/* 실제 경로에는 상품 데이터가 없다. Figma 위치(왼쪽 패널)에 실시간 시청이면 판매자 행만,
-            숏 클립이면 제목만 그린다. */}
+        {/* 실제 경로는 Figma 위치(왼쪽 패널)에 실시간 시청이면 판매자 행만, 숏 클립이면 제목만 그린다.
+            연결 프로젝트는 오른쪽 열 리워드 목록과 상세 이동으로 보인다(#555). */}
         {(demoMode || clip || seller) && (
           <section
             /* 실제 실시간 시청에서는 이 패널에 판매자 행만 있다. */
@@ -483,189 +486,190 @@ export function BuyerLiveDesktop({
             </div>
           )}
         </section>
-        {(demoMode || sidePanel || liveChat) && (
+        {(conversationPanel || rewardSummary) && (
           <aside
             className={`flex min-w-0 flex-col gap-4 ${replay ? "" : "self-stretch"}`}
             aria-label="리워드와 방송 소통"
           >
             {rewardSummary}
-            {replay && (demoMode || chapters.length > 0) && panel === "chapters" ? (
-              <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
-                <div
-                  ref={chapterList}
-                  role="region"
-                  aria-label="영상 구간 목록"
-                  tabIndex={0}
-                  className="relative flex h-full [scrollbar-gutter:stable] flex-col gap-2 overflow-y-scroll overscroll-contain pr-2"
-                >
-                  {chapters.map((chapter, index) => (
-                    <button
-                      key={chapter.time}
-                      type="button"
-                      aria-label={`구간 ${index + 1} 재생`}
-                      aria-pressed={selectedChapter === index}
-                      onClick={() => seek(chapter.progress)}
-                      className="bg-layer-bg aria-pressed:bg-status-accent aria-pressed:border-border-primary-live text-body-s flex shrink-0 flex-col items-start gap-1 rounded-xs border border-transparent p-2 text-left"
-                    >
-                      <b
-                        className={
-                          selectedChapter === index
-                            ? "text-text-primary-live"
-                            : "text-text-secondary"
-                        }
-                      >
-                        {chapter.time}
-                      </b>
-                      <span className="w-full truncate">{chapter.title}</span>
-                      <Badge
-                        variant={selectedChapter === index ? "primaryLive" : "neutral"}
-                        className="mt-2"
-                      >
-                        {chapter.label}
-                      </Badge>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              /* 실시간 채팅은 Figma 1525:43628처럼 영상 아래 끝에 맞춘다(열을 행 높이로 늘린 뒤 아래로 민다).
-                 실제 경로는 위 리워드 카드가 없어도 같다. */
-              <section
-                aria-label={replay ? "다시보기 채팅" : "실시간 채팅"}
-                className={`bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border ${replay ? "" : "mt-auto"}`}
-              >
-                {demoMode && (
-                  <Badge variant="neutral" className="absolute top-3 right-3 z-10">
-                    <Icon name="chat" className="size-4" />
-                    53
-                  </Badge>
-                )}
-                <div
-                  ref={chat}
-                  role="log"
-                  aria-label="채팅 메시지"
-                  aria-live="polite"
-                  aria-relevant="additions"
-                  tabIndex={0}
-                  className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
-                >
-                  {chatMessages.map((message) => (
-                    /* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). 작성자
-                       닉네임이 길면 줄의 절반에서 말줄임한다(#488). */
-                    <p
-                      key={message.id}
-                      className={message.ai ? "flex flex-col" : "flex items-start gap-2"}
-                    >
-                      <span className="text-label-m text-text-secondary mt-0.5 max-w-1/2 shrink-0 truncate">
-                        {message.author}
-                      </span>
-                      <span
-                        className={`min-w-0 wrap-anywhere whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
-                      >
-                        {message.text}
-                      </span>
-                    </p>
-                  ))}
-                  {/* 다시보기 채팅은 현재 구간 것만 온다. 비어 있으면 빈 상자 대신 이유를 적는다. */}
-                  {replayMessages?.length === 0 && (
-                    <p className="text-text-secondary m-auto text-center">
-                      이 구간의 채팅이 없습니다.
-                    </p>
-                  )}
-                </div>
-                {(demoMode || liveChat) && (
-                  <form
-                    className="border-layer-bg relative flex shrink-0 items-end gap-2 border-t-4 p-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      send();
-                    }}
+            {conversationPanel &&
+              (replay && (demoMode || chapters.length > 0) && panel === "chapters" ? (
+                <div className="bg-layer-surface-default border-border-default h-[310px] min-h-0 rounded-sm border p-3">
+                  <div
+                    ref={chapterList}
+                    role="region"
+                    aria-label="영상 구간 목록"
+                    tabIndex={0}
+                    className="relative flex h-full [scrollbar-gutter:stable] flex-col gap-2 overflow-y-scroll overscroll-contain pr-2"
                   >
-                    {liveChat?.onRequireLogin ? (
-                      /* 비로그인은 좋아요·팔로우처럼 로그인으로 보내고 끝나면 이 화면으로 돌아온다. */
+                    {chapters.map((chapter, index) => (
                       <button
+                        key={chapter.time}
                         type="button"
-                        className={`${styles.inputBox} text-text-secondary text-left text-[14px] leading-5`}
-                        aria-label="로그인하고 메시지 입력"
-                        onClick={liveChat.onRequireLogin}
+                        aria-label={`구간 ${index + 1} 재생`}
+                        aria-pressed={selectedChapter === index}
+                        onClick={() => seek(chapter.progress)}
+                        className="bg-layer-bg aria-pressed:bg-status-accent aria-pressed:border-border-primary-live text-body-s flex shrink-0 flex-col items-start gap-1 rounded-xs border border-transparent p-2 text-left"
                       >
-                        메시지 입력
+                        <b
+                          className={
+                            selectedChapter === index
+                              ? "text-text-primary-live"
+                              : "text-text-secondary"
+                          }
+                        >
+                          {chapter.time}
+                        </b>
+                        <span className="w-full truncate">{chapter.title}</span>
+                        <Badge
+                          variant={selectedChapter === index ? "primaryLive" : "neutral"}
+                          className="mt-2"
+                        >
+                          {chapter.label}
+                        </Badge>
                       </button>
-                    ) : (
-                      <div className={styles.inputBox}>
-                        <div aria-hidden ref={mirror} className={styles.mirror}>
-                          {(liveChat ? [draft] : draft.split(/(바보|멍청이)/g)).map(
-                            (part, index) => (
-                              <span
-                                key={index}
-                                className={
-                                  /^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined
-                                }
-                              >
-                                {part}
-                              </span>
-                            ),
-                          )}
-                          {"\n"}
-                        </div>
-                        <textarea
-                          ref={input}
-                          rows={1}
-                          value={draft}
-                          aria-label="메시지 입력"
-                          placeholder="메시지 입력"
-                          maxLength={liveChat?.maxLength}
-                          aria-invalid={showBlocked}
-                          aria-describedby={showBlocked ? errorId : undefined}
-                          onChange={(event) => {
-                            setDraft(event.target.value);
-                            setBlocked(false);
-                            setRejected(false);
-                          }}
-                          onScroll={(event) => {
-                            if (mirror.current)
-                              mirror.current.scrollTop = event.currentTarget.scrollTop;
-                          }}
-                          onKeyDown={(event) => {
-                            if (
-                              event.key === "Enter" &&
-                              !event.shiftKey &&
-                              !event.nativeEvent.isComposing &&
-                              event.keyCode !== 229
-                            ) {
-                              event.preventDefault();
-                              send();
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                    <button
-                      type="submit"
-                      aria-label="메시지 전송"
-                      disabled={!draft.trim() || sending}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-xs disabled:opacity-40"
-                    >
-                      <span
-                        aria-hidden
-                        className="size-6 bg-current [mask:url(/icons/buyer-live-room/send.svg)_center/contain_no-repeat]"
-                      />
-                    </button>
-                    {showBlocked && (
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* 실시간 채팅은 Figma 1525:43628처럼 영상 아래 끝에 맞춘다(열을 행 높이로 늘린 뒤 아래로 민다).
+                 실제 경로는 위 리워드 카드가 없어도 같다. */
+                <section
+                  aria-label={replay ? "다시보기 채팅" : "실시간 채팅"}
+                  className={`bg-layer-surface-default border-border-default relative flex h-[310px] min-h-0 flex-col rounded-sm border ${replay ? "" : "mt-auto"}`}
+                >
+                  {demoMode && (
+                    <Badge variant="neutral" className="absolute top-3 right-3 z-10">
+                      <Icon name="chat" className="size-4" />
+                      53
+                    </Badge>
+                  )}
+                  <div
+                    ref={chat}
+                    role="log"
+                    aria-label="채팅 메시지"
+                    aria-live="polite"
+                    aria-relevant="additions"
+                    tabIndex={0}
+                    className="text-body-s flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain p-3"
+                  >
+                    {chatMessages.map((message) => (
+                      /* AI 답변은 라벨을 윗줄에 두고 본문을 초록으로 그린다(Figma 295:50452). 작성자
+                       닉네임이 길면 줄의 절반에서 말줄임한다(#488). */
                       <p
-                        id={errorId}
-                        role="alert"
-                        className="text-body-s text-text-static-white absolute right-11 bottom-[calc(100%+16px)] z-20 w-75 rounded-sm bg-[rgba(0,0,0,0.7)] px-3 py-3 text-center"
+                        key={message.id}
+                        className={message.ai ? "flex flex-col" : "flex items-start gap-2"}
                       >
-                        부적절한 단어가 포함되어 있어
-                        <br />
-                        메시지를 전송할 수 없습니다
+                        <span className="text-label-m text-text-secondary mt-0.5 max-w-1/2 shrink-0 truncate">
+                          {message.author}
+                        </span>
+                        <span
+                          className={`min-w-0 wrap-anywhere whitespace-pre-wrap ${message.ai ? "text-text-success" : ""}`}
+                        >
+                          {message.text}
+                        </span>
+                      </p>
+                    ))}
+                    {/* 다시보기 채팅은 현재 구간 것만 온다. 비어 있으면 빈 상자 대신 이유를 적는다. */}
+                    {replayMessages?.length === 0 && (
+                      <p className="text-text-secondary m-auto text-center">
+                        이 구간의 채팅이 없습니다.
                       </p>
                     )}
-                  </form>
-                )}
-              </section>
-            )}
+                  </div>
+                  {(demoMode || liveChat) && (
+                    <form
+                      className="border-layer-bg relative flex shrink-0 items-end gap-2 border-t-4 p-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        send();
+                      }}
+                    >
+                      {liveChat?.onRequireLogin ? (
+                        /* 비로그인은 좋아요·팔로우처럼 로그인으로 보내고 끝나면 이 화면으로 돌아온다. */
+                        <button
+                          type="button"
+                          className={`${styles.inputBox} text-text-secondary text-left text-[14px] leading-5`}
+                          aria-label="로그인하고 메시지 입력"
+                          onClick={liveChat.onRequireLogin}
+                        >
+                          메시지 입력
+                        </button>
+                      ) : (
+                        <div className={styles.inputBox}>
+                          <div aria-hidden ref={mirror} className={styles.mirror}>
+                            {(liveChat ? [draft] : draft.split(/(바보|멍청이)/g)).map(
+                              (part, index) => (
+                                <span
+                                  key={index}
+                                  className={
+                                    /^(바보|멍청이)$/.test(part) ? "text-text-warning" : undefined
+                                  }
+                                >
+                                  {part}
+                                </span>
+                              ),
+                            )}
+                            {"\n"}
+                          </div>
+                          <textarea
+                            ref={input}
+                            rows={1}
+                            value={draft}
+                            aria-label="메시지 입력"
+                            placeholder="메시지 입력"
+                            maxLength={liveChat?.maxLength}
+                            aria-invalid={showBlocked}
+                            aria-describedby={showBlocked ? errorId : undefined}
+                            onChange={(event) => {
+                              setDraft(event.target.value);
+                              setBlocked(false);
+                              setRejected(false);
+                            }}
+                            onScroll={(event) => {
+                              if (mirror.current)
+                                mirror.current.scrollTop = event.currentTarget.scrollTop;
+                            }}
+                            onKeyDown={(event) => {
+                              if (
+                                event.key === "Enter" &&
+                                !event.shiftKey &&
+                                !event.nativeEvent.isComposing &&
+                                event.keyCode !== 229
+                              ) {
+                                event.preventDefault();
+                                send();
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                      <button
+                        type="submit"
+                        aria-label="메시지 전송"
+                        disabled={!draft.trim() || sending}
+                        className="flex size-9 shrink-0 items-center justify-center rounded-xs disabled:opacity-40"
+                      >
+                        <span
+                          aria-hidden
+                          className="size-6 bg-current [mask:url(/icons/buyer-live-room/send.svg)_center/contain_no-repeat]"
+                        />
+                      </button>
+                      {showBlocked && (
+                        <p
+                          id={errorId}
+                          role="alert"
+                          className="text-body-s text-text-static-white absolute right-11 bottom-[calc(100%+16px)] z-20 w-75 rounded-sm bg-[rgba(0,0,0,0.7)] px-3 py-3 text-center"
+                        >
+                          부적절한 단어가 포함되어 있어
+                          <br />
+                          메시지를 전송할 수 없습니다
+                        </p>
+                      )}
+                    </form>
+                  )}
+                </section>
+              ))}
           </aside>
         )}
       </main>

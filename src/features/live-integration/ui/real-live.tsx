@@ -11,9 +11,18 @@ import {
   getAllFollows,
   unfollowSeller,
 } from "@/entities/seller/api/follow-api";
+import type { LiveProduct } from "@/features/buyer-live-room/model/room-demo";
 import { BuyerLiveDesktop } from "@/features/buyer-live-room/ui/buyer-live-desktop";
 import { BuyerLiveReplay } from "@/features/buyer-live-replay/ui/buyer-live-replay";
 import { BuyerLiveRoom } from "@/features/buyer-live-room/ui/buyer-live-room";
+import {
+  publicRewardsQuery,
+  toOrderLines,
+  toRewards,
+} from "@/features/reward-selection/model/public-reward";
+import type { RewardCart } from "@/features/reward-selection/model/reward-demo";
+import { FundingCta } from "@/features/reward-selection/ui/funding-cta";
+import { LiveRewardSummary } from "@/features/reward-selection/ui/live-reward-summary";
 import { useAuth } from "@/providers/auth-provider";
 import {
   getAnsweredQuestions,
@@ -150,17 +159,17 @@ export function RealBuyerLive({
     toggleLike.mutate(next, { onError: () => setOverride(previous) });
   }
 
-  /* LIVE 응답에는 판매자가 없어 연결 프로젝트 상세의 seller로 판매자 행을 그린다. 프로젝트 상세
-     화면과 같은 키·조회라 캐시를 함께 쓴다. 판매자 행은 실시간 시청 화면에만 있어 다시보기에서는
-     부르지 않는다. 실패하면 판매자 행만 그리지 않고 시청은 그대로 둔다. */
-  const liveProjectId = isVod ? undefined : playback.data?.projectId;
+  /* 연결 프로젝트 상세로 실시간·다시보기의 상품 카드·리워드 목록·헤더 제목을 그린다(#555). LIVE 응답에는 판매자가
+     없어 판매자 행도 이 seller로 그린다. 프로젝트 상세 화면과 같은 키·조회라 캐시를 함께 쓴다. 판매자 행은 실시간
+     시청 화면에만 있다. 실패하면 카드·판매자 행만 그리지 않고 시청은 그대로 둔다. */
+  const projectId = playback.data?.projectId;
   const project = useQuery({
-    queryKey: ["public-project", liveProjectId],
-    queryFn: ({ signal }) => getPublicProject(liveProjectId!, signal),
-    enabled: liveProjectId !== undefined,
+    queryKey: ["public-project", projectId],
+    queryFn: ({ signal }) => getPublicProject(projectId!, signal),
+    enabled: projectId !== undefined,
     retry: false,
   });
-  const seller = project.data?.seller;
+  const seller = isVod ? undefined : project.data?.seller;
   /* 자기 자신은 팔로우할 수 없어(BE 400) 본인 LIVE에서는 팔로우 버튼을 그리지 않는다. */
   const ownLive = seller !== undefined && seller.sellerId === memberId;
   /* 판매자 한 명의 팔로우 여부를 묻는 API가 없어 내 팔로우 목록으로 판단한다. 프로젝트 상세와
@@ -168,7 +177,7 @@ export function RealBuyerLive({
   const follows = useQuery({
     queryKey: followsQueryKey(memberId),
     queryFn: ({ signal }) => getAllFollows(signal),
-    enabled: memberId !== undefined && liveProjectId !== undefined,
+    enabled: memberId !== undefined && !isVod && projectId !== undefined,
     retry: false,
   });
   /* 누른 직후에는 누른 값을 먼저 그린다. 좋아요와 같이 누른 회원·판매자의 값만 쓴다. */
@@ -225,6 +234,62 @@ export function RealBuyerLive({
     following,
     onToggleFollow: ownLive || followUnknown ? undefined : onToggleFollow,
   };
+
+  /* 연결 프로젝트의 리워드. 프로젝트 상세·주문서와 같은 키라 캐시를 함께 쓴다. 리워드 선택은 프로젝트 상세와 같이
+     진행 중이고 리워드를 받았을 때만 열고, 담은 줄은 같은 주문서 계약(items 쿼리)으로 넘긴다. 로그인 확인은
+     주문서의 회원 게이트가 맡는다. */
+  const rewards = useQuery({
+    ...publicRewardsQuery(projectId ?? ""),
+    enabled: projectId !== undefined,
+  });
+  const rewardList = rewards.data ? toRewards(rewards.data) : undefined;
+  const selectableRewards =
+    project.data?.status === "ONGOING" && rewardList?.length ? rewardList : undefined;
+  function toCheckout(cart: RewardCart) {
+    if (!selectableRewards) return;
+    const items = JSON.stringify(toOrderLines(selectableRewards, cart));
+    router.push(`/funding/${projectId}/checkout?${new URLSearchParams({ items })}`);
+  }
+  /* 상품 카드는 프로젝트 상세를 받은 뒤에 그린다(제목을 알아야 한다). 가격은 판매자가 정한 순서의 첫 리워드다
+     (FE 자체 판단, #555). 헤더 제목은 Figma처럼 연결 프로젝트명이고, 받기 전에는 기존 자리표시자다. */
+  const cardProjectId = project.data ? projectId : undefined;
+  const firstReward = rewardList?.[0];
+  const product: LiveProduct = {
+    ...realProduct,
+    title: project.data?.title ?? (isVod ? "다시보기" : realProduct.title),
+    productImage: project.data?.coverImageUrl ?? "",
+    price: firstReward?.price,
+    originalPrice: firstReward?.originalPrice,
+  };
+  /* 더보기는 확인된 목업 동작대로 리워드 선택 시트를 연다. 펀딩 중이 아니거나 리워드를 아직·끝내 받지 못하면
+     UCS 21처럼 프로젝트 상세로 보낸다. */
+  const rewardAction = selectableRewards ? (
+    <FundingCta projectId={projectId!} more rewards={selectableRewards} onSubmit={toCheckout} />
+  ) : (
+    <Link
+      href={`/projects/${encodeURIComponent(projectId ?? "")}?tab=story`}
+      aria-label="프로젝트 상세에서 리워드 보기"
+      className="bg-layer-surface-primary text-text-static-white flex shrink-0 items-center self-stretch px-3 text-[12px] leading-[1.3] font-semibold"
+    >
+      더보기
+    </Link>
+  );
+  /* 데스크톱 오른쪽 열 리워드 목록(Figma 1525:43628)과 [상세 정보 보기]. */
+  const rewardSummary = cardProjectId ? (
+    <LiveRewardSummary
+      projectId={cardProjectId}
+      rewards={rewardList ?? []}
+      state={
+        rewards.isPending ? (
+          <p>리워드를 불러오는 중입니다.</p>
+        ) : rewards.isError ? (
+          <QueryError error={rewards.error} retry={() => void rewards.refetch()} />
+        ) : rewardList?.length ? undefined : (
+          <p>등록된 리워드가 없습니다.</p>
+        )
+      }
+    />
+  ) : null;
 
   /* 구간 조회는 조회 수로 잡히는 호출이라(BE 주석) 다시보기에서 한 번만 읽는다. */
   const seekRef = useRef<LivePlayerHandle | null>(null);
@@ -400,8 +465,8 @@ export function RealBuyerLive({
         clip={clip}
         {...clipProps}
         {...playbackProps}
-        product={realProduct}
-        rewardSummary={null}
+        product={product}
+        rewardSummary={rewardSummary}
         questions={questionData}
         questionsState={questionState}
         onRefreshQuestions={() => void questions.refetch()}
@@ -431,7 +496,9 @@ export function RealBuyerLive({
         clipId={shortClip?.highlightId}
         {...clipProps}
         {...playbackProps}
-        product={{ ...realProduct, title: "다시보기" }}
+        projectId={cardProjectId}
+        product={product}
+        rewardAction={rewardAction}
         demoMode={false}
         video={video}
         chapters={chapters}
@@ -449,7 +516,9 @@ export function RealBuyerLive({
   return (
     <BuyerLiveRoom
       liveId={liveId}
-      product={{ ...realProduct, title: "라이브 방송" }}
+      projectId={cardProjectId}
+      product={product}
+      rewardAction={rewardAction}
       video={video}
       questionsData={questionData}
       questionsState={questionState}

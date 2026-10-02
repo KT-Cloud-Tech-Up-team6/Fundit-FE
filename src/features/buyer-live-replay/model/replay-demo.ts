@@ -1,10 +1,14 @@
+import type { LiveProduct } from "@/features/buyer-live-room/model/room-demo";
+
 export const replayDemo = {
   title: "[진짜싹싹] 35,000Pa 초강력 흡입, 가볍게 끝내는 무선청소기",
   seller: "홈메이트랩",
   poster: "/images/buyer-project/live-poster.png",
   avatar: "/images/buyer-live/seller-4.png",
   productImage: "/images/buyer-live/413b1.png",
-};
+  price: 199_000,
+  originalPrice: 219_000,
+} satisfies LiveProduct;
 export const messages = [
   "나도 이번에 무선 청소기 사볼까~",
   "할인 있나요?",
